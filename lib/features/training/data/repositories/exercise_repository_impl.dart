@@ -85,6 +85,17 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
+  Future<Result<Map<int, List<int>>>> getEquipmentMap() async {
+    try {
+      final map = await _dao.getAllEquipmentMappings();
+      return Success(map);
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to load equipment mappings: $e'));
+    }
+  }
+
+  @override
   Future<Result<List<domain.ExerciseMuscleFocus>>> getMuscleFoci(
       int exerciseId) async {
     try {

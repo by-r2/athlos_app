@@ -51,6 +51,16 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     return rows.map((r) => r.equipmentId).toList();
   }
 
+  /// Returns all exercise→equipment mappings as a map.
+  Future<Map<int, List<int>>> getAllEquipmentMappings() async {
+    final rows = await select(exerciseEquipments).get();
+    final map = <int, List<int>>{};
+    for (final row in rows) {
+      map.putIfAbsent(row.exerciseId, () => []).add(row.equipmentId);
+    }
+    return map;
+  }
+
   Future<void> setEquipments(int exerciseId, List<int> equipmentIds) async {
     await (delete(exerciseEquipments)
           ..where((e) => e.exerciseId.equals(exerciseId)))

@@ -7,6 +7,8 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_setup_screen.dart';
 import '../../features/training/presentation/screens/exercise_detail_screen.dart';
 import '../../features/training/presentation/screens/training_shell.dart';
+import '../../features/training/presentation/screens/workout_detail_screen.dart';
+import '../../features/training/presentation/screens/workout_form_screen.dart';
 import 'route_paths.dart';
 
 part 'app_router.g.dart';
@@ -62,6 +64,26 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) {
           final id = int.parse(state.pathParameters['exerciseId']!);
           return ExerciseDetailScreen(exerciseId: id);
+        },
+      ),
+
+      // Workout routes (pushed on top of training shell)
+      GoRoute(
+        path: RoutePaths.trainingWorkoutNew,
+        builder: (context, state) => const WorkoutFormScreen(),
+      ),
+      GoRoute(
+        path: '${RoutePaths.trainingWorkouts}/:workoutId',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['workoutId']!);
+          return WorkoutDetailScreen(workoutId: id);
+        },
+      ),
+      GoRoute(
+        path: '${RoutePaths.trainingWorkouts}/:workoutId/edit',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['workoutId']!);
+          return WorkoutFormScreen(workoutId: id);
         },
       ),
     ],

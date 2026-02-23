@@ -17,6 +17,9 @@ abstract final class RoutePaths {
   static const trainingExercises = '/training/exercises';
   static const trainingHistory = '/training/history';
   static const trainingEquipment = '/training/equipment';
+  static const trainingWorkoutNew = '/training/workouts/new';
+  // :workoutId used via string interpolation
+  // e.g. '${trainingWorkouts}/$id' and '${trainingWorkouts}/$id/edit'
 
   // Diet module (future)
   static const diet = '/diet';

@@ -103,3 +103,11 @@ Future<List<ExerciseMuscleFocus>> exerciseMuscleFoci(
   final result = await repo.getMuscleFoci(exerciseId);
   return result.getOrThrow();
 }
+
+/// Maps exerciseId → list of required equipment IDs for all exercises.
+@riverpod
+Future<Map<int, List<int>>> exerciseEquipmentMap(Ref ref) async {
+  final repo = ref.watch(exerciseRepositoryProvider);
+  final result = await repo.getEquipmentMap();
+  return result.getOrThrow();
+}

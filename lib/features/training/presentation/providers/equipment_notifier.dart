@@ -72,10 +72,28 @@ class UserEquipmentIds extends _$UserEquipmentIds {
     final repo = ref.read(equipmentRepositoryProvider);
     await repo.toggleUserEquipment(equipmentId, owns: owns);
 
+    if (!ref.mounted) return;
+
     if (owns) {
       state = AsyncData({...current, equipmentId});
     } else {
       state = AsyncData({...current}..remove(equipmentId));
     }
+  }
+
+  /// Marks multiple equipment IDs as owned in a single batch.
+  Future<void> addAll(Iterable<int> equipmentIds) async {
+    final current = state.value ?? {};
+    final toAdd = equipmentIds.where((id) => !current.contains(id)).toList();
+    if (toAdd.isEmpty) return;
+
+    final repo = ref.read(equipmentRepositoryProvider);
+    for (final id in toAdd) {
+      await repo.toggleUserEquipment(id, owns: true);
+    }
+
+    if (!ref.mounted) return;
+
+    state = AsyncData({...current, ...toAdd});
   }
 }

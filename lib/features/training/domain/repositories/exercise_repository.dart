@@ -11,6 +11,7 @@ abstract interface class ExerciseRepository {
   Future<Result<List<Exercise>>> getByMuscleGroup(MuscleGroup group);
   Future<Result<List<Exercise>>> getVariations(int exerciseId);
   Future<Result<List<int>>> getEquipmentIds(int exerciseId);
+  Future<Result<Map<int, List<int>>>> getEquipmentMap();
   Future<Result<List<ExerciseMuscleFocus>>> getMuscleFoci(int exerciseId);
   Future<Result<int>> create(
     Exercise exercise, {
