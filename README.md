@@ -6,12 +6,12 @@ A workout and diet tracking app inspired by Greek mythology. Built with Flutter.
 
 | Document | Description |
 | --- | --- |
-| [Project Context](./docs/CONTEXT.md) | Vision, modules, and future ideas |
-| [Architecture](./docs/ARCHITECTURE.md) | Stack, app structure, and evolution plan |
+| [Project Context](./docs/context.md) | Vision, modules, and future ideas |
+| [Architecture](./docs/architecture.md) | Stack, app structure, and evolution plan |
 | [Requirements](./docs/REQUIREMENTS.md) | User stories by phase (V1, V2, V3) |
-| [Training Module](./docs/modules/TRAINING.md) | Training module features |
-| [Diet Module](./docs/modules/DIET.md) | Diet module features |
-| [Development Flow](./docs/DEVELOPMENT_FLOW.md) | Step-by-step guide to implement features |
+| [Training Module](./docs/modules/training.md) | Training module features |
+| [Diet Module](./docs/modules/diet.md) | Diet module features |
+| [Development Flow](./docs/development_flow.md) | Step-by-step guide to implement features |
 
 ## Getting Started
 

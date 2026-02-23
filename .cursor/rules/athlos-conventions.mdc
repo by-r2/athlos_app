@@ -9,10 +9,11 @@ alwaysApply: true
 
 Read the project docs before coding to understand context and decisions:
 
-- `docs/CONTEXT.md` — project vision, modules, and future ideas
-- `docs/ARCHITECTURE.md` — stack, app structure, entities, and evolution plan
-- `docs/modules/TRAINING.md` — training module features
-- `docs/modules/DIET.md` — diet module features
+- `docs/context.md` — project vision, modules, and future ideas
+- `docs/architecture.md` — stack, app structure, entities, and evolution plan
+- `docs/development_flow.md` — step-by-step feature implementation guide
+- `docs/modules/training.md` — training module features
+- `docs/modules/diet.md` — diet module features
 
 ## Language
 
@@ -26,6 +27,7 @@ Read the project docs before coding to understand context and decisions:
 - Files and folders: `snake_case`
 - Private members: prefix with `_`
 - Boolean variables/getters: prefix with `is`, `has`, `can`, `should`
+- Global reusable widgets: prefix with `Athlos` (e.g. `AthlosPrimaryButton`, `AthlosStatCard`)
 
 ## Dart Best Practices
 
@@ -38,12 +40,32 @@ Read the project docs before coding to understand context and decisions:
 
 ## Architecture Rules
 
-See `docs/ARCHITECTURE.md` for full structure. Key rules:
+See `docs/architecture.md` for full structure. Key rules:
 
-- **Presentation never accesses DataSource directly** — always through a repository
+- **Presentation never accesses DataSource directly** — always through a Use Case or repository provider
 - **Domain imports nothing from Data or Presentation** — it is the innermost layer
 - **Repositories are abstracted by interfaces** in Domain — implementation in Data can be swapped without affecting other layers
 - Each feature follows: `domain/` → `data/` → `presentation/`
+- **Modules never import each other's domain or data** — shared contracts live in `core/domain/`
+
+## Error Handling
+
+- Use `Result<T>` sealed type (`Success<T>` / `Failure<T>`) for all repository and use case return types
+- Use `AppException` sealed hierarchy for typed errors (`DatabaseException`, `ValidationException`, `NotFoundException`, `ConflictException`)
+- **Repositories never throw** — catch data-layer exceptions and wrap into `Result.failure(AppException)`
+- **Use Cases never throw** — return `Result<T>`
+- **Controllers unwrap** `Result<T>` into `AsyncValue<T>` (the unwrap boundary)
+- UI consumes `AsyncValue.when(data:, error:, loading:)` — pattern-match on `AppException` subtypes for specific messages
+
+## Use Cases
+
+- Location: `features/<module>/domain/usecases/`
+- Single `call()` method per class (callable class pattern)
+- Pure Dart — no framework imports (no Flutter, no Riverpod, no Drift)
+- Receive repositories via constructor, injected through Riverpod providers
+- Use dedicated params class when more than 2 parameters
+- **Skip for simple CRUD** with no business logic — controller calls repository directly
+- **Required when**: validation, business rules, multiple repositories, or expected complexity growth
 
 ## Riverpod
 
@@ -52,7 +74,7 @@ See `docs/ARCHITECTURE.md` for full structure. Key rules:
 - Use `ref.listen` for side effects (navigation, showing snackbars)
 - Use `AsyncValue` pattern (`.when(data:, error:, loading:)`) for async state in the UI
 - Keep providers small and focused — one responsibility per provider
-- Repository providers go in `data/repositories/`; UI state providers in `presentation/`
+- Repository providers go in `data/repositories/`; Use Case providers in `domain/usecases/`; UI state providers in `presentation/controllers/`
 
 ## Drift (database)
 
@@ -61,6 +83,7 @@ See `docs/ARCHITECTURE.md` for full structure. Key rules:
 - Use DAOs to organize queries by entity/feature
 - Use type converters for enums and complex types
 - Keep table definitions in dedicated files under `data/datasources/`
+- Use `transaction()` for atomic multi-table writes
 
 ## go_router
 
@@ -69,12 +92,27 @@ See `docs/ARCHITECTURE.md` for full structure. Key rules:
 - Use redirect guards for future auth flows
 - Use `GoRouterState` extension for typed route parameters
 
+## Design Tokens
+
+- Never hardcode spacing, radius, elevation, or animation durations
+- Use token classes: `AthlosSpacing`, `AthlosRadius`, `AthlosElevation`, `AthlosDurations`
+- Colors via `Theme.of(context).colorScheme` — typography via `Theme.of(context).textTheme`
+- Token files live in `core/theme/`
+
 ## UI / Flutter
 
 - Never hardcode colors — always use `Theme.of(context).colorScheme`
 - Never hardcode strings — use ARB files via `AppLocalizations`
+- Never hardcode spacing/radius — use Design Tokens (`AthlosSpacing.md`, `AthlosRadius.sm`)
 - Always add a `Key` to widgets in lists (`ValueKey`, `ObjectKey`)
 - Prefer `const` widgets to reduce rebuilds
-- Extract reusable widgets; global ones in `lib/core/widgets/`, feature-specific in `presentation/widgets/`
 - Use `SizedBox` instead of `Container` when only size is needed
 - Prefer `gap` package or `SizedBox` over `Padding` for spacing between widgets
+
+## Widget Organization
+
+- Global reusable widgets go in `core/widgets/<type>/` organized by type:
+  - `buttons/`, `cards/`, `inputs/`, `feedback/`, `layout/`, `overlays/`
+- Feature-specific widgets go in `features/<module>/presentation/widgets/`
+- **If a widget imports from `features/*/domain/`, it belongs to the feature, NOT to `core/`**
+- Extract to `core/widgets/` only when a widget appears in **two or more features**

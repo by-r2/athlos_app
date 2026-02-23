@@ -21,8 +21,8 @@ The app is designed as a **hub-based** system: a central screen (the Hub) provid
 
 See each module's documentation for details:
 
-- [Training Module](./modules/TRAINING.md)
-- [Diet Module](./modules/DIET.md)
+- [Training Module](./modules/training.md)
+- [Diet Module](./modules/diet.md)
 
 ## Navigation
 
