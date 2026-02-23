@@ -6,19 +6,20 @@
 
 ## Stack
 
-| Layer      | V1 (Local)              | Future (Remote)                      |
-| ---------- | ----------------------- | ------------------------------------ |
-| Frontend   | Flutter                 | Flutter                              |
-| State      | Riverpod                | Riverpod                             |
-| DI         | Riverpod                | Riverpod                             |
-| Database   | SQLite via Drift        | PostgreSQL (remote) + SQLite (cache) |
-| Navigation | go_router               | go_router                            |
-| Backend    | —                       | REST API or GraphQL                  |
-| Auth       | —                       | Supabase Auth / Firebase Auth        |
-| AI         | —                       | LLM API (Quíron)                    |
-| Design     | Material 3 (custom)     | Material 3 (custom)                  |
-| i18n       | PT-BR (i18n ready)      | Multilingual via ARB                 |
-| Platforms  | Android + iOS           | Android + iOS + Web (possible)       |
+| Layer      | V1 (Local)              | V2 (Supabase)                        | V3 (AI & Integrations)               |
+| ---------- | ----------------------- | ------------------------------------ | ------------------------------------ |
+| Frontend   | Flutter                 | Flutter                              | Flutter                              |
+| State      | Riverpod                | Riverpod                             | Riverpod                             |
+| DI         | Riverpod                | Riverpod                             | Riverpod                             |
+| Database   | SQLite via Drift        | PostgreSQL (Supabase) + SQLite (local cache) | PostgreSQL (Supabase) + SQLite |
+| Navigation | go_router               | go_router                            | go_router                            |
+| Backend    | —                       | Supabase (PostgREST + Edge Functions) | Supabase + Go API (custom logic)    |
+| Auth       | —                       | Supabase Auth                        | Supabase Auth                        |
+| AI         | —                       | —                                    | LLM API via Go (Quíron)             |
+| IaC        | —                       | Terraform                            | Terraform                            |
+| Design     | Material 3 (custom)     | Material 3 (custom)                  | Material 3 (custom)                  |
+| i18n       | PT-BR (i18n ready)      | Multilingual via ARB                 | Multilingual via ARB                 |
+| Platforms  | Android + iOS           | Android + iOS                        | Android + iOS + Web (possible)       |
 
 ## Technical Decisions
 
@@ -410,7 +411,7 @@ Hub-based architecture using go_router:
 /training/workouts      → Workout list
 /training/exercises     → Exercise catalog
 /training/history       → Execution history
-/diet                   → Diet shell (future)
+/diet                   → Diet shell
 /diet/home              → Diet dashboard
 /diet/meals             → Meal list
 /diet/foods             → Food catalog
@@ -422,34 +423,66 @@ Hub-based architecture using go_router:
 ### V1 — Local & Free
 
 - Flutter app with local SQLite
-- All core Training module features
-- Zero infrastructure cost
-- Published to stores (Google Play / App Store)
+- Training module (full feature set)
+- Diet module (full feature set)
+- Manual data export/import for backup (JSON)
+- Zero infrastructure cost — everything runs on-device
+- Published to stores (Google Play / App Store) to build a user base
+- Freemium model: all core features free, premium features defined but not gated yet
 
-### V2 — Backend & Sync
+### V2 — Supabase & Premium
 
-- Add `RemoteDataSource` to repositories
-- API + PostgreSQL (Supabase or custom infra)
-- User authentication
-- Cross-device sync
-- Cloud backup
+No custom API. Supabase provides everything V2 needs:
 
-### V3 — AI & Integrations
+- **Supabase Auth** — email/password + OAuth (Google, Apple)
+- **PostgREST** — auto-generated REST API from PostgreSQL schema (no endpoints to write)
+- **Realtime** — websocket subscriptions for multi-device sync
+- **RLS Policies** — row-level security on PostgreSQL (authorization without server code)
+- **Edge Functions** — Deno/TypeScript for custom logic (e.g. local-to-cloud data migration)
+- **Terraform** — infrastructure as code for provisioning and portability
 
-- Quíron: AI assistant (chat + workout/diet suggestions)
-- Apple Health / Google Fit integration
-- Possible premium features to cover AI costs
+Flutter changes:
+- Add `RemoteDataSource` using Supabase SDK (implements same repository interfaces)
+- Repositories orchestrate local (Drift) + remote (Supabase) data sources
+- SQLite becomes a local cache; Supabase PostgreSQL becomes the source of truth
+
+Premium features unlocked:
+- Cloud sync and automatic backup
+- Multi-device support
+- Advanced progression charts
+
+### V3 — Go API, AI & Integrations
+
+Custom **Go API** for logic that exceeds Supabase's capabilities:
+
+- **Quíron** — AI orchestration (LLM context management, prompt engineering, response streaming)
+- **Health integrations** — Apple Health / Google Fit (server-side OAuth + data processing)
+- **Async jobs** — trend analysis, report generation, heavy computations
+- **Kleos** — gamification system (achievements, streaks, challenges)
+
+Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premium intelligence and integrations. Both managed via Terraform.
 
 ## Database Schema (V1)
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
 
-### Main Entities (Training Module)
+### Main Entities
+
+**Training Module:**
 
 - **Exercise** — exercise with muscle group, specific muscles, muscle region
 - **Equipment** — training equipment
 - **Workout** — workout (set of exercises)
 - **WorkoutExecution** — record of a workout execution
+
+**Diet Module:**
+
+- **Food** — food item with macronutrient data (kcal, protein, carbs, fat)
+- **Meal** — a collection of foods with quantities
+- **DailyLog** — aggregated meals and caloric data for a given day
+
+**Shared:**
+
 - **UserProfile** — user profile (weight, height, goal, body aesthetic)
 
 ### Relations
@@ -459,3 +492,5 @@ SQLite will be structured with the same entities and relations the remote databa
 - Workout ↔ Exercise (many-to-many, with sets/reps)
 - WorkoutExecution → Workout (an execution belongs to a workout)
 - UserProfile ↔ Equipment (equipment the user owns)
+- Meal ↔ Food (many-to-many, with quantity)
+- DailyLog ↔ Meal (one-to-many)

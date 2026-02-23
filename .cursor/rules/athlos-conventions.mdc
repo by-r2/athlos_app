@@ -11,6 +11,7 @@ Read the project docs before coding to understand context and decisions:
 
 - `docs/context.md` — project vision, modules, and future ideas
 - `docs/architecture.md` — stack, app structure, entities, and evolution plan
+- `docs/requirements.md` — user stories and acceptance criteria by release phase (MoSCoW)
 - `docs/development_flow.md` — step-by-step feature implementation guide
 - `docs/modules/training.md` — training module features
 - `docs/modules/diet.md` — diet module features

@@ -6,7 +6,7 @@ The name **Athlos** comes from *Dodekathlos* (Δωδέκαθλος) — the Twel
 
 ## Overview
 
-Athlos is a modular health and fitness app built around independent modules. The initial focus is on the **Training** module, with **Diet** and other modules planned for future releases.
+Athlos is a modular health and fitness app built around independent modules. V1 ships with **Training** and **Diet** — everything that runs locally at zero cost. Other modules are planned for future releases.
 
 The app is designed as a **hub-based** system: a central screen (the Hub) provides access to each module. Each module is a self-contained experience with its own home dashboard and navigation. New modules can be added without restructuring the app.
 
@@ -14,8 +14,8 @@ The app is designed as a **hub-based** system: a central screen (the Hub) provid
 
 | Module       | Status        | Description                                         |
 | ------------ | ------------- | --------------------------------------------------- |
-| Training     | 🔨 Priority   | Workout registration, planning, and tracking        |
-| Diet         | 📋 Planned    | Food registration, meals, and caloric control       |
+| Training     | 🔨 V1         | Workout registration, planning, and tracking        |
+| Diet         | 🔨 V1         | Food registration, meals, and caloric control       |
 | Assessments  | 💡 Idea       | Physical assessments, body measurements, progress photos |
 | Progress     | 💡 Idea       | Consolidated dashboard across all modules           |
 
@@ -43,6 +43,27 @@ Hub (Olympus)
 ```
 
 Each module's **Home** tab is a dashboard showing relevant summary data for that module.
+
+## Monetization Strategy
+
+Athlos follows a **freemium** model:
+
+**Free (V1 — local):**
+- Training and Diet modules with all core features
+- Exercise and food catalogs (pre-loaded)
+- Workout builder, meal builder, execution logging
+- Full local history
+- Manual data export/import (backup)
+
+**Premium (V2+ — requires account):**
+- Cloud sync and automatic backup
+- Multi-device support
+- Quíron AI assistant (personalized suggestions, Q&A chat)
+- Advanced progression charts and trend analysis
+- Kleos gamification (achievements, streaks, challenges)
+- Formatted report exports (PDF)
+
+The free tier must be fully functional and valuable on its own — good enough to attract and retain users. Premium features add convenience (sync, backup) and intelligence (AI, analytics) that justify a subscription.
 
 ## Future Ideas
 

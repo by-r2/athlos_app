@@ -1,6 +1,6 @@
 # Diet Module
 
-> Status: 📋 Planned — future development.
+> Status: 🔨 V1 — included in V1 (local & free).
 
 ## Features
 
