@@ -46,6 +46,17 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<domain.WorkoutExecution?>> getLastFinished() async {
+    try {
+      final row = await _dao.getLastFinished();
+      return Success(row != null ? _executionToDomain(row) : null);
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to load last finished execution: $e'));
+    }
+  }
+
+  @override
   Future<Result<int>> start(int workoutId) async {
     try {
       final id = await _dao.create(

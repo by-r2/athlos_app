@@ -17,6 +17,13 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(e) => OrderingTerm.desc(e.startedAt)]))
           .get();
 
+  /// Returns the most recently finished execution, or null.
+  Future<WorkoutExecution?> getLastFinished() => (select(workoutExecutions)
+        ..where((e) => e.finishedAt.isNotNull())
+        ..orderBy([(e) => OrderingTerm.desc(e.finishedAt)])
+        ..limit(1))
+      .getSingleOrNull();
+
   Future<List<WorkoutExecution>> getByWorkout(int workoutId) =>
       (select(workoutExecutions)
             ..where((e) => e.workoutId.equals(workoutId))

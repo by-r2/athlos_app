@@ -7,6 +7,7 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<List<WorkoutExecution>>> getAll();
   Future<Result<List<WorkoutExecution>>> getByWorkout(int workoutId);
   Future<Result<WorkoutExecution?>> getById(int id);
+  Future<Result<WorkoutExecution?>> getLastFinished();
   Future<Result<int>> start(int workoutId);
   Future<Result<void>> finish(int executionId, {String? notes});
   Future<Result<void>> delete(int id);

@@ -67,7 +67,13 @@ class _TrainingShell extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(RoutePaths.hub),
+          onPressed: () {
+            if (_isSubPage(currentPath)) {
+              context.go(RoutePaths.trainingHome);
+            } else {
+              context.go(RoutePaths.hub);
+            }
+          },
         ),
         title: Text(l10n.trainingModule),
       ),
@@ -95,6 +101,14 @@ class _TrainingShell extends StatelessWidget {
       ),
     );
   }
+
+  static const _primaryPaths = {
+    RoutePaths.trainingHome,
+    RoutePaths.trainingWorkouts,
+    RoutePaths.trainingHistory,
+  };
+
+  bool _isSubPage(String path) => !_primaryPaths.contains(path);
 
   int _indexFromPath(String path) {
     if (path.startsWith(RoutePaths.trainingWorkouts)) return 1;

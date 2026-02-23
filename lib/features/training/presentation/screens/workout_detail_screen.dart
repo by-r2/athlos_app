@@ -24,6 +24,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
 
     final workoutAsync = ref.watch(workoutByIdProvider(workoutId));
     final exercisesAsync = ref.watch(workoutExercisesProvider(workoutId));
+    final nextAsync = ref.watch(nextWorkoutProvider);
 
     return workoutAsync.when(
       loading: () => Scaffold(
@@ -42,27 +43,126 @@ class WorkoutDetailScreen extends ConsumerWidget {
           );
         }
 
+        final isNext = nextAsync.value?.id == workout.id;
+
         return Scaffold(
           appBar: AppBar(
             title: Text(workout.name),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: l10n.edit,
-                onPressed: () => context.push(
-                  '${RoutePaths.trainingWorkouts}/${workout.id}/edit',
+              if (!workout.isArchived)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: l10n.edit,
+                  onPressed: () => context.push(
+                    '${RoutePaths.trainingWorkouts}/${workout.id}/edit',
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                tooltip: l10n.delete,
-                onPressed: () => _confirmDelete(context, ref),
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  switch (value) {
+                    case 'archive':
+                      await ref
+                          .read(workoutListProvider.notifier)
+                          .archiveWorkout(workout.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.workoutArchived)),
+                        );
+                        context.pop();
+                      }
+                    case 'unarchive':
+                      await ref
+                          .read(workoutListProvider.notifier)
+                          .unarchiveWorkout(workout.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.workoutUnarchived)),
+                        );
+                        context.pop();
+                      }
+                    case 'duplicate':
+                      await ref
+                          .read(workoutListProvider.notifier)
+                          .duplicateWorkout(workout.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.duplicatedWorkout)),
+                        );
+                      }
+                    case 'delete':
+                      _confirmDelete(context, ref);
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (!workout.isArchived)
+                    PopupMenuItem(
+                      value: 'archive',
+                      child: ListTile(
+                        leading: const Icon(Icons.archive_outlined),
+                        title: Text(l10n.archiveWorkout),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    )
+                  else
+                    PopupMenuItem(
+                      value: 'unarchive',
+                      child: ListTile(
+                        leading: const Icon(Icons.unarchive_outlined),
+                        title: Text(l10n.unarchiveWorkout),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  PopupMenuItem(
+                    value: 'duplicate',
+                    child: ListTile(
+                      leading: const Icon(Icons.copy_outlined),
+                      title: Text(l10n.duplicateWorkout),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading:
+                          Icon(Icons.delete_outline, color: colorScheme.error),
+                      title: Text(l10n.delete,
+                          style: TextStyle(color: colorScheme.error)),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isNext)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AthlosSpacing.md,
+                    vertical: AthlosSpacing.sm,
+                  ),
+                  color: colorScheme.primaryContainer,
+                  child: Row(
+                    children: [
+                      Icon(Icons.play_circle_outline,
+                          color: colorScheme.onPrimaryContainer, size: 20),
+                      const SizedBox(width: AthlosSpacing.sm),
+                      Text(
+                        l10n.nextWorkoutBadge,
+                        style: textTheme.labelLarge?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (workout.description != null &&
                   workout.description!.isNotEmpty)
                 Padding(
@@ -122,19 +222,31 @@ class WorkoutDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: FilledButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.play_arrow),
-                label: Text(l10n.startWorkout),
-              ),
-            ),
-          ),
+          bottomNavigationBar: workout.isArchived
+              ? null
+              : SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: FilledButton.icon(
+                      onPressed: () => _startWorkout(context, ref),
+                      icon: const Icon(Icons.play_arrow),
+                      label: Text(l10n.startWorkout),
+                    ),
+                  ),
+                ),
         );
       },
     );
+  }
+
+  void _startWorkout(BuildContext context, WidgetRef ref) async {
+    await ref.read(markWorkoutDoneProvider(workoutId).future);
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.workoutMarkedAsDone)),
+      );
+    }
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {

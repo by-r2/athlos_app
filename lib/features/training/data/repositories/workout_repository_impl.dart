@@ -24,6 +24,27 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
+  Future<Result<List<domain.Workout>>> getActive() async {
+    try {
+      final rows = await _dao.getActive();
+      return Success(rows.map(_toDomain).toList());
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to load active workouts: $e'));
+    }
+  }
+
+  @override
+  Future<Result<List<domain.Workout>>> getArchived() async {
+    try {
+      final rows = await _dao.getArchived();
+      return Success(rows.map(_toDomain).toList());
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to load archived workouts: $e'));
+    }
+  }
+
+  @override
   Future<Result<domain.Workout?>> getById(int id) async {
     try {
       final row = await _dao.getById(id);
@@ -107,6 +128,46 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
+  Future<Result<void>> archive(int id) async {
+    try {
+      await _dao.archive(id);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to archive workout $id: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> unarchive(int id) async {
+    try {
+      await _dao.unarchive(id);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to unarchive workout $id: $e'));
+    }
+  }
+
+  @override
+  Future<Result<int>> duplicate(int id) async {
+    try {
+      final newId = await _dao.duplicate(id);
+      return Success(newId);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to duplicate workout $id: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> reorder(List<int> orderedIds) async {
+    try {
+      await _dao.reorder(orderedIds);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to reorder workouts: $e'));
+    }
+  }
+
+  @override
   Future<Result<List<domain.WorkoutExercise>>> getExercises(
       int workoutId) async {
     try {
@@ -133,6 +194,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
         id: row.id as int,
         name: row.name as String,
         description: row.description as String?,
+        sortOrder: row.sortOrder as int?,
+        isArchived: row.isArchived as bool,
         createdAt: row.createdAt as DateTime,
       );
 }

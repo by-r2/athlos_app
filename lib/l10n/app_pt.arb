@@ -817,5 +817,33 @@
   "equipmentWarningAutoAdd": "Ao confirmar, os equipamentos serão adicionados à sua lista automaticamente.",
   "@equipmentWarningAutoAdd": { "description": "Hint that confirming auto-adds equipment" },
   "confirmAndAdd": "Confirmar e adicionar",
-  "@confirmAndAdd": { "description": "Button to confirm and auto-add missing equipment" }
+  "@confirmAndAdd": { "description": "Button to confirm and auto-add missing equipment" },
+
+  "archiveWorkout": "Arquivar treino",
+  "@archiveWorkout": { "description": "Action to archive a workout" },
+  "unarchiveWorkout": "Restaurar treino",
+  "@unarchiveWorkout": { "description": "Action to unarchive a workout" },
+  "duplicateWorkout": "Duplicar treino",
+  "@duplicateWorkout": { "description": "Action to duplicate a workout" },
+  "nextWorkoutBadge": "Próximo",
+  "@nextWorkoutBadge": { "description": "Badge label for next workout in cycle" },
+  "startNextWorkout": "Iniciar: {name}",
+  "@startNextWorkout": {
+    "description": "FAB label to start the next workout",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "archivedSection": "Arquivados",
+  "@archivedSection": { "description": "Section title for archived workouts" },
+  "noArchivedWorkouts": "Nenhum treino arquivado",
+  "@noArchivedWorkouts": { "description": "Empty state for archived section" },
+  "workoutMarkedAsDone": "Treino registrado!",
+  "@workoutMarkedAsDone": { "description": "Snackbar after marking workout as done" },
+  "duplicatedWorkout": "Treino duplicado com sucesso",
+  "@duplicatedWorkout": { "description": "Snackbar after duplicating a workout" },
+  "workoutArchived": "Treino arquivado",
+  "@workoutArchived": { "description": "Snackbar after archiving a workout" },
+  "workoutUnarchived": "Treino restaurado",
+  "@workoutUnarchived": { "description": "Snackbar after unarchiving a workout" }
 }
