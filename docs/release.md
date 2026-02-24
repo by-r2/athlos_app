@@ -1,4 +1,4 @@
-# Release — Athlos
+# Release
 
 Everything needed to build, sign, and publish the app.
 

@@ -1,4 +1,4 @@
-# Requirements — Athlos
+# Requirements
 
 Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/wiki/MoSCoW_method) prioritization.
 

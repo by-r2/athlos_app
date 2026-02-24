@@ -1,4 +1,4 @@
-# Architecture — Athlos
+# Architecture
 
 ## Strategy
 

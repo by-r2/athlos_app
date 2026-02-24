@@ -1,4 +1,4 @@
-# Development Flow — Athlos
+# Development Flow
 
 How to implement features following Clean Architecture, from the innermost layer outward.
 

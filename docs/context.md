@@ -1,4 +1,4 @@
-# Athlos — Project Context
+# Project Context
 
 ## Name Origin
 
