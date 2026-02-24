@@ -72,22 +72,25 @@ Define **how** data is obtained and stored.
 
 Define **how** data is displayed and interacted with.
 
-11. **Controller** — UI state management (when needed beyond simple reads)
-    - Location: `features/<module>/presentation/controllers/`
+11. **Provider** — UI state management (when needed beyond simple reads)
+    - Location: `features/<module>/presentation/providers/`
     - Use `AsyncNotifier` / `Notifier` with `@riverpod`
     - Calls Use Cases (or repositories for simple CRUD)
-    - Unwraps `Result<T>` into `AsyncValue<T>`:
+    - Unwraps `Result<T>` via `getOrThrow()`:
       ```dart
-      final result = await useCase(params);
-      state = switch (result) {
-        Success(:final value) => AsyncData(value),
-        Failure(:final exception) => AsyncError(exception, StackTrace.current),
-      };
+      // In build() — Riverpod converts exceptions to AsyncError
+      final result = await repository.getAll();
+      return result.getOrThrow();
+
+      // In mutations — exception propagates to UI caller
+      final result = await repository.delete(id);
+      result.getOrThrow();
+      ref.invalidateSelf();
       ```
 12. **Screen** — main page for the feature
     - Location: `features/<module>/presentation/screens/`
     - Use `ConsumerWidget` or `ConsumerStatefulWidget`
-    - Consume controllers or repository providers via `ref.watch`
+    - Consume providers via `ref.watch`
     - Use `AsyncValue.when(data:, error:, loading:)` for async state
 13. **Widgets** — feature-specific reusable components
     - Location: `features/<module>/presentation/widgets/`
@@ -143,16 +146,20 @@ DAO throws → Repository catches → returns Failure(AppException)
                                       ↓
                                   returns Result<T>
                                       ↓
-                                  Controller unwraps → AsyncData or AsyncError
+                                  Provider unwraps via getOrThrow()
                                       ↓
-                                  UI: AsyncValue.when(data:, error:, loading:)
+                                  build(): Riverpod catches → AsyncError
+                                  mutations: exception propagates to UI
+                                      ↓
+                                  UI: AsyncValue.when() for reads
+                                       try/catch for mutations
 ```
 
 **Key rules:**
 - Repositories **never throw** — they catch and wrap into `Result.failure()`
 - Use Cases **never throw** — they return `Result<T>`
-- Controllers are the **unwrap boundary** — they convert `Result` into `AsyncValue`
-- UI **pattern-matches** on `AppException` subtypes for specific error messages
+- Providers use `getOrThrow()` — in `build()`, Riverpod auto-converts to `AsyncError`; in mutations, exceptions propagate to the caller
+- UI wraps mutation calls in `try/catch` with error snackbar feedback
 
 ## Checklist Template
 
@@ -177,7 +184,7 @@ Code Generation:
 - [ ] build_runner
 
 Presentation:
-- [ ] Controller (AsyncNotifier, if needed)
+- [ ] Provider (AsyncNotifier, if needed)
 - [ ] Screen
 - [ ] Widgets (feature-specific in presentation/, reusable in core/widgets/<type>/)
 - [ ] Route

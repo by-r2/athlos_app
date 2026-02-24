@@ -84,7 +84,7 @@ lib/
 │   │   └── presentation/
 │   │       ├── screens/               # Full pages
 │   │       ├── widgets/               # Module-specific components
-│   │       └── controllers/           # UI state providers (AsyncNotifiers)
+│   │       └── providers/             # UI state providers (AsyncNotifiers)
 │   ├── diet/                          # Diet module (same structure)
 │   └── profile/                       # User profile (shared across modules)
 ├── l10n/                              # ARB internationalization files
@@ -107,7 +107,7 @@ Defines **how** data is obtained. Contains:
 - **Data Sources** — concrete data providers
   - `LocalDataSource` — reads/writes to SQLite (V1)
   - `RemoteDataSource` — calls the API (future)
-- **Models / DTOs** — data transfer objects for serialization (Drift companions for V1, JSON models for future API)
+- **Models / DTOs** (future) — in V1, Drift row types are mapped directly to domain entities in repositories via `_toDomain()`. In V2, JSON models for API serialization will live in `data/models/`.
 - **Repositories** — implement domain interfaces, decide where to pull data from (local, remote, or both)
 
 ### Presentation Layer (UI)
@@ -116,7 +116,7 @@ Flutter screens and widgets. Consumes **Use Cases** (or repository providers for
 
 - **Screens** — full pages, equivalent to "Pages" in Atomic Design
 - **Widgets** — module-specific components that depend on domain types from that feature
-- **Controllers** — `AsyncNotifier` / `Notifier` providers managing UI state, calling Use Cases
+- **Providers** — `AsyncNotifier` / `Notifier` providers managing UI state, calling Use Cases
 
 ## Error Handling
 
@@ -173,7 +173,7 @@ New exception types can be added as needed (e.g. `NetworkException` in V2).
 ```
 Repository (Data)       → returns Result<T>
 Use Case (Domain)       → receives Result<T>, can compose/transform, returns Result<T>
-Controller (Presentation) → unwraps Result<T> into AsyncValue<T>
+Provider (Presentation)   → unwraps Result<T> via getOrThrow()
 UI (Presentation)       → consumes AsyncValue.when(data:, error:, loading:)
 ```
 
@@ -181,17 +181,37 @@ UI (Presentation)       → consumes AsyncValue.when(data:, error:, loading:)
 
 **Use Cases** receive `Result<T>` from repositories. They can short-circuit on failure, compose multiple results, or add validation logic. They return `Result<T>`.
 
-**Controllers** (AsyncNotifiers) call Use Cases and unwrap the Result:
+**Providers** (AsyncNotifiers) call Use Cases and unwrap the Result using `getOrThrow()`:
+
+- In `build()` methods, `getOrThrow()` is idiomatic — Riverpod automatically catches exceptions and converts them to `AsyncError`.
+- In mutation methods (`create`, `delete`, etc.), `getOrThrow()` propagates the exception to the caller (UI).
 
 ```dart
-final result = await useCase(params);
-state = switch (result) {
-  Success(:final value) => AsyncData(value),
-  Failure(:final exception) => AsyncError(exception, StackTrace.current),
-};
+// In build() — Riverpod handles the exception automatically
+@override
+Future<List<Workout>> build() async {
+  final result = await repository.getAll();
+  return result.getOrThrow();
+}
+
+// In mutations — exception propagates to the UI caller
+Future<void> deleteWorkout(int id) async {
+  final result = await repository.delete(id);
+  result.getOrThrow();
+  ref.invalidateSelf();
+}
 ```
 
-**UI** consumes `AsyncValue.when()` as usual. For specific error feedback, pattern-match on the exception type inside the error callback.
+**UI** consumes `AsyncValue.when()` for read state. For mutations, the UI wraps calls in `try/catch` and shows error feedback (snackbar):
+
+```dart
+try {
+  await ref.read(provider.notifier).deleteWorkout(id);
+  // show success snackbar
+} on Exception catch (_) {
+  // show error snackbar
+}
+```
 
 ## Use Cases
 
@@ -344,6 +364,10 @@ This keeps modules decoupled — if Training is replaced or refactored, only its
 - **Feature-specific entities stay in the feature** — only truly shared concepts go to `core/`
 - **When in doubt, keep it in the feature** — premature sharing creates tight coupling
 
+### Known Exception: AppDatabase
+
+`core/database/app_database.dart` imports tables and DAOs from all features because Drift requires a single central database class with all tables registered. This creates a `core → features` dependency that violates the general rule. This is an accepted trade-off — the alternative (one database per feature) would prevent cross-feature transactions and complicate migrations.
+
 ## Complex Scenarios
 
 ### Transactions (atomic operations)
@@ -465,6 +489,8 @@ Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premi
 ## Database Schema (V1)
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
+
+> **Migration note:** During early development, `onUpgrade` recreates all tables (destructive). Before the first public release, this must be replaced with incremental versioned migrations to preserve user data.
 
 ### Main Entities
 

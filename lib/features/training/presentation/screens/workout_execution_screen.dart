@@ -480,7 +480,7 @@ class _WorkoutExecutionScreenState
                 padding: const EdgeInsets.all(AthlosSpacing.sm),
                 decoration: BoxDecoration(
                   color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AthlosRadius.mdAll,
                   border: Border.all(
                     color: colorScheme.tertiary.withValues(alpha: 0.3),
                   ),
@@ -841,14 +841,24 @@ class _WorkoutExecutionScreenState
   }
 
   Future<void> _onFinish(BuildContext context) async {
-    await ref.read(activeExecutionProvider.notifier).finishExecution();
-    ref.read(restTimerProvider.notifier).reset();
-    if (context.mounted) {
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.workoutFinished)),
-      );
-      context.pop();
+    try {
+      await ref.read(activeExecutionProvider.notifier).finishExecution();
+      ref.read(restTimerProvider.notifier).reset();
+      if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.workoutFinished)),
+        );
+        context.pop();
+      }
+    } on Exception catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
@@ -868,11 +878,21 @@ class _WorkoutExecutionScreenState
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref
-                  .read(activeExecutionProvider.notifier)
-                  .cancelExecution();
-              ref.read(restTimerProvider.notifier).reset();
-              if (context.mounted) context.pop();
+              try {
+                await ref
+                    .read(activeExecutionProvider.notifier)
+                    .cancelExecution();
+                ref.read(restTimerProvider.notifier).reset();
+                if (context.mounted) context.pop();
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.genericError),
+                    ),
+                  );
+                }
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -967,7 +987,7 @@ class _OverviewExerciseCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: groupColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: AthlosRadius.xsAll,
                             border: Border.all(
                               color: groupColor.withValues(alpha: 0.4),
                             ),

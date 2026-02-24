@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/equipment.dart';
 import '../../domain/enums/equipment_category.dart';
@@ -90,7 +92,7 @@ class _EquipmentScreenState extends ConsumerState<EquipmentScreen> {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(AthlosSpacing.md, AthlosSpacing.sm, AthlosSpacing.md, 0),
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocus,
@@ -105,13 +107,13 @@ class _EquipmentScreenState extends ConsumerState<EquipmentScreen> {
                         : null,
                     isDense: true,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AthlosRadius.mdAll,
                     ),
                   ),
                   onChanged: (value) => setState(() => _searchQuery = value),
                 ),
               ),
-              const Gap(8),
+              const Gap(AthlosSpacing.sm),
               Expanded(
                 child: _isCatalogOpen
                     ? _buildCatalog(allEquipment, userIds, l10n, colorScheme,
@@ -141,7 +143,7 @@ class _EquipmentScreenState extends ConsumerState<EquipmentScreen> {
     if (owned.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AthlosSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -150,14 +152,14 @@ class _EquipmentScreenState extends ConsumerState<EquipmentScreen> {
                 size: 48,
                 color: colorScheme.onSurfaceVariant.withAlpha(100),
               ),
-              const Gap(16),
+              const Gap(AthlosSpacing.md),
               Text(
                 l10n.emptyEquipment,
                 style: textTheme.titleMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Gap(8),
+              const Gap(AthlosSpacing.sm),
               Text(
                 l10n.emptyEquipmentHint,
                 style: textTheme.bodySmall?.copyWith(
@@ -272,10 +274,20 @@ class _EquipmentScreenState extends ConsumerState<EquipmentScreen> {
             ),
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              await ref
-                  .read(equipmentListProvider.notifier)
-                  .deleteEquipment(equipment.id);
-              ref.invalidate(userEquipmentIdsProvider);
+              try {
+                await ref
+                    .read(equipmentListProvider.notifier)
+                    .deleteEquipment(equipment.id);
+                ref.invalidate(userEquipmentIdsProvider);
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.genericError),
+                    ),
+                  );
+                }
+              }
             },
             child: Text(l10n.delete),
           ),
@@ -385,7 +397,7 @@ class _AddEquipmentDialogState extends ConsumerState<_AddEquipmentDialog> {
             textCapitalization: TextCapitalization.sentences,
             autofocus: true,
           ),
-          const Gap(16),
+          const Gap(AthlosSpacing.md),
           DropdownButtonFormField<EquipmentCategory>(
             initialValue: _selectedCategory,
             decoration: InputDecoration(
@@ -422,15 +434,25 @@ class _AddEquipmentDialogState extends ConsumerState<_AddEquipmentDialog> {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
-    await ref.read(equipmentListProvider.notifier).addUserEquipment(
-          name: name,
-          category: _selectedCategory,
+    try {
+      await ref.read(equipmentListProvider.notifier).addUserEquipment(
+            name: name,
+            category: _selectedCategory,
+          );
+
+      ref.invalidate(userEquipmentIdsProvider);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
         );
-
-    ref.invalidate(userEquipmentIdsProvider);
-
-    if (mounted) {
-      Navigator.of(context).pop();
+      }
     }
   }
 }
@@ -480,7 +502,7 @@ class _EditEquipmentDialogState extends ConsumerState<_EditEquipmentDialog> {
             textCapitalization: TextCapitalization.sentences,
             autofocus: true,
           ),
-          const Gap(16),
+          const Gap(AthlosSpacing.md),
           DropdownButtonFormField<EquipmentCategory>(
             initialValue: _selectedCategory,
             decoration: InputDecoration(
@@ -523,11 +545,21 @@ class _EditEquipmentDialogState extends ConsumerState<_EditEquipmentDialog> {
       category: _selectedCategory,
     );
 
-    await ref.read(equipmentListProvider.notifier).updateEquipment(updated);
-    ref.invalidate(userEquipmentIdsProvider);
+    try {
+      await ref.read(equipmentListProvider.notifier).updateEquipment(updated);
+      ref.invalidate(userEquipmentIdsProvider);
 
-    if (mounted) {
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 }

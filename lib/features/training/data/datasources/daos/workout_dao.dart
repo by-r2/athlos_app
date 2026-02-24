@@ -56,13 +56,13 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase>
         const WorkoutsCompanion(isArchived: Value(false)),
       );
 
-  Future<int> duplicate(int id) async {
+  Future<int?> duplicate(int id, {required String nameSuffix}) async {
     final original = await getById(id);
-    if (original == null) throw StateError('Workout $id not found');
+    if (original == null) return null;
 
     final newId = await into(workouts).insert(
       WorkoutsCompanion.insert(
-        name: '${original.name} (cópia)',
+        name: '${original.name} $nameSuffix',
         description: Value(original.description),
       ),
     );

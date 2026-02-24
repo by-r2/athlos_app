@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/training_goal.dart';
 
@@ -31,11 +33,11 @@ class GoalSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l10n.goalSelectTitle, style: textTheme.titleMedium),
-        const Gap(16),
+        const Gap(AthlosSpacing.md),
         ...TrainingGoal.values.map((goal) {
           final isSelected = goal == selected;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
             child: Card(
               clipBehavior: Clip.antiAlias,
               elevation: isSelected ? 2 : 0,
@@ -43,7 +45,7 @@ class GoalSelector extends StatelessWidget {
                   ? colorScheme.primaryContainer
                   : colorScheme.surfaceContainerLow,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AthlosRadius.mdAll,
                 side: isSelected
                     ? BorderSide(color: colorScheme.primary, width: 2)
                     : BorderSide.none,
@@ -52,8 +54,8 @@ class GoalSelector extends StatelessWidget {
                 onTap: () => onSelected(goal),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                    horizontal: AthlosSpacing.md,
+                    vertical: AthlosSpacing.smd,
                   ),
                   child: Column(
                     children: [
@@ -65,7 +67,7 @@ class GoalSelector extends StatelessWidget {
                                 ? colorScheme.onPrimaryContainer
                                 : colorScheme.onSurfaceVariant,
                           ),
-                          const Gap(12),
+                          const Gap(AthlosSpacing.smd),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,12 +105,12 @@ class GoalSelector extends StatelessWidget {
                         curve: Curves.easeInOut,
                         child: showHelp
                             ? Padding(
-                                padding: const EdgeInsets.only(top: 10),
+                                padding: const EdgeInsets.only(top: AthlosSpacing.smd),
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(10),
+                                  padding: const EdgeInsets.all(AthlosSpacing.smd),
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AthlosRadius.smAll,
                                     color: colorScheme.surfaceContainerHighest
                                         .withAlpha(120),
                                   ),
@@ -121,7 +123,7 @@ class GoalSelector extends StatelessWidget {
                                         size: 16,
                                         color: colorScheme.onSurfaceVariant,
                                       ),
-                                      const Gap(8),
+                                      const Gap(AthlosSpacing.sm),
                                       Expanded(
                                         child: Text(
                                           _impactFor(goal, l10n),

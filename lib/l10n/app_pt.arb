@@ -302,6 +302,8 @@
     "description": "Tooltip do botão de ativar modo ajuda"
   },
 
+  "genericError": "Algo deu errado. Tente novamente.",
+  "@genericError": { "description": "Generic error message shown when an operation fails" },
   "fieldRequired": "Campo obrigatório",
   "@fieldRequired": {
     "description": "Mensagem de validação para campo obrigatório"
@@ -840,6 +842,8 @@
   "@noArchivedWorkouts": { "description": "Empty state for archived section" },
   "workoutMarkedAsDone": "Treino registrado!",
   "@workoutMarkedAsDone": { "description": "Snackbar after marking workout as done" },
+  "workoutCopySuffix": "(cópia)",
+  "@workoutCopySuffix": { "description": "Suffix appended to duplicated workout name" },
   "duplicatedWorkout": "Treino duplicado com sucesso",
   "@duplicatedWorkout": { "description": "Snackbar after duplicating a workout" },
   "workoutArchived": "Treino arquivado",
@@ -859,6 +863,20 @@
   "@executionDeleted": { "description": "Snackbar after deleting an execution" },
   "unknownWorkout": "Treino removido",
   "@unknownWorkout": { "description": "Fallback name when the workout was deleted" },
+  "dateToday": "Hoje, {time}",
+  "@dateToday": {
+    "description": "Date label for today with time",
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "dateYesterday": "Ontem, {time}",
+  "@dateYesterday": {
+    "description": "Date label for yesterday with time",
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
   "durationFormat": "{hours}h {minutes}min",
   "@durationFormat": {
     "description": "Duration format for workout executions",

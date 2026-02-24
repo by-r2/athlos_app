@@ -75,7 +75,8 @@ class AppDatabase extends _$AppDatabase {
           await seedExercises(this);
         },
         onUpgrade: (m, from, to) async {
-          // During early development, recreate all tables on schema change.
+          // TODO(pre-release): Replace with incremental versioned migrations
+          // before the first public release to preserve user data.
           for (final table in allTables) {
             await m.deleteTable(table.actualTableName);
           }

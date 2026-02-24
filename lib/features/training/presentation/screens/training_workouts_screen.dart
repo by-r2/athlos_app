@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
@@ -228,35 +229,68 @@ class _WorkoutListBodyState extends ConsumerState<_WorkoutListBody> {
   }
 
   void _archiveWorkout(BuildContext context, int id) async {
-    await ref.read(workoutListProvider.notifier).archiveWorkout(id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.workoutArchived),
-        ),
-      );
+    try {
+      await ref.read(workoutListProvider.notifier).archiveWorkout(id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.workoutArchived),
+          ),
+        );
+      }
+    } on Exception catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
   void _unarchiveWorkout(BuildContext context, int id) async {
-    await ref.read(workoutListProvider.notifier).unarchiveWorkout(id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.workoutUnarchived),
-        ),
-      );
+    try {
+      await ref.read(workoutListProvider.notifier).unarchiveWorkout(id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.workoutUnarchived),
+          ),
+        );
+      }
+    } on Exception catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
   void _duplicateWorkout(BuildContext context, int id) async {
-    await ref.read(workoutListProvider.notifier).duplicateWorkout(id);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.duplicatedWorkout),
-        ),
-      );
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await ref
+          .read(workoutListProvider.notifier)
+          .duplicateWorkout(id, nameSuffix: l10n.workoutCopySuffix);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.duplicatedWorkout),
+          ),
+        );
+      }
+    } on Exception catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
@@ -276,9 +310,19 @@ class _WorkoutListBodyState extends ConsumerState<_WorkoutListBody> {
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref
-                  .read(workoutListProvider.notifier)
-                  .deleteWorkout(workout.id);
+              try {
+                await ref
+                    .read(workoutListProvider.notifier)
+                    .deleteWorkout(workout.id);
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.genericError),
+                    ),
+                  );
+                }
+              }
             },
             child: Text(l10n.delete),
           ),
@@ -323,13 +367,13 @@ class _WorkoutCard extends StatelessWidget {
       ),
       shape: isNext
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AthlosRadius.mdAll,
               side: BorderSide(color: colorScheme.primary, width: 2),
             )
           : null,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AthlosRadius.mdAll,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AthlosSpacing.md,
@@ -367,7 +411,7 @@ class _WorkoutCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: AthlosRadius.mdAll,
                             ),
                             child: Text(
                               l10n.nextWorkoutBadge,

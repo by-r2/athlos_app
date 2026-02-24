@@ -192,11 +192,21 @@ class ExerciseDetailScreen extends ConsumerWidget {
             ),
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              await ref
-                  .read(exerciseListProvider.notifier)
-                  .deleteExercise(exercise.id);
-              if (context.mounted) {
-                context.pop();
+              try {
+                await ref
+                    .read(exerciseListProvider.notifier)
+                    .deleteExercise(exercise.id);
+                if (context.mounted) {
+                  context.pop();
+                }
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!.genericError),
+                    ),
+                  );
+                }
               }
             },
             child: Text(l10n.delete),
@@ -543,6 +553,14 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
       }
     } finally {
       if (mounted) {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
@@ -79,7 +80,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AthlosSpacing.md),
       child: Column(
         children: [
           // Avatar placeholder
@@ -92,7 +93,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: colorScheme.onPrimaryContainer,
             ),
           ),
-          const Gap(24),
+          const Gap(AthlosSpacing.lg),
 
           // Data cards
           _ProfileTile(
@@ -137,7 +138,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ? _styleLabel(profile.trainingStyle!, l10n)
                 : l10n.profileNotSet,
           ),
-          const Gap(24),
+          const Gap(AthlosSpacing.lg),
 
           // Edit button
           FilledButton.icon(
@@ -152,7 +153,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildEditView(UserProfile profile, AppLocalizations l10n) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AthlosSpacing.md),
       child: Form(
         key: _formKey,
         child: Column(
@@ -175,7 +176,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 return null;
               },
             ),
-            const Gap(16),
+            const Gap(AthlosSpacing.md),
             TextFormField(
               controller: _heightController,
               decoration: InputDecoration(
@@ -193,7 +194,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 return null;
               },
             ),
-            const Gap(16),
+            const Gap(AthlosSpacing.md),
             TextFormField(
               controller: _ageController,
               decoration: InputDecoration(
@@ -208,24 +209,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 return null;
               },
             ),
-            const Gap(24),
+            const Gap(AthlosSpacing.lg),
             GoalSelector(
               selected: _selectedGoal,
               onSelected: (goal) => setState(() => _selectedGoal = goal),
             ),
-            const Gap(16),
+            const Gap(AthlosSpacing.md),
             AestheticSelector(
               selected: _selectedAesthetic,
               onSelected: (aesthetic) =>
                   setState(() => _selectedAesthetic = aesthetic),
             ),
-            const Gap(16),
+            const Gap(AthlosSpacing.md),
             StyleSelector(
               selected: _selectedStyle,
               onSelected: (style) =>
                   setState(() => _selectedStyle = style),
             ),
-            const Gap(24),
+            const Gap(AthlosSpacing.lg),
             Row(
               children: [
                 Expanded(
@@ -234,7 +235,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Text(l10n.cancel),
                   ),
                 ),
-                const Gap(12),
+                const Gap(AthlosSpacing.smd),
                 Expanded(
                   child: FilledButton(
                     onPressed: () => _saveChanges(profile),
@@ -263,9 +264,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       lastActiveModule: profile.lastActiveModule,
     );
 
-    await ref.read(profileProvider.notifier).updateProfile(updated);
-    if (mounted) {
-      setState(() => _isEditing = false);
+    try {
+      await ref.read(profileProvider.notifier).updateProfile(updated);
+      if (mounted) {
+        setState(() => _isEditing = false);
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
@@ -315,7 +326,7 @@ class _ProfileTile extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, color: colorScheme.primary, size: 24),
-          const Gap(16),
+          const Gap(AthlosSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

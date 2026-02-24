@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
@@ -111,7 +112,7 @@ class _ExecutionCard extends ConsumerWidget {
       child: InkWell(
         onTap: () => context.push(
             '${RoutePaths.trainingHistory}/${execution.id}'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AthlosRadius.mdAll,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AthlosSpacing.md,
@@ -194,13 +195,21 @@ class _ExecutionCard extends ConsumerWidget {
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref
-                  .read(workoutExecutionListProvider.notifier)
-                  .deleteExecution(execution.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.executionDeleted)),
-                );
+              try {
+                await ref
+                    .read(workoutExecutionListProvider.notifier)
+                    .deleteExecution(execution.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.executionDeleted)),
+                  );
+                }
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.genericError)),
+                  );
+                }
               }
             },
             child: Text(l10n.delete),
@@ -211,17 +220,16 @@ class _ExecutionCard extends ConsumerWidget {
   }
 
   String _formatDate(DateTime date, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dateDay = DateTime(date.year, date.month, date.day);
     final timeStr = DateFormat.Hm(locale).format(date);
 
-    if (dateDay == today) {
-      return 'Hoje, $timeStr';
-    }
+    if (dateDay == today) return l10n.dateToday(timeStr);
     if (dateDay == today.subtract(const Duration(days: 1))) {
-      return 'Ontem, $timeStr';
+      return l10n.dateYesterday(timeStr);
     }
 
     final dateStr = DateFormat.MMMd(locale).format(date);

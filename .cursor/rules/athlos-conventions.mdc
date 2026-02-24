@@ -55,8 +55,9 @@ See `docs/architecture.md` for full structure. Key rules:
 - Use `AppException` sealed hierarchy for typed errors (`DatabaseException`, `ValidationException`, `NotFoundException`, `ConflictException`)
 - **Repositories never throw** — catch data-layer exceptions and wrap into `Result.failure(AppException)`
 - **Use Cases never throw** — return `Result<T>`
-- **Controllers unwrap** `Result<T>` into `AsyncValue<T>` (the unwrap boundary)
-- UI consumes `AsyncValue.when(data:, error:, loading:)` — pattern-match on `AppException` subtypes for specific messages
+- **Providers use `getOrThrow()`** — in `build()`, Riverpod auto-converts exceptions to `AsyncError`; in mutations, exceptions propagate to the UI caller
+- **UI wraps mutation calls in `try/catch`** with error snackbar feedback
+- UI consumes `AsyncValue.when(data:, error:, loading:)` for read state
 
 ## Use Cases
 
@@ -72,10 +73,10 @@ See `docs/architecture.md` for full structure. Key rules:
 
 - Use `@riverpod` annotation (code generation) for all providers
 - Use `ref.watch` in `build()` methods; `ref.read` for one-off actions (e.g. button callbacks)
-- Use `ref.listen` for side effects (navigation, showing snackbars)
+- Use `ref.listen` for reacting to external state changes (not for mutation error handling — use `try/catch` at the call site instead)
 - Use `AsyncValue` pattern (`.when(data:, error:, loading:)`) for async state in the UI
 - Keep providers small and focused — one responsibility per provider
-- Repository providers go in `data/repositories/`; Use Case providers in `domain/usecases/`; UI state providers in `presentation/controllers/`
+- Repository providers go in `data/repositories/`; Use Case providers in `domain/usecases/`; UI state providers in `presentation/providers/`
 
 ## Drift (database)
 

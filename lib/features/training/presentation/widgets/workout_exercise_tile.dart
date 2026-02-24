@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
@@ -79,14 +80,14 @@ class WorkoutExerciseTile extends StatelessWidget {
       ),
       shape: groupColor != null
           ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AthlosRadius.mdAll,
               side: BorderSide(color: groupColor.withValues(alpha: 0.4)),
             )
           : null,
       child: Container(
         decoration: groupColor != null
             ? BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AthlosRadius.mdAll,
                 border: Border(
                   left: BorderSide(color: groupColor, width: 4),
                 ),
@@ -122,7 +123,7 @@ class WorkoutExerciseTile extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: groupColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: AthlosRadius.xsAll,
                                 border: Border.all(
                                   color: groupColor.withValues(alpha: 0.4),
                                 ),
@@ -241,7 +242,7 @@ class _SupersetLinkButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AthlosRadius.lgAll,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(

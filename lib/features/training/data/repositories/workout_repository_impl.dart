@@ -150,9 +150,12 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<int>> duplicate(int id) async {
+  Future<Result<int>> duplicate(int id, {required String nameSuffix}) async {
     try {
-      final newId = await _dao.duplicate(id);
+      final newId = await _dao.duplicate(id, nameSuffix: nameSuffix);
+      if (newId == null) {
+        return Failure(NotFoundException('Workout $id not found'));
+      }
       return Success(newId);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to duplicate workout $id: $e'));
@@ -193,12 +196,12 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     }
   }
 
-  domain.Workout _toDomain(dynamic row) => domain.Workout(
-        id: row.id as int,
-        name: row.name as String,
-        description: row.description as String?,
-        sortOrder: row.sortOrder as int?,
-        isArchived: row.isArchived as bool,
-        createdAt: row.createdAt as DateTime,
+  domain.Workout _toDomain(Workout row) => domain.Workout(
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        sortOrder: row.sortOrder,
+        isArchived: row.isArchived,
+        createdAt: row.createdAt,
       );
 }

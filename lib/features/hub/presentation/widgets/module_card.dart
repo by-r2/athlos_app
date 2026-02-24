@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_spacing.dart';
+
 /// A card representing a module on the Hub screen.
 ///
 /// Example of a reusable feature-specific widget following conventions:
@@ -41,7 +44,7 @@ class ModuleCard extends StatelessWidget {
       child: InkWell(
         onTap: isEnabled ? onTap : null,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AthlosSpacing.md),
           child: Row(
             children: [
               // Module icon
@@ -52,7 +55,7 @@ class ModuleCard extends StatelessWidget {
                   color: isEnabled
                       ? colorScheme.primaryContainer
                       : colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AthlosRadius.lgAll,
                 ),
                 child: Icon(
                   icon,
@@ -62,7 +65,7 @@ class ModuleCard extends StatelessWidget {
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Gap(16),
+              const Gap(AthlosSpacing.md),
 
               // Text content
               Expanded(
@@ -77,7 +80,7 @@ class ModuleCard extends StatelessWidget {
                             : colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const Gap(4),
+                    const Gap(AthlosSpacing.xs),
                     Text(
                       description,
                       style: textTheme.bodySmall?.copyWith(
@@ -97,12 +100,12 @@ class ModuleCard extends StatelessWidget {
               else if (disabledLabel != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: AthlosSpacing.smd,
+                    vertical: AthlosSpacing.xs,
                   ),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AthlosRadius.mdAll,
                   ),
                   child: Text(
                     disabledLabel!,

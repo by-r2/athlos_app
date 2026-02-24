@@ -61,33 +61,61 @@ class WorkoutDetailScreen extends ConsumerWidget {
                 onSelected: (value) async {
                   switch (value) {
                     case 'archive':
-                      await ref
-                          .read(workoutListProvider.notifier)
-                          .archiveWorkout(workout.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.workoutArchived)),
-                        );
-                        context.pop();
+                      try {
+                        await ref
+                            .read(workoutListProvider.notifier)
+                            .archiveWorkout(workout.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.workoutArchived)),
+                          );
+                          context.pop();
+                        }
+                      } on Exception catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(l10n.genericError)),
+                          );
+                        }
                       }
                     case 'unarchive':
-                      await ref
-                          .read(workoutListProvider.notifier)
-                          .unarchiveWorkout(workout.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.workoutUnarchived)),
-                        );
-                        context.pop();
+                      try {
+                        await ref
+                            .read(workoutListProvider.notifier)
+                            .unarchiveWorkout(workout.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.workoutUnarchived)),
+                          );
+                          context.pop();
+                        }
+                      } on Exception catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(l10n.genericError)),
+                          );
+                        }
                       }
                     case 'duplicate':
-                      await ref
-                          .read(workoutListProvider.notifier)
-                          .duplicateWorkout(workout.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.duplicatedWorkout)),
-                        );
+                      try {
+                        await ref
+                            .read(workoutListProvider.notifier)
+                            .duplicateWorkout(workout.id,
+                                nameSuffix: l10n.workoutCopySuffix);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.duplicatedWorkout)),
+                          );
+                        }
+                      } on Exception catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(l10n.genericError)),
+                          );
+                        }
                       }
                     case 'delete':
                       _confirmDelete(context, ref);
@@ -259,10 +287,18 @@ class WorkoutDetailScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref
-                  .read(workoutListProvider.notifier)
-                  .deleteWorkout(workoutId);
-              if (context.mounted) context.pop();
+              try {
+                await ref
+                    .read(workoutListProvider.notifier)
+                    .deleteWorkout(workoutId);
+                if (context.mounted) context.pop();
+              } on Exception catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.genericError)),
+                  );
+                }
+              }
             },
             child: Text(l10n.delete),
           ),

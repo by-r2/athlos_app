@@ -4,10 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/user_profile.dart' as domain;
-import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/selected_module.dart';
-import '../../domain/enums/training_goal.dart';
-import '../../domain/enums/training_style.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/user_profile_dao.dart';
 
@@ -96,14 +93,14 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     }
   }
 
-  domain.UserProfile _toDomain(dynamic row) => domain.UserProfile(
-        id: row.id as int,
-        weight: row.weight as double?,
-        height: row.height as double?,
-        age: row.age as int?,
-        goal: row.goal as TrainingGoal?,
-        bodyAesthetic: row.bodyAesthetic as BodyAesthetic?,
-        trainingStyle: row.trainingStyle as TrainingStyle?,
-        lastActiveModule: row.lastActiveModule as AppModule,
+  domain.UserProfile _toDomain(UserProfile row) => domain.UserProfile(
+        id: row.id,
+        weight: row.weight,
+        height: row.height,
+        age: row.age,
+        goal: row.goal,
+        bodyAesthetic: row.bodyAesthetic,
+        trainingStyle: row.trainingStyle,
+        lastActiveModule: row.lastActiveModule,
       );
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/providers/last_module_provider.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
@@ -65,11 +66,11 @@ class HubScreen extends ConsumerWidget {
 
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Gap(24),
+              const Gap(AthlosSpacing.lg),
 
               // --- Header ---
               Text(
@@ -78,14 +79,14 @@ class HubScreen extends ConsumerWidget {
                   color: colorScheme.primary,
                 ),
               ),
-              const Gap(4),
+              const Gap(AthlosSpacing.xs),
               Text(
                 l10n.hubSubtitle,
                 style: textTheme.bodyLarge?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const Gap(32),
+              const Gap(AthlosSpacing.xl),
 
               // --- Module cards ---
               // Training — enabled, navigates to training shell
@@ -100,7 +101,7 @@ class HubScreen extends ConsumerWidget {
                   context.go(RoutePaths.training);
                 },
               ),
-              const Gap(12),
+              const Gap(AthlosSpacing.smd),
 
               // Diet — disabled for V1, shows "coming soon"
               ModuleCard(

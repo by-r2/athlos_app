@@ -4,7 +4,6 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/equipment.dart' as domain;
-import '../../domain/enums/equipment_category.dart';
 import '../../domain/repositories/equipment_repository.dart';
 import '../datasources/daos/equipment_dao.dart';
 
@@ -107,11 +106,11 @@ class EquipmentRepositoryImpl implements EquipmentRepository {
     }
   }
 
-  domain.Equipment _toDomain(dynamic row) => domain.Equipment(
-        id: row.id as int,
-        name: row.name as String,
-        description: row.description as String?,
-        category: row.category as EquipmentCategory,
-        isVerified: row.isVerified as bool,
+  domain.Equipment _toDomain(Equipment row) => domain.Equipment(
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        category: row.category,
+        isVerified: row.isVerified,
       );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/equipment.dart';
@@ -163,7 +164,7 @@ class _EquipmentSearchPickerState extends ConsumerState<EquipmentSearchPicker> {
                 : null,
             isDense: true,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AthlosRadius.mdAll,
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AthlosSpacing.sm,

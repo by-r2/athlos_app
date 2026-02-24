@@ -72,9 +72,9 @@ class WorkoutList extends _$WorkoutList {
     ref.invalidate(archivedWorkoutListProvider);
   }
 
-  Future<int> duplicateWorkout(int id) async {
+  Future<int> duplicateWorkout(int id, {required String nameSuffix}) async {
     final repo = ref.read(workoutRepositoryProvider);
-    final result = await repo.duplicate(id);
+    final result = await repo.duplicate(id, nameSuffix: nameSuffix);
     final newId = result.getOrThrow();
     ref.invalidateSelf();
     return newId;

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/body_aesthetic.dart';
@@ -71,7 +72,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           children: [
             // Subtitle
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
               child: Text(
                 l10n.profileSetupSubtitle,
                 style: textTheme.bodyMedium?.copyWith(
@@ -79,7 +80,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
               ),
             ),
-            const Gap(20),
+            const Gap(AthlosSpacing.md),
 
             // Step indicator
             _StepIndicator(
@@ -92,12 +93,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 l10n.stepStyle,
               ],
             ),
-            const Gap(24),
+            const Gap(AthlosSpacing.lg),
 
             // Step content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: switch (_currentStep) {
@@ -113,7 +114,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
             // Navigation buttons
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              padding: const EdgeInsets.fromLTRB(AthlosSpacing.md, AthlosSpacing.smd, AthlosSpacing.md, AthlosSpacing.md),
               child: Row(
                 children: [
                   if (_currentStep > 0)
@@ -187,7 +188,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               return null;
             },
           ),
-          const Gap(16),
+          const Gap(AthlosSpacing.md),
           TextFormField(
             controller: _heightController,
             decoration: InputDecoration(
@@ -206,7 +207,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               return null;
             },
           ),
-          const Gap(16),
+          const Gap(AthlosSpacing.md),
           TextFormField(
             controller: _ageController,
             decoration: InputDecoration(
@@ -297,10 +298,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _onSkip() async {
-    await ref.read(hasProfileProvider.notifier).createEmpty();
-    ref.invalidate(profileProvider);
-    if (mounted) {
-      context.go(RoutePaths.hub);
+    try {
+      await ref.read(hasProfileProvider.notifier).createEmpty();
+      ref.invalidate(profileProvider);
+      if (mounted) {
+        context.go(RoutePaths.hub);
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
   }
 
@@ -321,6 +332,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       if (mounted) {
         context.go(RoutePaths.hub);
+      }
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -348,7 +367,7 @@ class _StepIndicator extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
       child: Column(
         children: [
           // Segmented bars
@@ -374,7 +393,7 @@ class _StepIndicator extends StatelessWidget {
               );
             }),
           ),
-          const Gap(12),
+          const Gap(AthlosSpacing.smd),
 
           // Current step label
           AnimatedSwitcher(
