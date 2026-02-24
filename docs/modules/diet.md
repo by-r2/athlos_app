@@ -1,6 +1,6 @@
 # Diet Module
 
-> Status: 🔨 V1 — included in V1 (local & free).
+> Status: 📋 Planned — ships incrementally in 1.1–1.3 releases (after Training-only 1.0.0).
 
 ## Features
 

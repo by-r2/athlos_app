@@ -6,7 +6,7 @@
 
 ## Stack
 
-| Layer      | V1 (Local)              | V2 (Supabase)                        | V3 (AI & Integrations)               |
+| Layer      | 1.x (Local)             | 2.x (Supabase)                       | 3.x (AI & Integrations)             |
 | ---------- | ----------------------- | ------------------------------------ | ------------------------------------ |
 | Frontend   | Flutter                 | Flutter                              | Flutter                              |
 | State      | Riverpod                | Riverpod                             | Riverpod                             |
@@ -450,19 +450,29 @@ Hub-based architecture using go_router:
 
 ## Evolution Plan
 
-### V1 — Local & Free
+### 1.0.0 — Training (First Public Release)
 
 - Flutter app with local SQLite
-- Training module (full feature set)
-- Diet module (full feature set)
+- Training module feature-complete (exercises, equipment, workouts, execution, history)
+- Hub, profile, onboarding
 - Manual data export/import for backup (JSON)
 - Zero infrastructure cost — everything runs on-device
 - Published to stores (Google Play / App Store) to build a user base
-- Freemium model: all core features free, premium features defined but not gated yet
 
-### V2 — Supabase & Premium
+### 1.x — Diet Module (Incremental)
 
-No custom API. Supabase provides everything V2 needs:
+Diet is added across three minor releases while Training continues to receive patches:
+
+- **1.1.0** — Food registration (catalog + custom foods + macros)
+- **1.2.0** — Meal builder (combine foods, nutritional totals)
+- **1.3.0** — Caloric control (daily log, expenditure, balance)
+- **1.4.0+** — Additional features (load progression charts, UX improvements)
+
+By 1.3.0 the free tier is feature-complete: Training + Diet, fully local.
+
+### 2.x — Supabase & Premium
+
+No custom API. Supabase provides everything 2.x needs:
 
 - **Supabase Auth** — email/password + OAuth (Google, Apple)
 - **PostgREST** — auto-generated REST API from PostgreSQL schema (no endpoints to write)
@@ -481,7 +491,7 @@ Premium features unlocked:
 - Multi-device support
 - Advanced progression charts
 
-### V3 — Go API, AI & Integrations
+### 3.x — Go API, AI & Integrations
 
 Custom **Go API** for logic that exceeds Supabase's capabilities:
 
@@ -492,7 +502,7 @@ Custom **Go API** for logic that exceeds Supabase's capabilities:
 
 Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premium intelligence and integrations. Both managed via Terraform.
 
-## Database Schema (V1)
+## Database Schema
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
 
@@ -500,14 +510,14 @@ SQLite will be structured with the same entities and relations the remote databa
 
 ### Main Entities
 
-**Training Module:**
+**Training Module (1.0.0):**
 
 - **Exercise** — exercise with muscle group, specific muscles, muscle region
 - **Equipment** — training equipment
 - **Workout** — workout (set of exercises)
 - **WorkoutExecution** — record of a workout execution
 
-**Diet Module:**
+**Diet Module (1.1–1.3):**
 
 - **Food** — food item with macronutrient data (kcal, protein, carbs, fat)
 - **Meal** — a collection of foods with quantities

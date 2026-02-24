@@ -6,18 +6,18 @@ The name **Athlos** comes from *Dodekathlos* (Δωδέκαθλος) — the Twel
 
 ## Overview
 
-Athlos is a modular health and fitness app built around independent modules. V1 ships with **Training** and **Diet** — everything that runs locally at zero cost. Other modules are planned for future releases.
+Athlos is a modular health and fitness app built around independent modules. The first public release (1.0.0) ships with **Training** only — a fully functional, local-first workout tracker at zero cost. **Diet** is added incrementally in subsequent 1.x releases. Other modules are planned for future major versions.
 
 The app is designed as a **hub-based** system: a central screen (the Hub) provides access to each module. Each module is a self-contained experience with its own home dashboard and navigation. New modules can be added without restructuring the app.
 
 ## Modules
 
-| Module       | Status        | Description                                         |
-| ------------ | ------------- | --------------------------------------------------- |
-| Training     | 🔨 V1         | Workout registration, planning, and tracking        |
-| Diet         | 🔨 V1         | Food registration, meals, and caloric control       |
-| Assessments  | 💡 Idea       | Physical assessments, body measurements, progress photos |
-| Progress     | 💡 Idea       | Consolidated dashboard across all modules           |
+| Module       | Status        | Target Version | Description                                         |
+| ------------ | ------------- | -------------- | --------------------------------------------------- |
+| Training     | 🔨 Building   | 1.0.0          | Workout registration, planning, and tracking        |
+| Diet         | 📋 Planned    | 1.1–1.3        | Food registration, meals, and caloric control       |
+| Assessments  | 💡 Idea       | —              | Physical assessments, body measurements, progress photos |
+| Progress     | 💡 Idea       | —              | Consolidated dashboard across all modules           |
 
 See each module's documentation for details:
 
@@ -48,14 +48,15 @@ Each module's **Home** tab is a dashboard showing relevant summary data for that
 
 Athlos follows a **freemium** model:
 
-**Free (V1 — local):**
-- Training and Diet modules with all core features
+**Free (1.x — local):**
+- Training module with all core features (1.0.0)
+- Diet module with all core features (1.1–1.3)
 - Exercise and food catalogs (pre-loaded)
 - Workout builder, meal builder, execution logging
 - Full local history
 - Manual data export/import (backup)
 
-**Premium (V2+ — requires account):**
+**Premium (2.x+ — requires account):**
 - Cloud sync and automatic backup
 - Multi-device support
 - Quíron AI assistant (personalized suggestions, Q&A chat)
@@ -64,6 +65,38 @@ Athlos follows a **freemium** model:
 - Formatted report exports (PDF)
 
 The free tier must be fully functional and valuable on its own — good enough to attract and retain users. Premium features add convenience (sync, backup) and intelligence (AI, analytics) that justify a subscription.
+
+## Versioning Strategy
+
+Athlos follows [Semantic Versioning](https://semver.org/) adapted for app releases: `MAJOR.MINOR.PATCH+build`.
+
+| Part | When to increment | Example |
+| --- | --- | --- |
+| **MAJOR** | Strategic milestone — first public release, backend migration, AI era | `1.0.0`, `2.0.0`, `3.0.0` |
+| **MINOR** | New user-facing feature or module added | `1.0.0` → `1.1.0` |
+| **PATCH** | Bug fixes, performance improvements, UI polish | `1.1.0` → `1.1.1` |
+| **build** (`+N`) | Always incrementing integer for store identification — never resets | `+1`, `+2`, `+3`... |
+
+PATCH resets to 0 when MINOR increments. MINOR resets to 0 when MAJOR increments. Build number never resets.
+
+**Pre-1.0** (`0.x.x`) is development/beta phase — the app is not yet publicly released.
+
+### Release Roadmap
+
+```
+0.1.0  — Training core (current baseline)
+0.2.0  — Training polish (custom exercises/equipment, filters)
+0.3.0  — Data backup (export/import JSON)
+  ...  — Bug fixes, stabilization
+1.0.0  — First public store release (Training only)
+1.1.0  — Diet: Food registration
+1.2.0  — Diet: Meal builder
+1.3.0  — Diet: Caloric control
+1.4.0  — Load progression charts
+  ...  — Patches between minors
+2.0.0  — Backend, auth, cloud sync (Supabase)
+3.0.0  — AI (Quíron), gamification (Kleos), integrations
+```
 
 ## Future Ideas
 

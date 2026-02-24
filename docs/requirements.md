@@ -7,9 +7,13 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 - **Could** — desirable if time allows
 - **Won't (this phase)** — explicitly deferred to a later phase
 
+See [Versioning Strategy](./context.md#versioning-strategy) for how version numbers map to releases.
+
 ---
 
-## V1 — Local & Free
+## 1.0.0 — Training (First Public Release)
+
+The first store release. Training module feature-complete, fully local, zero cost. Diet is not included — it ships incrementally in 1.x releases.
 
 ### Epic: Project Setup
 
@@ -29,9 +33,9 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 | ID | MoSCoW | User Story | Acceptance Criteria |
 |----|--------|------------|---------------------|
 | HN-01 | Must | As a user, I want a central Hub screen so that I can access all available modules from one place | Hub displays a card for each active module; tapping a card navigates into the module |
-| HN-02 | Must | As a user, I want each module card on the Hub to show a quick summary so that I get an overview without entering the module | Training card shows last workout name and date; Diet card shows today's kcal summary (or empty state if none) |
+| HN-02 | Must | As a user, I want each module card on the Hub to show a quick summary so that I get an overview without entering the module | Training card shows last workout name and date; Diet card shows placeholder/coming soon until Diet is available |
 | HN-03 | Must | As a user, I want to navigate back to the Hub from any module so that I can switch contexts easily | Back/Hub button is always accessible from within a module |
-| HN-04 | Must | As a user, I want each module to have its own bottom navigation bar so that I can move between sections within the module | Training: Home, Workouts, Exercises, History; Diet: Home, Meals, Foods, Log |
+| HN-04 | Must | As a user, I want each module to have its own bottom navigation bar so that I can move between sections within the module | Training: Home, Workouts, Exercises, History |
 | HN-05 | Must | As a user, I want to access my profile from the Hub so that I can view and edit my personal data | Profile is accessible via the Hub app bar (not tied to any module) |
 
 ### Epic: Onboarding
@@ -97,8 +101,14 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 
 | ID | MoSCoW | User Story | Acceptance Criteria |
 |----|--------|------------|---------------------|
-| BK-01 | Should | As a user, I want to export all my data to a file so that I have a backup in case I lose my phone | Export generates a JSON file containing all user data (profile, workouts, executions, foods, meals, logs); file can be saved/shared via OS share sheet |
+| BK-01 | Should | As a user, I want to export all my data to a file so that I have a backup in case I lose my phone | Export generates a JSON file containing all user data (profile, workouts, executions); file can be saved/shared via OS share sheet |
 | BK-02 | Should | As a user, I want to import data from a backup file so that I can restore my data on a new device | Import reads a JSON file and restores all data; prompts confirmation before overwriting existing data |
+
+---
+
+## 1.1.0 — Diet: Food Registration
+
+First Diet increment. Users can register and browse foods with nutritional data.
 
 ### Epic: Diet — Food Registration
 
@@ -109,6 +119,14 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 | DT-03 | Should | As a user, I want to add custom foods so that I can track items not in the catalog | User provides name and macros; saved locally alongside catalog items |
 | DT-04 | Should | As a user, I want extensible nutritional fields (vitamins, minerals, amino acids) so that I can track detailed data as needed | Optional micronutrient fields on food registration; shown when populated |
 
+Hub update: Diet card transitions from placeholder to showing food count or last registered food.
+
+---
+
+## 1.2.0 — Diet: Meal Builder
+
+Second Diet increment. Users can build meals from registered foods.
+
 ### Epic: Diet — Meal Builder
 
 | ID | MoSCoW | User Story | Acceptance Criteria |
@@ -116,6 +134,14 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 | DT-05 | Must | As a user, I want to build meals by combining registered foods so that I have structured meal plans | Meal contains one or more foods with quantity; nutritional totals auto-calculated |
 | DT-06 | Must | As a user, I want to see nutritional totals per meal so that I understand my intake | Meal detail shows summed kcal, protein, carbs, fat |
 | DT-07 | Must | As a user, I want to edit and delete meals so that I can keep my plans up to date | All meal fields editable after creation; delete with confirmation |
+
+Diet bottom navigation: Home, Meals, Foods tabs become active.
+
+---
+
+## 1.3.0 — Diet: Caloric Control
+
+Third Diet increment. Daily tracking and caloric balance.
 
 ### Epic: Diet — Caloric Control
 
@@ -125,9 +151,11 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 | DT-09 | Should | As a user, I want to log caloric expenditure so that I can see my daily caloric balance | Manual entry of activity + estimated kcal burned; daily balance = intake - expenditure |
 | DT-10 | Could | As a user, I want caloric expenditure pulled automatically from my logged workouts so that I don't need to enter it manually | Cross-module integration via shared interface in `core/domain/` |
 
+Diet bottom navigation: Log tab becomes active. Diet module is now feature-complete for the free tier.
+
 ---
 
-## V2 — Backend & Sync
+## 2.0.0 — Backend & Sync
 
 ### Epic: Authentication
 
@@ -147,7 +175,7 @@ Requirements organized by release phase using [MoSCoW](https://en.wikipedia.org/
 
 ---
 
-## V3 — AI, Integrations & Gamification
+## 3.0.0 — AI, Integrations & Gamification
 
 ### Epic: Quíron (AI Assistant)
 
