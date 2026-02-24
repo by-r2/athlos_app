@@ -317,8 +317,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         context.go(RoutePaths.hub);
       }
-    } on Exception catch (e, st) {
-      debugPrint('_onSkip error: $e\n$st');
+    } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -356,8 +355,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (mounted) {
         context.go(RoutePaths.hub);
       }
-    } on Exception catch (e, st) {
-      debugPrint('_saveProfile error: $e\n$st');
+    } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

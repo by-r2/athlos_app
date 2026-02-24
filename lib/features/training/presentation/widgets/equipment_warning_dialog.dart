@@ -77,10 +77,19 @@ class _EquipmentWarningDialog extends ConsumerWidget {
         ),
         FilledButton.icon(
           onPressed: () async {
-            final notifier = ref.read(userEquipmentIdsProvider.notifier);
-            await notifier.addAll(missingEquipment.map((e) => e.id));
-            if (context.mounted) {
-              Navigator.pop(context, true);
+            try {
+              final notifier = ref.read(userEquipmentIdsProvider.notifier);
+              await notifier.addAll(missingEquipment.map((e) => e.id));
+              if (context.mounted) {
+                Navigator.pop(context, true);
+              }
+            } on Exception catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.genericError)),
+                );
+                Navigator.pop(context, false);
+              }
             }
           },
           icon: const Icon(Icons.check),

@@ -105,31 +105,41 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     final exercise = await showExercisePickerSheet(context);
     if (exercise == null || !mounted) return;
 
-    final exerciseEquipmentIds =
-        await ref.read(exerciseEquipmentIdsProvider(exercise.id).future);
-    final userEquipment =
-        await ref.read(userEquipmentIdsProvider.future);
-    final allEquipment =
-        await ref.read(equipmentListProvider.future);
+    try {
+      final exerciseEquipmentIds =
+          await ref.read(exerciseEquipmentIdsProvider(exercise.id).future);
+      final userEquipment =
+          await ref.read(userEquipmentIdsProvider.future);
+      final allEquipment =
+          await ref.read(equipmentListProvider.future);
 
-    final missingIds =
-        exerciseEquipmentIds.where((id) => !userEquipment.contains(id)).toList();
+      final missingIds =
+          exerciseEquipmentIds.where((id) => !userEquipment.contains(id)).toList();
 
-    if (missingIds.isNotEmpty && mounted) {
-      final missingEquipment =
-          allEquipment.where((e) => missingIds.contains(e.id)).toList();
+      if (missingIds.isNotEmpty && mounted) {
+        final missingEquipment =
+            allEquipment.where((e) => missingIds.contains(e.id)).toList();
 
-      final confirmed = await showEquipmentWarningDialog(
-        context,
-        missingEquipment: missingEquipment,
-      );
+        final confirmed = await showEquipmentWarningDialog(
+          context,
+          missingEquipment: missingEquipment,
+        );
 
-      if (confirmed != true) return;
+        if (confirmed != true) return;
+      }
+
+      setState(() {
+        _entries.add(WorkoutExerciseEntry(exercise: exercise));
+      });
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
+        );
+      }
     }
-
-    setState(() {
-      _entries.add(WorkoutExerciseEntry(exercise: exercise));
-    });
   }
 
   Future<void> _save() async {

@@ -82,8 +82,13 @@ class _TrainingShell extends ConsumerWidget {
         actions: [
           IconButton(
             icon: Icon(ref.watch(themeModeProvider.notifier).icon),
-            onPressed: () =>
-                ref.read(themeModeProvider.notifier).toggle(),
+            onPressed: () {
+              try {
+                ref.read(themeModeProvider.notifier).toggle();
+              } on Exception catch (_) {
+                // Best-effort; theme change persists in memory regardless
+              }
+            },
           ),
           if (!isSubPage)
             IconButton(

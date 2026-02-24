@@ -805,15 +805,27 @@ class _WorkoutExecutionScreenState
                 .map((d) => SegmentEntry(reps: d.reps, weight: d.weight)),
           ];
 
-    final restSeconds = await ref
-        .read(activeExecutionProvider.notifier)
-        .completeSet(
-          exercise.exerciseId,
-          _focusedSetNumber,
-          reps: _currentReps,
-          weight: _currentWeight > 0 ? _currentWeight : null,
-          segments: segments.isEmpty ? null : segments,
+    final int restSeconds;
+    try {
+      restSeconds = await ref
+          .read(activeExecutionProvider.notifier)
+          .completeSet(
+            exercise.exerciseId,
+            _focusedSetNumber,
+            reps: _currentReps,
+            weight: _currentWeight > 0 ? _currentWeight : null,
+            segments: segments.isEmpty ? null : segments,
+          );
+    } on Exception catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.genericError),
+          ),
         );
+      }
+      return;
+    }
 
     if (!mounted) return;
 
