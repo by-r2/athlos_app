@@ -19,6 +19,7 @@ import '../../features/training/data/datasources/daos/exercise_dao.dart';
 import '../../features/training/data/datasources/daos/workout_dao.dart';
 import '../../features/training/data/datasources/daos/workout_execution_dao.dart';
 import '../../features/training/data/datasources/tables/equipments_table.dart';
+import '../../features/training/data/datasources/tables/execution_set_segments_table.dart';
 import '../../features/training/data/datasources/tables/execution_sets_table.dart';
 import '../../features/training/data/datasources/tables/exercise_equipments_table.dart';
 import '../../features/training/data/datasources/tables/exercise_target_muscles_table.dart';
@@ -47,6 +48,7 @@ part 'app_database.g.dart';
     WorkoutExercises,
     WorkoutExecutions,
     ExecutionSets,
+    ExecutionSetSegments,
     UserEquipments,
     // Profile
     UserProfiles,
@@ -63,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
@@ -106,12 +108,16 @@ class _ExecutionCard extends ConsumerWidget {
         horizontal: AthlosSpacing.sm,
         vertical: AthlosSpacing.xs,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AthlosSpacing.md,
-          vertical: AthlosSpacing.sm,
-        ),
-        child: Row(
+      child: InkWell(
+        onTap: () => context.push(
+            '${RoutePaths.trainingHistory}/${execution.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AthlosSpacing.md,
+            vertical: AthlosSpacing.sm,
+          ),
+          child: Row(
           children: [
             CircleAvatar(
               backgroundColor: colorScheme.primaryContainer,
@@ -166,6 +172,7 @@ class _ExecutionCard extends ConsumerWidget {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

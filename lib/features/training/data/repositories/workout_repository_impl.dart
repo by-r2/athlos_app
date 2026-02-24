@@ -76,6 +76,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   sets: e.sets,
                   reps: e.reps,
                   restSeconds: Value(e.restSeconds),
+                  groupId: Value(e.groupId),
                 ))
             .toList(),
       );
@@ -108,6 +109,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   sets: e.sets,
                   reps: e.reps,
                   restSeconds: Value(e.restSeconds),
+                  groupId: Value(e.groupId),
                 ))
             .toList(),
       );
@@ -181,6 +183,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   sets: row.sets,
                   reps: row.reps,
                   restSeconds: row.restSeconds,
+                  groupId: row.groupId,
                 ))
             .toList(),
       );

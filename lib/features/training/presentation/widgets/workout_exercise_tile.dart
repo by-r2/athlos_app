@@ -6,35 +6,51 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../helpers/exercise_l10n.dart';
 
+/// Returns a theme color for a superset group, alternating between
+/// [ColorScheme.primary] and [ColorScheme.tertiary].
+Color supersetColorFor(int groupIndex, ColorScheme colorScheme) =>
+    groupIndex.isEven ? colorScheme.primary : colorScheme.tertiary;
+
 /// Configuration of an exercise within the workout form (mutable in-memory).
 class WorkoutExerciseEntry {
   final Exercise exercise;
   int sets;
   int reps;
   int restSeconds;
+  int? groupId;
 
   WorkoutExerciseEntry({
     required this.exercise,
     this.sets = 3,
     this.reps = 12,
     this.restSeconds = 60,
+    this.groupId,
   });
 }
 
 /// Tile for an exercise inside the workout builder form.
 ///
-/// Shows exercise name, muscle group, editable sets/reps/rest fields,
-/// a drag handle and a remove button.
+/// When the exercise belongs to a superset group, a colored left border
+/// and a small "Superset" badge are shown. Each group gets a distinct
+/// color from [supersetGroupPalette] via [groupColorIndex].
 class WorkoutExerciseTile extends StatelessWidget {
   final WorkoutExerciseEntry entry;
   final VoidCallback onRemove;
   final ValueChanged<WorkoutExerciseEntry> onChanged;
+  final bool isLinkedToNext;
+  final bool isLinkedToPrevious;
+  final VoidCallback? onToggleLinkNext;
+  final int? groupColorIndex;
 
   const WorkoutExerciseTile({
     super.key,
     required this.entry,
     required this.onRemove,
     required this.onChanged,
+    this.isLinkedToNext = false,
+    this.isLinkedToPrevious = false,
+    this.onToggleLinkNext,
+    this.groupColorIndex,
   });
 
   @override
@@ -42,6 +58,11 @@ class WorkoutExerciseTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isInGroup = isLinkedToNext || isLinkedToPrevious;
+    final groupColor =
+        isInGroup && groupColorIndex != null
+            ? supersetColorFor(groupColorIndex!, colorScheme)
+            : null;
 
     final displayName = localizedExerciseName(
       entry.exercise.name,
@@ -51,79 +72,196 @@ class WorkoutExerciseTile extends StatelessWidget {
     final groupName =
         localizedMuscleGroupName(entry.exercise.muscleGroup, l10n);
 
-    return Card(
+    final cardWidget = Card(
       margin: const EdgeInsets.symmetric(
         horizontal: AthlosSpacing.md,
         vertical: AthlosSpacing.xs,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.sm),
-        child: Row(
-          children: [
-            ReorderableDragStartListener(
-              index: 0,
-              child: Icon(
-                Icons.drag_handle,
-                color: colorScheme.onSurfaceVariant,
+      shape: groupColor != null
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: groupColor.withValues(alpha: 0.4)),
+            )
+          : null,
+      child: Container(
+        decoration: groupColor != null
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border(
+                  left: BorderSide(color: groupColor, width: 4),
+                ),
+              )
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(AthlosSpacing.sm),
+          child: Row(
+            children: [
+              ReorderableDragStartListener(
+                index: 0,
+                child: Icon(
+                  Icons.drag_handle,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-            const SizedBox(width: AthlosSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    groupName,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+              const SizedBox(width: AthlosSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (isInGroup && !isLinkedToPrevious &&
+                            groupColor != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                right: AthlosSpacing.xs),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: groupColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: groupColor.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.link,
+                                      size: 10, color: groupColor),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    l10n.supersetLabel,
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: groupColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            displayName,
+                            style: textTheme.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: AthlosSpacing.sm),
-                  Row(
-                    children: [
-                      _NumberField(
-                        label: l10n.setsLabel,
-                        value: entry.sets,
-                        onChanged: (v) {
-                          entry.sets = v;
-                          onChanged(entry);
-                        },
+                    Text(
+                      groupName,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: AthlosSpacing.sm),
-                      _NumberField(
-                        label: l10n.repsLabel,
-                        value: entry.reps,
-                        onChanged: (v) {
-                          entry.reps = v;
-                          onChanged(entry);
-                        },
-                      ),
-                      const SizedBox(width: AthlosSpacing.sm),
-                      _NumberField(
-                        label: l10n.restSecondsLabel,
-                        value: entry.restSeconds,
-                        onChanged: (v) {
-                          entry.restSeconds = v;
-                          onChanged(entry);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: AthlosSpacing.sm),
+                    Row(
+                      children: [
+                        _NumberField(
+                          label: l10n.setsLabel,
+                          value: entry.sets,
+                          onChanged: (v) {
+                            entry.sets = v;
+                            onChanged(entry);
+                          },
+                        ),
+                        const SizedBox(width: AthlosSpacing.sm),
+                        _NumberField(
+                          label: l10n.repsLabel,
+                          value: entry.reps,
+                          onChanged: (v) {
+                            entry.reps = v;
+                            onChanged(entry);
+                          },
+                        ),
+                        const SizedBox(width: AthlosSpacing.sm),
+                        _NumberField(
+                          label: l10n.restSecondsLabel,
+                          value: entry.restSeconds,
+                          onChanged: (v) {
+                            entry.restSeconds = v;
+                            onChanged(entry);
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(Icons.close, color: colorScheme.error),
-              onPressed: onRemove,
-              tooltip: l10n.removeExercise,
-            ),
-          ],
+              IconButton(
+                icon: Icon(Icons.close, color: colorScheme.error),
+                onPressed: onRemove,
+                tooltip: l10n.removeExercise,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        cardWidget,
+        if (onToggleLinkNext != null)
+          _SupersetLinkButton(
+            isLinked: isLinkedToNext,
+            onTap: onToggleLinkNext!,
+            linkedColor: isLinkedToNext ? groupColor : null,
+          ),
+      ],
+    );
+  }
+}
+
+class _SupersetLinkButton extends StatelessWidget {
+  final bool isLinked;
+  final VoidCallback onTap;
+  final Color? linkedColor;
+
+  const _SupersetLinkButton({
+    required this.isLinked,
+    required this.onTap,
+    this.linkedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = linkedColor ?? colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isLinked ? Icons.link : Icons.link_off,
+                size: 14,
+                color: isLinked ? activeColor : colorScheme.outline,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                isLinked ? l10n.unlinkSuperset : l10n.linkSuperset,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: isLinked ? activeColor : colorScheme.outline,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );

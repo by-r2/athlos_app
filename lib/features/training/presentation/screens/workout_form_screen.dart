@@ -33,6 +33,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   final List<WorkoutExerciseEntry> _entries = [];
   bool _isLoading = false;
   bool _didLoadExisting = false;
+  int _nextGroupId = 1;
 
   @override
   void dispose() {
@@ -59,9 +60,45 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           sets: we.sets,
           reps: we.reps,
           restSeconds: we.restSeconds,
+          groupId: we.groupId,
         ));
+        if (we.groupId != null && we.groupId! >= _nextGroupId) {
+          _nextGroupId = we.groupId! + 1;
+        }
       }
     }
+  }
+
+  /// Maps each unique groupId to a sequential color index (0, 1, 2, …).
+  Map<int, int> get _groupColorIndexMap {
+    final seen = <int, int>{};
+    var nextIdx = 0;
+    for (final e in _entries) {
+      if (e.groupId != null && !seen.containsKey(e.groupId)) {
+        seen[e.groupId!] = nextIdx++;
+      }
+    }
+    return seen;
+  }
+
+  void _toggleSupersetLink(int index) {
+    if (index >= _entries.length - 1) return;
+
+    setState(() {
+      final current = _entries[index];
+      final next = _entries[index + 1];
+
+      if (current.groupId != null && current.groupId == next.groupId) {
+        final oldGroupId = current.groupId;
+        for (final e in _entries) {
+          if (e.groupId == oldGroupId) e.groupId = null;
+        }
+      } else {
+        final gid = current.groupId ?? next.groupId ?? _nextGroupId++;
+        current.groupId = gid;
+        next.groupId = gid;
+      }
+    });
   }
 
   Future<void> _addExercise() async {
@@ -118,6 +155,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                 sets: e.value.sets,
                 reps: e.value.reps,
                 restSeconds: e.value.restSeconds,
+                groupId: e.value.groupId,
               ))
           .toList();
 
@@ -302,10 +340,31 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                       },
                       itemBuilder: (context, index) {
                         final entry = _entries[index];
+                        final isLast = index == _entries.length - 1;
+                        final isLinkedToNext = !isLast &&
+                            entry.groupId != null &&
+                            entry.groupId ==
+                                _entries[index + 1].groupId;
+                        final isLinkedToPrevious = index > 0 &&
+                            entry.groupId != null &&
+                            entry.groupId ==
+                                _entries[index - 1].groupId;
+
+                        final groupColorIndex =
+                            entry.groupId != null
+                                ? _groupColorIndexMap[entry.groupId]
+                                : null;
+
                         return WorkoutExerciseTile(
                           key: ValueKey(
                               '${entry.exercise.id}_$index'),
                           entry: entry,
+                          isLinkedToNext: isLinkedToNext,
+                          isLinkedToPrevious: isLinkedToPrevious,
+                          groupColorIndex: groupColorIndex,
+                          onToggleLinkNext: isLast
+                              ? null
+                              : () => _toggleSupersetLink(index),
                           onRemove: () =>
                               setState(() => _entries.removeAt(index)),
                           onChanged: (_) => setState(() {}),

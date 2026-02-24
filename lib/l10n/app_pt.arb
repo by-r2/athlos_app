@@ -974,5 +974,44 @@
   "nextSetLabel": "Próxima série",
   "@nextSetLabel": { "description": "Button to go to the next set after rest" },
   "backToOverview": "Voltar ao resumo",
-  "@backToOverview": { "description": "Button to return to the overview screen" }
+  "@backToOverview": { "description": "Button to return to the overview screen" },
+
+  "supersetLabel": "Superset",
+  "@supersetLabel": { "description": "Label for superset group indicator" },
+  "linkSuperset": "Vincular superset",
+  "@linkSuperset": { "description": "Tooltip to link exercise with next as superset" },
+  "unlinkSuperset": "Desvincular superset",
+  "@unlinkSuperset": { "description": "Tooltip to unlink exercise from superset" },
+  "addDropSet": "Adicionar drop",
+  "@addDropSet": { "description": "Button to add a drop set segment" },
+  "dropSetSegment": "Drop {order}",
+  "@dropSetSegment": {
+    "description": "Label for a drop set segment",
+    "placeholders": {
+      "order": { "type": "int" }
+    }
+  },
+  "plannedVsActual": "{actual}/{planned}",
+  "@plannedVsActual": {
+    "description": "Format for planned vs actual reps",
+    "placeholders": {
+      "actual": { "type": "int" },
+      "planned": { "type": "int" }
+    }
+  },
+  "volumeLabel": "Volume: {value}kg",
+  "@volumeLabel": {
+    "description": "Total volume label",
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "setsCompletedOf": "{completed}/{total} séries concluídas",
+  "@setsCompletedOf": {
+    "description": "Sets completed out of total",
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  }
 }

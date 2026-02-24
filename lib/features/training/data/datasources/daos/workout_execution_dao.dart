@@ -1,13 +1,15 @@
 import 'package:drift/drift.dart';
 
 import '../../../../../core/database/app_database.dart';
+import '../tables/execution_set_segments_table.dart';
 import '../tables/execution_sets_table.dart';
 import '../tables/workout_executions_table.dart';
 import '../tables/workouts_table.dart';
 
 part 'workout_execution_dao.g.dart';
 
-@DriftAccessor(tables: [WorkoutExecutions, ExecutionSets, Workouts])
+@DriftAccessor(
+    tables: [WorkoutExecutions, ExecutionSets, ExecutionSetSegments, Workouts])
 class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     with _$WorkoutExecutionDaoMixin {
   WorkoutExecutionDao(super.db);
@@ -47,6 +49,17 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
       );
 
   Future<void> deleteById(int id) async {
+    final setIds = await (select(executionSets)
+          ..where((s) => s.executionId.equals(id)))
+        .map((s) => s.id)
+        .get();
+
+    if (setIds.isNotEmpty) {
+      await (delete(executionSetSegments)
+            ..where((seg) => seg.executionSetId.isIn(setIds)))
+          .go();
+    }
+
     await (delete(executionSets)
           ..where((s) => s.executionId.equals(id)))
         .go();
@@ -69,4 +82,46 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> updateSet(int id, ExecutionSetsCompanion entry) =>
       (update(executionSets)..where((s) => s.id.equals(id))).write(entry);
+
+  // --- Execution set segments (drop sets) ---
+
+  Future<List<ExecutionSetSegment>> getSegments(int executionSetId) =>
+      (select(executionSetSegments)
+            ..where((s) => s.executionSetId.equals(executionSetId))
+            ..orderBy([(s) => OrderingTerm.asc(s.segmentOrder)]))
+          .get();
+
+  Future<List<ExecutionSetSegment>> getSegmentsForExecution(
+      int executionId) async {
+    final setIds = await (select(executionSets)
+          ..where((s) => s.executionId.equals(executionId)))
+        .map((s) => s.id)
+        .get();
+    if (setIds.isEmpty) return [];
+    return (select(executionSetSegments)
+          ..where((s) => s.executionSetId.isIn(setIds))
+          ..orderBy([
+            (s) => OrderingTerm.asc(s.executionSetId),
+            (s) => OrderingTerm.asc(s.segmentOrder),
+          ]))
+        .get();
+  }
+
+  Future<void> insertSegments(
+      List<ExecutionSetSegmentsCompanion> entries) async {
+    await batch((b) => b.insertAll(executionSetSegments, entries));
+  }
+
+  Future<void> deleteSegments(int executionSetId) =>
+      (delete(executionSetSegments)
+            ..where((s) => s.executionSetId.equals(executionSetId)))
+          .go();
+
+  Future<void> replaceSegments(
+    int executionSetId,
+    List<ExecutionSetSegmentsCompanion> entries,
+  ) async {
+    await deleteSegments(executionSetId);
+    await insertSegments(entries);
+  }
 }

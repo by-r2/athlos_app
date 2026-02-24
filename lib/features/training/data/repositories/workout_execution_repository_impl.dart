@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/execution_set.dart' as domain;
+import '../../domain/entities/execution_set_segment.dart' as domain;
 import '../../domain/entities/workout_execution.dart' as domain;
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../datasources/daos/workout_execution_dao.dart';
@@ -106,9 +107,12 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           executionId: set.executionId,
           exerciseId: set.exerciseId,
           setNumber: set.setNumber,
+          plannedReps: set.plannedReps,
+          plannedWeight: Value(set.plannedWeight),
           reps: set.reps,
           weight: Value(set.weight),
           isCompleted: Value(set.isCompleted),
+          notes: Value(set.notes),
         ),
       );
       return Success(id);
@@ -126,6 +130,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           reps: Value(set.reps),
           weight: Value(set.weight),
           isCompleted: Value(set.isCompleted),
+          notes: Value(set.notes),
         ),
       );
       return const Success(null);
@@ -148,8 +153,54 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         executionId: row.executionId as int,
         exerciseId: row.exerciseId as int,
         setNumber: row.setNumber as int,
+        plannedReps: row.plannedReps as int,
+        plannedWeight: row.plannedWeight as double?,
         reps: row.reps as int,
         weight: row.weight as double?,
         isCompleted: row.isCompleted as bool,
+        notes: row.notes as String?,
       );
+
+  domain.ExecutionSetSegment _segmentToDomain(dynamic row) =>
+      domain.ExecutionSetSegment(
+        id: row.id as int,
+        executionSetId: row.executionSetId as int,
+        segmentOrder: row.segmentOrder as int,
+        reps: row.reps as int,
+        weight: row.weight as double?,
+      );
+
+  @override
+  Future<Result<List<domain.ExecutionSetSegment>>> getSegments(
+      int executionSetId) async {
+    try {
+      final rows = await _dao.getSegments(executionSetId);
+      return Success(rows.map(_segmentToDomain).toList());
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to load segments: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> saveSegments(
+    int executionSetId,
+    List<domain.ExecutionSetSegment> segments,
+  ) async {
+    try {
+      await _dao.replaceSegments(
+        executionSetId,
+        segments
+            .map((s) => ExecutionSetSegmentsCompanion.insert(
+                  executionSetId: executionSetId,
+                  segmentOrder: s.segmentOrder,
+                  reps: s.reps,
+                  weight: Value(s.weight),
+                ))
+            .toList(),
+      );
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to save segments: $e'));
+    }
+  }
 }

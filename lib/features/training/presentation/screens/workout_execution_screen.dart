@@ -11,6 +11,7 @@ import '../providers/active_execution_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_notifier.dart';
+import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
 enum _ViewMode { overview, focused, timer }
 
@@ -33,6 +34,7 @@ class _WorkoutExecutionScreenState
   int _focusedSetNumber = 1;
   double _currentWeight = 0;
   int _currentReps = 0;
+  List<_DropSegmentInput> _dropSegments = [];
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +130,36 @@ class _WorkoutExecutionScreenState
     return null;
   }
 
+  /// Returns the indices of exercises that share the same superset group
+  /// with the exercise at [exerciseIndex].
+  List<int> _getSupersetGroupIndices(
+      ActiveExecutionState exec, int exerciseIndex) {
+    final gid = exec.exercises[exerciseIndex].groupId;
+    if (gid == null) return [exerciseIndex];
+    return [
+      for (var i = 0; i < exec.exercises.length; i++)
+        if (exec.exercises[i].groupId == gid) i,
+    ];
+  }
+
+  /// Returns the next exercise index in the superset group that has a pending
+  /// set with [setNumber], or null if all done for this set round.
+  int? _nextInSupersetGroup(
+      ActiveExecutionState exec, int currentIndex, int setNumber) {
+    final group = _getSupersetGroupIndices(exec, currentIndex);
+    final currentPosInGroup = group.indexOf(currentIndex);
+    for (var offset = 1; offset < group.length; offset++) {
+      final nextIdx = group[(currentPosInGroup + offset) % group.length];
+      final exId = exec.exercises[nextIdx].exerciseId;
+      final sets = exec.exerciseSets[exId] ?? [];
+      final match = sets.where(
+          (s) => s.setNumber == setNumber && !s.isCompleted);
+      if (match.isNotEmpty) return nextIdx;
+    }
+    return null;
+  }
+
+
   void _goToFocused(ActiveExecutionState exec, int exerciseIndex,
       [int? setNumber]) {
     final exId = exec.exercises[exerciseIndex].exerciseId;
@@ -157,6 +189,10 @@ class _WorkoutExecutionScreenState
       _currentWeight = entry.weight ??
           (prevCompleted.isNotEmpty ? prevCompleted.last.weight ?? 0 : 0);
       _currentReps = entry.reps;
+      _dropSegments = entry.segments
+          .skip(1)
+          .map((s) => _DropSegmentInput(reps: s.reps, weight: s.weight ?? 0))
+          .toList();
     });
   }
 
@@ -247,32 +283,57 @@ class _WorkoutExecutionScreenState
 
           // Exercise list
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AthlosSpacing.sm,
-              ),
-              itemCount: exec.exercises.length,
-              itemBuilder: (context, index) {
-                final exercise = exec.exercises[index];
-                final sets =
-                    exec.exerciseSets[exercise.exerciseId] ?? [];
-                final completedSets =
-                    sets.where((s) => s.isCompleted).length;
-                final totalSets = sets.length;
-                final isAllDone = completedSets == totalSets;
-                final isActive = next != null && next.$1 == index;
+            child: Builder(builder: (context) {
+              final groupColorMap = <int, int>{};
+              var nextColorIdx = 0;
+              for (final ex in exec.exercises) {
+                if (ex.groupId != null &&
+                    !groupColorMap.containsKey(ex.groupId)) {
+                  groupColorMap[ex.groupId!] = nextColorIdx++;
+                }
+              }
 
-                return _OverviewExerciseCard(
-                  exerciseName: _exerciseName(exercise.exerciseId),
-                  muscleGroup: _muscleGroupName(exercise.exerciseId),
-                  completedSets: completedSets,
-                  totalSets: totalSets,
-                  isAllDone: isAllDone,
-                  isActive: isActive,
-                  onTap: () => _goToFocused(exec, index),
-                );
-              },
-            ),
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AthlosSpacing.sm,
+                ),
+                itemCount: exec.exercises.length,
+                itemBuilder: (context, index) {
+                  final exercise = exec.exercises[index];
+                  final sets =
+                      exec.exerciseSets[exercise.exerciseId] ?? [];
+                  final completedSets =
+                      sets.where((s) => s.isCompleted).length;
+                  final totalSets = sets.length;
+                  final isAllDone = completedSets == totalSets;
+                  final isActive = next != null && next.$1 == index;
+
+                  final gid = exercise.groupId;
+                  final isGroupedWithPrev = index > 0 &&
+                      gid != null &&
+                      exec.exercises[index - 1].groupId == gid;
+                  final isGroupedWithNext =
+                      index < exec.exercises.length - 1 &&
+                          gid != null &&
+                          exec.exercises[index + 1].groupId == gid;
+
+                  return _OverviewExerciseCard(
+                    exerciseName: _exerciseName(exercise.exerciseId),
+                    muscleGroup: _muscleGroupName(exercise.exerciseId),
+                    completedSets: completedSets,
+                    totalSets: totalSets,
+                    isAllDone: isAllDone,
+                    isActive: isActive,
+                    isGroupedWithPrevious: isGroupedWithPrev,
+                    isGroupedWithNext: isGroupedWithNext,
+                    groupColorIndex: gid != null
+                        ? groupColorMap[gid]
+                        : null,
+                    onTap: () => _goToFocused(exec, index),
+                  );
+                },
+              );
+            }),
           ),
 
           // Bottom buttons
@@ -409,6 +470,66 @@ class _WorkoutExecutionScreenState
               textTheme: textTheme,
               colorScheme: colorScheme,
             ),
+
+            const SizedBox(height: AthlosSpacing.md),
+
+            // Drop set segments
+            if (_dropSegments.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: AthlosSpacing.xs),
+                padding: const EdgeInsets.all(AthlosSpacing.sm),
+                decoration: BoxDecoration(
+                  color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colorScheme.tertiary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    for (var idx = 0; idx < _dropSegments.length; idx++)
+                      _DropSegmentRow(
+                        index: idx,
+                        segment: _dropSegments[idx],
+                        colorScheme: colorScheme,
+                        textTheme: textTheme,
+                        l10n: l10n,
+                        onWeightChanged: (w) => setState(
+                            () => _dropSegments[idx] =
+                                _dropSegments[idx].copyWith(weight: w)),
+                        onRepsChanged: (r) => setState(
+                            () => _dropSegments[idx] =
+                                _dropSegments[idx].copyWith(reps: r)),
+                        onRemove: () =>
+                            setState(() => _dropSegments.removeAt(idx)),
+                      ),
+                  ],
+                ),
+              ),
+
+            // Add drop set button
+            if (!currentSetEntry.isCompleted)
+              Padding(
+                padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _dropSegments.add(_DropSegmentInput(
+                        reps: (_currentReps * 0.5).ceil(),
+                        weight: _currentWeight * 0.8,
+                      ));
+                    });
+                  },
+                  icon: Icon(Icons.arrow_downward,
+                      size: 16, color: colorScheme.tertiary),
+                  label: Text(l10n.addDropSet),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.tertiary,
+                    side: BorderSide(
+                        color: colorScheme.tertiary.withValues(alpha: 0.5)),
+                  ),
+                ),
+              ),
 
             const Spacer(),
 
@@ -673,6 +794,17 @@ class _WorkoutExecutionScreenState
 
     if (_currentReps <= 0) return;
 
+    final segments = _dropSegments.isEmpty
+        ? <SegmentEntry>[]
+        : [
+            SegmentEntry(
+              reps: _currentReps,
+              weight: _currentWeight > 0 ? _currentWeight : null,
+            ),
+            ..._dropSegments
+                .map((d) => SegmentEntry(reps: d.reps, weight: d.weight)),
+          ];
+
     final restSeconds = await ref
         .read(activeExecutionProvider.notifier)
         .completeSet(
@@ -680,17 +812,25 @@ class _WorkoutExecutionScreenState
           _focusedSetNumber,
           reps: _currentReps,
           weight: _currentWeight > 0 ? _currentWeight : null,
+          segments: segments.isEmpty ? null : segments,
         );
 
     if (!mounted) return;
+
+    final updatedExec = ref.read(activeExecutionProvider);
+    if (updatedExec == null) return;
+
+    final nextInGroup = _nextInSupersetGroup(
+        updatedExec, _focusedExerciseIndex, _focusedSetNumber);
+    if (nextInGroup != null) {
+      _goToFocused(updatedExec, nextInGroup, _focusedSetNumber);
+      return;
+    }
 
     if (restSeconds > 0) {
       ref.read(restTimerProvider.notifier).start(restSeconds);
       setState(() => _viewMode = _ViewMode.timer);
     } else {
-      // No rest configured — go to next set directly
-      final updatedExec = ref.read(activeExecutionProvider);
-      if (updatedExec == null) return;
       final next = _findNextPendingSet(updatedExec);
       if (next != null) {
         _goToFocused(updatedExec, next.$1, next.$2);
@@ -756,6 +896,9 @@ class _OverviewExerciseCard extends StatelessWidget {
   final int totalSets;
   final bool isAllDone;
   final bool isActive;
+  final bool isGroupedWithPrevious;
+  final bool isGroupedWithNext;
+  final int? groupColorIndex;
   final VoidCallback onTap;
 
   const _OverviewExerciseCard({
@@ -765,6 +908,9 @@ class _OverviewExerciseCard extends StatelessWidget {
     required this.totalSets,
     required this.isAllDone,
     required this.isActive,
+    this.isGroupedWithPrevious = false,
+    this.isGroupedWithNext = false,
+    this.groupColorIndex,
     required this.onTap,
   });
 
@@ -773,6 +919,12 @@ class _OverviewExerciseCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
+    final isInGroup = isGroupedWithPrevious || isGroupedWithNext;
+
+    final groupColor =
+        isInGroup && groupColorIndex != null
+            ? supersetColorFor(groupColorIndex!, colorScheme)
+            : null;
 
     final IconData statusIcon;
     final Color statusColor;
@@ -787,78 +939,139 @@ class _OverviewExerciseCard extends StatelessWidget {
       statusColor = colorScheme.onSurfaceVariant;
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
-      shape: isActive
-          ? RoundedRectangleBorder(
-              borderRadius: AthlosRadius.mdAll,
-              side: BorderSide(color: colorScheme.tertiary, width: 1.5),
-            )
-          : null,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AthlosRadius.mdAll,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AthlosSpacing.md,
-            vertical: AthlosSpacing.sm + 2,
-          ),
-          child: Row(
-            children: [
-              Icon(statusIcon, color: statusColor, size: 28),
-              const SizedBox(width: AthlosSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AthlosSpacing.md,
+        vertical: AthlosSpacing.sm + 2,
+      ),
+      child: Row(
+        children: [
+          Icon(statusIcon, color: statusColor, size: 28),
+          const SizedBox(width: AthlosSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      exerciseName,
-                      style: textTheme.titleSmall?.copyWith(
-                        decoration: isAllDone
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: isAllDone
-                            ? colorScheme.onSurfaceVariant
-                            : null,
-                      ),
-                    ),
-                    if (muscleGroup.isNotEmpty)
-                      Text(
-                        muscleGroup,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                    if (isInGroup &&
+                        !isGroupedWithPrevious &&
+                        groupColor != null)
+                      Padding(
+                        padding:
+                            const EdgeInsets.only(right: AthlosSpacing.xs),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: groupColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: groupColor.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.link,
+                                  size: 10, color: groupColor),
+                              const SizedBox(width: 2),
+                              Text(
+                                l10n.supersetLabel,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: groupColor,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                    Expanded(
+                      child: Text(
+                        exerciseName,
+                        style: textTheme.titleSmall?.copyWith(
+                          decoration:
+                              isAllDone ? TextDecoration.lineThrough : null,
+                          color:
+                              isAllDone ? colorScheme.onSurfaceVariant : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.sm,
-                  vertical: AthlosSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: isAllDone
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainerHighest,
-                  borderRadius: AthlosRadius.fullAll,
-                ),
-                child: Text(
-                  l10n.exerciseProgress(completedSets, totalSets),
-                  style: textTheme.labelSmall?.copyWith(
-                    color: isAllDone
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurfaceVariant,
+                if (muscleGroup.isNotEmpty)
+                  Text(
+                    muscleGroup,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AthlosSpacing.xs),
-              Icon(
-                Icons.chevron_right,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ],
+              ],
+            ),
           ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AthlosSpacing.sm,
+              vertical: AthlosSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: isAllDone
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: AthlosRadius.fullAll,
+            ),
+            child: Text(
+              l10n.exerciseProgress(completedSets, totalSets),
+              style: textTheme.labelSmall?.copyWith(
+                color: isAllDone
+                    ? colorScheme.onPrimaryContainer
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: AthlosSpacing.xs),
+          Icon(
+            Icons.chevron_right,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+
+    BorderSide? cardBorder;
+    if (isActive) {
+      cardBorder = BorderSide(color: colorScheme.tertiary, width: 1.5);
+    } else if (groupColor != null) {
+      cardBorder = BorderSide(color: groupColor.withValues(alpha: 0.4));
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
+      shape: cardBorder != null
+          ? RoundedRectangleBorder(
+              borderRadius: AthlosRadius.mdAll,
+              side: cardBorder,
+            )
+          : null,
+      child: Container(
+        decoration: groupColor != null
+            ? BoxDecoration(
+                borderRadius: AthlosRadius.mdAll,
+                border: Border(
+                  left: BorderSide(color: groupColor, width: 4),
+                ),
+              )
+            : null,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AthlosRadius.mdAll,
+          child: content,
         ),
       ),
     );
@@ -1009,6 +1222,113 @@ class _CircleButton extends StatelessWidget {
             size: 28,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DropSegmentInput {
+  final int reps;
+  final double weight;
+
+  const _DropSegmentInput({required this.reps, required this.weight});
+
+  _DropSegmentInput copyWith({int? reps, double? weight}) =>
+      _DropSegmentInput(
+        reps: reps ?? this.reps,
+        weight: weight ?? this.weight,
+      );
+}
+
+class _DropSegmentRow extends StatelessWidget {
+  final int index;
+  final _DropSegmentInput segment;
+  final ColorScheme colorScheme;
+  final TextTheme textTheme;
+  final AppLocalizations l10n;
+  final ValueChanged<double> onWeightChanged;
+  final ValueChanged<int> onRepsChanged;
+  final VoidCallback onRemove;
+
+  const _DropSegmentRow({
+    required this.index,
+    required this.segment,
+    required this.colorScheme,
+    required this.textTheme,
+    required this.l10n,
+    required this.onWeightChanged,
+    required this.onRepsChanged,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_downward, size: 18, color: colorScheme.tertiary),
+          const SizedBox(width: AthlosSpacing.xs),
+          Text(
+            l10n.dropSetSegment(index + 2),
+            style: textTheme.labelMedium?.copyWith(
+              color: colorScheme.tertiary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: AthlosSpacing.sm),
+          Expanded(
+            child: TextField(
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                isDense: true,
+                labelText: l10n.weightKgSuffix,
+                labelStyle: textTheme.labelSmall,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AthlosSpacing.sm,
+                  vertical: AthlosSpacing.sm,
+                ),
+              ),
+              controller: TextEditingController(
+                text: segment.weight > 0
+                    ? segment.weight
+                        .toStringAsFixed(segment.weight % 1 == 0 ? 0 : 1)
+                    : '',
+              ),
+              onChanged: (v) => onWeightChanged(double.tryParse(v) ?? 0),
+            ),
+          ),
+          const SizedBox(width: AthlosSpacing.sm),
+          Expanded(
+            child: TextField(
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                isDense: true,
+                labelText: l10n.repsShort,
+                labelStyle: textTheme.labelSmall,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AthlosSpacing.sm,
+                  vertical: AthlosSpacing.sm,
+                ),
+              ),
+              controller:
+                  TextEditingController(text: segment.reps.toString()),
+              onChanged: (v) =>
+                  onRepsChanged(int.tryParse(v) ?? segment.reps),
+            ),
+          ),
+          const SizedBox(width: AthlosSpacing.xs),
+          IconButton(
+            icon: Icon(Icons.close, size: 20, color: colorScheme.error),
+            onPressed: onRemove,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
     );
   }

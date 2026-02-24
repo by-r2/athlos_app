@@ -1,5 +1,6 @@
 import '../../../../core/errors/result.dart';
 import '../entities/execution_set.dart';
+import '../entities/execution_set_segment.dart';
 import '../entities/workout_execution.dart';
 
 /// Contract for workout execution data operations.
@@ -14,4 +15,9 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<List<ExecutionSet>>> getSets(int executionId);
   Future<Result<int>> logSet(ExecutionSet set);
   Future<Result<void>> updateSet(ExecutionSet set);
+
+  // --- Segments (drop sets) ---
+  Future<Result<List<ExecutionSetSegment>>> getSegments(int executionSetId);
+  Future<Result<void>> saveSegments(
+      int executionSetId, List<ExecutionSetSegment> segments);
 }

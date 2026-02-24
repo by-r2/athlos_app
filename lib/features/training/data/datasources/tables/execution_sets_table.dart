@@ -9,11 +9,22 @@ class ExecutionSets extends Table {
   IntColumn get executionId => integer().references(WorkoutExecutions, #id)();
   IntColumn get exerciseId => integer().references(Exercises, #id)();
   IntColumn get setNumber => integer()();
+
+  /// Snapshot of the template reps at the time of execution.
+  IntColumn get plannedReps => integer()();
+
+  /// Target weight (from last session or user input). Null if not set.
+  RealColumn get plannedWeight => real().nullable()();
+
+  /// Actual reps performed (primary segment for drop sets).
   IntColumn get reps => integer()();
 
-  /// Weight in kg. Null for bodyweight exercises.
+  /// Actual weight used in kg (primary segment for drop sets).
   RealColumn get weight => real().nullable()();
 
   BoolColumn get isCompleted =>
       boolean().withDefault(const Constant(false))();
+
+  /// Per-set user notes (e.g. "felt easy", "pain in shoulder").
+  TextColumn get notes => text().nullable()();
 }

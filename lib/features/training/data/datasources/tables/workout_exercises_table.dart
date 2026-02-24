@@ -14,6 +14,10 @@ class WorkoutExercises extends Table {
   /// Rest time between sets in seconds.
   IntColumn get restSeconds => integer().withDefault(const Constant(60))();
 
+  /// Superset group ID within the workout. Exercises sharing the same
+  /// non-null groupId are executed back-to-back before rest.
+  IntColumn get groupId => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {workoutId, exerciseId};
 }

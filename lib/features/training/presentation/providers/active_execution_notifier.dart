@@ -3,40 +3,63 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/result.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/execution_set.dart';
+import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/workout_exercise.dart';
 import 'workout_execution_notifier.dart';
 import 'workout_notifier.dart';
 
 part 'active_execution_notifier.g.dart';
 
+class SegmentEntry {
+  final int reps;
+  final double? weight;
+
+  const SegmentEntry({required this.reps, this.weight});
+}
+
 class SetEntry {
   final int? id;
   final int setNumber;
+  final int plannedReps;
+  final double? plannedWeight;
   final int reps;
   final double? weight;
   final bool isCompleted;
+  final List<SegmentEntry> segments;
 
   const SetEntry({
     this.id,
     required this.setNumber,
+    required this.plannedReps,
+    this.plannedWeight,
     required this.reps,
     this.weight,
     this.isCompleted = false,
+    this.segments = const [],
   });
+
+  bool get isDropSet => segments.length > 1;
 
   SetEntry copyWith({
     int? id,
     int? setNumber,
+    int? plannedReps,
+    double? Function()? plannedWeight,
     int? reps,
     double? Function()? weight,
     bool? isCompleted,
+    List<SegmentEntry>? segments,
   }) =>
       SetEntry(
         id: id ?? this.id,
         setNumber: setNumber ?? this.setNumber,
+        plannedReps: plannedReps ?? this.plannedReps,
+        plannedWeight:
+            plannedWeight != null ? plannedWeight() : this.plannedWeight,
         reps: reps ?? this.reps,
         weight: weight != null ? weight() : this.weight,
         isCompleted: isCompleted ?? this.isCompleted,
+        segments: segments ?? this.segments,
       );
 }
 
@@ -98,7 +121,11 @@ class ActiveExecution extends _$ActiveExecution {
     for (final ex in exercises) {
       exerciseSets[ex.exerciseId] = List.generate(
         ex.sets,
-        (i) => SetEntry(setNumber: i + 1, reps: ex.reps),
+        (i) => SetEntry(
+          setNumber: i + 1,
+          plannedReps: ex.reps,
+          reps: ex.reps,
+        ),
       );
     }
 
@@ -134,6 +161,59 @@ class ActiveExecution extends _$ActiveExecution {
     );
   }
 
+  /// Add a drop segment to a set (in-memory only, persisted on complete).
+  void addDropSegment(int exerciseId, int setNumber,
+      {required int reps, double? weight}) {
+    final current = state;
+    if (current == null) return;
+
+    final sets = current.exerciseSets[exerciseId];
+    if (sets == null) return;
+
+    final updated = [
+      for (final s in sets)
+        if (s.setNumber == setNumber)
+          s.copyWith(
+            segments: [
+              ...s.segments,
+              SegmentEntry(reps: reps, weight: weight),
+            ],
+          )
+        else
+          s,
+    ];
+
+    state = current.copyWith(
+      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+    );
+  }
+
+  /// Remove a drop segment by index.
+  void removeDropSegment(int exerciseId, int setNumber, int segmentIndex) {
+    final current = state;
+    if (current == null) return;
+
+    final sets = current.exerciseSets[exerciseId];
+    if (sets == null) return;
+
+    final updated = [
+      for (final s in sets)
+        if (s.setNumber == setNumber)
+          s.copyWith(
+            segments: [
+              for (var i = 0; i < s.segments.length; i++)
+                if (i != segmentIndex) s.segments[i],
+            ],
+          )
+        else
+          s,
+    ];
+
+    state = current.copyWith(
+      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+    );
+  }
+
   /// Mark a set as completed and persist it to the database.
   /// Returns the restSeconds for the exercise so the caller can start the timer.
   Future<int> completeSet(
@@ -141,6 +221,7 @@ class ActiveExecution extends _$ActiveExecution {
     int setNumber, {
     required int reps,
     double? weight,
+    List<SegmentEntry>? segments,
   }) async {
     final current = state;
     if (current == null) return 0;
@@ -150,6 +231,7 @@ class ActiveExecution extends _$ActiveExecution {
     if (sets == null) return 0;
 
     final entry = sets.firstWhere((s) => s.setNumber == setNumber);
+    final effectiveSegments = segments ?? entry.segments;
 
     int? setId = entry.id;
     if (setId == null) {
@@ -158,6 +240,8 @@ class ActiveExecution extends _$ActiveExecution {
         executionId: current.executionId,
         exerciseId: exerciseId,
         setNumber: setNumber,
+        plannedReps: entry.plannedReps,
+        plannedWeight: entry.plannedWeight,
         reps: reps,
         weight: weight,
         isCompleted: true,
@@ -169,10 +253,30 @@ class ActiveExecution extends _$ActiveExecution {
         executionId: current.executionId,
         exerciseId: exerciseId,
         setNumber: setNumber,
+        plannedReps: entry.plannedReps,
+        plannedWeight: entry.plannedWeight,
         reps: reps,
         weight: weight,
         isCompleted: true,
       ));
+    }
+
+    final persistedSetId = setId;
+    if (effectiveSegments.length > 1) {
+      await repo.saveSegments(
+        persistedSetId,
+        effectiveSegments
+            .asMap()
+            .entries
+            .map((e) => ExecutionSetSegment(
+                  id: 0,
+                  executionSetId: persistedSetId,
+                  segmentOrder: e.key + 1,
+                  reps: e.value.reps,
+                  weight: e.value.weight,
+                ))
+            .toList(),
+      );
     }
 
     final updated = [
@@ -183,6 +287,7 @@ class ActiveExecution extends _$ActiveExecution {
             reps: reps,
             weight: () => weight,
             isCompleted: true,
+            segments: effectiveSegments,
           )
         else
           s,

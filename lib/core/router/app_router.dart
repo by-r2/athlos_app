@@ -5,6 +5,7 @@ import '../../features/hub/presentation/screens/hub_screen.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_setup_screen.dart';
+import '../../features/training/presentation/screens/execution_detail_screen.dart';
 import '../../features/training/presentation/screens/exercise_detail_screen.dart';
 import '../../features/training/presentation/screens/training_shell.dart';
 import '../../features/training/presentation/screens/workout_detail_screen.dart';
@@ -97,6 +98,15 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) {
           final id = int.parse(state.pathParameters['workoutId']!);
           return WorkoutExecutionScreen(workoutId: id);
+        },
+      ),
+
+      // Execution detail (history)
+      GoRoute(
+        path: '${RoutePaths.trainingHistory}/:executionId',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['executionId']!);
+          return ExecutionDetailScreen(executionId: id);
         },
       ),
     ],
