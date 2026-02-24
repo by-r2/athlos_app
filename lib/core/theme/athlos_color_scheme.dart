@@ -48,5 +48,9 @@ class AthlosColorScheme {
     surfaceContainer: const Color(0xFF1E1E1E),
     surfaceContainerHigh: const Color(0xFF252525),
     surfaceContainerHighest: const Color(0xFF2E2E2E),
+    error: const Color(0xFFCF4444),
+    onError: Colors.white,
+    errorContainer: const Color(0xFF5C1A1A),
+    onErrorContainer: const Color(0xFFFFB3B3),
   );
 }
