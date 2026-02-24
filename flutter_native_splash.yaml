@@ -1,21 +1,17 @@
 flutter_native_splash:
-  # Light mode background — matches AthlosColorScheme._lightBase
-  color: "#F5F5F5"
+  # Athlos purple background
+  color: "#6917B5"
+  image: assets/splash_logo.png
 
-  # Dark mode background — matches AthlosColorScheme._darkBase
-  color_dark: "#010101"
+  # Dark mode uses same purple
+  color_dark: "#6917B5"
+  image_dark: assets/splash_logo_dark.png
 
-  # Placeholder: replace with actual logo path and re-run
-  # dart run flutter_native_splash:create
-  # image: assets/splash_logo.png
-  # image_dark: assets/splash_logo_dark.png
-
+  # Android 12+ splash
   android_12:
-    color: "#F5F5F5"
-    color_dark: "#010101"
-    icon_background_color: "#F5F5F5"
-    icon_background_color_dark: "#010101"
-    image: assets/splash_placeholder.png
-    # Replace with actual logo when available:
-    # image: assets/splash_logo.png
-    # image_dark: assets/splash_logo_dark.png
+    color: "#6917B5"
+    color_dark: "#6917B5"
+    icon_background_color: "#6917B5"
+    icon_background_color_dark: "#6917B5"
+    image: assets/splash_logo.png
+    image_dark: assets/splash_logo_dark.png
