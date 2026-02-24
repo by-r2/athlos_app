@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
 import '../../../../core/theme/athlos_durations.dart';
+import '../../../../core/theme/athlos_elevation.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -41,7 +42,7 @@ class AestheticSelector extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
             child: Card(
               clipBehavior: Clip.antiAlias,
-              elevation: isSelected ? 2 : 0,
+              elevation: isSelected ? AthlosElevation.sm : AthlosElevation.none,
               color: isSelected
                   ? colorScheme.primaryContainer
                   : colorScheme.surfaceContainerLow,

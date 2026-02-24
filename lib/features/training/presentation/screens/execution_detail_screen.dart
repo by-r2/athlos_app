@@ -163,7 +163,7 @@ class ExecutionDetailScreen extends ConsumerWidget {
                 final name = ex != null
                     ? localizedExerciseName(ex.name,
                         isVerified: ex.isVerified, l10n: l10n)
-                    : '#$exId';
+                    : l10n.unknownExerciseId(exId);
                 final group = ex != null
                     ? localizedMuscleGroupName(ex.muscleGroup, l10n)
                     : '';

@@ -92,7 +92,7 @@ class _WorkoutExecutionScreenState
       (e) => e.id == exerciseId,
       orElse: () => throw StateError('Exercise $exerciseId not found'),
     );
-    if (entity == null) return '#$exerciseId';
+    if (entity == null) return l10n.unknownExerciseId(exerciseId);
     return localizedExerciseName(
       entity.name,
       isVerified: entity.isVerified,
@@ -994,8 +994,8 @@ class _OverviewExerciseCard extends StatelessWidget {
                             const EdgeInsets.only(right: AthlosSpacing.xs),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
+                            horizontal: AthlosSpacing.xs,
+                            vertical: AthlosSpacing.xxs,
                           ),
                           decoration: BoxDecoration(
                             color: groupColor.withValues(alpha: 0.15),

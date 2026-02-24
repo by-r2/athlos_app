@@ -4,7 +4,6 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/user_profile.dart' as domain;
-import '../../domain/enums/selected_module.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/user_profile_dao.dart';
 
@@ -63,25 +62,6 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update profile: $e'));
-    }
-  }
-
-  @override
-  Future<Result<void>> updateLastActiveModule(AppModule module) async {
-    try {
-      final profile = await _dao.get();
-      if (profile == null) {
-        return const Failure(
-            NotFoundException('No profile found to update module'));
-      }
-      await _dao.updateById(
-        profile.id,
-        UserProfilesCompanion(lastActiveModule: Value(module)),
-      );
-      return const Success(null);
-    } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to update active module: $e'));
     }
   }
 

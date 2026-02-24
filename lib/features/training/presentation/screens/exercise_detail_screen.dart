@@ -149,7 +149,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   final regionName = localizedMuscleRegion(focus.region!, l10n);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                    child: Text('$muscleName ($regionName)',
+                    child: Text(l10n.muscleWithRegion(muscleName, regionName),
                         style: textTheme.bodyLarge),
                   );
                 }
@@ -500,7 +500,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
             initialValue: focus.region,
             decoration: InputDecoration(
               labelText:
-                  '${localizedTargetMuscle(focus.muscle, l10n)} — ${l10n.muscleRegionLabel}',
+                  l10n.muscleWithSeparator(localizedTargetMuscle(focus.muscle, l10n), l10n.muscleRegionLabel),
               border: const OutlineInputBorder(),
             ),
             items: [

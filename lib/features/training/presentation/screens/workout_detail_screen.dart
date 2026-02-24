@@ -369,7 +369,7 @@ class _ExerciseDetailTile extends ConsumerWidget {
             isVerified: exerciseEntity.isVerified,
             l10n: l10n,
           )
-        : '#${exercise.exerciseId}';
+        : l10n.unknownExerciseId(exercise.exerciseId);
 
     final groupName = exerciseEntity != null
         ? localizedMuscleGroupName(exerciseEntity.muscleGroup, l10n)
@@ -384,8 +384,8 @@ class _ExerciseDetailTile extends ConsumerWidget {
       margin: EdgeInsets.only(
         left: AthlosSpacing.sm,
         right: AthlosSpacing.sm,
-        top: isGroupedWithPrev ? 1 : AthlosSpacing.xs,
-        bottom: isGroupedWithNext ? 1 : AthlosSpacing.xs,
+        top: isGroupedWithPrev ? AthlosSpacing.xxs : AthlosSpacing.xs,
+        bottom: isGroupedWithNext ? AthlosSpacing.xxs : AthlosSpacing.xs,
       ),
       shape: RoundedRectangleBorder(
         borderRadius: AthlosRadius.mdAll,
@@ -419,7 +419,7 @@ class _ExerciseDetailTile extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AthlosSpacing.sm,
-                    vertical: 2,
+                    vertical: AthlosSpacing.xxs,
                   ),
                   decoration: BoxDecoration(
                     color: groupColor?.withValues(alpha: 0.12),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_elevation.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 
@@ -37,7 +38,7 @@ class ModuleCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      elevation: isEnabled ? 2 : 0,
+      elevation: isEnabled ? AthlosElevation.sm : AthlosElevation.none,
       color: isEnabled
           ? colorScheme.surfaceContainerLow
           : colorScheme.surfaceContainerLow.withAlpha(128),

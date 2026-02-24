@@ -1053,5 +1053,28 @@
   "okButton": "OK",
   "@okButton": {
     "description": "Generic OK button label"
+  },
+  "muscleWithRegion": "{muscle} ({region})",
+  "@muscleWithRegion": {
+    "description": "Muscle name with region in parentheses",
+    "placeholders": {
+      "muscle": { "type": "String" },
+      "region": { "type": "String" }
+    }
+  },
+  "muscleWithSeparator": "{muscle} — {label}",
+  "@muscleWithSeparator": {
+    "description": "Muscle name with separator and label",
+    "placeholders": {
+      "muscle": { "type": "String" },
+      "label": { "type": "String" }
+    }
+  },
+  "unknownExerciseId": "#{id}",
+  "@unknownExerciseId": {
+    "description": "Fallback label when exercise is not found",
+    "placeholders": {
+      "id": { "type": "int" }
+    }
   }
 }

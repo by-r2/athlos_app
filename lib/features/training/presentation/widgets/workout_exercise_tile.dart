@@ -118,8 +118,8 @@ class WorkoutExerciseTile extends StatelessWidget {
                                 right: AthlosSpacing.xs),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                                horizontal: AthlosSpacing.sm,
+                                vertical: AthlosSpacing.xxs,
                               ),
                               decoration: BoxDecoration(
                                 color: groupColor.withValues(alpha: 0.15),

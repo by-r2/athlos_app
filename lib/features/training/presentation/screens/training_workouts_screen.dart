@@ -417,7 +417,7 @@ class _WorkoutCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AthlosSpacing.sm,
-                              vertical: 2,
+                              vertical: AthlosSpacing.xxs,
                             ),
                             decoration: BoxDecoration(
                               color: colorScheme.primaryContainer,

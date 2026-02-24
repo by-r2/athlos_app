@@ -428,7 +428,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
             initialValue: focus.region,
             decoration: InputDecoration(
               labelText:
-                  '${localizedTargetMuscle(focus.muscle, l10n)} — ${l10n.muscleRegionLabel}',
+                  l10n.muscleWithSeparator(localizedTargetMuscle(focus.muscle, l10n), l10n.muscleRegionLabel),
               border: const OutlineInputBorder(),
             ),
             items: [

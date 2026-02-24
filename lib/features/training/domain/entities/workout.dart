@@ -15,4 +15,21 @@ class Workout {
     this.isArchived = false,
     required this.createdAt,
   });
+
+  Workout copyWith({
+    int? id,
+    String? name,
+    String? Function()? description,
+    int? Function()? sortOrder,
+    bool? isArchived,
+    DateTime? createdAt,
+  }) =>
+      Workout(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        description: description != null ? description() : this.description,
+        sortOrder: sortOrder != null ? sortOrder() : this.sortOrder,
+        isArchived: isArchived ?? this.isArchived,
+        createdAt: createdAt ?? this.createdAt,
+      );
 }
