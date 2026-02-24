@@ -24,6 +24,13 @@ class AthlosColorScheme {
     secondary: _accentGold,
     tertiary: _tertiaryGold,
     surface: _lightBase,
+    surfaceDim: const Color(0xFFEEEEEE),
+    surfaceBright: Colors.white,
+    surfaceContainerLowest: const Color(0xFFFAFAFA),
+    surfaceContainerLow: const Color(0xFFFCFCFC),
+    surfaceContainer: Colors.white,
+    surfaceContainerHigh: Colors.white,
+    surfaceContainerHighest: Colors.white,
   );
 
   static final dark = ColorScheme.fromSeed(

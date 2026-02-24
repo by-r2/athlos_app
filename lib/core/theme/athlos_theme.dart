@@ -21,5 +21,40 @@ class AthlosTheme {
           elevation: 0,
         ),
         scaffoldBackgroundColor: colorScheme.surface,
+        navigationBarTheme: NavigationBarThemeData(
+          height: 64,
+          elevation: 0,
+          backgroundColor: colorScheme.surfaceContainer,
+          indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
+          indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return IconThemeData(color: colorScheme.primary, size: 24);
+            }
+            return IconThemeData(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              size: 24,
+            );
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.primary,
+              );
+            }
+            return TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            );
+          }),
+          overlayColor: WidgetStatePropertyAll(
+            colorScheme.primary.withValues(alpha: 0.08),
+          ),
+        ),
       );
 }

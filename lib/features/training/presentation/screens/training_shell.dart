@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'equipment_screen.dart';
 import 'training_exercises_screen.dart';
@@ -78,26 +80,50 @@ class _TrainingShell extends StatelessWidget {
         title: Text(l10n.trainingModule),
       ),
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _indexFromPath(currentPath),
-        onDestinationSelected: (index) => _onTabTap(context, index),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home),
-            label: l10n.tabHome,
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            0,
+            AthlosSpacing.md,
+            AthlosSpacing.sm,
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.view_list_outlined),
-            selectedIcon: const Icon(Icons.view_list),
-            label: l10n.tabWorkouts,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: AthlosRadius.lgAll,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.history_outlined),
-            selectedIcon: const Icon(Icons.history),
-            label: l10n.tabHistory,
+          child: ClipRRect(
+            borderRadius: AthlosRadius.lgAll,
+            child: NavigationBar(
+              selectedIndex: _indexFromPath(currentPath),
+              onDestinationSelected: (index) => _onTabTap(context, index),
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.dashboard_outlined),
+                  selectedIcon: const Icon(Icons.dashboard),
+                  label: l10n.tabHome,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.fitness_center_outlined),
+                  selectedIcon: const Icon(Icons.fitness_center),
+                  label: l10n.tabWorkouts,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.timeline_outlined),
+                  selectedIcon: const Icon(Icons.timeline),
+                  label: l10n.tabHistory,
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
