@@ -88,18 +88,9 @@ class AppDatabase extends _$AppDatabase {
           }
 
           // Incremental migrations for public releases.
-          // Each step migrates from the previous version to the next.
-          // Example:
-          //   2: (m) async => await m.addColumn(table, table.newColumn),
-          //   3: (m) async => await m.createTable(newTable),
-          await m.runMigrationSteps(
-            from: from,
-            to: to,
-            steps: {
-              // Add versioned migrations here as the schema evolves.
-              // Version 2 will be the first migration after 1.0.0 release.
-            },
-          );
+          // When bumping schemaVersion, run `dart run drift_dev make-migrations`
+          // and use the generated stepByStep() / migrationSteps() here.
+          // See: https://drift.simonbinder.eu/migrations/step_by_step/
         },
       );
 }
