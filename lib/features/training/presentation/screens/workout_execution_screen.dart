@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -484,8 +485,9 @@ class _WorkoutExecutionScreenState
               onChanged: (v) => setState(() => _currentReps = v.toInt()),
               textTheme: textTheme,
               colorScheme: colorScheme,
-              valueColor: repsDeviationColor(
-                  colorScheme, _currentReps, exercise.reps),
+              valueColor: repsDeviationColor(colorScheme,
+                  Theme.of(context).extension<AthlosCustomColors>()!,
+                  _currentReps, exercise.reps),
             ),
 
             const SizedBox(height: AthlosSpacing.md),
@@ -820,6 +822,7 @@ class _WorkoutExecutionScreenState
 
     final feedback = loadFeedback(
       cs: colorScheme,
+      custom: Theme.of(context).extension<AthlosCustomColors>()!,
       l10n: l10n,
       completedReps: completedReps,
       plannedReps: exercise.reps,

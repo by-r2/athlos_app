@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'athlos_color_scheme.dart';
+import 'athlos_custom_colors.dart';
 import 'athlos_elevation.dart';
 import 'athlos_radius.dart';
 import 'athlos_text_theme.dart';
@@ -9,10 +10,17 @@ import 'athlos_text_theme.dart';
 class AthlosTheme {
   AthlosTheme._();
 
-  static ThemeData get light => _buildTheme(AthlosColorScheme.light);
-  static ThemeData get dark => _buildTheme(AthlosColorScheme.dark);
+  static ThemeData get light =>
+      _buildTheme(AthlosColorScheme.light, AthlosCustomColors.light);
+  static ThemeData get dark =>
+      _buildTheme(AthlosColorScheme.dark, AthlosCustomColors.dark);
 
-  static ThemeData _buildTheme(ColorScheme colorScheme) => ThemeData(
+  static ThemeData _buildTheme(
+    ColorScheme colorScheme,
+    AthlosCustomColors customColors,
+  ) =>
+      ThemeData(
+        extensions: [customColors],
         useMaterial3: true,
         colorScheme: colorScheme,
         textTheme: AthlosTextTheme.textTheme,

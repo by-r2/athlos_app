@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Returns a color reflecting how far [actual] reps deviate from [planned].
 ///
 /// Tolerance bands based on autoregulation (RPE/RIR) guidelines:
 /// - ±1 rep  → null (neutral / on-target)
-/// - ±2–3    → orange (attention — weight may be inadequate)
-/// - ±4+     → error red (weight clearly wrong)
-Color? repsDeviationColor(ColorScheme cs, int actual, int planned) {
+/// - ±2–3    → warning (attention — weight may be inadequate)
+/// - ±4+     → error (weight clearly wrong)
+Color? repsDeviationColor(
+    ColorScheme cs, AthlosCustomColors custom, int actual, int planned) {
   final diff = actual - planned;
   if (diff.abs() >= 4) return cs.error;
-  if (diff.abs() >= 2) return Colors.orange;
+  if (diff.abs() >= 2) return custom.warning;
   return null;
 }
 
@@ -21,6 +23,7 @@ Color? repsDeviationColor(ColorScheme cs, int actual, int planned) {
 /// Returns null when performance is in the ideal zone (no feedback needed).
 ({String message, Color color})? loadFeedback({
   required ColorScheme cs,
+  required AthlosCustomColors custom,
   required AppLocalizations l10n,
   required List<int> completedReps,
   required int plannedReps,
@@ -37,7 +40,7 @@ Color? repsDeviationColor(ColorScheme cs, int actual, int planned) {
   if (avgDiff <= -2) {
     return (
       message: l10n.executionFeedbackWeightSlightlyHigh,
-      color: Colors.orange,
+      color: custom.warning,
     );
   }
   if (avgDiff >= 4) {
@@ -46,7 +49,7 @@ Color? repsDeviationColor(ColorScheme cs, int actual, int planned) {
   if (avgDiff >= 2) {
     return (
       message: l10n.executionFeedbackWeightTooLight,
-      color: Colors.orange,
+      color: custom.warning,
     );
   }
   return null;

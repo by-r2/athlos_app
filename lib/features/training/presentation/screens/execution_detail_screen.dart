@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -373,6 +374,7 @@ class _ExerciseBreakdown extends StatelessWidget {
     final plannedReps = completed.first.plannedReps;
     final feedback = loadFeedback(
       cs: colorScheme,
+      custom: Theme.of(context).extension<AthlosCustomColors>()!,
       l10n: l10n,
       completedReps: completed.map((s) => s.reps).toList(),
       plannedReps: plannedReps,
@@ -412,9 +414,10 @@ class _SetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
     final statusColor = setEntry.isCompleted
-        ? (repsDeviationColor(
-                colorScheme, setEntry.reps, setEntry.plannedReps) ??
+        ? (repsDeviationColor(colorScheme, customColors, setEntry.reps,
+                setEntry.plannedReps) ??
             colorScheme.primary)
         : colorScheme.onSurfaceVariant;
     final diff = setEntry.reps - setEntry.plannedReps;
