@@ -201,7 +201,9 @@ class _WorkoutExecutionScreenState
           (prevCompleted.isNotEmpty
               ? prevCompleted.last.weight ?? 0
               : entry.plannedWeight ?? 0);
-      _currentReps = entry.reps;
+      _currentReps = prevCompleted.isNotEmpty
+          ? prevCompleted.last.reps
+          : entry.reps;
       _dropSegments = entry.segments
           .skip(1)
           .map((s) => _DropSegmentInput(reps: s.reps, weight: s.weight ?? 0))
