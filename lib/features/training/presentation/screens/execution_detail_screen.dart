@@ -10,6 +10,7 @@ import '../../domain/entities/exercise.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../helpers/exercise_l10n.dart';
+import '../helpers/rep_performance.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
@@ -357,8 +358,40 @@ class _ExerciseBreakdown extends StatelessWidget {
                   textTheme: textTheme,
                   l10n: l10n,
                 )),
+
+            if (_feedbackChip(context) case final chip?) chip,
           ],
         ),
+      ),
+    );
+  }
+
+  Widget? _feedbackChip(BuildContext context) {
+    final completed = sets.where((s) => s.isCompleted).toList();
+    if (completed.isEmpty) return null;
+
+    final plannedReps = completed.first.plannedReps;
+    final feedback = loadFeedback(
+      cs: colorScheme,
+      l10n: l10n,
+      completedReps: completed.map((s) => s.reps).toList(),
+      plannedReps: plannedReps,
+    );
+    if (feedback == null) return null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AthlosSpacing.sm),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 14, color: feedback.color),
+          const SizedBox(width: AthlosSpacing.xs),
+          Flexible(
+            child: Text(
+              feedback.message,
+              style: textTheme.bodySmall?.copyWith(color: feedback.color),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -379,10 +412,12 @@ class _SetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metTarget = setEntry.isCompleted && setEntry.reps >= setEntry.plannedReps;
     final statusColor = setEntry.isCompleted
-        ? (metTarget ? colorScheme.primary : colorScheme.error)
+        ? (repsDeviationColor(
+                colorScheme, setEntry.reps, setEntry.plannedReps) ??
+            colorScheme.primary)
         : colorScheme.onSurfaceVariant;
+    final diff = setEntry.reps - setEntry.plannedReps;
 
     final weightStr = setEntry.weight != null
         ? '${setEntry.weight!.toStringAsFixed(setEntry.weight! % 1 == 0 ? 0 : 1)}${l10n.weightUnit}'
@@ -430,7 +465,9 @@ class _SetRow extends StatelessWidget {
                 width: 24,
                 child: Icon(
                   setEntry.isCompleted
-                      ? (metTarget ? Icons.check_circle : Icons.warning)
+                      ? (diff.abs() <= 1
+                          ? Icons.check_circle
+                          : Icons.warning)
                       : Icons.radio_button_unchecked,
                   size: 18,
                   color: statusColor,

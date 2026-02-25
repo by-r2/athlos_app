@@ -7,6 +7,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../helpers/exercise_l10n.dart';
+import '../helpers/rep_performance.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
@@ -481,6 +482,8 @@ class _WorkoutExecutionScreenState
               onChanged: (v) => setState(() => _currentReps = v.toInt()),
               textTheme: textTheme,
               colorScheme: colorScheme,
+              valueColor: repsDeviationColor(
+                  colorScheme, _currentReps, exercise.reps),
             ),
 
             const SizedBox(height: AthlosSpacing.md),
@@ -694,6 +697,9 @@ class _WorkoutExecutionScreenState
               textAlign: TextAlign.center,
             ),
 
+            if (_buildLoadFeedback(exec, context) case final feedback?)
+              feedback,
+
             const Spacer(flex: 3),
 
             Padding(
@@ -769,6 +775,9 @@ class _WorkoutExecutionScreenState
               ),
             ],
 
+            if (_buildLoadFeedback(exec, context) case final feedback?)
+              feedback,
+
             const Spacer(flex: 3),
 
             Padding(
@@ -793,6 +802,42 @@ class _WorkoutExecutionScreenState
             const SizedBox(height: AthlosSpacing.xl),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget? _buildLoadFeedback(ActiveExecutionState exec, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final completedReps =
+        sets.where((s) => s.isCompleted).map((s) => s.reps).toList();
+
+    final feedback = loadFeedback(
+      cs: colorScheme,
+      l10n: l10n,
+      completedReps: completedReps,
+      plannedReps: exercise.reps,
+    );
+    if (feedback == null) return null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AthlosSpacing.md),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.info_outline, size: 16, color: feedback.color),
+          const SizedBox(width: AthlosSpacing.xs),
+          Flexible(
+            child: Text(
+              feedback.message,
+              style: textTheme.bodySmall?.copyWith(color: feedback.color),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1133,6 +1178,7 @@ class _NumberInput extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
+  final Color? valueColor;
 
   const _NumberInput({
     required this.value,
@@ -1141,6 +1187,7 @@ class _NumberInput extends StatelessWidget {
     required this.onChanged,
     required this.textTheme,
     required this.colorScheme,
+    this.valueColor,
   });
 
   @override
@@ -1168,6 +1215,7 @@ class _NumberInput extends StatelessWidget {
                 displayValue,
                 style: textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: valueColor,
                 ),
               ),
               Text(

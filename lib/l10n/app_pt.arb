@@ -1110,5 +1110,17 @@
     "placeholders": {
       "id": { "type": "int" }
     }
+  },
+  "executionFeedbackWeightTooLight": "Peso leve, considere aumentar a carga",
+  "@executionFeedbackWeightTooLight": {
+    "description": "Feedback when reps are significantly above target (weight too light)"
+  },
+  "executionFeedbackWeightSlightlyHigh": "Considere reduzir a carga",
+  "@executionFeedbackWeightSlightlyHigh": {
+    "description": "Feedback when reps are slightly below target (weight slightly high)"
+  },
+  "executionFeedbackWeightTooHigh": "Peso muito alto, reduza a carga",
+  "@executionFeedbackWeightTooHigh": {
+    "description": "Feedback when reps are significantly below target (weight too high)"
   }
 }
