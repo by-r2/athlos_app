@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+
 part 'cardio_timer_notifier.g.dart';
 
 class CardioTimerState {
@@ -89,20 +90,3 @@ class CardioTimer extends _$CardioTimer {
   }
 }
 
-/// Formats seconds into a human-readable duration string.
-///
-/// Examples: `45s`, `5m 30s`, `5m`, `1h 5m 30s`.
-String formatCardioTimer(int totalSeconds) {
-  if (totalSeconds < 0) return '0s';
-
-  final h = totalSeconds ~/ 3600;
-  final m = (totalSeconds % 3600) ~/ 60;
-  final s = totalSeconds % 60;
-
-  final parts = <String>[];
-  if (h > 0) parts.add('${h}h');
-  if (m > 0) parts.add('${m}min');
-  if (s > 0 || parts.isEmpty) parts.add('${s}s');
-
-  return parts.join(' ');
-}

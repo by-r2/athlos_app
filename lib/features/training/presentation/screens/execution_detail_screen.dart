@@ -10,6 +10,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/workout_execution.dart';
+import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../providers/exercise_notifier.dart';
@@ -443,7 +444,7 @@ class _SetRow extends StatelessWidget {
         : colorScheme.onSurfaceVariant;
 
     final durationStr = setEntry.duration != null
-        ? _formatDuration(setEntry.duration!)
+        ? formatDuration(setEntry.duration!)
         : '-';
     final distanceStr = setEntry.distance != null
         ? '${(setEntry.distance! / 1000).toStringAsFixed(2)}km'
@@ -592,13 +593,4 @@ class _SetRow extends StatelessWidget {
     );
   }
 
-  static String _formatDuration(int seconds) {
-    if (seconds >= 3600) {
-      final h = seconds ~/ 3600;
-      final m = (seconds % 3600) ~/ 60;
-      return m > 0 ? '${h}h${m}min' : '${h}h';
-    }
-    if (seconds >= 60) return '${seconds ~/ 60}min';
-    return '${seconds}s';
-  }
 }

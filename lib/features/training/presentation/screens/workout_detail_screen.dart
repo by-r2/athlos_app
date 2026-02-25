@@ -9,6 +9,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_exercise.dart';
+import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/workout_notifier.dart';
@@ -475,14 +476,9 @@ class _ExerciseDetailTile extends ConsumerWidget {
 
   String _exerciseSubtitle(WorkoutExercise ex, String groupName) {
     final config = ex.duration != null
-        ? '${ex.sets}×${_formatDuration(ex.duration!)}  •  ${ex.rest}s'
+        ? '${ex.sets}×${formatDuration(ex.duration!)}  •  ${ex.rest}s'
         : '${ex.sets}×${ex.reps}  •  ${ex.rest}s';
     return groupName.isNotEmpty ? '$groupName  •  $config' : config;
   }
 
-  String _formatDuration(int seconds) {
-    if (seconds >= 60 && seconds % 60 == 0) return '${seconds ~/ 60}min';
-    if (seconds >= 60) return '${seconds ~/ 60}m${seconds % 60}s';
-    return '${seconds}s';
-  }
 }

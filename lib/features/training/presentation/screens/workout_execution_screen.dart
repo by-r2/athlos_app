@@ -11,6 +11,7 @@ import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/exercise_notifier.dart';
+import '../helpers/duration_format.dart';
 import '../providers/cardio_timer_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_notifier.dart';
@@ -916,19 +917,78 @@ class _WorkoutExecutionScreenState
   // View 4: Cardio Timer
   // ---------------------------------------------------------------------------
 
+  void _exitCardioTimer() {
+    ref.read(cardioTimerProvider.notifier).reset();
+    setState(() => _viewMode = _ViewMode.overview);
+  }
+
+  PreferredSizeWidget _cardioAppBar(String name, int totalSets,
+      {VoidCallback? onBack}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: onBack ?? _exitCardioTimer,
+      ),
+      title: Text(name),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(24),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
+          child: Text(
+            l10n.setOf(_focusedSetNumber, totalSets),
+            style: textTheme.labelLarge?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _goalReachedBadge({double bottomMargin = AthlosSpacing.md}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: bottomMargin),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AthlosSpacing.md,
+        vertical: AthlosSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: AthlosRadius.fullAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle,
+              size: 18, color: colorScheme.onPrimaryContainer),
+          const SizedBox(width: AthlosSpacing.xs),
+          Text(
+            l10n.cardioGoalReached,
+            style: textTheme.labelLarge?.copyWith(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardioTimer(
     BuildContext context,
     ActiveExecutionState exec,
     CardioTimerState cardioState,
   ) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final totalSets = sets.length;
-    final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.duration ?? 0;
 
     final currentSetEntry = sets.firstWhere(
@@ -937,57 +997,28 @@ class _WorkoutExecutionScreenState
     );
 
     if (currentSetEntry.isCompleted) {
-      return _buildCardioCompleted(
-          context, exec, name, totalSets, sets, colorScheme, textTheme, l10n);
+      return _buildCardioCompleted(exec, sets);
     }
-
     if (cardioState.isStopped) {
-      return _buildCardioFinishing(
-          context, exec, cardioState, name, totalSets, colorScheme, textTheme, l10n);
+      return _buildCardioFinishing(exec, cardioState);
     }
-
     if (cardioState.isReady) {
-      return _buildCardioReady(
-          context, exec, goalSeconds, name, totalSets, colorScheme, textTheme, l10n);
+      return _buildCardioReady(exec, goalSeconds);
     }
-
-    return _buildCardioRunning(
-        context, exec, cardioState, name, totalSets, colorScheme, textTheme, l10n);
+    return _buildCardioRunning(exec, cardioState);
   }
 
-  Widget _buildCardioReady(
-    BuildContext context,
-    ActiveExecutionState exec,
-    int goalSeconds,
-    String name,
-    int totalSets,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildCardioReady(ActiveExecutionState exec, int goalSeconds) {
+    final l10n = AppLocalizations.of(context)!;
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final name = _exerciseName(exercise.exerciseId);
+
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            ref.read(cardioTimerProvider.notifier).reset();
-            setState(() => _viewMode = _ViewMode.overview);
-          },
-        ),
-        title: Text(name),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.setOf(_focusedSetNumber, totalSets),
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: _cardioAppBar(name, sets.length),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
@@ -998,7 +1029,7 @@ class _WorkoutExecutionScreenState
 
               if (goalSeconds > 0) ...[
                 Text(
-                  l10n.cardioGoalLabel(formatCardioTimer(goalSeconds)),
+                  l10n.cardioGoalLabel(formatDuration(goalSeconds)),
                   style: textTheme.titleLarge?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -1010,9 +1041,8 @@ class _WorkoutExecutionScreenState
                 width: 120,
                 height: 120,
                 child: FilledButton(
-                  onPressed: () {
-                    ref.read(cardioTimerProvider.notifier).start(goalSeconds);
-                  },
+                  onPressed: () =>
+                      ref.read(cardioTimerProvider.notifier).start(goalSeconds),
                   style: FilledButton.styleFrom(
                     shape: const CircleBorder(),
                     padding: EdgeInsets.zero,
@@ -1024,9 +1054,7 @@ class _WorkoutExecutionScreenState
               const SizedBox(height: AthlosSpacing.xl),
 
               TextButton(
-                onPressed: () {
-                  setState(() => _viewMode = _ViewMode.focused);
-                },
+                onPressed: () => setState(() => _viewMode = _ViewMode.focused),
                 child: Text(l10n.cardioManualEntry),
               ),
 
@@ -1039,15 +1067,14 @@ class _WorkoutExecutionScreenState
   }
 
   Widget _buildCardioRunning(
-    BuildContext context,
-    ActiveExecutionState exec,
-    CardioTimerState cardioState,
-    String name,
-    int totalSets,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    AppLocalizations l10n,
-  ) {
+      ActiveExecutionState exec, CardioTimerState cardioState) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final name = _exerciseName(exercise.exerciseId);
     final hasReachedGoal = cardioState.hasReachedGoal;
     final isPaused = cardioState.isPaused;
 
@@ -1058,64 +1085,16 @@ class _WorkoutExecutionScreenState
             : colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: isPaused
-          ? colorScheme.surfaceContainerHighest
-          : null,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            ref.read(cardioTimerProvider.notifier).reset();
-            setState(() => _viewMode = _ViewMode.overview);
-          },
-        ),
-        title: Text(name),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.setOf(_focusedSetNumber, totalSets),
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
+      backgroundColor:
+          isPaused ? colorScheme.surfaceContainerHighest : null,
+      appBar: _cardioAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
         child: Column(
           children: [
             const Spacer(flex: 2),
 
-            if (hasReachedGoal)
-              Container(
-                margin: const EdgeInsets.only(bottom: AthlosSpacing.md),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.md,
-                  vertical: AthlosSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: AthlosRadius.fullAll,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle,
-                        size: 18, color: colorScheme.onPrimaryContainer),
-                    const SizedBox(width: AthlosSpacing.xs),
-                    Text(
-                      l10n.cardioGoalReached,
-                      style: textTheme.labelLarge?.copyWith(
-                        color: colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            if (hasReachedGoal) _goalReachedBadge(),
 
             if (isPaused)
               Padding(
@@ -1129,7 +1108,7 @@ class _WorkoutExecutionScreenState
               ),
 
             Text(
-              formatCardioTimer(cardioState.elapsedSeconds),
+              formatDuration(cardioState.elapsedSeconds),
               style: textTheme.displayLarge?.copyWith(
                 fontSize: 72,
                 fontWeight: FontWeight.w300,
@@ -1141,7 +1120,7 @@ class _WorkoutExecutionScreenState
               Padding(
                 padding: const EdgeInsets.only(top: AthlosSpacing.xs),
                 child: Text(
-                  '+${formatCardioTimer(cardioState.overtimeSeconds)}',
+                  '+${formatDuration(cardioState.overtimeSeconds)}',
                   style: textTheme.titleMedium?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -1165,7 +1144,7 @@ class _WorkoutExecutionScreenState
               const SizedBox(height: AthlosSpacing.sm),
               Text(
                 l10n.cardioGoalLabel(
-                    formatCardioTimer(cardioState.goalSeconds)),
+                    formatDuration(cardioState.goalSeconds)),
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -1177,23 +1156,20 @@ class _WorkoutExecutionScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (isPaused) ...[
+                if (isPaused)
                   FilledButton.icon(
-                    onPressed: () {
-                      ref.read(cardioTimerProvider.notifier).resume();
-                    },
+                    onPressed: () =>
+                        ref.read(cardioTimerProvider.notifier).resume(),
                     icon: const Icon(Icons.play_arrow),
                     label: Text(l10n.cardioResume),
-                  ),
-                ] else ...[
+                  )
+                else
                   FilledButton.tonalIcon(
-                    onPressed: () {
-                      ref.read(cardioTimerProvider.notifier).pause();
-                    },
+                    onPressed: () =>
+                        ref.read(cardioTimerProvider.notifier).pause(),
                     icon: const Icon(Icons.pause),
                     label: Text(l10n.cardioPause),
                   ),
-                ],
                 const SizedBox(width: AthlosSpacing.lg),
                 OutlinedButton.icon(
                   onPressed: () {
@@ -1216,38 +1192,17 @@ class _WorkoutExecutionScreenState
   }
 
   Widget _buildCardioFinishing(
-    BuildContext context,
-    ActiveExecutionState exec,
-    CardioTimerState cardioState,
-    String name,
-    int totalSets,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    AppLocalizations l10n,
-  ) {
+      ActiveExecutionState exec, CardioTimerState cardioState) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final name = _exerciseName(exercise.exerciseId);
+
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            ref.read(cardioTimerProvider.notifier).reset();
-            setState(() => _viewMode = _ViewMode.overview);
-          },
-        ),
-        title: Text(name),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.setOf(_focusedSetNumber, totalSets),
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: _cardioAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
         child: Column(
@@ -1255,32 +1210,7 @@ class _WorkoutExecutionScreenState
             const Spacer(flex: 2),
 
             if (cardioState.hasReachedGoal)
-              Container(
-                margin: const EdgeInsets.only(bottom: AthlosSpacing.lg),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.md,
-                  vertical: AthlosSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: AthlosRadius.fullAll,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle,
-                        size: 18, color: colorScheme.onPrimaryContainer),
-                    const SizedBox(width: AthlosSpacing.xs),
-                    Text(
-                      l10n.cardioGoalReached,
-                      style: textTheme.labelLarge?.copyWith(
-                        color: colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _goalReachedBadge(bottomMargin: AthlosSpacing.lg),
 
             _NumberInput(
               value: _currentDuration.toDouble(),
@@ -1295,7 +1225,7 @@ class _WorkoutExecutionScreenState
             const SizedBox(height: AthlosSpacing.sm),
 
             Text(
-              formatCardioTimer(_currentDuration),
+              formatDuration(_currentDuration),
               style: textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -1336,40 +1266,21 @@ class _WorkoutExecutionScreenState
   }
 
   Widget _buildCardioCompleted(
-    BuildContext context,
-    ActiveExecutionState exec,
-    String name,
-    int totalSets,
-    List<SetEntry> sets,
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    AppLocalizations l10n,
-  ) {
+      ActiveExecutionState exec, List<SetEntry> sets) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final name = _exerciseName(exercise.exerciseId);
     final nextInExercise = sets
         .where(
             (s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => setState(() => _viewMode = _ViewMode.overview),
-        ),
-        title: Text(name),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.setOf(_focusedSetNumber, totalSets),
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      ),
+      appBar: _cardioAppBar(name, sets.length,
+          onBack: () => setState(() => _viewMode = _ViewMode.overview)),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1384,14 +1295,15 @@ class _WorkoutExecutionScreenState
             const SizedBox(height: AthlosSpacing.xl),
             if (nextInExercise.isNotEmpty)
               FilledButton.icon(
-                onPressed: () => _goToFocused(
-                    exec, _focusedExerciseIndex, nextInExercise.first.setNumber),
+                onPressed: () => _goToFocused(exec, _focusedExerciseIndex,
+                    nextInExercise.first.setNumber),
                 icon: const Icon(Icons.arrow_forward),
                 label: Text(l10n.nextSetLabel),
               )
             else
               OutlinedButton.icon(
-                onPressed: () => setState(() => _viewMode = _ViewMode.overview),
+                onPressed: () =>
+                    setState(() => _viewMode = _ViewMode.overview),
                 icon: const Icon(Icons.list_alt),
                 label: Text(l10n.backToOverview),
               ),
