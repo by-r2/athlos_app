@@ -56,6 +56,7 @@ lib/
 │   ├── theme/
 │   │   ├── athlos_theme.dart          # Main ThemeData
 │   │   ├── athlos_color_scheme.dart   # Color palette (golds, marble, dark)
+│   │   ├── athlos_custom_colors.dart  # ThemeExtension for non-standard colors (warning)
 │   │   ├── athlos_text_theme.dart     # Typography
 │   │   ├── athlos_spacing.dart        # Spacing tokens
 │   │   ├── athlos_radius.dart         # Border radius tokens
@@ -265,6 +266,7 @@ The visual identity of Athlos is built on **Design Tokens** — primitive values
 | Token | File | Examples |
 | --- | --- | --- |
 | Colors | `athlos_color_scheme.dart` | Primary gold, marble, dark shades |
+| Custom Colors | `athlos_custom_colors.dart` | `warning`, `onWarning` — via `ThemeExtension<AthlosCustomColors>` for colors not in Material's `ColorScheme` |
 | Typography | `athlos_text_theme.dart` | Font family, sizes, weights |
 | Spacing | `athlos_spacing.dart` | `xs: 4`, `sm: 8`, `md: 16`, `lg: 24`, `xl: 32`, `xxl: 48` |
 | Radius | `athlos_radius.dart` | `sm: 8`, `md: 12`, `lg: 16`, `full: 999` |
@@ -506,16 +508,18 @@ Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premi
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
 
-> **Migration note:** Schema version 1 is the baseline for the first public release. Incremental versioned migrations are in place via `runMigrationSteps`. See [Release — Database Migrations](./release.md#database-migrations-drift) for details.
+> **Migration note:** Schema version 2 is the current version. Version 1 was the initial baseline; version 2 added cardio support (`type` on exercises, `duration`/`distance` on execution sets, nullable `reps`/`plannedReps`, and renamed `rest_seconds` → `rest` on workout exercises). Incremental versioned migrations are in place via `runMigrationSteps`. See [Release — Database Migrations](./release.md#database-migrations-drift) for details.
 
 ### Main Entities
 
 **Training Module (1.0.0):**
 
-- **Exercise** — exercise with muscle group, specific muscles, muscle region
+- **Exercise** — exercise with muscle group, specific muscles, muscle region, and type (strength/cardio)
 - **Equipment** — training equipment
-- **Workout** — workout (set of exercises)
+- **Workout** — workout (set of exercises with per-exercise configuration)
+- **WorkoutExercise** — junction with configuration: sets, reps (nullable for cardio), rest, duration (nullable for strength), superset group
 - **WorkoutExecution** — record of a workout execution
+- **ExecutionSet** — individual set record: reps, weight, plannedReps, plannedWeight (for strength); duration, distance (for cardio); all metric fields nullable to support both types
 
 **Diet Module (1.1–1.3):**
 
@@ -531,8 +535,9 @@ SQLite will be structured with the same entities and relations the remote databa
 
 - Exercise ↔ Exercise (self-relation: variations/substitutes)
 - Exercise ↔ Equipment (many-to-many)
-- Workout ↔ Exercise (many-to-many, with sets/reps)
+- Workout ↔ Exercise (many-to-many via WorkoutExercise, with sets/reps/rest/duration)
 - WorkoutExecution → Workout (an execution belongs to a workout)
+- ExecutionSet → WorkoutExecution + Exercise (each set belongs to an execution and an exercise)
 - UserProfile ↔ Equipment (equipment the user owns)
 - Meal ↔ Food (many-to-many, with quantity)
 - DailyLog ↔ Meal (one-to-many)
