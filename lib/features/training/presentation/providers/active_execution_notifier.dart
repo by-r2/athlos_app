@@ -28,13 +28,20 @@ class ActiveExecution extends _$ActiveExecution {
     final result = await repo.start(workoutId);
     final executionId = result.getOrThrow();
 
+    final exerciseIds = exercises.map((e) => e.exerciseId).toList();
+    final weightsResult =
+        await repo.getLastWeightsForExercises(exerciseIds);
+    final lastWeights = weightsResult.getOrThrow();
+
     final exerciseSets = <int, List<SetEntry>>{};
     for (final ex in exercises) {
+      final lastWeight = lastWeights[ex.exerciseId];
       exerciseSets[ex.exerciseId] = List.generate(
         ex.sets,
         (i) => SetEntry(
           setNumber: i + 1,
           plannedReps: ex.reps,
+          plannedWeight: lastWeight,
           reps: ex.reps,
         ),
       );

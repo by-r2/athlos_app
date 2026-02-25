@@ -197,7 +197,9 @@ class _WorkoutExecutionScreenState
       _focusedExerciseIndex = exerciseIndex;
       _focusedSetNumber = targetSet;
       _currentWeight = entry.weight ??
-          (prevCompleted.isNotEmpty ? prevCompleted.last.weight ?? 0 : 0);
+          (prevCompleted.isNotEmpty
+              ? prevCompleted.last.weight ?? 0
+              : entry.plannedWeight ?? 0);
       _currentReps = entry.reps;
       _dropSegments = entry.segments
           .skip(1)

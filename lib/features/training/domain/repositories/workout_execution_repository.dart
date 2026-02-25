@@ -15,6 +15,8 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<List<ExecutionSet>>> getSets(int executionId);
   Future<Result<int>> logSet(ExecutionSet set);
   Future<Result<void>> updateSet(ExecutionSet set);
+  Future<Result<Map<int, double>>> getLastWeightsForExercises(
+      List<int> exerciseIds);
 
   // --- Segments (drop sets) ---
   Future<Result<List<ExecutionSetSegment>>> getSegments(int executionSetId);

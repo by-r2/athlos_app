@@ -139,6 +139,18 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     }
   }
 
+  @override
+  Future<Result<Map<int, double>>> getLastWeightsForExercises(
+      List<int> exerciseIds) async {
+    try {
+      final weights = await _dao.getLastWeightsForExercises(exerciseIds);
+      return Success(weights);
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to load last weights: $e'));
+    }
+  }
+
   domain.WorkoutExecution _executionToDomain(dynamic row) =>
       domain.WorkoutExecution(
         id: row.id as int,

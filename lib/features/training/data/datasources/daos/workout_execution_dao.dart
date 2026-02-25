@@ -66,6 +66,35 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     await (delete(workoutExecutions)..where((e) => e.id.equals(id))).go();
   }
 
+  /// Returns the last recorded weight per exercise from finished executions.
+  Future<Map<int, double>> getLastWeightsForExercises(
+      List<int> exerciseIds) async {
+    if (exerciseIds.isEmpty) return {};
+
+    final result = <int, double>{};
+    for (final exerciseId in exerciseIds) {
+      final row = await (select(executionSets).join([
+        innerJoin(workoutExecutions,
+            workoutExecutions.id.equalsExp(executionSets.executionId)),
+      ])
+            ..where(executionSets.exerciseId.equals(exerciseId) &
+                executionSets.isCompleted.equals(true) &
+                executionSets.weight.isNotNull() &
+                workoutExecutions.finishedAt.isNotNull())
+            ..orderBy([
+              OrderingTerm.desc(workoutExecutions.startedAt),
+              OrderingTerm.desc(executionSets.setNumber),
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+
+      if (row != null) {
+        result[exerciseId] = row.readTable(executionSets).weight!;
+      }
+    }
+    return result;
+  }
+
   // --- Execution sets ---
 
   Future<List<ExecutionSet>> getSets(int executionId) =>
