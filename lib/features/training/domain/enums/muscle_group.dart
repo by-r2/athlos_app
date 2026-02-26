@@ -10,6 +10,7 @@ enum MuscleGroup {
   quadriceps,
   hamstrings,
   glutes,
+  adductors,
   calves,
   fullBody,
   cardio,

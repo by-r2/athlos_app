@@ -9,8 +9,11 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
+import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
@@ -218,7 +221,11 @@ class _TrainingExercisesScreenState
   }
 }
 
-/// Bottom sheet to create a user-defined exercise with enum-based muscle selection.
+/// Bottom sheet to create a user-defined exercise with progressive disclosure.
+///
+/// Visible (required): name, muscle group, type.
+/// Collapsible "Advanced details": primary/secondary muscles, regions,
+/// movement pattern, equipment, description.
 class _AddExerciseSheet extends ConsumerStatefulWidget {
   const _AddExerciseSheet();
 
@@ -231,8 +238,13 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   MuscleGroup _selectedGroup = MuscleGroup.chest;
+  ExerciseType _selectedType = ExerciseType.strength;
+  MovementPattern? _selectedMovementPattern;
   final Set<int> _selectedEquipmentIds = {};
-  final List<({TargetMuscle muscle, MuscleRegion? region})> _muscleFoci = [];
+  final List<({TargetMuscle muscle, MuscleRegion? region})> _primaryMuscles =
+      [];
+  final List<({TargetMuscle muscle, MuscleRegion? region})>
+      _secondaryMuscles = [];
   bool _isSaving = false;
 
   @override
@@ -242,15 +254,19 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     super.dispose();
   }
 
+  List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
+      get _allMuscles => [
+            ..._primaryMuscles.map(
+                (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.primary)),
+            ..._secondaryMuscles.map(
+                (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.secondary)),
+          ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    final availableMuscles = TargetMuscle.values
-        .where((m) => m.muscleGroup == _selectedGroup)
-        .toList();
 
     return Padding(
       padding: EdgeInsets.only(
@@ -339,68 +355,28 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                         }).toList(),
                         onChanged: (value) {
                           if (value != null) {
-                            setState(() {
-                              _selectedGroup = value;
-                              _muscleFoci.clear();
-                            });
+                            setState(() => _selectedGroup = value);
                           }
                         },
                       ),
-                      const Gap(AthlosSpacing.lg),
-                      Text(
-                        l10n.targetMusclesLabel,
-                        style: textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      const Gap(AthlosSpacing.md),
+                      SegmentedButton<ExerciseType>(
+                        segments: [
+                          ButtonSegment(
+                            value: ExerciseType.strength,
+                            label: Text(l10n.exerciseTypeStrength),
+                          ),
+                          ButtonSegment(
+                            value: ExerciseType.cardio,
+                            label: Text(l10n.exerciseTypeCardio),
+                          ),
+                        ],
+                        selected: {_selectedType},
+                        onSelectionChanged: (v) =>
+                            setState(() => _selectedType = v.first),
                       ),
                       const Gap(AthlosSpacing.sm),
-                      Wrap(
-                        spacing: AthlosSpacing.sm,
-                        runSpacing: AthlosSpacing.xs,
-                        children: availableMuscles.map((muscle) {
-                          final isSelected =
-                              _muscleFoci.any((f) => f.muscle == muscle);
-                          return FilterChip(
-                            label:
-                                Text(localizedTargetMuscle(muscle, l10n)),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _muscleFoci.add(
-                                      (muscle: muscle, region: null));
-                                } else {
-                                  _muscleFoci.removeWhere(
-                                      (f) => f.muscle == muscle);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      ..._buildRegionDropdowns(l10n),
-                      const Gap(AthlosSpacing.md),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText: l10n.exerciseDescriptionLabel,
-                          hintText: l10n.exerciseDescriptionHint,
-                          border: const OutlineInputBorder(),
-                          alignLabelWithHint: true,
-                        ),
-                        maxLines: 3,
-                        textCapitalization: TextCapitalization.sentences,
-                      ),
-                      const Gap(AthlosSpacing.lg),
-                      EquipmentSearchPicker(
-                        selectedIds: _selectedEquipmentIds,
-                        onChanged: (ids) =>
-                            setState(() {
-                              _selectedEquipmentIds
-                                ..clear()
-                                ..addAll(ids);
-                            }),
-                      ),
+                      _buildAdvancedSection(l10n, textTheme, colorScheme),
                       const Gap(AthlosSpacing.xl),
                     ],
                   ),
@@ -430,23 +406,178 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     );
   }
 
+  Widget _buildAdvancedSection(
+    AppLocalizations l10n,
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+  ) {
+    return ExpansionTile(
+      title: Text(l10n.advancedDetails),
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
+      children: [
+        _buildMuscleSection(
+          label: l10n.primaryMusclesLabel,
+          muscles: _primaryMuscles,
+          excludedMuscles:
+              _secondaryMuscles.map((m) => m.muscle).toSet(),
+          l10n: l10n,
+          textTheme: textTheme,
+          colorScheme: colorScheme,
+        ),
+        const Gap(AthlosSpacing.md),
+        _buildMuscleSection(
+          label: l10n.secondaryMusclesLabel,
+          muscles: _secondaryMuscles,
+          excludedMuscles:
+              _primaryMuscles.map((m) => m.muscle).toSet(),
+          l10n: l10n,
+          textTheme: textTheme,
+          colorScheme: colorScheme,
+        ),
+        ..._buildRegionDropdowns(l10n),
+        const Gap(AthlosSpacing.md),
+        DropdownButtonFormField<MovementPattern?>(
+          initialValue: _selectedMovementPattern,
+          decoration: InputDecoration(
+            labelText: l10n.movementPatternLabel,
+            border: const OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<MovementPattern?>(
+              value: null,
+              child: Text(
+                '—',
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+            ),
+            ...MovementPattern.values.map(
+              (p) => DropdownMenuItem(
+                value: p,
+                child: Text(localizedMovementPattern(p, l10n)),
+              ),
+            ),
+          ],
+          onChanged: (v) =>
+              setState(() => _selectedMovementPattern = v),
+        ),
+        const Gap(AthlosSpacing.md),
+        EquipmentSearchPicker(
+          selectedIds: _selectedEquipmentIds,
+          onChanged: (ids) => setState(() {
+            _selectedEquipmentIds
+              ..clear()
+              ..addAll(ids);
+          }),
+        ),
+        const Gap(AthlosSpacing.md),
+        TextFormField(
+          controller: _descriptionController,
+          decoration: InputDecoration(
+            labelText: l10n.exerciseDescriptionLabel,
+            hintText: l10n.exerciseDescriptionHint,
+            border: const OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMuscleSection({
+    required String label,
+    required List<({TargetMuscle muscle, MuscleRegion? region})> muscles,
+    required Set<TargetMuscle> excludedMuscles,
+    required AppLocalizations l10n,
+    required TextTheme textTheme,
+    required ColorScheme colorScheme,
+  }) {
+    final grouped = <MuscleGroup, List<TargetMuscle>>{};
+    for (final m in TargetMuscle.values) {
+      if (m.muscleGroup == MuscleGroup.cardio ||
+          m.muscleGroup == MuscleGroup.fullBody) {
+        continue;
+      }
+      grouped.putIfAbsent(m.muscleGroup, () => []).add(m);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: textTheme.titleSmall
+              ?.copyWith(color: colorScheme.onSurfaceVariant),
+        ),
+        const Gap(AthlosSpacing.xs),
+        ...grouped.entries.map((entry) {
+          final groupMuscles = entry.value
+              .where((m) => !excludedMuscles.contains(m))
+              .toList();
+          if (groupMuscles.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+            child: Wrap(
+              spacing: AthlosSpacing.xs,
+              runSpacing: 0,
+              children: groupMuscles.map((muscle) {
+                final isSelected =
+                    muscles.any((f) => f.muscle == muscle);
+                return FilterChip(
+                  label: Text(
+                    localizedTargetMuscle(muscle, l10n),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  selected: isSelected,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        muscles
+                            .add((muscle: muscle, region: null));
+                      } else {
+                        muscles.removeWhere(
+                            (f) => f.muscle == muscle);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   List<Widget> _buildRegionDropdowns(AppLocalizations l10n) {
+    final all = [
+      ..._primaryMuscles,
+      ..._secondaryMuscles,
+    ];
     final musclesWithRegions =
-        _muscleFoci.where((f) => f.muscle.validRegions.isNotEmpty).toList();
+        all.where((f) => f.muscle.validRegions.isNotEmpty).toList();
 
     if (musclesWithRegions.isEmpty) return [];
 
     return [
       const Gap(AthlosSpacing.md),
       ...musclesWithRegions.map((focus) {
-        final idx = _muscleFoci.indexWhere((f) => f.muscle == focus.muscle);
+        final inPrimary =
+            _primaryMuscles.any((f) => f.muscle == focus.muscle);
+        final list = inPrimary ? _primaryMuscles : _secondaryMuscles;
+        final idx = list.indexWhere((f) => f.muscle == focus.muscle);
         return Padding(
           padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
           child: DropdownButtonFormField<MuscleRegion?>(
             initialValue: focus.region,
             decoration: InputDecoration(
-              labelText:
-                  l10n.muscleWithSeparator(localizedTargetMuscle(focus.muscle, l10n), l10n.muscleRegionLabel),
+              labelText: l10n.muscleWithSeparator(
+                localizedTargetMuscle(focus.muscle, l10n),
+                l10n.muscleRegionLabel,
+              ),
               border: const OutlineInputBorder(),
             ),
             items: [
@@ -468,7 +599,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
             ],
             onChanged: (value) {
               setState(() {
-                _muscleFoci[idx] = (muscle: focus.muscle, region: value);
+                list[idx] = (muscle: focus.muscle, region: value);
               });
             },
           ),
@@ -490,7 +621,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
             muscleGroup: _selectedGroup,
             description: description.isEmpty ? null : description,
             equipmentIds: _selectedEquipmentIds.toList(),
-            muscles: _muscleFoci,
+            muscles: _allMuscles,
           );
 
       if (mounted) {
@@ -511,3 +642,4 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     }
   }
 }
+

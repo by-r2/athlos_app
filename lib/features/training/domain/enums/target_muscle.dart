@@ -54,6 +54,12 @@ enum TargetMuscle {
   gluteusMaximus,
   gluteusMedius,
   gluteusMinimus,
+  tensorFasciaeLatae,
+
+  // Adductors
+  adductorMagnus,
+  adductorLongus,
+  adductorBrevis,
 
   // Calves
   gastrocnemius,
@@ -102,8 +108,13 @@ extension TargetMuscleX on TargetMuscle {
           MuscleGroup.hamstrings,
         TargetMuscle.gluteusMaximus ||
         TargetMuscle.gluteusMedius ||
-        TargetMuscle.gluteusMinimus =>
+        TargetMuscle.gluteusMinimus ||
+        TargetMuscle.tensorFasciaeLatae =>
           MuscleGroup.glutes,
+        TargetMuscle.adductorMagnus ||
+        TargetMuscle.adductorLongus ||
+        TargetMuscle.adductorBrevis =>
+          MuscleGroup.adductors,
         TargetMuscle.gastrocnemius ||
         TargetMuscle.soleus =>
           MuscleGroup.calves,

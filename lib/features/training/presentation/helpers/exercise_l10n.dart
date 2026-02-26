@@ -1,6 +1,8 @@
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
+import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 
 /// Maps a verified exercise's English key [name] to its localized display name.
@@ -27,6 +29,7 @@ String localizedMuscleGroupName(MuscleGroup group, AppLocalizations l10n) =>
       MuscleGroup.quadriceps => l10n.muscleGroupQuadriceps,
       MuscleGroup.hamstrings => l10n.muscleGroupHamstrings,
       MuscleGroup.glutes => l10n.muscleGroupGlutes,
+      MuscleGroup.adductors => l10n.muscleGroupAdductors,
       MuscleGroup.calves => l10n.muscleGroupCalves,
       MuscleGroup.fullBody => l10n.muscleGroupFullBody,
       MuscleGroup.cardio => l10n.muscleGroupCardio,
@@ -64,6 +67,10 @@ String localizedTargetMuscle(TargetMuscle muscle, AppLocalizations l10n) =>
       TargetMuscle.gluteusMaximus => l10n.muscleGluteusMaximus,
       TargetMuscle.gluteusMedius => l10n.muscleGluteusMedius,
       TargetMuscle.gluteusMinimus => l10n.muscleGluteusMinimus,
+      TargetMuscle.tensorFasciaeLatae => l10n.muscleTensorFasciaeLatae,
+      TargetMuscle.adductorMagnus => l10n.muscleAdductorMagnus,
+      TargetMuscle.adductorLongus => l10n.muscleAdductorLongus,
+      TargetMuscle.adductorBrevis => l10n.muscleAdductorBrevis,
       TargetMuscle.gastrocnemius => l10n.muscleGastrocnemius,
       TargetMuscle.soleus => l10n.muscleSoleus,
       TargetMuscle.hipFlexors => l10n.muscleHipFlexors,
@@ -80,6 +87,26 @@ String localizedMuscleRegion(MuscleRegion region, AppLocalizations l10n) =>
       MuscleRegion.shortHead => l10n.regionShortHead,
       MuscleRegion.medialHead => l10n.regionMedialHead,
       MuscleRegion.lateralHead => l10n.regionLateralHead,
+    };
+
+/// Returns the localized display name for a [MovementPattern].
+String localizedMovementPattern(MovementPattern p, AppLocalizations l10n) =>
+    switch (p) {
+      MovementPattern.push => l10n.movementPush,
+      MovementPattern.pull => l10n.movementPull,
+      MovementPattern.hinge => l10n.movementHinge,
+      MovementPattern.squat => l10n.movementSquat,
+      MovementPattern.lunge => l10n.movementLunge,
+      MovementPattern.carry => l10n.movementCarry,
+      MovementPattern.rotation => l10n.movementRotation,
+      MovementPattern.isolation => l10n.movementIsolation,
+    };
+
+/// Returns the localized display name for a [MuscleRole].
+String localizedMuscleRole(MuscleRole role, AppLocalizations l10n) =>
+    switch (role) {
+      MuscleRole.primary => l10n.musclePrimary,
+      MuscleRole.secondary => l10n.muscleSecondary,
     };
 
 Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
@@ -130,4 +157,6 @@ Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
       'elliptical': l10n.exerciseElliptical,
       'jumpRope': l10n.exerciseJumpRope,
       'jumpingJacks': l10n.exerciseJumpingJacks,
+      'adductorMachine': l10n.exerciseAdductorMachine,
+      'abductorMachine': l10n.exerciseAbductorMachine,
     };

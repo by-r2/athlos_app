@@ -39,9 +39,31 @@ Future<void> seedEquipmentsV2(AppDatabase db) async {
   });
 }
 
+/// Seeds only the equipment added in schema version 3
+/// (adductorMachine, abductorMachine).
+Future<void> seedEquipmentsV3(AppDatabase db) async {
+  await db.batch((batch) {
+    for (final item in _v3Items) {
+      batch.insert(
+        db.equipments,
+        EquipmentsCompanion.insert(
+          name: item.name,
+          category: item.category,
+          isVerified: const Value(true),
+        ),
+      );
+    }
+  });
+}
+
 const _v2Items = [
   _SeedItem('elliptical', EquipmentCategory.cardio),
   _SeedItem('jumpRope', EquipmentCategory.cardio),
+];
+
+const _v3Items = [
+  _SeedItem('adductorMachine', EquipmentCategory.machines),
+  _SeedItem('abductorMachine', EquipmentCategory.machines),
 ];
 
 class _SeedItem {
@@ -69,6 +91,8 @@ const _seedItems = [
   _SeedItem('legExtensionMachine', EquipmentCategory.machines),
   _SeedItem('legCurlMachine', EquipmentCategory.machines),
   _SeedItem('hackSquatMachine', EquipmentCategory.machines),
+  _SeedItem('adductorMachine', EquipmentCategory.machines),
+  _SeedItem('abductorMachine', EquipmentCategory.machines),
 
   // Structures
   _SeedItem('pullUpBar', EquipmentCategory.structures),

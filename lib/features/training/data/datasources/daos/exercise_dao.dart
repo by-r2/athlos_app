@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../../../core/database/app_database.dart';
 import '../../../../training/domain/enums/muscle_group.dart';
 import '../../../../training/domain/enums/muscle_region.dart';
+import '../../../../training/domain/enums/muscle_role.dart';
 import '../../../../training/domain/enums/target_muscle.dart';
 import '../tables/equipments_table.dart';
 import '../tables/exercise_equipments_table.dart';
@@ -84,7 +85,7 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setMuscleFoci(
     int exerciseId,
-    List<({TargetMuscle muscle, MuscleRegion? region})> foci,
+    List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})> foci,
   ) async {
     await (delete(exerciseTargetMuscles)
           ..where((e) => e.exerciseId.equals(exerciseId)))
@@ -95,6 +96,7 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
           exerciseId: Value(exerciseId),
           targetMuscle: Value(focus.muscle),
           muscleRegion: Value(focus.region),
+          role: Value(focus.role),
         ),
       );
     }

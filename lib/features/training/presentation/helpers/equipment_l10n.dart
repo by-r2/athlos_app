@@ -40,6 +40,13 @@ Map<String, String> _equipmentNameMap(AppLocalizations l10n) => {
       'treadmill': l10n.equipmentTreadmill,
       'stationaryBike': l10n.equipmentStationaryBike,
       'rowingMachine': l10n.equipmentRowingMachine,
+      'elliptical': l10n.equipmentElliptical,
+      'jumpRope': l10n.equipmentJumpRope,
+      'legExtensionMachine': l10n.equipmentLegExtensionMachine,
+      'legCurlMachine': l10n.equipmentLegCurlMachine,
+      'hackSquatMachine': l10n.equipmentHackSquatMachine,
+      'adductorMachine': l10n.equipmentAdductorMachine,
+      'abductorMachine': l10n.equipmentAbductorMachine,
     };
 
 /// Returns the localized display name for an [EquipmentCategory].

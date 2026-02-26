@@ -5,8 +5,10 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/exercise.dart' as domain;
 import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart' as domain_region;
+import '../../domain/enums/muscle_role.dart' as domain_role;
 import '../../domain/enums/target_muscle.dart' as domain_muscle;
 import '../../domain/repositories/exercise_repository.dart';
 import '../datasources/daos/exercise_dao.dart';
@@ -110,7 +112,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   Future<Result<int>> create(
     domain.Exercise exercise, {
     List<int> equipmentIds = const [],
-    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region})>
+    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>
         muscles = const [],
   }) async {
     try {
@@ -119,6 +121,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           name: exercise.name,
           muscleGroup: exercise.muscleGroup,
           type: Value(exercise.type),
+          movementPattern: Value(exercise.movementPattern),
           description: Value(exercise.description),
           isVerified: Value(exercise.isVerified),
         ),
@@ -139,7 +142,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   Future<Result<void>> update(
     domain.Exercise exercise, {
     List<int>? equipmentIds,
-    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region})>?
+    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>?
         muscles,
   }) async {
     try {
@@ -149,6 +152,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           name: Value(exercise.name),
           muscleGroup: Value(exercise.muscleGroup),
           type: Value(exercise.type),
+          movementPattern: Value(exercise.movementPattern),
           description: Value(exercise.description),
           isVerified: Value(exercise.isVerified),
         ),
@@ -199,7 +203,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       int exerciseId) async {
     final rows = await _dao.getMuscleFoci(exerciseId);
     return rows
-        .map((r) => domain.ExerciseMuscleFocus(r.targetMuscle, r.muscleRegion))
+        .map((r) =>
+            domain.ExerciseMuscleFocus(r.targetMuscle, r.muscleRegion, r.role))
         .toList();
   }
 
@@ -212,6 +217,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         name: row.name as String,
         muscleGroup: row.muscleGroup as MuscleGroup,
         type: row.type as ExerciseType,
+        movementPattern: row.movementPattern as MovementPattern?,
         description: row.description as String?,
         isVerified: row.isVerified as bool,
         muscles: muscles,

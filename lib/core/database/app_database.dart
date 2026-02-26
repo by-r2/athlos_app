@@ -13,6 +13,8 @@ import '../../features/training/data/datasources/dev_seeder.dart';
 import '../../features/training/data/datasources/equipment_seeder.dart';
 import '../../features/training/data/datasources/exercise_seeder.dart';
 import '../../features/training/domain/enums/exercise_type.dart';
+import '../../features/training/domain/enums/movement_pattern.dart';
+import '../../features/training/domain/enums/muscle_role.dart';
 import '../../features/training/data/datasources/daos/equipment_dao.dart';
 import '../../features/training/data/datasources/daos/exercise_dao.dart';
 import '../../features/training/data/datasources/daos/workout_dao.dart';
@@ -64,7 +66,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'athlos'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,7 +79,7 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (m, from, to) async {
           // Dev databases used schema versions 1–10 before the first public
           // release. Wipe and recreate so developers get a clean baseline.
-          if (from >= 2 && from <= 10) {
+          if (from >= 3 && from <= 10) {
             for (final table in allTables) {
               await m.deleteTable(table.actualTableName);
             }
@@ -165,6 +167,17 @@ class AppDatabase extends _$AppDatabase {
             // Seed new equipment and exercises
             await seedEquipmentsV2(this);
             await seedExercisesV2(this);
+          }
+
+          if (from < 3) {
+            await customStatement(
+              "ALTER TABLE exercise_target_muscles ADD COLUMN role TEXT NOT NULL DEFAULT 'primary'",
+            );
+            await customStatement(
+              'ALTER TABLE exercises ADD COLUMN movement_pattern TEXT',
+            );
+            await seedEquipmentsV3(this);
+            await seedExercisesV3(this);
           }
         },
       );

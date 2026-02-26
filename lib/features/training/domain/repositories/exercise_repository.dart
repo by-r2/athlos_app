@@ -2,6 +2,7 @@ import '../../../../core/errors/result.dart';
 import '../entities/exercise.dart';
 import '../enums/muscle_group.dart';
 import '../enums/muscle_region.dart';
+import '../enums/muscle_role.dart';
 import '../enums/target_muscle.dart';
 
 /// Contract for exercise data operations.
@@ -16,12 +17,14 @@ abstract interface class ExerciseRepository {
   Future<Result<int>> create(
     Exercise exercise, {
     List<int> equipmentIds = const [],
-    List<({TargetMuscle muscle, MuscleRegion? region})> muscles = const [],
+    List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
+        muscles = const [],
   });
   Future<Result<void>> update(
     Exercise exercise, {
     List<int>? equipmentIds,
-    List<({TargetMuscle muscle, MuscleRegion? region})>? muscles,
+    List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>?
+        muscles,
   });
   Future<Result<void>> delete(int id);
   Future<Result<void>> addVariation(int exerciseId, int variationId);

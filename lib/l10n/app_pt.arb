@@ -1182,5 +1182,97 @@
   "executionFeedbackWeightTooHigh": "Peso muito alto, reduza a carga",
   "@executionFeedbackWeightTooHigh": {
     "description": "Feedback when reps are significantly below target (weight too high)"
+  },
+  "muscleGroupAdductors": "Adutores",
+  "@muscleGroupAdductors": {
+    "description": "Muscle group: adductors"
+  },
+  "muscleAdductorMagnus": "Adutor Magno",
+  "@muscleAdductorMagnus": {
+    "description": "Target muscle: adductor magnus"
+  },
+  "muscleAdductorLongus": "Adutor Longo",
+  "@muscleAdductorLongus": {
+    "description": "Target muscle: adductor longus"
+  },
+  "muscleAdductorBrevis": "Adutor Curto",
+  "@muscleAdductorBrevis": {
+    "description": "Target muscle: adductor brevis"
+  },
+  "muscleTensorFasciaeLatae": "Tensor da Fáscia Lata",
+  "@muscleTensorFasciaeLatae": {
+    "description": "Target muscle: tensor fasciae latae"
+  },
+  "equipmentAdductorMachine": "Cadeira Adutora",
+  "@equipmentAdductorMachine": {
+    "description": "Equipment: adductor machine"
+  },
+  "equipmentAbductorMachine": "Cadeira Abdutora",
+  "@equipmentAbductorMachine": {
+    "description": "Equipment: abductor machine"
+  },
+  "exerciseAdductorMachine": "Cadeira Adutora",
+  "@exerciseAdductorMachine": {
+    "description": "Exercise name: adductor machine"
+  },
+  "exerciseAbductorMachine": "Cadeira Abdutora",
+  "@exerciseAbductorMachine": {
+    "description": "Exercise name: abductor machine"
+  },
+  "musclePrimary": "Primário",
+  "@musclePrimary": {
+    "description": "Muscle role: primary"
+  },
+  "muscleSecondary": "Secundário",
+  "@muscleSecondary": {
+    "description": "Muscle role: secondary"
+  },
+  "movementPush": "Empurrar",
+  "@movementPush": {
+    "description": "Movement pattern: push"
+  },
+  "movementPull": "Puxar",
+  "@movementPull": {
+    "description": "Movement pattern: pull"
+  },
+  "movementHinge": "Dobradiça",
+  "@movementHinge": {
+    "description": "Movement pattern: hinge"
+  },
+  "movementSquat": "Agachamento",
+  "@movementSquat": {
+    "description": "Movement pattern: squat"
+  },
+  "movementLunge": "Avanço",
+  "@movementLunge": {
+    "description": "Movement pattern: lunge"
+  },
+  "movementCarry": "Carregar",
+  "@movementCarry": {
+    "description": "Movement pattern: carry"
+  },
+  "movementRotation": "Rotação",
+  "@movementRotation": {
+    "description": "Movement pattern: rotation"
+  },
+  "movementIsolation": "Isolamento",
+  "@movementIsolation": {
+    "description": "Movement pattern: isolation"
+  },
+  "advancedDetails": "Detalhes avançados",
+  "@advancedDetails": {
+    "description": "Collapsible section title for advanced fields"
+  },
+  "movementPatternLabel": "Padrão de movimento",
+  "@movementPatternLabel": {
+    "description": "Label for movement pattern dropdown"
+  },
+  "primaryMusclesLabel": "Músculos primários",
+  "@primaryMusclesLabel": {
+    "description": "Label for primary muscles section"
+  },
+  "secondaryMusclesLabel": "Músculos secundários",
+  "@secondaryMusclesLabel": {
+    "description": "Label for secondary muscles section"
   }
 }

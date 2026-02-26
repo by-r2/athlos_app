@@ -5,6 +5,7 @@ import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
+import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 
 part 'exercise_notifier.g.dart';
@@ -25,7 +26,8 @@ class ExerciseList extends _$ExerciseList {
     required MuscleGroup muscleGroup,
     String? description,
     List<int> equipmentIds = const [],
-    List<({TargetMuscle muscle, MuscleRegion? region})> muscles = const [],
+    List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
+        muscles = const [],
   }) async {
     final repo = ref.read(exerciseRepositoryProvider);
     final exercise = Exercise(
@@ -47,7 +49,8 @@ class ExerciseList extends _$ExerciseList {
   Future<void> updateExercise(
     Exercise exercise, {
     List<int>? equipmentIds,
-    List<({TargetMuscle muscle, MuscleRegion? region})>? muscles,
+    List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>?
+        muscles,
   }) async {
     final repo = ref.read(exerciseRepositoryProvider);
     final result = await repo.update(
