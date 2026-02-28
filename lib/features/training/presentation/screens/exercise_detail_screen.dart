@@ -112,6 +112,31 @@ class ExerciseDetailScreen extends ConsumerWidget {
                 colorScheme: colorScheme,
                 textTheme: textTheme,
               ),
+              const Gap(AthlosSpacing.md),
+              _buildInfoSection(
+                context,
+                icon: Icons.category,
+                title: l10n.exerciseDetailType,
+                value: displayExercise.type == ExerciseType.strength
+                    ? l10n.exerciseTypeStrength
+                    : l10n.exerciseTypeCardio,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+              ),
+              if (displayExercise.movementPattern != null) ...[
+                const Gap(AthlosSpacing.md),
+                _buildInfoSection(
+                  context,
+                  icon: Icons.swap_horiz,
+                  title: l10n.movementPatternLabel,
+                  value: localizedMovementPattern(
+                    displayExercise.movementPattern!,
+                    l10n,
+                  ),
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                ),
+              ],
               if (displayExercise.muscles.isNotEmpty) ...[
                 const Gap(AthlosSpacing.md),
                 _buildMusclesSection(

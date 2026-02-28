@@ -3,6 +3,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/errors/result.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
 import '../../domain/enums/muscle_role.dart';
@@ -24,6 +26,8 @@ class ExerciseList extends _$ExerciseList {
   Future<void> addCustomExercise({
     required String name,
     required MuscleGroup muscleGroup,
+    ExerciseType type = ExerciseType.strength,
+    MovementPattern? movementPattern,
     String? description,
     List<int> equipmentIds = const [],
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
@@ -35,6 +39,8 @@ class ExerciseList extends _$ExerciseList {
       id: 0,
       name: name,
       muscleGroup: muscleGroup,
+      type: type,
+      movementPattern: movementPattern,
       description: description,
     );
     final result = await repo.create(

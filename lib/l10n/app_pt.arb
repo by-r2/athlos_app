@@ -553,6 +553,8 @@
   "@exerciseNotFound": { "description": "Exercício não existe" },
   "exerciseDetailMuscleGroup": "Grupo muscular",
   "@exerciseDetailMuscleGroup": { "description": "Label: muscle group" },
+  "exerciseDetailType": "Tipo",
+  "@exerciseDetailType": { "description": "Label: exercise type on detail screen" },
   "exerciseDetailTargetMuscles": "Músculos alvo",
   "@exerciseDetailTargetMuscles": { "description": "Label: target muscles" },
   "exerciseDetailMuscleRegion": "Região muscular",

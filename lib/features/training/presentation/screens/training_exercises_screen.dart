@@ -625,6 +625,8 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           .addCustomExercise(
             name: _nameController.text.trim(),
             muscleGroup: _selectedGroup,
+            type: _selectedType,
+            movementPattern: _selectedMovementPattern,
             description: description.isEmpty ? null : description,
             equipmentIds: _selectedEquipmentIds.toList(),
             muscles: _allMuscles,
