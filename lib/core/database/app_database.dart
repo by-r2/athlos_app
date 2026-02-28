@@ -77,16 +77,16 @@ class AppDatabase extends _$AppDatabase {
           if (kDebugMode) await seedDevData(this);
         },
         onUpgrade: (m, from, to) async {
-          // Dev databases used schema versions 1–10 before the first public
-          // release. Wipe and recreate so developers get a clean baseline.
-          if (from >= 3 && from <= 10) {
+          // Dev-only: wipe DB when upgrading from schema versions 3–10 so
+          // developers get a clean baseline. Never runs in release (kDebugMode).
+          if (kDebugMode && from >= 3 && from <= 10) {
             for (final table in allTables) {
               await m.deleteTable(table.actualTableName);
             }
             await m.createAll();
             await seedEquipments(this);
             await seedExercises(this);
-            if (kDebugMode) await seedDevData(this);
+            await seedDevData(this);
             return;
           }
 

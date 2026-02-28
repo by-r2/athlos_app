@@ -213,7 +213,7 @@ Signing:
 Database:
 - [x] Schema version set to 3 (v1.1.0 — cardio, target muscle role, movement pattern, seeds V3)
 - [x] Incremental migration strategy in place
-- [ ] Destructive dev fallback removed before 1.0.0 tag
+- [x] Destructive dev fallback guarded with kDebugMode (runs only in debug, never in release)
 
 Store:
 - [ ] Privacy policy URL
