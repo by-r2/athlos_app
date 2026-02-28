@@ -82,10 +82,12 @@ The database schema version is an integer in `app_database.dart`:
 
 ```dart
 @override
-int get schemaVersion => 1;  // increment when schema changes
+int get schemaVersion => 3;  // increment when schema changes
 ```
 
 - **Version 1** is the baseline for the first public release (1.0.0).
+- **Version 2** added cardio support (exercise type, duration/distance, nullable reps, rest rename).
+- **Version 3** added target muscle role, movement pattern, and catalog seeds V3.
 - Development used versions 1–10 before release; the migration strategy detects these and recreates the database automatically.
 
 ### How Migrations Work
@@ -124,7 +126,7 @@ Catalog items (exercises, equipment) are seeded on first install via `onCreate`.
 ```dart
 // app_database.dart
 @override
-int get schemaVersion => 2;
+int get schemaVersion => 3;  // or next version when adding a new migration
 
 onUpgrade: (m, from, to) async {
   // ... dev wipe block ...
@@ -209,7 +211,7 @@ Signing:
 - [x] Keystore backed up securely
 
 Database:
-- [x] Schema version set to 2 (v1.1.0 — cardio support, naming conventions)
+- [x] Schema version set to 3 (v1.1.0 — cardio, target muscle role, movement pattern, seeds V3)
 - [x] Incremental migration strategy in place
 - [ ] Destructive dev fallback removed before 1.0.0 tag
 

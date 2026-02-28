@@ -35,7 +35,7 @@ The first store release. Training module feature-complete, fully local, zero cos
 | HN-01 | Must | As a user, I want a central Hub screen so that I can access all available modules from one place | Hub displays a card for each active module; tapping a card navigates into the module |
 | HN-02 | Must | As a user, I want each module card on the Hub to show a quick summary so that I get an overview without entering the module | Training card shows last workout name and date; Diet card shows placeholder/coming soon until Diet is available |
 | HN-03 | Must | As a user, I want to navigate back to the Hub from any module so that I can switch contexts easily | Back/Hub button is always accessible from within a module |
-| HN-04 | Must | As a user, I want each module to have its own bottom navigation bar so that I can move between sections within the module | Training: Home, Workouts, Exercises, History |
+| HN-04 | Must | As a user, I want each module to have its own bottom navigation bar so that I can move between sections within the module | Training: Home, Workouts, History, Exercises, Equipment |
 | HN-05 | Must | As a user, I want to access my profile from the Hub so that I can view and edit my personal data | Profile is accessible via the Hub app bar (not tied to any module) |
 
 ### Epic: Onboarding

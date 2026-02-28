@@ -62,7 +62,7 @@ lib/
 │   │   ├── athlos_radius.dart         # Border radius tokens
 │   │   ├── athlos_durations.dart      # Animation duration tokens
 │   │   └── athlos_elevation.dart      # Elevation tokens
-│   ├── widgets/
+│   ├── widgets/                       # Global reusable widgets (create when used in 2+ features)
 │   │   ├── buttons/                   # Button variants
 │   │   ├── cards/                     # Card variants
 │   │   ├── inputs/                    # Text fields, search bars, selectors
@@ -74,6 +74,10 @@ lib/
 │   ├── router/                        # go_router configuration
 │   └── utils/                         # Helpers and constants
 ├── features/
+│   ├── hub/                           # Hub (Olympus) — central screen with module cards
+│   │   └── presentation/
+│   │       ├── screens/               # HubScreen
+│   │       └── widgets/               # ModuleCard, etc.
 │   ├── training/                      # Training module
 │   │   ├── domain/
 │   │   │   ├── entities/              # Pure domain objects
@@ -338,10 +342,12 @@ Entities and interfaces that span multiple modules live in `core/`:
 - `UserProfile` — used by Training (goals, body metrics), Diet (caloric targets), and future modules
 - `BodyMetric` (future) — timestamped records (weight, body fat %) consumed by multiple modules
 
+> **Current state:** `UserProfile` and related types live in `features/profile/domain/`. A `core/domain/` layer can be introduced when Diet (or other modules) need to depend on shared entities; until then, profile remains a self-contained feature.
+
 ```
 core/
 ├── domain/
-│   ├── entities/          # Shared entities (UserProfile, etc.)
+│   ├── entities/          # Shared entities (UserProfile, etc.) — when needed
 │   └── repositories/      # Shared repository interfaces
 ```
 
@@ -442,6 +448,7 @@ Hub-based architecture using go_router:
 /training/home          → Training dashboard
 /training/workouts      → Workout list
 /training/exercises     → Exercise catalog
+/training/equipment     → Equipment (owned + catalog)
 /training/history       → Execution history
 /diet                   → Diet shell
 /diet/home              → Diet dashboard
@@ -508,7 +515,7 @@ Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premi
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
 
-> **Migration note:** Schema version 2 is the current version. Version 1 was the initial baseline; version 2 added cardio support (`type` on exercises, `duration`/`distance` on execution sets, nullable `reps`/`plannedReps`, and renamed `rest_seconds` → `rest` on workout exercises). Incremental versioned migrations are in place via `runMigrationSteps`. See [Release — Database Migrations](./release.md#database-migrations-drift) for details.
+> **Migration note:** The current schema version is **3**. Version 1 was the initial baseline; version 2 added cardio support (`type` on exercises, `duration`/`distance` on execution sets, nullable `reps`/`plannedReps`, and renamed `rest_seconds` → `rest` on workout exercises); version 3 added `role` on exercise target muscles, `movement_pattern` on exercises, and catalog seeds V3. Incremental versioned migrations are in place via `onUpgrade`. See [Release — Database Migrations](./release.md#database-migrations-drift) for details.
 
 ### Main Entities
 

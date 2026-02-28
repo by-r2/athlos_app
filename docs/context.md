@@ -36,7 +36,7 @@ Each module has its own bottom navigation bar with sections relevant to that mod
 
 ```
 Hub (Olympus)
-├── Training → [Home] [Workouts] [Exercises] [History]
+├── Training → [Home] [Workouts] [History] [Exercises] [Equipment]
 ├── Diet     → [Home] [Meals]    [Foods]     [Log]
 ├── (future modules follow the same pattern)
 └── Profile (via Hub app bar)
