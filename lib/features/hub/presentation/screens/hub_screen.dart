@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/providers/last_module_provider.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/services/gemini_config.dart';
+import '../../../../core/theme/athlos_spacing.dart';
+import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../widgets/module_card.dart';
@@ -51,20 +53,44 @@ class HubScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.appTitle),
         actions: [
-          IconButton(
-            icon: Icon(ref.watch(themeModeProvider.notifier).icon),
-            onPressed: () {
-              try {
-                ref.read(themeModeProvider.notifier).toggle();
-              } on Exception catch (_) {
-                // Best-effort; theme change persists in memory regardless
+          if (isGeminiConfigured)
+            IconButton(
+              icon: const Icon(Icons.auto_awesome_outlined),
+              tooltip: l10n.chironTitle,
+              onPressed: () => showChironSheet(context),
+            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.menu),
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  context.push(RoutePaths.profile);
+                case 'theme':
+                  try {
+                    ref.read(themeModeProvider.notifier).toggle();
+                  } on Exception catch (_) {}
               }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: l10n.profile,
-            onPressed: () => context.push(RoutePaths.profile),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(l10n.profile),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'theme',
+                child: ListTile(
+                  leading: Icon(ref.watch(themeModeProvider.notifier).icon),
+                  title: Text(l10n.toggleTheme),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),

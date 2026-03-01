@@ -50,9 +50,7 @@ GoRouter appRouter(Ref ref) {
       if (!hasProfile && !isOnSetup) return RoutePaths.profileSetup;
       if (hasProfile && isOnSetup) return RoutePaths.hub;
 
-      if (!hasRestoredModule &&
-          hasProfile &&
-          location == RoutePaths.hub) {
+      if (!hasRestoredModule && hasProfile && location == RoutePaths.hub) {
         hasRestoredModule = true;
         if (lastModule != null) return lastModule;
       }

@@ -1277,5 +1277,51 @@
   "secondaryMusclesLabel": "Músculos secundários",
   "@secondaryMusclesLabel": {
     "description": "Label for secondary muscles section"
+  },
+
+  "toggleTheme": "Alternar tema",
+  "@toggleTheme": {
+    "description": "Menu item to toggle light/dark theme"
+  },
+
+  "chironTitle": "Quíron",
+  "@chironTitle": {
+    "description": "Title for the Chiron AI assistant screen"
+  },
+  "chironGreeting": "Olá! Sou o Quíron, seu assistente de treino com IA. Como posso ajudar?",
+  "@chironGreeting": {
+    "description": "Chiron AI greeting message"
+  },
+  "chironInputHint": "Pergunte ao Quíron...",
+  "@chironInputHint": {
+    "description": "Placeholder for the Chiron chat input"
+  },
+  "chironErrorGeneric": "Desculpe, ocorreu um erro. Tente novamente.",
+  "@chironErrorGeneric": {
+    "description": "Generic error message for Chiron"
+  },
+  "chironErrorRateLimit": "Limite de mensagens atingido. Aguarde um momento.",
+  "@chironErrorRateLimit": {
+    "description": "Rate limit error message for Chiron"
+  },
+  "chironSuggestion1": "Monte um treino de peito para hoje",
+  "@chironSuggestion1": {
+    "description": "Suggested prompt 1 for Chiron"
+  },
+  "chironSuggestion2": "Como melhorar meu supino?",
+  "@chironSuggestion2": {
+    "description": "Suggested prompt 2 for Chiron"
+  },
+  "chironSuggestion3": "Analise meu progresso recente",
+  "@chironSuggestion3": {
+    "description": "Suggested prompt 3 for Chiron"
+  },
+  "chironEmptyState": "Comece uma conversa com o Quíron",
+  "@chironEmptyState": {
+    "description": "Empty state text for Chiron chat"
+  },
+  "chironClearChat": "Limpar conversa",
+  "@chironClearChat": {
+    "description": "Button to clear Chiron chat history"
   }
 }

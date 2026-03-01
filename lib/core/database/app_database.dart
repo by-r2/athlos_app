@@ -37,6 +37,9 @@ import '../../features/training/data/datasources/tables/workouts_table.dart';
 
 part 'app_database.g.dart';
 
+const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
+bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed;
+
 @DriftDatabase(
   tables: [
     // Training
@@ -74,12 +77,10 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await seedEquipments(this);
           await seedExercises(this);
-          if (kDebugMode) await seedDevData(this);
+          if (_shouldSeedDevData) await seedDevData(this);
         },
         onUpgrade: (m, from, to) async {
-          // Dev-only: wipe DB when upgrading from schema versions 3–10 so
-          // developers get a clean baseline. Never runs in release (kDebugMode).
-          if (kDebugMode && from >= 3 && from <= 10) {
+          if (_shouldSeedDevData && from >= 3 && from <= 10) {
             for (final table in allTables) {
               await m.deleteTable(table.actualTableName);
             }
