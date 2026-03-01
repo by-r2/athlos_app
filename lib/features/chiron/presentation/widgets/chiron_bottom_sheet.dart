@@ -91,7 +91,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    ref.listen(chironProvider, (_, _) => _scrollToBottom());
+    ref.listen(chironProvider, (prev, next) => _scrollToBottom());
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -112,7 +112,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
                       reverse: true,
                       padding: const EdgeInsets.all(AthlosSpacing.md),
                       itemCount: chatState.messages.length,
-                      separatorBuilder: (_, __) => const Gap(AthlosSpacing.sm),
+                      separatorBuilder: (context, index) => const Gap(AthlosSpacing.sm),
                       itemBuilder: (context, index) {
                         final reverseIndex =
                             chatState.messages.length - 1 - index;
@@ -207,6 +207,15 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
               style: textTheme.titleMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
+            ),
+            const Gap(AthlosSpacing.xs),
+            Text(
+              l10n.chironEmptySubtitle,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
+              textAlign: TextAlign.center,
             ),
             const Gap(AthlosSpacing.lg),
             ...suggestions.map(

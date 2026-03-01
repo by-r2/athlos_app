@@ -58,7 +58,7 @@ class _ChironChatScreenState extends ConsumerState<ChironChatScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    ref.listen(chironProvider, (_, _) => _scrollToBottom());
+    ref.listen(chironProvider, (prev, next) => _scrollToBottom());
 
     return Scaffold(
       appBar: AppBar(
@@ -83,7 +83,7 @@ class _ChironChatScreenState extends ConsumerState<ChironChatScreen> {
                     reverse: true,
                     padding: const EdgeInsets.all(AthlosSpacing.md),
                     itemCount: chatState.messages.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (context, index) =>
                         const Gap(AthlosSpacing.sm),
                     itemBuilder: (context, index) {
                       final reverseIndex =

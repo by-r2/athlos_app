@@ -6,7 +6,15 @@ import '../../../training/domain/repositories/workout_execution_repository.dart'
 import '../../../training/domain/repositories/workout_repository.dart';
 
 /// Builds a structured context string from user data for the Gemini prompt.
+/// Limits list sizes to keep context token-efficient while staying useful.
 class PromptBuilder {
+  /// Max recent executions to include (keeps progress analysis effective).
+  static const int maxRecentExecutions = 25;
+  /// Max workouts to include in context.
+  static const int maxWorkouts = 25;
+  /// Max exercise names to list in catalog snippet (rest is "... and N more").
+  static const int maxExerciseNamesInContext = 80;
+
   final UserProfileRepository _profileRepo;
   final EquipmentRepository _equipmentRepo;
   final WorkoutRepository _workoutRepo;
@@ -88,13 +96,14 @@ class PromptBuilder {
       }
     }
 
-    // Workouts with exercises and creation date
+    // Workouts with exercises and creation date (capped for token efficiency)
     final workoutResult = await _workoutRepo.getActive();
     if (workoutResult.isSuccess) {
       final workouts = workoutResult.getOrThrow();
-      if (workouts.isNotEmpty) {
+      final workoutsToShow = workouts.take(maxWorkouts).toList();
+      if (workoutsToShow.isNotEmpty) {
         final lines = <String>['## Treinos Ativos'];
-        for (final w in workouts) {
+        for (final w in workoutsToShow) {
           final age = DateTime.now().difference(w.createdAt).inDays;
           final exercisesResult = await _workoutRepo.getExercises(w.id);
           final exerciseNames = <String>[];
@@ -117,11 +126,14 @@ class PromptBuilder {
       }
     }
 
-    // Recent executions with set details
+    // Recent executions with set details (capped for token efficiency)
     final execResult = await _executionRepo.getAll();
     if (execResult.isSuccess) {
       final executions = execResult.getOrThrow();
-      final recent = executions.where((e) => e.isFinished).take(10).toList();
+      final recent = executions
+          .where((e) => e.isFinished)
+          .take(maxRecentExecutions)
+          .toList();
       if (recent.isNotEmpty) {
         final lines = <String>['## Histórico Recente (últimas ${recent.length} sessões)'];
 
@@ -165,15 +177,16 @@ class PromptBuilder {
       }
     }
 
-    // Exercise catalog: names for createWorkout
+    // Exercise catalog: names for createWorkout (capped to limit tokens)
     final exerciseResult = await _exerciseRepo.getAll();
     if (exerciseResult.isSuccess) {
       final exercises = exerciseResult.getOrThrow();
       final names = exercises.map((e) => e.name).toList();
+      final shown = names.take(maxExerciseNamesInContext).toList();
       sections.add(
         '## Catálogo (${names.length} exercícios)\n'
-        'Nomes exatos para createWorkout: ${names.take(100).join(", ")}'
-        '${names.length > 100 ? " (e mais ${names.length - 100})" : ""}',
+        'Nomes exatos para createWorkout: ${shown.join(", ")}'
+        '${names.length > maxExerciseNamesInContext ? " (e mais ${names.length - maxExerciseNamesInContext})" : ""}',
       );
     }
 

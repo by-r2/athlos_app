@@ -1320,6 +1320,10 @@
   "@chironEmptyState": {
     "description": "Empty state text for Chiron chat"
   },
+  "chironEmptySubtitle": "Use para tarefas importantes: montar treino, ajustar perfil ou tirar dúvidas.",
+  "@chironEmptySubtitle": {
+    "description": "Subtitle in empty state guiding user to use Chiron for high-value tasks"
+  },
   "chironClearChat": "Limpar conversa",
   "@chironClearChat": {
     "description": "Button to clear Chiron chat history"
