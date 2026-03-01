@@ -9,6 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
+import '../../domain/enums/gender.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 import '../providers/profile_notifier.dart';
@@ -38,6 +39,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _ageController = TextEditingController();
   final _injuriesController = TextEditingController();
   final _bioController = TextEditingController();
+  Gender? _selectedGender;
   TrainingGoal? _selectedGoal;
   BodyAesthetic? _selectedAesthetic;
   TrainingStyle? _selectedStyle;
@@ -63,6 +65,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _ageController.text = profile.age?.toString() ?? '';
     _injuriesController.text = profile.injuries ?? '';
     _bioController.text = profile.bio ?? '';
+    _selectedGender = profile.gender;
     _selectedGoal = profile.goal;
     _selectedAesthetic = profile.bodyAesthetic;
     _selectedStyle = profile.trainingStyle;
@@ -138,6 +141,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             label: l10n.profileAge,
             value: profile.age != null
                 ? '${profile.age} ${l10n.yearsUnit}'
+                : l10n.profileNotSet,
+          ),
+          _ProfileTile(
+            icon: Icons.wc,
+            label: l10n.profileGender,
+            value: profile.gender != null
+                ? _genderLabel(profile.gender!, l10n)
                 : l10n.profileNotSet,
           ),
           _ProfileTile(
@@ -272,6 +282,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
             ),
             const Gap(AthlosSpacing.lg),
+            Text(l10n.profileGender,
+                style: Theme.of(context).textTheme.titleMedium),
+            Wrap(
+              spacing: AthlosSpacing.sm,
+              children: [
+                ChoiceChip(
+                  label: Text(l10n.genderMale),
+                  selected: _selectedGender == Gender.male,
+                  onSelected: (_) => setState(() => _selectedGender = Gender.male),
+                ),
+                ChoiceChip(
+                  label: Text(l10n.genderFemale),
+                  selected: _selectedGender == Gender.female,
+                  onSelected: (_) =>
+                      setState(() => _selectedGender = Gender.female),
+                ),
+                ChoiceChip(
+                  label: Text(l10n.setupChatPreferNotToSay),
+                  selected: _selectedGender == null,
+                  onSelected: (_) => setState(() => _selectedGender = null),
+                ),
+              ],
+            ),
+            const Gap(AthlosSpacing.lg),
             GoalSelector(
               selected: _selectedGoal,
               onSelected: (goal) => setState(() => _selectedGoal = goal),
@@ -373,6 +407,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       weight: double.parse(_weightController.text),
       height: double.parse(_heightController.text),
       age: int.parse(_ageController.text),
+      gender: _selectedGender,
       goal: _selectedGoal,
       bodyAesthetic: _selectedAesthetic,
       trainingStyle: _selectedStyle,
@@ -428,6 +463,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ExperienceLevel.beginner => l10n.experienceBeginner,
         ExperienceLevel.intermediate => l10n.experienceIntermediate,
         ExperienceLevel.advanced => l10n.experienceAdvanced,
+      };
+
+  String _genderLabel(Gender gender, AppLocalizations l10n) => switch (gender) {
+        Gender.male => l10n.genderMale,
+        Gender.female => l10n.genderFemale,
       };
 }
 

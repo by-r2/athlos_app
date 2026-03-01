@@ -23,4 +23,6 @@ ChironRepository chironRepository(Ref ref) => ChironRepositoryImpl(
       apiKey: geminiApiKey,
       profileRepo: ref.watch(userProfileRepositoryProvider),
       equipmentRepo: ref.watch(equipmentRepositoryProvider),
+      workoutRepo: ref.watch(workoutRepositoryProvider),
+      exerciseRepo: ref.watch(exerciseRepositoryProvider),
     );

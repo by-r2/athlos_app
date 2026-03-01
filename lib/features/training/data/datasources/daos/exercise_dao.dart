@@ -31,6 +31,17 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
   Future<Exercise?> getById(int id) =>
       (select(exercises)..where((e) => e.id.equals(id))).getSingleOrNull();
 
+  /// Case-insensitive name lookup. Returns the first matching exercise id, or null.
+  Future<int?> findIdByName(String name) async {
+    final normalized = name.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    final all = await select(exercises).get();
+    for (final row in all) {
+      if (row.name.trim().toLowerCase() == normalized) return row.id;
+    }
+    return null;
+  }
+
   Future<List<Exercise>> getByMuscleGroup(MuscleGroup group) =>
       (select(exercises)..where((e) => e.muscleGroup.equalsValue(group))).get();
 

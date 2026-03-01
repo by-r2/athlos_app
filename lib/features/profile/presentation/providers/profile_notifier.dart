@@ -4,6 +4,7 @@ import '../../../../core/errors/result.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
+import '../../domain/enums/gender.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 import '../../data/repositories/profile_providers.dart';
@@ -33,6 +34,7 @@ class ProfileNotifier extends _$ProfileNotifier {
     BodyAesthetic? bodyAesthetic,
     TrainingStyle? trainingStyle,
     ExperienceLevel? experienceLevel,
+    Gender? gender,
     int? trainingFrequency,
     bool? trainsAtGym,
     String? injuries,
@@ -49,6 +51,7 @@ class ProfileNotifier extends _$ProfileNotifier {
       bodyAesthetic: bodyAesthetic,
       trainingStyle: trainingStyle,
       experienceLevel: experienceLevel,
+      gender: gender,
       trainingFrequency: trainingFrequency,
       trainsAtGym: trainsAtGym,
       injuries: injuries,

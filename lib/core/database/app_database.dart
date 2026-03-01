@@ -7,6 +7,7 @@ import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/tables/user_profiles_table.dart';
 import '../../features/profile/domain/enums/body_aesthetic.dart';
 import '../../features/profile/domain/enums/experience_level.dart';
+import '../../features/profile/domain/enums/gender.dart';
 import '../../features/profile/domain/enums/selected_module.dart';
 import '../../features/profile/domain/enums/training_goal.dart';
 import '../../features/profile/domain/enums/training_style.dart';
@@ -70,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'athlos'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -197,6 +198,12 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'ALTER TABLE user_profiles ADD COLUMN bio TEXT',
+            );
+          }
+
+          if (from < 5) {
+            await customStatement(
+              'ALTER TABLE user_profiles ADD COLUMN gender TEXT',
             );
           }
         },

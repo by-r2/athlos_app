@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../domain/enums/body_aesthetic.dart';
 import '../../../domain/enums/experience_level.dart';
+import '../../../domain/enums/gender.dart';
 import '../../../domain/enums/selected_module.dart';
 import '../../../domain/enums/training_goal.dart';
 import '../../../domain/enums/training_style.dart';
@@ -24,6 +25,9 @@ class UserProfiles extends Table {
   TextColumn get trainingStyle => textEnum<TrainingStyle>().nullable()();
   TextColumn get experienceLevel =>
       textEnum<ExperienceLevel>().nullable()();
+
+  /// Gender for personalized recommendations.
+  TextColumn get gender => textEnum<Gender>().nullable()();
 
   /// Preferred training days per week (1-7).
   IntColumn get trainingFrequency => integer().nullable()();

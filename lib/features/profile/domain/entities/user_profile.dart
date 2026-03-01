@@ -1,5 +1,6 @@
 import '../enums/body_aesthetic.dart';
 import '../enums/experience_level.dart';
+import '../enums/gender.dart';
 import '../enums/selected_module.dart';
 import '../enums/training_goal.dart';
 import '../enums/training_style.dart';
@@ -22,6 +23,9 @@ class UserProfile {
   final BodyAesthetic? bodyAesthetic;
   final TrainingStyle? trainingStyle;
   final ExperienceLevel? experienceLevel;
+
+  /// Gender for personalized workout and aesthetic recommendations.
+  final Gender? gender;
 
   /// Preferred training days per week (1-7).
   final int? trainingFrequency;
@@ -48,6 +52,7 @@ class UserProfile {
     this.bodyAesthetic,
     this.trainingStyle,
     this.experienceLevel,
+    this.gender,
     this.trainingFrequency,
     this.trainsAtGym,
     this.injuries,
@@ -65,6 +70,7 @@ class UserProfile {
     BodyAesthetic? Function()? bodyAesthetic,
     TrainingStyle? Function()? trainingStyle,
     ExperienceLevel? Function()? experienceLevel,
+    Gender? Function()? gender,
     int? Function()? trainingFrequency,
     bool? Function()? trainsAtGym,
     String? Function()? injuries,
@@ -84,6 +90,7 @@ class UserProfile {
             trainingStyle != null ? trainingStyle() : this.trainingStyle,
         experienceLevel:
             experienceLevel != null ? experienceLevel() : this.experienceLevel,
+        gender: gender != null ? gender() : this.gender,
         trainingFrequency: trainingFrequency != null
             ? trainingFrequency()
             : this.trainingFrequency,

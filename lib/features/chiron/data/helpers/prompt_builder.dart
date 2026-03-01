@@ -55,6 +55,9 @@ class PromptBuilder {
           lines.add(
               '- Nível de experiência: ${_humanize(profile.experienceLevel!.name)}');
         }
+        if (profile.gender != null) {
+          lines.add('- Gênero: ${_humanize(profile.gender!.name)}');
+        }
         if (profile.trainingFrequency != null) {
           lines.add(
               '- Frequência: ${profile.trainingFrequency}x por semana');
@@ -162,11 +165,16 @@ class PromptBuilder {
       }
     }
 
-    // Exercise catalog size
+    // Exercise catalog: names for createWorkout
     final exerciseResult = await _exerciseRepo.getAll();
     if (exerciseResult.isSuccess) {
       final exercises = exerciseResult.getOrThrow();
-      sections.add('## Catálogo\n- ${exercises.length} exercícios disponíveis');
+      final names = exercises.map((e) => e.name).toList();
+      sections.add(
+        '## Catálogo (${names.length} exercícios)\n'
+        'Nomes exatos para createWorkout: ${names.take(100).join(", ")}'
+        '${names.length > 100 ? " (e mais ${names.length - 100})" : ""}',
+      );
     }
 
     return sections.isEmpty

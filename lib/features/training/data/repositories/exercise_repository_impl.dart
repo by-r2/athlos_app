@@ -46,6 +46,18 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
+  Future<Result<domain.Exercise?>> findByName(String name) async {
+    try {
+      final id = await _dao.findIdByName(name);
+      if (id == null) return const Success(null);
+      return getById(id);
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to find exercise by name: $e'));
+    }
+  }
+
+  @override
   Future<Result<List<domain.Exercise>>> getByMuscleGroup(
       MuscleGroup group) async {
     try {

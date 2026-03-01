@@ -11,6 +11,7 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
+import '../../domain/enums/gender.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 import '../providers/profile_notifier.dart';
@@ -30,6 +31,7 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 enum _StepType {
   name,
   body,
+  gender,
   goal,
   aesthetic,
   style,
@@ -66,6 +68,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   double? _weight;
   double? _height;
   int? _age;
+  Gender? _gender;
   TrainingGoal? _selectedGoal;
   BodyAesthetic? _selectedAesthetic;
   TrainingStyle? _selectedStyle;
@@ -158,6 +161,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (_height != null) parts.add('${_height}cm');
     if (_age != null) parts.add('$_age ${l10n.yearsUnit}');
     _addUserMessage(parts.isEmpty ? l10n.setupChatSkipped : parts.join(', '));
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      _addChironMessage(l10n.setupChatAskGender, inputStep: _StepType.gender);
+    });
+  }
+
+  void _onGenderSelected(Gender? value) {
+    final l10n = AppLocalizations.of(context)!;
+    _gender = value;
+    _addUserMessage(value == null
+        ? l10n.setupChatPreferNotToSay
+        : value == Gender.male
+            ? l10n.genderMale
+            : l10n.genderFemale);
 
     Future.delayed(const Duration(milliseconds: 400), () {
       if (!mounted) return;
@@ -278,6 +296,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             weight: _weight,
             height: _height,
             age: _age,
+            gender: _gender,
             goal: _selectedGoal,
             bodyAesthetic: _selectedAesthetic,
             trainingStyle: _selectedStyle,
@@ -312,6 +331,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             weight: _weight,
             height: _height,
             age: _age,
+            gender: _gender,
             goal: _selectedGoal,
             bodyAesthetic: _selectedAesthetic,
             trainingStyle: _selectedStyle,
@@ -568,6 +588,7 @@ class _SetupInputBar extends StatelessWidget {
     return switch (step) {
       _StepType.name => _NameInput(state: state),
       _StepType.body => _BodyInput(state: state),
+      _StepType.gender => _GenderInput(state: state),
       _StepType.goal => _GoalInput(state: state),
       _StepType.aesthetic => _AestheticInput(state: state),
       _StepType.style => _StyleInput(state: state),
@@ -743,6 +764,37 @@ class _BodyInputState extends State<_BodyInput> {
             },
             child: Text(l10n.next),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GenderInput extends StatelessWidget {
+  final _ProfileSetupScreenState state;
+  const _GenderInput({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Wrap(
+      spacing: AthlosSpacing.sm,
+      runSpacing: AthlosSpacing.sm,
+      children: [
+        ChoiceChip(
+          label: Text(l10n.genderMale),
+          selected: false,
+          onSelected: (_) => state._onGenderSelected(Gender.male),
+        ),
+        ChoiceChip(
+          label: Text(l10n.genderFemale),
+          selected: false,
+          onSelected: (_) => state._onGenderSelected(Gender.female),
+        ),
+        ChoiceChip(
+          label: Text(l10n.setupChatPreferNotToSay),
+          selected: false,
+          onSelected: (_) => state._onGenderSelected(null),
         ),
       ],
     );
