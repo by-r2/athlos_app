@@ -26,8 +26,8 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
 
-  # AI
-  google_generative_ai: ^0.4.6
+  # AI (REST client with thought_signature support for thinking models)
+  http: ^1.2.2
 
   # UI
   gap: ^3.0.1

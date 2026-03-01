@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../profile/presentation/providers/profile_notifier.dart';
@@ -56,11 +57,19 @@ class ChironNotifier extends _$ChironNotifier {
             updated.last.copyWith(content: buffer.toString());
         state = state.copyWith(messages: updated);
       }
+
+      // If the API returned no text (e.g. only function calls, or empty response)
+      if (buffer.isEmpty) {
+        final updated = List<ChironMessage>.from(state.messages);
+        updated[updated.length - 1] = updated.last.copyWith(
+          content: 'O Quíron não retornou texto. Pode ter sido um problema '
+              'temporário — tente novamente.',
+        );
+        state = state.copyWith(messages: updated);
+      }
     } on Exception catch (e) {
       final updated = List<ChironMessage>.from(state.messages);
-      final errorText = e.toString().contains('Rate limit')
-          ? 'Limite de mensagens atingido. Aguarde um momento.'
-          : 'Desculpe, ocorreu um erro. Tente novamente.';
+      final String errorText = _errorMessage(e);
       updated[updated.length - 1] =
           updated.last.copyWith(content: errorText);
       state = state.copyWith(messages: updated);
@@ -73,4 +82,17 @@ class ChironNotifier extends _$ChironNotifier {
   }
 
   void clear() => state = const ChironChatState();
+
+  static String _errorMessage(Exception e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('rate limit') || msg.contains('quota')) {
+      return 'Limite de uso da API do Quíron atingido no momento. '
+          'Tente novamente daqui a alguns minutos.';
+    }
+    if (kDebugMode && e.toString().isNotEmpty) {
+      return 'Desculpe, ocorreu um erro. Tente novamente.\n\n'
+          '(_debug: ${e.toString().length > 200 ? "${e.toString().substring(0, 200)}..." : e} )';
+    }
+    return 'Desculpe, ocorreu um erro. Tente novamente.';
+  }
 }

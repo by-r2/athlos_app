@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../profile/domain/entities/user_profile.dart';
@@ -14,13 +14,38 @@ import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/repositories/workout_repository.dart';
 import '../../domain/entities/chiron_message.dart';
 import '../../domain/repositories/chiron_repository.dart';
+import '../services/gemini_models_loader.dart';
+import '../services/gemini_rest_client.dart';
+
+/// Fallback when the API list is unavailable. Use only "-latest" aliases
+/// so Google can change the underlying version without app updates.
+const List<String> _geminiModelIdsFallback = [
+  'gemini-flash-latest',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-8b-latest',
+];
 
 class ChironRepositoryImpl implements ChironRepository {
-  final String _apiKey;
+  ChironRepositoryImpl({
+    required String apiKey,
+    required UserProfileRepository profileRepo,
+    required EquipmentRepository equipmentRepo,
+    required WorkoutRepository workoutRepo,
+    required ExerciseRepository exerciseRepo,
+    GeminiModelsLoader? modelsLoader,
+  })  : _profileRepo = profileRepo,
+        _equipmentRepo = equipmentRepo,
+        _workoutRepo = workoutRepo,
+        _exerciseRepo = exerciseRepo,
+        _modelsLoader = modelsLoader ?? GeminiModelsLoader(apiKey: apiKey),
+        _restClient = GeminiRestClient(apiKey: apiKey);
+
   final UserProfileRepository _profileRepo;
+  final GeminiRestClient _restClient;
   final EquipmentRepository _equipmentRepo;
   final WorkoutRepository _workoutRepo;
   final ExerciseRepository _exerciseRepo;
+  final GeminiModelsLoader _modelsLoader;
 
   static const _maxMessagesPerMinute = 10;
   final _timestamps = <DateTime>[];
@@ -70,149 +95,6 @@ Quando o utilizador pedir para criar, montar ou sugerir um treino para salvar no
 4. Após criar, confirma o nome e o número de exercícios e sugere abrir o módulo Training para ver e executar.
 ''';
 
-  static final _toolDeclarations = [
-    Tool(functionDeclarations: [
-      FunctionDeclaration(
-        'updateBio',
-        'Acrescenta informação ao campo bio do perfil do utilizador. '
-            'Concatena ao bio existente, nunca sobrescreve.',
-        Schema.object(properties: {
-          'bio': Schema.string(
-            description: 'Texto a acrescentar ao bio existente',
-          ),
-        }, requiredProperties: [
-          'bio'
-        ]),
-      ),
-      FunctionDeclaration(
-        'updateInjuries',
-        'Acrescenta lesão/limitação ao campo injuries do perfil. '
-            'Concatena ao texto existente, nunca sobrescreve.',
-        Schema.object(properties: {
-          'injuries': Schema.string(
-            description: 'Texto da lesão a acrescentar',
-          ),
-        }, requiredProperties: [
-          'injuries'
-        ]),
-      ),
-      FunctionDeclaration(
-        'updateExperienceLevel',
-        'Atualiza o nível de experiência do utilizador.',
-        Schema.object(properties: {
-          'level': Schema.enumString(
-            enumValues: ['beginner', 'intermediate', 'advanced'],
-            description: 'Nível de experiência',
-          ),
-        }, requiredProperties: [
-          'level'
-        ]),
-      ),
-      FunctionDeclaration(
-        'updateGender',
-        'Atualiza o gênero do utilizador (influencia a montagem dos treinos).',
-        Schema.object(properties: {
-          'gender': Schema.enumString(
-            enumValues: ['male', 'female'],
-            description: 'Gênero: male = homem, female = mulher',
-          ),
-        }, requiredProperties: [
-          'gender'
-        ]),
-      ),
-      FunctionDeclaration(
-        'updateTrainingFrequency',
-        'Atualiza a frequência de treino semanal do utilizador.',
-        Schema.object(properties: {
-          'daysPerWeek': Schema.integer(
-            description: 'Número de dias por semana (1-7)',
-          ),
-        }, requiredProperties: [
-          'daysPerWeek'
-        ]),
-      ),
-      FunctionDeclaration(
-        'registerEquipment',
-        'Regista um equipamento que o utilizador confirmou ter disponível.',
-        Schema.object(properties: {
-          'equipmentName': Schema.string(
-            description: 'Nome do equipamento a registar',
-          ),
-        }, requiredProperties: [
-          'equipmentName'
-        ]),
-      ),
-      FunctionDeclaration(
-        'removeEquipment',
-        'Remove um equipamento que o utilizador disse já não ter.',
-        Schema.object(properties: {
-          'equipmentName': Schema.string(
-            description: 'Nome do equipamento a remover',
-          ),
-        }, requiredProperties: [
-          'equipmentName'
-        ]),
-      ),
-      FunctionDeclaration(
-        'createWorkout',
-        'Cria um treino no aplicativo com o nome e a lista de exercícios. '
-            'Usa os nomes exatos dos exercícios do catálogo (o contexto inclui treinos existentes com nomes de exercícios). '
-            'Cada exercício tem sets, reps e tempo de descanso em segundos.',
-        Schema.object(
-          properties: {
-            'name': Schema.string(
-              description: 'Nome do treino',
-            ),
-            'description': Schema.string(
-              description: 'Descrição opcional do treino',
-              nullable: true,
-            ),
-            'exercises': Schema.array(
-              description: 'Lista de exercícios do treino, na ordem desejada',
-              items: Schema.object(
-                properties: {
-                  'exerciseName': Schema.string(
-                    description:
-                        'Nome exato do exercício no catálogo (ex: Supino reto, Agachamento livre)',
-                  ),
-                  'sets': Schema.integer(
-                    description: 'Número de séries (ex: 3)',
-                  ),
-                  'reps': Schema.integer(
-                    description: 'Repetições por série (ex: 10). Para cardio use 0 e preencha durationSeconds',
-                    nullable: true,
-                  ),
-                  'restSeconds': Schema.integer(
-                    description: 'Descanso entre séries em segundos (ex: 90)',
-                    nullable: true,
-                  ),
-                  'durationSeconds': Schema.integer(
-                    description: 'Duração por série em segundos (só para cardio)',
-                    nullable: true,
-                  ),
-                },
-                requiredProperties: ['exerciseName', 'sets'],
-              ),
-            ),
-          },
-          requiredProperties: ['name', 'exercises'],
-        ),
-      ),
-    ]),
-  ];
-
-  ChironRepositoryImpl({
-    required String apiKey,
-    required UserProfileRepository profileRepo,
-    required EquipmentRepository equipmentRepo,
-    required WorkoutRepository workoutRepo,
-    required ExerciseRepository exerciseRepo,
-  })  : _apiKey = apiKey,
-        _profileRepo = profileRepo,
-        _equipmentRepo = equipmentRepo,
-        _workoutRepo = workoutRepo,
-        _exerciseRepo = exerciseRepo;
-
   @override
   Stream<String> sendMessage({
     required String userMessage,
@@ -221,79 +103,164 @@ Quando o utilizador pedir para criar, montar ou sugerir um treino para salvar no
   }) async* {
     _enforceRateLimit();
 
-    final model = GenerativeModel(
-      model: 'gemini-2.0-flash',
-      apiKey: _apiKey,
-      systemInstruction: Content.system('$_systemPrompt\n\n$userContext'),
-      tools: _toolDeclarations,
-    );
+    final modelIds =
+        await _modelsLoader.getModelIdsForChat() ?? _geminiModelIdsFallback;
 
-    final chatHistory = history.map((msg) {
-      final role = msg.role == ChironRole.user ? 'user' : 'model';
-      return Content(role, [TextPart(msg.content)]);
-    }).toList();
-
-    final chat = model.startChat(history: chatHistory);
-    var response = await chat.sendMessage(Content.text(userMessage));
-
-    // Function calling loop: handle tool calls until we get pure text
-    while (response.functionCalls.isNotEmpty) {
-      final functionResponses = <FunctionResponse>[];
-
-      for (final call in response.functionCalls) {
-        final result = await _handleFunctionCall(call);
-        functionResponses.add(
-          FunctionResponse(call.name, result),
-        );
+    Object? lastError;
+    for (final modelId in modelIds) {
+      try {
+        await for (final chunk in _sendWithGeminiModel(
+          modelId: modelId,
+          userMessage: userMessage,
+          history: history,
+          userContext: userContext,
+        )) {
+          yield chunk;
+        }
+        return;
+      } catch (e) {
+        lastError = e;
+        if (!_isQuotaOrRateLimit(e)) rethrow;
       }
-
-      response = await chat.sendMessage(
-        Content.functionResponses(functionResponses),
-      );
     }
-
-    final text = response.text;
-    if (text != null && text.isNotEmpty) {
-      yield text;
+    if (lastError != null) {
+      if (lastError is Exception) throw lastError;
+      throw Exception(lastError.toString());
     }
   }
 
-  Future<Map<String, Object?>> _handleFunctionCall(FunctionCall call) async {
-    switch (call.name) {
+  /// Returns true if the exception indicates quota or rate limit (try next model).
+  static bool _isQuotaOrRateLimit(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('quota') ||
+        s.contains('rate limit') ||
+        s.contains('resource_exhausted');
+  }
+
+  /// Sends the message using a single Gemini model via REST (supports
+  /// thought_signature for thinking models). May throw on API errors.
+  Stream<String> _sendWithGeminiModel({
+    required String modelId,
+    required String userMessage,
+    required List<ChironMessage> history,
+    required String userContext,
+  }) async* {
+    final systemInstruction = '$_systemPrompt\n\n$userContext';
+    final toolDeclarations = getChironToolDeclarations();
+
+    var contents = <Map<String, dynamic>>[];
+    for (final msg in history) {
+      final role = msg.role == ChironRole.user ? 'user' : 'model';
+      contents.add({
+        'role': role,
+        'parts': [
+          {'text': msg.content}
+        ],
+      });
+    }
+    contents.add({
+      'role': 'user',
+      'parts': [
+        {'text': userMessage}
+      ],
+    });
+
+    var parse = GeminiResponseParse(text: '');
+    var createWorkoutSucceededThisTurn = false;
+
+    while (true) {
+      final responseJson = await _restClient.generateContent(
+        modelId: modelId,
+        contents: contents,
+        systemInstruction: systemInstruction,
+        toolDeclarations: toolDeclarations,
+      );
+
+      parse = parseGenerateContentResponse(responseJson);
+
+      if (kDebugMode && parse.functionCalls.isEmpty && (parse.text == null || parse.text!.isEmpty)) {
+        final candidate = (responseJson['candidates'] as List<dynamic>?)?.firstOrNull as Map<String, dynamic>?;
+        final content = candidate?['content'] as Map<String, dynamic>?;
+        final contentParts = content?['parts'] as List<dynamic>?;
+        debugPrint('[Chiron] Empty response. finishReason=${candidate?['finishReason']}, parts count=${contentParts?.length ?? 0}');
+      }
+
+      if (parse.functionCalls.isEmpty) {
+        break;
+      }
+
+      final nameToResponse = <MapEntry<String, Map<String, Object?>>>[];
+      for (final call in parse.functionCalls) {
+        if (kDebugMode) debugPrint('[Chiron] Function call: ${call.name}');
+        final result = await _handleFunctionCallByName(call.name, call.args);
+        if (call.name == 'createWorkout' && result['success'] == true) {
+          createWorkoutSucceededThisTurn = true;
+        }
+        if (kDebugMode && result['success'] == false) {
+          debugPrint('[Chiron] ${call.name} failed: ${result['error']}');
+        }
+        nameToResponse.add(MapEntry(call.name, result));
+      }
+
+      contents = List<Map<String, dynamic>>.from(contents);
+      contents.add({
+        'role': 'model',
+        'parts': parse.modelParts,
+      });
+      contents.add({
+        'role': 'user',
+        'parts': buildFunctionResponseParts(
+          thoughtSignature: parse.thoughtSignature,
+          nameToResponse: nameToResponse,
+        ),
+      });
+    }
+
+    final text = parse.text;
+    if (text != null && text.isNotEmpty) {
+      yield text;
+    } else if (createWorkoutSucceededThisTurn) {
+      yield 'Treino criado e salvo no seu perfil. Confira no módulo Treino.';
+    }
+  }
+
+  Future<Map<String, Object?>> _handleFunctionCallByName(
+    String name,
+    Map<String, dynamic> args,
+  ) async {
+    switch (name) {
       case 'updateBio':
-        return _handleUpdateBio(call.args['bio'] as String);
+        return _handleUpdateBio(args['bio'] as String);
       case 'updateInjuries':
-        return _handleUpdateInjuries(call.args['injuries'] as String);
+        return _handleUpdateInjuries(args['injuries'] as String);
       case 'updateExperienceLevel':
-        return _handleUpdateExperienceLevel(call.args['level'] as String);
+        return _handleUpdateExperienceLevel(args['level'] as String);
       case 'updateTrainingFrequency':
-        final days = call.args['daysPerWeek'];
+        final days = args['daysPerWeek'];
         return _handleUpdateTrainingFrequency(
           days is int ? days : int.parse(days.toString()),
         );
       case 'updateGender':
-        return _handleUpdateGender(call.args['gender'] as String);
+        return _handleUpdateGender(args['gender'] as String);
       case 'registerEquipment':
-        return _handleRegisterEquipment(
-            call.args['equipmentName'] as String);
+        return _handleRegisterEquipment(args['equipmentName'] as String);
       case 'removeEquipment':
-        return _handleRemoveEquipment(
-            call.args['equipmentName'] as String);
+        return _handleRemoveEquipment(args['equipmentName'] as String);
       case 'createWorkout':
         return _handleCreateWorkout(
-          call.args['name'] as String,
-          call.args['description'] as String?,
-          call.args['exercises'] as List<dynamic>?,
+          args['name']?.toString() ?? '',
+          args['description']?.toString(),
+          args['exercises'] is List ? args['exercises'] as List? : null,
         );
       default:
-        return {'success': false, 'error': 'Unknown function: ${call.name}'};
+        return {'success': false, 'error': 'Unknown function: $name'};
     }
   }
 
   Future<Map<String, Object?>> _handleCreateWorkout(
     String name,
     String? description,
-    List<dynamic>? exercisesList,
+    List? exercisesList,
   ) async {
     if (name.trim().isEmpty) {
       return {'success': false, 'error': 'Nome do treino é obrigatório'};
@@ -305,17 +272,18 @@ Quando o utilizador pedir para criar, montar ou sugerir um treino para salvar no
     final workoutExercises = <domain_we.WorkoutExercise>[];
     for (var i = 0; i < exercisesList.length; i++) {
       final item = exercisesList[i];
-      if (item is! Map<String, dynamic>) continue;
-      final exerciseName = item['exerciseName']?.toString().trim();
+      if (item is! Map) continue;
+      final map = item;
+      final exerciseName = map['exerciseName']?.toString().trim();
       if (exerciseName == null || exerciseName.isEmpty) continue;
 
-      final sets = _parseInt(item['sets'], 3);
-      final reps = item['reps'] != null ? _parseInt(item['reps'], 10) : null;
-      final restSeconds = item['restSeconds'] != null
-          ? _parseInt(item['restSeconds'], 90)
+      final sets = _parseInt(map['sets'], 3);
+      final reps = map['reps'] != null ? _parseInt(map['reps'], 10) : null;
+      final restSeconds = map['restSeconds'] != null
+          ? _parseInt(map['restSeconds'], 90)
           : 90;
       final durationSeconds =
-          item['durationSeconds'] != null ? _parseInt(item['durationSeconds'], 0) : null;
+          map['durationSeconds'] != null ? _parseInt(map['durationSeconds'], 0) : null;
 
       final exResult = await _exerciseRepo.findByName(exerciseName);
       if (!exResult.isSuccess) {
