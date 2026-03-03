@@ -14,11 +14,17 @@ class GeminiModelsLoader {
   final String _apiKey;
   final Duration _cacheTtl;
 
+  /// Max models returned to the caller (limits fallback chain length).
+  static const int maxModels = 3;
+
   List<String>? _cachedIds;
   DateTime? _cachedAt;
 
   static const _listModelsUrl =
       'https://generativelanguage.googleapis.com/v1beta/models';
+
+  /// Models that are too slow/expensive for real-time chat.
+  static final _excludePatterns = RegExp(r'(pro|ultra|vision|embedding|aqa)');
 
   /// Returns model IDs suitable for chat (generateContent), preferring
   /// Flash / lighter models first. Uses cache when valid.
@@ -35,7 +41,7 @@ class GeminiModelsLoader {
         queryParameters: {'key': _apiKey, 'pageSize': '100'},
       );
       final response = await http.get(uri).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 5),
         onTimeout: () => throw Exception('List models timeout'),
       );
 
@@ -58,31 +64,34 @@ class GeminiModelsLoader {
           continue;
         }
         final id = name.startsWith('models/') ? name.substring(7) : name;
-        if (id.isNotEmpty) ids.add(id);
+        if (id.isEmpty || _excludePatterns.hasMatch(id)) continue;
+        ids.add(id);
       }
 
       if (ids.isEmpty) return null;
 
       _sortByPreference(ids);
-      _cachedIds = ids;
+      final trimmed = ids.take(maxModels).toList();
+      _cachedIds = trimmed;
       _cachedAt = DateTime.now();
-      return ids;
+      return trimmed;
     } catch (_) {
       return null;
     }
   }
 
-  /// Prefer flash over pro, and names containing "latest" first.
+  /// Prefer flash/lite over others, and names containing "latest" first.
   void _sortByPreference(List<String> ids) {
-    ids.sort((a, b) {
-      final aLatest = a.contains('latest') ? 0 : 1;
-      final bLatest = b.contains('latest') ? 0 : 1;
-      if (aLatest != bLatest) return aLatest.compareTo(bLatest);
-      final aFlash = a.contains('flash') ? 0 : 1;
-      final bFlash = b.contains('flash') ? 0 : 1;
-      if (aFlash != bFlash) return aFlash.compareTo(bFlash);
-      return a.compareTo(b);
-    });
+    int score(String id) {
+      var s = 0;
+      if (id.contains('flash')) s -= 20;
+      if (id.contains('lite')) s -= 10;
+      if (id.contains('latest')) s -= 5;
+      if (id.contains('pro')) s += 20;
+      return s;
+    }
+
+    ids.sort((a, b) => score(a).compareTo(score(b)));
   }
 
   void invalidateCache() {

@@ -1415,9 +1415,21 @@
   "@chironErrorGeneric": {
     "description": "Generic error message for Chiron"
   },
-  "chironErrorRateLimit": "Limite de mensagens atingido. Aguarde um momento.",
+  "chironErrorRateLimit": "Limite de uso da API do Quíron atingido no momento. Tente novamente daqui a alguns minutos.",
   "@chironErrorRateLimit": {
-    "description": "Rate limit error message for Chiron"
+    "description": "Rate limit or quota error message for Chiron"
+  },
+  "chironErrorHighDemand": "O serviço de IA está com alta demanda agora. Tente novamente em instantes.",
+  "@chironErrorHighDemand": {
+    "description": "High-demand temporary error message for Chiron"
+  },
+  "chironEmptyResponse": "O Quíron não retornou texto. Pode ter sido um problema temporário — tente novamente.",
+  "@chironEmptyResponse": {
+    "description": "Fallback when the model returns no text"
+  },
+  "chironWorkoutCreatedFallback": "Treino criado e salvo no seu perfil. Confira no módulo Treino.",
+  "@chironWorkoutCreatedFallback": {
+    "description": "Fallback when workout was created but model returned no text"
   },
   "chironSuggestion1": "Monte um treino de peito para hoje",
   "@chironSuggestion1": {

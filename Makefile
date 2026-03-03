@@ -6,10 +6,13 @@ DART_DEFINES = \
 	--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY) \
 	--dart-define=GEMINI_API_KEY=$(GEMINI_API_KEY)
 
+CHIRON_DEBUG_TRACE ?= false
+CHIRON_DEBUG_DEFINE = --dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE)
+
 SIM_DEVICE = iPhone 17 Pro
 SIM_UDID = A60DDE07-87E2-4D7E-A79E-3188235C7783
 
-.PHONY: help run run-ios run-release run-clean-ios sim-boot sim-open build-apk build-aab build-ipa gen gen-watch gen-l10n analyze clean
+.PHONY: help run run-ios run-release run-clean-ios sim-boot sim-open build-apk build-apk-debug build-aab build-ipa gen gen-watch gen-l10n analyze clean
 
 help:                 ## Show this help
 	@echo "Athlos — available targets:"
@@ -43,7 +46,10 @@ sim-open:              ## Open Simulator.app with iPhone 17 Pro
 ## ── Build ────────────────────────────────────────────
 
 build-apk:             ## Build release APK
-	flutter build apk --release $(DART_DEFINES)
+	flutter build apk --release $(DART_DEFINES) $(CHIRON_DEBUG_DEFINE)
+
+build-apk-debug:       ## Build release APK with CHIRON_DEBUG_TRACE=true
+	$(MAKE) build-apk CHIRON_DEBUG_TRACE=true
 
 build-aab:             ## Build release App Bundle
 	flutter build appbundle --release $(DART_DEFINES)

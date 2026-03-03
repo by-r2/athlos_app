@@ -2,6 +2,37 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+class GeminiApiException implements Exception {
+  GeminiApiException({
+    required this.message,
+    this.statusCode,
+  });
+
+  final String message;
+  final int? statusCode;
+
+  bool get isRetryable =>
+      statusCode == 429 ||
+      statusCode == 500 ||
+      statusCode == 502 ||
+      statusCode == 503 ||
+      statusCode == 504;
+
+  bool get isQuotaOrRateLimit {
+    final normalized = message.toLowerCase();
+    return statusCode == 429 ||
+        normalized.contains('quota') ||
+        normalized.contains('rate limit') ||
+        normalized.contains('resource_exhausted');
+  }
+
+  @override
+  String toString() {
+    if (statusCode != null) return 'Gemini API error ($statusCode): $message';
+    return 'Gemini API error: $message';
+  }
+}
+
 /// REST client for Gemini generateContent API with support for
 /// [thoughtSignature] so thinking models (2.5, 3) work with function calling.
 class GeminiRestClient {
@@ -36,17 +67,20 @@ class GeminiRestClient {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     ).timeout(
-      const Duration(seconds: 120),
-      onTimeout: () => throw Exception('generateContent timeout'),
+      const Duration(seconds: 30),
+      onTimeout: () => throw GeminiApiException(message: 'generateContent timeout'),
     );
 
     final json = jsonDecode(response.body) as Map<String, dynamic>?;
     if (response.statusCode != 200) {
       final message = json?['error']?['message'] ?? response.body;
-      throw Exception('Gemini API error (${response.statusCode}): $message');
+      throw GeminiApiException(
+        statusCode: response.statusCode,
+        message: message.toString(),
+      );
     }
 
-    if (json == null) throw Exception('Empty response');
+    if (json == null) throw GeminiApiException(message: 'Empty response');
     return json;
   }
 
@@ -183,11 +217,11 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'updateBio',
       'description':
-          'Acrescenta informação ao campo bio do perfil do utilizador. '
-              'Concatena ao bio existente, nunca sobrescreve.',
+          'Append information to the user bio field. '
+              'Concatenate to existing bio, never overwrite.',
       'parameters': _schema(
         properties: {
-          'bio': _propString('Texto a acrescentar ao bio existente'),
+          'bio': _propString('Text to append to existing bio'),
         },
         required: ['bio'],
       ),
@@ -195,23 +229,23 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'updateInjuries',
       'description':
-          'Acrescenta lesão/limitação ao campo injuries do perfil. '
-              'Concatena ao texto existente, nunca sobrescreve.',
+          'Append injury/limitation text to profile injuries field. '
+              'Concatenate to existing text, never overwrite.',
       'parameters': _schema(
         properties: {
-          'injuries': _propString('Texto da lesão a acrescentar'),
+          'injuries': _propString('Injury text to append'),
         },
         required: ['injuries'],
       ),
     },
     {
       'name': 'updateExperienceLevel',
-      'description': 'Atualiza o nível de experiência do utilizador.',
+      'description': 'Update user experience level.',
       'parameters': _schema(
         properties: {
           'level': _propEnum(
             ['beginner', 'intermediate', 'advanced'],
-            'Nível de experiência',
+            'Experience level',
           ),
         },
         required: ['level'],
@@ -219,13 +253,12 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     },
     {
       'name': 'updateGender',
-      'description':
-          'Atualiza o gênero do utilizador (influencia a montagem dos treinos).',
+      'description': 'Update user gender (influences workout planning).',
       'parameters': _schema(
         properties: {
           'gender': _propEnum(
             ['male', 'female'],
-            'Gênero: male = homem, female = mulher',
+            'Gender: male or female',
           ),
         },
         required: ['gender'],
@@ -233,10 +266,10 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     },
     {
       'name': 'updateTrainingFrequency',
-      'description': 'Atualiza a frequência de treino semanal do utilizador.',
+      'description': 'Update weekly training frequency.',
       'parameters': _schema(
         properties: {
-          'daysPerWeek': _propInteger('Número de dias por semana (1-7)'),
+          'daysPerWeek': _propInteger('Days per week (1-7)'),
         },
         required: ['daysPerWeek'],
       ),
@@ -244,21 +277,20 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'registerEquipment',
       'description':
-          'Regista um equipamento que o utilizador confirmou ter disponível.',
+          'Register an equipment item confirmed as available by the user.',
       'parameters': _schema(
         properties: {
-          'equipmentName': _propString('Nome do equipamento a registar'),
+          'equipmentName': _propString('Equipment name to register'),
         },
         required: ['equipmentName'],
       ),
     },
     {
       'name': 'removeEquipment',
-      'description':
-          'Remove um equipamento que o utilizador disse já não ter.',
+      'description': 'Remove an equipment item the user no longer has.',
       'parameters': _schema(
         properties: {
-          'equipmentName': _propString('Nome do equipamento a remover'),
+          'equipmentName': _propString('Equipment name to remove'),
         },
         required: ['equipmentName'],
       ),
@@ -266,39 +298,39 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'createWorkout',
       'description':
-          'Cria um treino no aplicativo com o nome e a lista de exercícios. '
-              'Usa os nomes exatos dos exercícios do catálogo. '
-              'Cada exercício tem sets, reps e tempo de descanso em segundos.',
+          'Create a workout with name and ordered exercise list. '
+              'Use exact catalog exercise names. '
+              'Each exercise supports sets, reps, and rest seconds.',
       'parameters': _schema(
         properties: {
-          'name': _propString('Nome do treino'),
+          'name': _propString('Workout name'),
           'description': _propString(
-            'Descrição opcional do treino',
+            'Optional workout description',
             nullable: true,
           ),
           'exercises': {
             'type': 'array',
-            'description': 'Lista de exercícios do treino, na ordem desejada',
+            'description': 'Ordered workout exercise list',
             'items': _schema(
               properties: {
                 'exerciseName': _propString(
-                  'Nome exato do exercício no catálogo',
+                  'Exact exercise name from catalog',
                 ),
-                'sets': _propInteger('Número de séries'),
+                'sets': _propInteger('Number of sets'),
                 'reps': _propInteger(
-                  'Repetições por série. Para cardio use 0 e preencha durationSeconds',
+                  'Repetitions per set. For cardio use 0 and fill durationSeconds',
                   nullable: true,
                 ),
                 'restSeconds': _propInteger(
-                  'Descanso entre séries em segundos',
+                  'Rest between sets in seconds',
                   nullable: true,
                 ),
                 'durationSeconds': _propInteger(
-                  'Duração por série em segundos (só para cardio)',
+                  'Duration per set in seconds (cardio only)',
                   nullable: true,
                 ),
                 'notes': _propString(
-                  'Instruções de execução, dicas posturais ou variações técnicas (ex: "deitado no banco", "costas na parede")',
+                  'Execution notes, posture cues, or technical variations (e.g. "supine on bench", "back against wall")',
                   nullable: true,
                 ),
               },
@@ -312,12 +344,12 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'archiveWorkout',
       'description':
-          'Arquiva um treino (remove dos ativos, mantém no histórico). '
-              'Usa o ID do treino indicado no contexto (Treinos Ativos: id=X). '
-              'Nunca exclui treinos — só arquivar. Para substituir um plano, crie o novo com createWorkout e depois archiveWorkout no antigo.',
+          'Archive a workout (remove from active list, keep in history). '
+              'Use workout ID from context (Active Workouts: id=X). '
+              'Never delete workouts. To replace a plan, create a new workout first then archive the old one.',
       'parameters': _schema(
         properties: {
-          'workoutId': _propInteger('ID do treino a arquivar (ver contexto)'),
+          'workoutId': _propInteger('Workout ID to archive (see context)'),
         },
         required: ['workoutId'],
       ),
@@ -325,22 +357,22 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'setCycle',
       'description':
-          'Define a ordem do ciclo de treinos (rotina). Chamar após criar novos treinos e arquivar os antigos. '
-              'steps: lista ordenada; cada item é { type: "workout", workoutId: N } ou { type: "rest" }. '
-              'Só incluir workoutIds de treinos ativos (os que acabou de criar ou que ficaram). Substitui o ciclo inteiro.',
+          'Set workout cycle order (routine). Call after creating new workouts and archiving old ones. '
+              'steps: ordered list where each item is { type: "workout", workoutId: N } or { type: "rest" }. '
+              'Include only active workoutIds (newly created or retained). Replaces the full cycle.',
       'parameters': _schema(
         properties: {
           'steps': {
             'type': 'array',
-            'description': 'Passos do ciclo na ordem: workout (com workoutId) ou rest',
+            'description': 'Ordered cycle steps: workout (with workoutId) or rest',
             'items': _schema(
               properties: {
                 'type': _propEnum(
                   ['workout', 'rest'],
-                  'Tipo do passo: workout ou rest',
+                  'Step type: workout or rest',
                 ),
                 'workoutId': _propInteger(
-                  'ID do treino (obrigatório quando type=workout)',
+                  'Workout ID (required when type=workout)',
                   nullable: true,
                 ),
               },
@@ -354,8 +386,17 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'getTrainingState',
       'description':
-          'Obtém o estado atual: treinos ativos (id e nome) e o ciclo (ordem dos passos). '
-              'Usar no final para verificar se tudo foi aplicado corretamente e informar o utilizador.',
+          'Get current training state: active workouts (id and name) and cycle steps order. '
+              'Call at the end to verify all changes were applied correctly.',
+      'parameters': _schema(
+        properties: {},
+        required: [],
+      ),
+    },
+    {
+      'name': 'requestExtendedHistory',
+      'description':
+          'Request extended workout/execution context when long-term trends, comparisons, or broader history are needed.',
       'parameters': _schema(
         properties: {},
         required: [],

@@ -1,19 +1,25 @@
 import '../../../../core/errors/result.dart';
+import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/domain/repositories/user_profile_repository.dart';
+import '../../../training/domain/entities/equipment.dart';
+import '../../../training/domain/entities/exercise.dart';
+import '../../../training/domain/entities/workout.dart';
+import '../../../training/domain/entities/workout_execution.dart';
 import '../../../training/domain/repositories/equipment_repository.dart';
 import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/repositories/workout_execution_repository.dart';
 import '../../../training/domain/repositories/workout_repository.dart';
+import '../seeds/chiron_context_seed.dart';
 
 /// Builds a structured context string from user data for the Gemini prompt.
 /// Limits list sizes to keep context token-efficient while staying useful.
 class PromptBuilder {
-  /// Max recent executions to include (keeps progress analysis effective).
-  static const int maxRecentExecutions = 25;
-  /// Max workouts to include in context.
-  static const int maxWorkouts = 25;
-  /// Max exercise names to list in catalog snippet (rest is "... and N more").
-  static const int maxExerciseNamesInContext = 80;
+  static const int maxRecentExecutions = chironDefaultRecentExecutionsLimit;
+  static const int maxRecentExecutionsExtended =
+      chironExtendedRecentExecutionsLimit;
+  static const int maxWorkouts = chironDefaultWorkoutsLimit;
+  static const int maxWorkoutsExtended = chironExtendedWorkoutsLimit;
+  static const int maxExerciseNamesInContext = 100;
 
   final UserProfileRepository _profileRepo;
   final EquipmentRepository _equipmentRepo;
@@ -33,170 +39,241 @@ class PromptBuilder {
         _executionRepo = executionRepo,
         _exerciseRepo = exerciseRepo;
 
-  Future<String> build() async {
+  Future<String> build({bool extended = false}) async {
+    final recentExecutionsLimit =
+        extended ? maxRecentExecutionsExtended : maxRecentExecutions;
+    final workoutsLimit = extended ? maxWorkoutsExtended : maxWorkouts;
+
+    // Parallel fetch of all independent data sources
+    final futures = await Future.wait([
+      _profileRepo.get(),
+      _equipmentRepo.getByUser(),
+      _workoutRepo.getActive(),
+      _executionRepo.getAll(),
+      _exerciseRepo.getAll(),
+    ]);
+
+    final profileResult = futures[0] as Result<UserProfile?>;
+    final equipResult = futures[1] as Result<List<Equipment>>;
+    final workoutResult = futures[2] as Result<List<Workout>>;
+    final execResult = futures[3] as Result<List<WorkoutExecution>>;
+    final exerciseResult = futures[4] as Result<List<Exercise>>;
+
+    // Pre-build exercise ID → name map (avoids N+1 later)
+    final exerciseMap = <int, String>{};
+    var allExercises = <Exercise>[];
+    if (exerciseResult.isSuccess) {
+      allExercises = exerciseResult.getOrThrow();
+      for (final ex in allExercises) {
+        exerciseMap[ex.id] = ex.name;
+      }
+    }
+
     final sections = <String>[];
 
-    // User profile
-    final profileResult = await _profileRepo.get();
-    if (profileResult.isSuccess) {
-      final profile = profileResult.getOrThrow();
-      if (profile != null) {
-        final lines = <String>['## Perfil do Utilizador'];
-        if (profile.name != null) lines.add('- Nome: ${profile.name}');
-        if (profile.age != null) lines.add('- Idade: ${profile.age} anos');
-        if (profile.weight != null) lines.add('- Peso: ${profile.weight} kg');
-        if (profile.height != null) {
-          lines.add('- Altura: ${profile.height} cm');
-        }
-        if (profile.goal != null) {
-          lines.add('- Objetivo: ${_humanize(profile.goal!.name)}');
-        }
-        if (profile.bodyAesthetic != null) {
-          lines.add(
-              '- Estética corporal: ${_humanize(profile.bodyAesthetic!.name)}');
-        }
-        if (profile.trainingStyle != null) {
-          lines.add(
-              '- Estilo de treino: ${_humanize(profile.trainingStyle!.name)}');
-        }
-        if (profile.experienceLevel != null) {
-          lines.add(
-              '- Nível de experiência: ${_humanize(profile.experienceLevel!.name)}');
-        }
-        if (profile.gender != null) {
-          lines.add('- Gênero: ${_humanize(profile.gender!.name)}');
-        }
-        if (profile.trainingFrequency != null) {
-          lines.add(
-              '- Frequência: ${profile.trainingFrequency}x por semana');
-        }
-        if (profile.availableWorkoutMinutes != null) {
-          lines.add(
-              '- Tempo disponível por treino: ${profile.availableWorkoutMinutes} min (monta treinos dentro deste tempo)');
-        }
-        if (profile.trainsAtGym != null) {
-          lines.add(
-              '- Treina em academia: ${profile.trainsAtGym! ? "Sim" : "Não"}');
-        }
-        if (profile.injuries != null && profile.injuries!.isNotEmpty) {
-          lines.add('- Lesões/limitações: ${profile.injuries}');
-        }
-        if (profile.bio != null && profile.bio!.isNotEmpty) {
-          lines.add('- Histórico: ${profile.bio}');
-        }
-        sections.add(lines.join('\n'));
-      }
-    }
+    // --- Profile ---
+    _buildProfile(profileResult, sections);
 
-    // Equipment
-    final equipResult = await _equipmentRepo.getByUser();
-    if (equipResult.isSuccess) {
-      final equipment = equipResult.getOrThrow();
-      if (equipment.isNotEmpty) {
-        final names = equipment.map((e) => e.name).join(', ');
-        sections.add('## Equipamentos Registados\n$names');
-      } else {
-        sections.add('## Equipamentos Registados\nNenhum equipamento registado.');
-      }
-    }
+    // --- Equipment ---
+    _buildEquipment(equipResult, sections);
 
-    // Workouts with exercises and creation date (capped for token efficiency)
-    final workoutResult = await _workoutRepo.getActive();
-    if (workoutResult.isSuccess) {
-      final workouts = workoutResult.getOrThrow();
-      final workoutsToShow = workouts.take(maxWorkouts).toList();
-      if (workoutsToShow.isNotEmpty) {
-        final lines = <String>['## Treinos Ativos'];
-        for (final w in workoutsToShow) {
-          final age = DateTime.now().difference(w.createdAt).inDays;
-          final exercisesResult = await _workoutRepo.getExercises(w.id);
-          final exerciseNames = <String>[];
-          if (exercisesResult.isSuccess) {
-            for (final we in exercisesResult.getOrThrow()) {
-              final exResult = await _exerciseRepo.getById(we.exerciseId);
-              if (exResult.isSuccess) {
-                final ex = exResult.getOrThrow();
-                if (ex != null) exerciseNames.add(ex.name);
-              }
-            }
-          }
-          final exStr = exerciseNames.isNotEmpty
-              ? ' → ${exerciseNames.join(", ")}'
-              : '';
-          lines.add('- id=${w.id} ${w.name} (criado há $age dias, '
-              '${exerciseNames.length} exercícios)$exStr');
-        }
-        sections.add(lines.join('\n'));
-      }
-    }
+    // --- Active Workouts (with exercises, no N+1) ---
+    await _buildWorkouts(
+      workoutResult,
+      exerciseMap,
+      sections,
+      maxItems: workoutsLimit,
+    );
 
-    // Recent executions with set details (capped for token efficiency)
-    final execResult = await _executionRepo.getAll();
-    if (execResult.isSuccess) {
-      final executions = execResult.getOrThrow();
-      final recent = executions
-          .where((e) => e.isFinished)
-          .take(maxRecentExecutions)
-          .toList();
-      if (recent.isNotEmpty) {
-        final lines = <String>['## Histórico Recente (últimas ${recent.length} sessões)'];
+    // --- Recent Executions (with set details, no N+1) ---
+    await _buildExecutions(
+      execResult,
+      workoutResult,
+      exerciseMap,
+      sections,
+      maxItems: recentExecutionsLimit,
+    );
 
-        // Map workout IDs to names
-        final workoutNames = <int, String>{};
-        final workoutResult2 = await _workoutRepo.getActive();
-        if (workoutResult2.isSuccess) {
-          for (final w in workoutResult2.getOrThrow()) {
-            workoutNames[w.id] = w.name;
-          }
-        }
-
-        for (final exec in recent) {
-          final duration = exec.duration != null
-              ? _formatDuration(exec.duration!)
-              : '?';
-          final wName = workoutNames[exec.workoutId] ?? 'Treino #${exec.workoutId}';
-          final dateFmt = exec.startedAt.toLocal().toString().substring(0, 10);
-
-          final setsResult = await _executionRepo.getSets(exec.id);
-          if (setsResult.isSuccess) {
-            final sets = setsResult.getOrThrow();
-            final exerciseGroups = <int, List<String>>{};
-            for (final s in sets.where((s) => s.isCompleted)) {
-              final label = s.weight != null
-                  ? '${s.weight}kg×${s.reps ?? 0}'
-                  : s.duration != null
-                      ? '${s.duration}s'
-                      : '${s.reps ?? 0} reps';
-              exerciseGroups.putIfAbsent(s.exerciseId, () => []).add(label);
-            }
-            final summary = exerciseGroups.entries.map((e) {
-              return 'ex#${e.key}: ${e.value.join(", ")}';
-            }).join(' | ');
-            lines.add('- $dateFmt — $wName ($duration) [$summary]');
-          } else {
-            lines.add('- $dateFmt — $wName ($duration)');
-          }
-        }
-        sections.add(lines.join('\n'));
-      }
-    }
-
-    // Exercise catalog: names for createWorkout (capped to limit tokens)
-    final exerciseResult = await _exerciseRepo.getAll();
-    if (exerciseResult.isSuccess) {
-      final exercises = exerciseResult.getOrThrow();
-      final names = exercises.map((e) => e.name).toList();
-      final shown = names.take(maxExerciseNamesInContext).toList();
-      sections.add(
-        '## Catálogo (${names.length} exercícios)\n'
-        'Nomes exatos para createWorkout: ${shown.join(", ")}'
-        '${names.length > maxExerciseNamesInContext ? " (e mais ${names.length - maxExerciseNamesInContext})" : ""}',
-      );
-    }
+    // --- Exercise catalog names ---
+    _buildCatalog(allExercises, sections);
 
     return sections.isEmpty
-        ? 'Nenhum dado disponível ainda.'
+        ? 'No data available yet.'
         : sections.join('\n\n');
+  }
+
+  void _buildProfile(
+    Result<UserProfile?> profileResult,
+    List<String> sections,
+  ) {
+    if (!profileResult.isSuccess) return;
+    final profile = profileResult.getOrThrow();
+    if (profile == null) return;
+
+    final lines = <String>['## User Profile'];
+    if (profile.name != null) lines.add('- Name: ${profile.name}');
+    if (profile.age != null) lines.add('- Age: ${profile.age} years');
+    if (profile.weight != null) lines.add('- Weight: ${profile.weight} kg');
+    if (profile.height != null) lines.add('- Height: ${profile.height} cm');
+    if (profile.goal != null) {
+      lines.add('- Goal: ${_humanize(profile.goal!.name)}');
+    }
+    if (profile.bodyAesthetic != null) {
+      lines.add('- Body aesthetic: ${_humanize(profile.bodyAesthetic!.name)}');
+    }
+    if (profile.trainingStyle != null) {
+      lines.add('- Training style: ${_humanize(profile.trainingStyle!.name)}');
+    }
+    if (profile.experienceLevel != null) {
+      lines.add(
+          '- Experience level: ${_humanize(profile.experienceLevel!.name)}');
+    }
+    if (profile.gender != null) {
+      lines.add('- Gender: ${_humanize(profile.gender!.name)}');
+    }
+    if (profile.trainingFrequency != null) {
+      lines.add('- Frequency: ${profile.trainingFrequency}x per week');
+    }
+    if (profile.availableWorkoutMinutes != null) {
+      lines.add(
+          '- Available workout time: ${profile.availableWorkoutMinutes} min');
+    }
+    if (profile.trainsAtGym != null) {
+      lines.add('- Trains at gym: ${profile.trainsAtGym! ? "Yes" : "No"}');
+    }
+    if (profile.injuries != null && profile.injuries!.isNotEmpty) {
+      lines.add('- Injuries/limitations: ${profile.injuries}');
+    }
+    if (profile.bio != null && profile.bio!.isNotEmpty) {
+      lines.add('- History: ${profile.bio}');
+    }
+    sections.add(lines.join('\n'));
+  }
+
+  void _buildEquipment(
+    Result<List<Equipment>> equipResult,
+    List<String> sections,
+  ) {
+    if (!equipResult.isSuccess) return;
+    final equipment = equipResult.getOrThrow();
+    if (equipment.isNotEmpty) {
+      final names = equipment.map((e) => e.name).join(', ');
+      sections.add('## Registered Equipment\n$names');
+    } else {
+      sections.add('## Registered Equipment\nNo equipment registered.');
+    }
+  }
+
+  Future<void> _buildWorkouts(
+    Result<List<Workout>> workoutResult,
+    Map<int, String> exerciseMap,
+    List<String> sections,
+    {required int maxItems}
+  ) async {
+    if (!workoutResult.isSuccess) return;
+    final workouts = workoutResult.getOrThrow();
+    final workoutsToShow = workouts.take(maxItems).toList();
+    if (workoutsToShow.isEmpty) return;
+
+    // Fetch exercises for all workouts in parallel
+    final exerciseResults = await Future.wait(
+      workoutsToShow.map((w) => _workoutRepo.getExercises(w.id)),
+    );
+
+    final lines = <String>['## Active Workouts'];
+    for (var i = 0; i < workoutsToShow.length; i++) {
+      final w = workoutsToShow[i];
+      final age = DateTime.now().difference(w.createdAt).inDays;
+      final exNames = <String>[];
+      final exResult = exerciseResults[i];
+      if (exResult.isSuccess) {
+        for (final we in exResult.getOrThrow()) {
+          final name = exerciseMap[we.exerciseId];
+          if (name != null) exNames.add(name);
+        }
+      }
+      final exStr = exNames.isNotEmpty ? ' → ${exNames.join(", ")}' : '';
+      lines.add('- id=${w.id} ${w.name} (${age}d, '
+          '${exNames.length} ex)$exStr');
+    }
+    sections.add(lines.join('\n'));
+  }
+
+  Future<void> _buildExecutions(
+    Result<List<WorkoutExecution>> execResult,
+    Result<List<Workout>> workoutResult,
+    Map<int, String> exerciseMap,
+    List<String> sections,
+    {required int maxItems}
+  ) async {
+    if (!execResult.isSuccess) return;
+    final executions = execResult.getOrThrow();
+    final recent = executions
+        .where((e) => e.isFinished)
+        .take(maxItems)
+        .toList();
+    if (recent.isEmpty) return;
+
+    // Reuse workout names from the already-fetched workouts result
+    final workoutNames = <int, String>{};
+    if (workoutResult.isSuccess) {
+      for (final w in workoutResult.getOrThrow()) {
+        workoutNames[w.id] = w.name;
+      }
+    }
+
+    // Fetch all sets in parallel
+    final setResults = await Future.wait(
+      recent.map((exec) => _executionRepo.getSets(exec.id)),
+    );
+
+    final lines = <String>['## Recent History (${recent.length} sessions)'];
+    for (var i = 0; i < recent.length; i++) {
+      final exec = recent[i];
+      final duration = exec.duration != null
+          ? _formatDuration(exec.duration!)
+          : '?';
+      final wName = workoutNames[exec.workoutId] ?? 'Workout #${exec.workoutId}';
+      final dateFmt =
+          exec.startedAt.toLocal().toString().substring(0, 10);
+
+      final setsResult = setResults[i];
+      if (setsResult.isSuccess) {
+        final sets = setsResult.getOrThrow();
+        final exerciseGroups = <int, List<String>>{};
+        for (final s in sets.where((s) => s.isCompleted)) {
+          final label = s.weight != null
+              ? '${s.weight}kg×${s.reps ?? 0}'
+              : s.duration != null
+                  ? '${s.duration}s'
+                  : '${s.reps ?? 0} reps';
+          exerciseGroups
+              .putIfAbsent(s.exerciseId, () => [])
+              .add(label);
+        }
+        final summary = exerciseGroups.entries.map((e) {
+          final exName = exerciseMap[e.key] ?? 'ex#${e.key}';
+          return '$exName: ${e.value.join(", ")}';
+        }).join(' | ');
+        lines.add('- $dateFmt $wName ($duration) [$summary]');
+      } else {
+        lines.add('- $dateFmt $wName ($duration)');
+      }
+    }
+    sections.add(lines.join('\n'));
+  }
+
+  void _buildCatalog(List<Exercise> allExercises, List<String> sections) {
+    if (allExercises.isEmpty) return;
+    final names = allExercises.map((e) => e.name).toList();
+    final shown = names.take(maxExerciseNamesInContext).toList();
+    final overflow = names.length > maxExerciseNamesInContext
+        ? ' (+${names.length - maxExerciseNamesInContext})'
+        : '';
+    sections.add(
+      '## Catalog (${names.length} exercises)\n'
+      'Exact names for createWorkout: ${shown.join(", ")}$overflow',
+    );
   }
 
   String _humanize(String enumName) =>

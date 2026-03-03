@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/domain/enums/experience_level.dart';
@@ -14,6 +16,8 @@ import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/repositories/workout_repository.dart';
 import '../../domain/entities/chiron_message.dart';
 import '../../domain/repositories/chiron_repository.dart';
+import '../helpers/prompt_builder.dart';
+import '../seeds/chiron_context_seed.dart';
 import '../services/gemini_models_loader.dart';
 import '../services/gemini_rest_client.dart';
 
@@ -24,6 +28,11 @@ const List<String> _geminiModelIdsFallback = [
   'gemini-1.5-flash-latest',
   'gemini-1.5-flash-8b-latest',
 ];
+const List<Duration> _geminiRetryBackoff = [
+  Duration(seconds: 1),
+  Duration(seconds: 2),
+];
+const int _geminiRetryJitterMaxMs = 400;
 
 class ChironRepositoryImpl implements ChironRepository {
   ChironRepositoryImpl({
@@ -33,12 +42,14 @@ class ChironRepositoryImpl implements ChironRepository {
     required WorkoutRepository workoutRepo,
     required ExerciseRepository exerciseRepo,
     required CycleRepository cycleRepo,
+    required PromptBuilder promptBuilder,
     GeminiModelsLoader? modelsLoader,
   })  : _profileRepo = profileRepo,
         _equipmentRepo = equipmentRepo,
         _workoutRepo = workoutRepo,
         _exerciseRepo = exerciseRepo,
         _cycleRepo = cycleRepo,
+        _promptBuilder = promptBuilder,
         _modelsLoader = modelsLoader ?? GeminiModelsLoader(apiKey: apiKey),
         _restClient = GeminiRestClient(apiKey: apiKey);
 
@@ -48,46 +59,53 @@ class ChironRepositoryImpl implements ChironRepository {
   final WorkoutRepository _workoutRepo;
   final ExerciseRepository _exerciseRepo;
   final CycleRepository _cycleRepo;
+  final PromptBuilder _promptBuilder;
   final GeminiModelsLoader _modelsLoader;
 
   static const _maxMessagesPerMinute = 10;
   /// Max conversation turns (user+assistant pairs) sent to the API to save tokens.
   static const int _maxHistoryTurns = 12;
+  static final Random _random = Random();
   final _timestamps = <DateTime>[];
 
-  static const _systemPrompt = r'''Tu és o Quíron (Chiron), assistente de treino com IA no Athlos. Persona: centauro mentor, conciso e motivacional.
+  static const _systemPrompt = r'''You are Quiron (Chiron), the Athlos AI training assistant. Persona: mentor centaur, concise and motivational.
 
-Regras:
-- Respostas em português do Brasil. Foco em treino, exercícios, nutrição básica e recuperação. Sem conselhos médicos — recomendar profissional quando apropriado. Markdown quando útil.
+Rules:
+- Always answer in Brazilian Portuguese. Focus on training, exercises, basic nutrition, and recovery. No medical advice; recommend a professional when appropriate. Use Markdown when useful.
 
-Perfil em falta: Se gender, injuries, experienceLevel ou trainingFrequency estiverem vazios no contexto, pergunta de forma natural e usa as funções para guardar. Não interrogatório. Bio: enriquece ao longo da conversa com updateBio (concatenar, nunca apagar).
+Missing profile fields: if gender, injuries, experienceLevel, or trainingFrequency are missing in context, ask naturally and save with the available tools. Avoid interrogation style. Bio should be enriched over time with updateBio (append only, never erase).
 
-Gênero e treino: female — prioridade pernas/glúteos e volume proporcional; male — splits clássicos (push/pull/legs etc.). Estética (athletic/bulky/robust) adapta conforme gênero.
+Gender and training: for female profiles, prioritize legs/glutes and proportional volume; for male profiles, prioritize classic splits (push/pull/legs etc.). Adapt aesthetics (athletic/bulky/robust) according to gender.
 
-Equipamentos: Ao montar treino, usa só equipamentos registados. Se precisares de um não listado, pergunta "Tem [X]?"; se sim, registerEquipment e inclui; se não, sugere alternativa. Lesões: updateInjuries para acrescentar (concatenar "; ").
+Equipment: when building workouts, use only registered equipment. If a required item is missing, ask "Do you have [X]?"; if yes, call registerEquipment and include it; if no, suggest an alternative. For injuries use updateInjuries to append new info (concatenate with "; ").
 
-Progresso: Usa o histórico de execuções para sugerir troca de treino, progressões e descanso. Compara pesos/reps entre sessões.
+Progress: use execution history to suggest workout swaps, progression, and rest. Compare weights/reps across sessions.
 
-Treinos — nunca excluir: Não tens função para excluir treinos. Só podes criar (createWorkout) e arquivar (archiveWorkout). Para substituir um plano: cria o novo treino e depois arquiva o(s) antigo(s) com archiveWorkout(workoutId). O contexto lista treinos ativos com id=X; usa esse id ao arquivar.
+Workouts — never delete: there is no delete function. You can only create (createWorkout) and archive (archiveWorkout). To replace a plan, create the new workout and then archive old ones with archiveWorkout(workoutId). Context lists active workouts with id=X; use those ids to archive.
 
-Ciclo (rotina): Após criar novos treinos e arquivar os antigos, deves definir o ciclo com setCycle(steps). steps é uma lista ordenada: cada item é { type: "workout", workoutId: N } ou { type: "rest" }. Inclui só workoutIds de treinos ativos (os que acabaste de criar ou que ficaram). Exemplo: [ { type: "workout", workoutId: 5 }, { type: "rest" }, { type: "workout", workoutId: 6 } ]. Isto persiste a rotina e evita versões antigas ficarem ativas.
+Cycle (routine): after creating new workouts and archiving old ones, define cycle order with setCycle(steps). steps is an ordered list where each item is { type: "workout", workoutId: N } or { type: "rest" }. Include only active workoutIds (newly created or kept). Example: [ { type: "workout", workoutId: 5 }, { type: "rest" }, { type: "workout", workoutId: 6 } ]. This persists the routine and prevents outdated plans from staying active.
 
-Revisão final: Depois de aplicar todas as alterações (criar, arquivar, setCycle), chama getTrainingState(). Compara o retorno (activeWorkouts e cycleSteps) com o que pretendias. Se estiver correto, confirma ao utilizador que tudo foi aplicado. Se algo estiver diferente (ex.: treino antigo ainda ativo, ciclo desatualizado), informa o que falhou e sugere verificar no módulo Treino.
+Final review: after all changes (create, archive, setCycle), call getTrainingState(). Compare return values (activeWorkouts and cycleSteps) with intended result. If correct, confirm to the user. If anything differs (for example: an old workout still active, outdated cycle), report what failed and suggest checking the Training module.
 
-Tempo disponível: Se o contexto indicar "Tempo disponível por treino: X min", monta treinos que cabem nesse tempo (estimativa: séries × (reps ou duração) + descansos). Não sugiras treinos que excedam esse tempo.
+Available time: if context includes "Available workout time: X min", build workouts that fit this limit (estimate: sets x (reps or duration) + rest). Do not suggest workouts that exceed this time.
 
-Dois cenários:
-1) Utilizador sem treinos ativos: foca em montar o primeiro plano. createWorkout com name e exercises (exerciseName, sets, reps, restSeconds). Depois setCycle com o(s) treino(s) criado(s). Por fim getTrainingState e confirma ao utilizador.
-2) Utilizador com treinos ativos: analisa o plano atual, as sessões e progressões. Diz se faz sentido continuar, acrescentar, substituir ou modificar treino/ciclo. Se sugerires substituir: createWorkout para o novo, archiveWorkout para o(s) antigo(s), setCycle com a nova ordem (só treinos ativos + descansos), getTrainingState e revisa se está tudo certo.
+Two scenarios:
+1) User with no active workouts: focus on creating the first plan. Use createWorkout with name and exercises (exerciseName, sets, reps, restSeconds). Then call setCycle with the created workouts. Finally call getTrainingState and confirm.
+2) User with active workouts: analyze current plan, sessions, and progression. Explain whether it is better to keep, add, replace, or modify workout/cycle. If replacing, use createWorkout for the new plan, archiveWorkout for old ones, setCycle with the new order (only active workouts + rests), then getTrainingState for verification.
 
-Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após alterar treinos; getTrainingState no final para revisar. updateBio, updateInjuries, updateExperienceLevel, updateGender, updateTrainingFrequency quando tiveres informação concreta; agrupa se possível. registerEquipment/removeEquipment quando o utilizador confirmar.
+Function usage: use createWorkout and archiveWorkout as above; call setCycle after workout changes; call getTrainingState at the end for verification. Use updateBio, updateInjuries, updateExperienceLevel, updateGender, updateTrainingFrequency when you have concrete information; batch updates when possible. Use registerEquipment/removeEquipment when user confirms.
+
+Adaptive context: when you need long-term trend/evolution/comparison analysis and context appears too short, call requestExtendedHistory() before replying.
 ''';
+  static final RegExp _extendedContextPattern = RegExp(
+    chironExtendedContextRegexSeed.join('|'),
+    caseSensitive: false,
+  );
 
   @override
   Stream<String> sendMessage({
     required String userMessage,
     required List<ChironMessage> history,
-    required String userContext,
     ChironToolInvokedCallback? onToolInvoked,
   }) async* {
     _enforceRateLimit();
@@ -96,40 +114,87 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     final trimmedHistory = history.length > maxHistoryMessages
         ? history.sublist(history.length - maxHistoryMessages)
         : history;
+    final shouldStartExtended = _needsExtendedContext(userMessage);
+    final initialUserContext =
+        await _promptBuilder.build(extended: shouldStartExtended);
 
     final modelIds =
         await _modelsLoader.getModelIdsForChat() ?? _geminiModelIdsFallback;
+    final uniqueModelIds = modelIds.toSet().toList();
 
     Object? lastError;
-    for (final modelId in modelIds) {
-      try {
-        await for (final chunk in _sendWithGeminiModel(
-          modelId: modelId,
-          userMessage: userMessage,
-          history: trimmedHistory,
-          userContext: userContext,
-          onToolInvoked: onToolInvoked,
-        )) {
-          yield chunk;
+    for (final modelId in uniqueModelIds) {
+      for (var attempt = 0; attempt <= _geminiRetryBackoff.length; attempt++) {
+        try {
+          await for (final chunk in _sendWithGeminiModel(
+            modelId: modelId,
+            userMessage: userMessage,
+            history: trimmedHistory,
+            userContext: initialUserContext,
+            extendedAlreadyLoaded: shouldStartExtended,
+            onToolInvoked: onToolInvoked,
+          )) {
+            yield chunk;
+          }
+          return;
+        } catch (e) {
+          lastError = e;
+          final shouldRetryOnSameModel = _isRetryableError(e) &&
+              attempt < _geminiRetryBackoff.length;
+          if (shouldRetryOnSameModel) {
+            await Future<void>.delayed(
+              _withJitter(_geminiRetryBackoff[attempt]),
+            );
+            continue;
+          }
+          if (_isModelFallbackError(e)) {
+            break;
+          }
+          rethrow;
         }
-        return;
-      } catch (e) {
-        lastError = e;
-        if (!_isQuotaOrRateLimit(e)) rethrow;
       }
     }
     if (lastError != null) {
-      if (lastError is Exception) throw lastError;
-      throw Exception(lastError.toString());
+      // ignore: only_throw_errors
+      throw lastError;
     }
+  }
+
+  /// Returns true when we can switch to the next model.
+  static bool _isModelFallbackError(Object e) {
+    return _isQuotaOrRateLimit(e) || _isRetryableError(e);
   }
 
   /// Returns true if the exception indicates quota or rate limit (try next model).
   static bool _isQuotaOrRateLimit(Object e) {
+    if (e is GeminiApiException) return e.isQuotaOrRateLimit;
     final s = e.toString().toLowerCase();
     return s.contains('quota') ||
         s.contains('rate limit') ||
         s.contains('resource_exhausted');
+  }
+
+  /// Returns true for transient errors where retrying can succeed.
+  static bool _isRetryableError(Object e) {
+    if (e is GeminiApiException && e.isRetryable) return true;
+
+    final s = e.toString().toLowerCase();
+    return s.contains('high demand') ||
+        s.contains('temporar') ||
+        s.contains('timeout') ||
+        s.contains('socketexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('handshake') ||
+        s.contains('connection closed');
+  }
+
+  static Duration _withJitter(Duration baseDelay) {
+    final jitterMs = _random.nextInt(_geminiRetryJitterMaxMs + 1);
+    return baseDelay + Duration(milliseconds: jitterMs);
+  }
+
+  static bool _needsExtendedContext(String userMessage) {
+    return _extendedContextPattern.hasMatch(userMessage.toLowerCase());
   }
 
   /// Sends the message using a single Gemini model via REST (supports
@@ -139,9 +204,12 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     required String userMessage,
     required List<ChironMessage> history,
     required String userContext,
+    required bool extendedAlreadyLoaded,
     ChironToolInvokedCallback? onToolInvoked,
   }) async* {
-    final systemInstruction = '$_systemPrompt\n\n$userContext';
+    var currentUserContext = userContext;
+    var hasExtendedContext = extendedAlreadyLoaded;
+    var systemInstruction = '$_systemPrompt\n\n$currentUserContext';
     final toolDeclarations = getChironToolDeclarations();
 
     var contents = <Map<String, dynamic>>[];
@@ -162,7 +230,6 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     });
 
     var parse = GeminiResponseParse(text: '');
-    var createWorkoutSucceededThisTurn = false;
 
     while (true) {
       final responseJson = await _restClient.generateContent(
@@ -180,9 +247,24 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
 
       final nameToResponse = <MapEntry<String, Map<String, Object?>>>[];
       for (final call in parse.functionCalls) {
-        final result = await _handleFunctionCallByName(call.name, call.args);
-        if (call.name == 'createWorkout' && result['success'] == true) {
-          createWorkoutSucceededThisTurn = true;
+        late final Map<String, Object?> result;
+        if (call.name == 'requestExtendedHistory') {
+          if (hasExtendedContext) {
+            result = {
+              'success': true,
+              'message': 'Extended context was already loaded.',
+            };
+          } else {
+            currentUserContext = await _promptBuilder.build(extended: true);
+            systemInstruction = '$_systemPrompt\n\n$currentUserContext';
+            hasExtendedContext = true;
+            result = {
+              'success': true,
+              'message': 'Extended context loaded with additional workout history.',
+            };
+          }
+        } else {
+          result = await _handleFunctionCallByName(call.name, call.args);
         }
         nameToResponse.add(MapEntry(call.name, result));
         final success = result['success'] == true;
@@ -210,8 +292,6 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     final text = parse.text;
     if (text != null && text.isNotEmpty) {
       yield text;
-    } else if (createWorkoutSucceededThisTurn) {
-      yield 'Treino criado e salvo no seu perfil. Confira no módulo Treino.';
     }
   }
 
@@ -268,10 +348,10 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     List? exercisesList,
   ) async {
     if (name.trim().isEmpty) {
-      return {'success': false, 'error': 'Nome do treino é obrigatório'};
+      return {'success': false, 'error': 'Workout name is required'};
     }
     if (exercisesList == null || exercisesList.isEmpty) {
-      return {'success': false, 'error': 'O treino precisa de pelo menos um exercício'};
+      return {'success': false, 'error': 'Workout requires at least one exercise'};
     }
 
     final workoutExercises = <domain_we.WorkoutExercise>[];
@@ -295,15 +375,15 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
       if (!exResult.isSuccess) {
         return {
           'success': false,
-          'error': 'Erro ao buscar exercício "$exerciseName"',
+          'error': 'Failed to lookup exercise "$exerciseName"',
         };
       }
       final exercise = exResult.getOrThrow();
       if (exercise == null) {
         return {
           'success': false,
-          'error': 'Exercício não encontrado no catálogo: "$exerciseName". '
-              'Use o nome exato do exercício.',
+          'error': 'Exercise not found in catalog: "$exerciseName". '
+              'Use the exact exercise name.',
         };
       }
 
@@ -323,7 +403,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     }
 
     if (workoutExercises.isEmpty) {
-      return {'success': false, 'error': 'Nenhum exercício válido para criar o treino'};
+      return {'success': false, 'error': 'No valid exercises to create workout'};
     }
 
     final workout = domain_workout.Workout(
@@ -335,7 +415,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
 
     final result = await _workoutRepo.create(workout, workoutExercises);
     if (!result.isSuccess) {
-      return {'success': false, 'error': 'Falha ao salvar o treino'};
+      return {'success': false, 'error': 'Failed to save workout'};
     }
 
     final id = result.getOrThrow();
@@ -346,7 +426,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
         'workoutId': id,
         'workoutName': workout.name,
         'exerciseCount': workoutExercises.length,
-        'warning': 'Treino criado mas falha ao adicionar ao ciclo',
+        'warning': 'Workout created but failed to append into cycle',
       };
     }
     return {
@@ -359,18 +439,18 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
 
   Future<Map<String, Object?>> _handleArchiveWorkout(int? workoutId) async {
     if (workoutId == null || workoutId <= 0) {
-      return {'success': false, 'error': 'workoutId inválido'};
+      return {'success': false, 'error': 'Invalid workoutId'};
     }
     final result = await _workoutRepo.archive(workoutId);
     if (!result.isSuccess) {
-      return {'success': false, 'error': 'Falha ao arquivar o treino'};
+      return {'success': false, 'error': 'Failed to archive workout'};
     }
     final cycleResult = await _cycleRepo.removeWorkoutFromCycle(workoutId);
     if (!cycleResult.isSuccess) {
       return {
         'success': true,
         'workoutId': workoutId,
-        'warning': 'Treino arquivado mas falha ao remover do ciclo',
+        'warning': 'Workout archived but failed to remove from cycle',
       };
     }
     return {'success': true, 'workoutId': workoutId};
@@ -378,7 +458,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
 
   Future<Map<String, Object?>> _handleSetCycle(List? stepsList) async {
     if (stepsList == null || stepsList.isEmpty) {
-      return {'success': false, 'error': 'steps é obrigatório e não pode ser vazio'};
+      return {'success': false, 'error': 'steps is required and cannot be empty'};
     }
     final cycleSteps = <TrainingCycleStep>[];
     for (var i = 0; i < stepsList.length; i++) {
@@ -409,11 +489,14 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
       }
     }
     if (cycleSteps.isEmpty) {
-      return {'success': false, 'error': 'Nenhum passo válido (use type: workout com workoutId ou type: rest)'};
+      return {
+        'success': false,
+        'error': 'No valid steps (use type: workout with workoutId or type: rest)',
+      };
     }
     final result = await _cycleRepo.setSteps(cycleSteps);
     if (!result.isSuccess) {
-      return {'success': false, 'error': 'Falha ao guardar o ciclo'};
+      return {'success': false, 'error': 'Failed to persist cycle'};
     }
     return {
       'success': true,
@@ -424,12 +507,12 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
   Future<Map<String, Object?>> _handleGetTrainingState() async {
     final activeResult = await _workoutRepo.getActive();
     if (!activeResult.isSuccess) {
-      return {'success': false, 'error': 'Falha ao obter treinos ativos'};
+      return {'success': false, 'error': 'Failed to load active workouts'};
     }
     final active = activeResult.getOrThrow();
     final stepsResult = await _cycleRepo.getSteps();
     if (!stepsResult.isSuccess) {
-      return {'success': false, 'error': 'Falha ao obter o ciclo'};
+      return {'success': false, 'error': 'Failed to load cycle'};
     }
     final steps = stepsResult.getOrThrow();
     final activeById = {for (final w in active) w.id: w};
@@ -445,7 +528,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
         cycleSteps.add({
           'type': 'workout',
           'workoutId': s.workoutId,
-          'workoutName': w?.name ?? 'Treino #${s.workoutId}',
+          'workoutName': w?.name ?? 'Workout #${s.workoutId}',
         });
       }
     }
@@ -573,7 +656,7 @@ Uso de funções: createWorkout e archiveWorkout conforme acima; setCycle após 
     _timestamps.removeWhere((t) => now.difference(t).inMinutes >= 1);
 
     if (_timestamps.length >= _maxMessagesPerMinute) {
-      throw Exception('Rate limit exceeded');
+      throw const ValidationException('Rate limit exceeded');
     }
 
     _timestamps.add(now);
