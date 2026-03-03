@@ -1,7 +1,7 @@
 name: athlos_app
 description: "Workout and diet tracking app inspired by Greek mythology."
 publish_to: "none"
-version: 1.4.0+6
+version: 1.4.1+7
 
 environment:
   sdk: ^3.11.0
