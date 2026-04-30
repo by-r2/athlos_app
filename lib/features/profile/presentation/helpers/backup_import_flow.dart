@@ -33,7 +33,7 @@ Future<void> runBackupImportFlow({
       dev.log('[backup-ui] start file picker', name: loggerName);
     }
 
-    final fileResult = await FilePicker.platform.pickFiles(
+    final fileResult = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['json'],
       withData: true,
