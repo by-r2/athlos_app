@@ -400,7 +400,9 @@ class _FrequencyPill extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final target =
         profileAsync.value?.trainingFrequency ?? kDefaultTrainingFrequency;
-    final consistencyStreak = ref.watch(consistencyStreakProvider).value ?? 0;
+    final consistencyStatus = ref.watch(consistencyStatusProvider).value ??
+        const ConsistencyStatus(streakCount: 0, isCurrentWeekSecured: false);
+    final consistencyStreak = consistencyStatus.streakCount;
 
     final dotCount = thisWeek > target ? thisWeek : target;
 
@@ -462,7 +464,7 @@ class _FrequencyPill extends ConsumerWidget {
                   Icon(
                     Icons.local_fire_department,
                     size: 14,
-                    color: consistencyStreak > 0
+                    color: consistencyStatus.isCurrentWeekSecured
                         ? colorScheme.error
                         : colorScheme.onSurfaceVariant,
                   ),
@@ -470,7 +472,7 @@ class _FrequencyPill extends ConsumerWidget {
                   Text(
                     l10n.dashboardConsistencyStreak(consistencyStreak),
                     style: textTheme.bodySmall?.copyWith(
-                      color: consistencyStreak > 0
+                      color: consistencyStatus.isCurrentWeekSecured
                           ? colorScheme.onSurface
                           : colorScheme.onSurfaceVariant,
                     ),

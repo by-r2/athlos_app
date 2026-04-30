@@ -152,28 +152,54 @@ Future<int> thisWeekSessionCount(Ref ref) async {
 /// Default training frequency when the user hasn't set one.
 const kDefaultTrainingFrequency = 3;
 
-/// Consecutive weeks where the user completed at least
-/// [trainingFrequency] sessions (Mon–Sun), starting from the current
-/// week and walking backwards. The current week counts as soon as
-/// the target is reached.
+/// Weekly consistency status for the frequency streak card.
+class ConsistencyStatus {
+  final int streakCount;
+  final bool isCurrentWeekSecured;
+
+  const ConsistencyStatus({
+    required this.streakCount,
+    required this.isCurrentWeekSecured,
+  });
+}
+
+/// Consecutive secured weeks (Mon-Sun) where the user completed at least
+/// [trainingFrequency] sessions.
+///
+/// If the current week is not secured yet, the streak is anchored on the
+/// previous week so the historical streak persists while the current week is
+/// still in progress.
 @riverpod
-Future<int> consistencyStreak(Ref ref) async {
+Future<ConsistencyStatus> consistencyStatus(Ref ref) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final profile = await ref.watch(profileProvider.future);
   final target = profile?.trainingFrequency ?? kDefaultTrainingFrequency;
 
   final allResult = await execRepo.getAll();
-  if (!allResult.isSuccess) return 0;
+  if (!allResult.isSuccess) {
+    return const ConsistencyStatus(streakCount: 0, isCurrentWeekSecured: false);
+  }
   final all = allResult.getOrThrow();
   final finished = all.where((e) => e.finishedAt != null).toList();
-  if (finished.isEmpty) return 0;
+  if (finished.isEmpty) {
+    return const ConsistencyStatus(streakCount: 0, isCurrentWeekSecured: false);
+  }
 
   final now = DateTime.now();
   final thisMonday =
       DateTime(now.year, now.month, now.day - (now.weekday - 1));
 
+  final thisWeekEnd = thisMonday.add(const Duration(days: 7));
+  final thisWeekCount = finished
+      .where((e) =>
+          !e.startedAt.isBefore(thisMonday) && e.startedAt.isBefore(thisWeekEnd))
+      .length;
+  final isCurrentWeekSecured = thisWeekCount >= target;
+
   var streak = 0;
-  var weekStart = thisMonday;
+  var weekStart = isCurrentWeekSecured
+      ? thisMonday
+      : thisMonday.subtract(const Duration(days: 7));
 
   while (true) {
     final weekEnd = weekStart.add(const Duration(days: 7));
@@ -188,7 +214,17 @@ Future<int> consistencyStreak(Ref ref) async {
       break;
     }
   }
-  return streak;
+  return ConsistencyStatus(
+    streakCount: streak,
+    isCurrentWeekSecured: isCurrentWeekSecured,
+  );
+}
+
+/// Backward-compatible streak count for existing call sites.
+@riverpod
+Future<int> consistencyStreak(Ref ref) async {
+  final status = await ref.watch(consistencyStatusProvider.future);
+  return status.streakCount;
 }
 
 // ── Phase 10: Progress Visualization providers ──────────────────────
