@@ -8,6 +8,7 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_durations.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/body_aesthetic.dart';
@@ -1159,20 +1160,16 @@ class _GymInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Row(
+    return AthlosStackedActions(
+      spacing: AthlosSpacing.sm,
       children: [
-        Expanded(
-          child: FilledButton.tonal(
-            onPressed: () => state._onGymSelected(true),
-            child: Text(l10n.yes),
-          ),
+        OutlinedButton(
+          onPressed: () => state._onGymSelected(false),
+          child: Text(l10n.no),
         ),
-        const Gap(AthlosSpacing.sm),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () => state._onGymSelected(false),
-            child: Text(l10n.no),
-          ),
+        FilledButton.tonal(
+          onPressed: () => state._onGymSelected(true),
+          child: Text(l10n.yes),
         ),
       ],
     );
@@ -1233,21 +1230,17 @@ class _TextInputState extends State<_TextInput> {
           onSubmitted: widget.onSubmitted,
         ),
         const Gap(AthlosSpacing.sm),
-        Row(
+        AthlosStackedActions(
+          spacing: AthlosSpacing.sm,
           children: [
             if (widget.allowSkip)
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => widget.onSubmitted(''),
-                  child: Text(widget.skipLabel ?? 'Pular'),
-                ),
+              OutlinedButton(
+                onPressed: () => widget.onSubmitted(''),
+                child: Text(widget.skipLabel ?? 'Pular'),
               ),
-            if (widget.allowSkip) const Gap(AthlosSpacing.sm),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => widget.onSubmitted(_ctrl.text),
-                child: const Icon(Icons.send, size: 20),
-              ),
+            FilledButton(
+              onPressed: () => widget.onSubmitted(_ctrl.text),
+              child: const Icon(Icons.send, size: 20),
             ),
           ],
         ),

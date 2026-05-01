@@ -7,6 +7,7 @@ import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/conflict_center_provider.dart';
 import '../widgets/attribute_merge_dialog.dart';
@@ -396,14 +397,12 @@ class _VerifiedActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AthlosStackedActions(
       children: [
         OutlinedButton(
           onPressed: onNotDuplicate,
           child: Text(l10n.conflictCenterNotDuplicateAction),
         ),
-        const Gap(AthlosSpacing.xs),
         FilledButton(
           onPressed: onConfirmDuplicate,
           child: Text(l10n.conflictCenterConfirmDuplicateAction),
@@ -433,9 +432,9 @@ class _CustomActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OutlinedButton(
-          onPressed: onNotDuplicate,
-          child: Text(l10n.conflictCenterNotDuplicateAction),
+        FilledButton(
+          onPressed: onMergeAttributes,
+          child: Text(l10n.conflictCenterMergeAttributesAction),
         ),
         const Gap(AthlosSpacing.xs),
         Row(
@@ -456,9 +455,9 @@ class _CustomActions extends StatelessWidget {
           ],
         ),
         const Gap(AthlosSpacing.xs),
-        FilledButton(
-          onPressed: onMergeAttributes,
-          child: Text(l10n.conflictCenterMergeAttributesAction),
+        OutlinedButton(
+          onPressed: onNotDuplicate,
+          child: Text(l10n.conflictCenterNotDuplicateAction),
         ),
       ],
     );

@@ -394,15 +394,15 @@ class _ActionsSection extends ConsumerWidget {
             label: Text(l10n.archiveProgramAction),
           ),
         const Gap(AthlosSpacing.sm),
+        TextButton(
+          onPressed: () => context.go(RoutePaths.trainingPrograms),
+          child: Text(l10n.trainingViewArchivedPrograms),
+        ),
+        const Gap(AthlosSpacing.sm),
         OutlinedButton.icon(
           onPressed: () => _confirmDelete(context, ref),
           icon: const Icon(Icons.delete_outline),
           label: Text(l10n.programDeleteAction),
-        ),
-        const Gap(AthlosSpacing.sm),
-        TextButton(
-          onPressed: () => context.go(RoutePaths.trainingPrograms),
-          child: Text(l10n.trainingViewArchivedPrograms),
         ),
       ],
     );

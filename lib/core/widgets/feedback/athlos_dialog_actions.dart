@@ -3,32 +3,37 @@ import 'package:flutter/material.dart';
 import '../../theme/athlos_button_insets.dart';
 import '../../theme/athlos_button_sizes.dart';
 import '../../theme/athlos_spacing.dart';
+import '../layout/athlos_stacked_actions.dart';
 
 /// One action widget per row, full width — use under [AlertDialog.content].
 ///
-/// Order **top → bottom**: secondary / dismiss [TextButton] (ghost) first,
-/// [FilledButton] primary **last**. Ghost actions use neutral theme foreground
-/// (no error tint). Spacing between stacked rows matches [AthlosSpacing.xs];
-/// inset above the stack uses [AthlosSpacing.dialogBodyToActions] so body copy
-/// does not need extra [SizedBox] before this widget.
+/// By default (**[invertStackOrder] == true**) the vertical order is mirrored so
+/// a typical declarative `[ghost, filled]` list shows [FilledButton] **on top**
+/// and ghost **below**. Set [invertStackOrder] to false when every action is a
+/// peer (e.g. several [TextButton] choices whose order matters). Ghost actions
+/// use neutral theme foreground (no error tint). Spacing between stacked rows
+/// matches [AthlosSpacing.xs]; inset above the stack uses
+/// [AthlosSpacing.dialogBodyToActions] so body copy does not need extra
+/// [SizedBox] before this widget.
 final class AthlosStackedDialogActions extends StatelessWidget {
-  const AthlosStackedDialogActions({super.key, required this.children});
+  const AthlosStackedDialogActions({
+    super.key,
+    required this.children,
+    this.invertStackOrder = true,
+  });
 
   final List<Widget> children;
+
+  /// Mirrors [children] for layout so callers keep writing `[secondary, primary]`.
+  final bool invertStackOrder;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: AthlosSpacing.dialogBodyToActions),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const SizedBox(height: AthlosSpacing.xs),
-            children[i],
-          ],
-        ],
+      child: AthlosStackedActions(
+        invertStackOrder: invertStackOrder,
+        children: children,
       ),
     );
   }

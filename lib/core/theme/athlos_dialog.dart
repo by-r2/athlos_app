@@ -5,9 +5,10 @@ import 'athlos_button_sizes.dart';
 
 /// Athlos dialogs stack actions in [AlertDialog.content] via
 /// [AthlosStackedDialogActions] (`core/widgets/feedback/athlos_dialog_actions.dart`):
-/// **one row per button**, ghost (secondary/dismiss) on **top**, [FilledButton] primary on
-/// **bottom**. Prefer [AthlosDialogButtonStyles.stackedGhost] /
-/// [AthlosDialogButtonStyles.stackedFilled] for full-width minimum height.
+/// **one row per button**; default stack mirrors order so [FilledButton] primary
+/// is **on top** when declared after ghost. Prefer
+/// [AthlosDialogButtonStyles.stackedGhost] / [AthlosDialogButtonStyles.stackedFilled]
+/// for full-width minimum height.
 /// Inset above the buttons uses [AthlosSpacing.dialogBodyToActions].
 ///
 /// Applies [AthlosButtonInsets.dialog] and tighter [AthlosButtonSizes.dialogMinHeight].

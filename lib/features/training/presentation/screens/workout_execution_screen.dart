@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_button_insets.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
@@ -685,51 +686,59 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (next != null) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton.icon(
-                        onPressed:
-                            exec.hasCompletedSets && !exec.isFinishing
-                                ? () =>
-                                    _showFinishWorkoutIncompleteDialog(context)
-                                : null,
-                        style: TextButton.styleFrom(
-                          padding: AthlosButtonInsets.screen,
-                          minimumSize: const Size(
-                            AthlosButtonSizes.minWidth,
-                            AthlosButtonSizes.screenMinHeight,
+                    AthlosStackedActions(
+                      spacing: AthlosSpacing.sm,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed:
+                                exec.hasCompletedSets && !exec.isFinishing
+                                    ? () => _showFinishWorkoutIncompleteDialog(
+                                          context,
+                                        )
+                                    : null,
+                            style: TextButton.styleFrom(
+                              padding: AthlosButtonInsets.screen,
+                              minimumSize: const Size(
+                                AthlosButtonSizes.minWidth,
+                                AthlosButtonSizes.screenMinHeight,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.padded,
+                            ).merge(
+                              Theme.of(context).textButtonTheme.style ??
+                                  const ButtonStyle(),
+                            ),
+                            icon: exec.isFinishing
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colorScheme.primary,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: Text(l10n.finishWorkout),
                           ),
-                          tapTargetSize: MaterialTapTargetSize.padded,
-                        ).merge(
-                          Theme.of(context).textButtonTheme.style ??
-                              const ButtonStyle(),
                         ),
-                        icon: exec.isFinishing
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: colorScheme.primary,
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () =>
+                                _goToFocused(exec, next.$1, next.$2),
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(
+                              l10n.nextSetButton(
+                                _exerciseName(
+                                  exec.exercises[next.$1].exerciseId,
                                 ),
-                              )
-                            : const Icon(Icons.check),
-                        label: Text(l10n.finishWorkout),
-                      ),
-                    ),
-                    const SizedBox(height: AthlosSpacing.sm),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _goToFocused(exec, next.$1, next.$2),
-                        icon: const Icon(Icons.play_arrow),
-                        label: Text(
-                          l10n.nextSetButton(
-                            _exerciseName(exec.exercises[next.$1].exerciseId),
-                            next.$2,
+                                next.$2,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ] else
                     SizedBox(
@@ -1359,8 +1368,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: AthlosStackedActions(
+                spacing: AthlosSpacing.sm,
                 children: [
                   OutlinedButton(
                     onPressed: () {
@@ -1368,7 +1377,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     },
                     child: Text(l10n.addTimeButton),
                   ),
-                  const SizedBox(width: AthlosSpacing.lg),
                   FilledButton(
                     onPressed: () {
                       ref.read(restTimerProvider.notifier).skip();
