@@ -6,9 +6,10 @@ import '../theme/athlos_durations.dart';
 
 /// Shared [CustomTransitionPage] helpers for go_router routes.
 abstract final class AthlosRouterPages {
-  /// Material Motion **fade-through** for peer swaps (e.g. training bottom-nav
-  /// roots): outgoing fades out, incoming fades in with a slight scale-in.
-  static CustomTransitionPage<void> fadeThroughBottomNavPeers(
+  /// Material Motion **fade-through**: outgoing fades out, incoming fades in with
+  /// a subtle scale emphasis. Used consistently for horizontal navigation here
+  /// instead of OS default slides.
+  static CustomTransitionPage<void> fadeThrough(
     GoRouterState state,
     Widget child,
   ) {

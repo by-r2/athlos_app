@@ -20,8 +20,8 @@ import 'workout_catalog_screen.dart';
 
 /// Training module shell with bottom navigation bar.
 ///
-/// 3 tabs: Home, Workouts, History — Material Motion fade-through between tab
-/// roots. Sub-pages keep default [MaterialPage] stack transitions.
+/// 3 tabs: Home, Workouts, History plus nested training routes share the same
+/// Material Motion fade-through ([AthlosRouterPages.fadeThrough]), not slide.
 /// Sub-pages: Exercises, Equipment, Programs, ProgramDetail, ProgramForm.
 ShellRoute trainingShellRoute() {
   return ShellRoute(
@@ -40,60 +40,78 @@ ShellRoute trainingShellRoute() {
       ),
       GoRoute(
         path: RoutePaths.trainingHome,
-        pageBuilder: (context, state) =>
-            AthlosRouterPages.fadeThroughBottomNavPeers(
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
               state,
               const _TrainingRootTabBackGuard(child: TrainingHomeScreen()),
             ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkouts,
-        pageBuilder: (context, state) =>
-            AthlosRouterPages.fadeThroughBottomNavPeers(
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
               state,
               const _TrainingRootTabBackGuard(child: TrainingWorkoutsScreen()),
             ),
       ),
       GoRoute(
         path: RoutePaths.trainingHistory,
-        pageBuilder: (context, state) =>
-            AthlosRouterPages.fadeThroughBottomNavPeers(
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
               state,
               const _TrainingRootTabBackGuard(child: TrainingHistoryScreen()),
             ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkoutCatalog,
-        builder: (context, state) => const WorkoutCatalogScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const WorkoutCatalogScreen(),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingExercises,
-        builder: (context, state) => const TrainingExercisesScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const TrainingExercisesScreen(),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingEquipment,
-        builder: (context, state) => const EquipmentScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const EquipmentScreen(),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingPrograms,
-        builder: (context, state) => const ProgramListScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const ProgramListScreen(),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingProgramNew,
-        builder: (context, state) => const ProgramFormScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const ProgramFormScreen(),
+        ),
       ),
       GoRoute(
         path: '${RoutePaths.trainingPrograms}/:programId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final programId = int.parse(state.pathParameters['programId']!);
-          return ProgramDetailScreen(programId: programId);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ProgramDetailScreen(programId: programId),
+          );
         },
       ),
       GoRoute(
         path: '${RoutePaths.trainingPrograms}/:programId/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final programId = int.parse(state.pathParameters['programId']!);
-          return ProgramFormScreen(programId: programId);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ProgramFormScreen(programId: programId),
+          );
         },
       ),
     ],

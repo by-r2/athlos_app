@@ -19,6 +19,7 @@ import '../../features/training/presentation/screens/workout_execution_screen.da
 import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import 'athlos_router_pages.dart';
 import 'route_paths.dart';
 
 part 'app_router.g.dart';
@@ -66,29 +67,36 @@ GoRouter appRouter(Ref ref) {
       // Splash — shown while async state resolves
       GoRoute(
         path: RoutePaths.splash,
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const SplashScreen(),
+        ),
       ),
 
       // Hub (Olympus) — main entry point
       GoRoute(
         path: RoutePaths.hub,
-        builder: (context, state) => const HubScreen(),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const HubScreen()),
       ),
 
       // Profile setup (first launch)
       GoRoute(
         path: RoutePaths.profileSetup,
-        builder: (context, state) => const ProfileSetupScreen(),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const ProfileSetupScreen()),
       ),
 
       // Profile view/edit
       GoRoute(
         path: RoutePaths.profile,
-        builder: (context, state) => const ProfileScreen(),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const ProfileScreen()),
       ),
       GoRoute(
         path: RoutePaths.profileConflicts,
-        builder: (context, state) => const ConflictCenterScreen(),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const ConflictCenterScreen()),
       ),
 
       // Training module — shell with bottom navigation
@@ -97,72 +105,102 @@ GoRouter appRouter(Ref ref) {
       // Exercise detail (pushed on top of training shell)
       GoRoute(
         path: '${RoutePaths.trainingExercises}/:exerciseId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['exerciseId']!);
-          return ExerciseDetailScreen(exerciseId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ExerciseDetailScreen(exerciseId: id),
+          );
         },
       ),
 
       // Equipment detail (pushed on top of training shell)
       GoRoute(
         path: '${RoutePaths.trainingEquipment}/:equipmentId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['equipmentId']!);
-          return EquipmentDetailScreen(equipmentId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            EquipmentDetailScreen(equipmentId: id),
+          );
         },
       ),
 
       // Workout routes (pushed on top of training shell)
       GoRoute(
         path: RoutePaths.trainingWorkoutNew,
-        builder: (context, state) => const WorkoutFormScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const WorkoutFormScreen(),
+        ),
       ),
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['workoutId']!);
-          return WorkoutDetailScreen(workoutId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            WorkoutDetailScreen(workoutId: id),
+          );
         },
       ),
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['workoutId']!);
-          return WorkoutFormScreen(workoutId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            WorkoutFormScreen(workoutId: id),
+          );
         },
       ),
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId/execute',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['workoutId']!);
-          return WorkoutExecutionScreen(workoutId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            WorkoutExecutionScreen(workoutId: id),
+          );
         },
       ),
 
       // Execution detail (history)
       GoRoute(
         path: '${RoutePaths.trainingHistory}/:executionId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['executionId']!);
-          return ExecutionDetailScreen(executionId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ExecutionDetailScreen(executionId: id),
+          );
         },
       ),
 
       // Progress visualization (Phase 10)
       GoRoute(
         path: '${RoutePaths.trainingExercises}/:exerciseId/load-chart',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = int.parse(state.pathParameters['exerciseId']!);
-          return ExerciseLoadChartScreen(exerciseId: id);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ExerciseLoadChartScreen(exerciseId: id),
+          );
         },
       ),
       GoRoute(
         path: RoutePaths.trainingPRHistory,
-        builder: (context, state) => const PRHistoryScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const PRHistoryScreen(),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingVolumeTrend,
-        builder: (context, state) => const VolumeTrendChartScreen(),
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const VolumeTrendChartScreen(),
+        ),
       ),
     ],
   );
