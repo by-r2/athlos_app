@@ -14,7 +14,7 @@ abstract class AthlosSpacing {
 
   /// Space between explanatory body widgets and [AthlosStackedDialogActions]
   /// ([AlertDialog.content] layouts).
-  static const double dialogBodyToActions = sm;
+  static const double dialogBodyToActions = xs;
 
   /// Bottom padding to clear floating action buttons.
   static const double fabClearance = 80;

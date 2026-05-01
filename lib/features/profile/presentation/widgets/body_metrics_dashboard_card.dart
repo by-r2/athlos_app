@@ -67,9 +67,19 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               ),
             ),
             const Gap(AthlosSpacing.smd),
-            FilledButton.tonal(
-              onPressed: () => _showRecordDialog(context, ref),
-              child: Text(l10n.bodyMetricsRecordWeight),
+            AthlosDialogButtonTheme.wrap(
+              context,
+              Builder(
+                builder: (innerCtx) => SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style:
+                        AthlosDialogButtonStyles.stackedFilled(innerCtx),
+                    onPressed: () => _showRecordDialog(context, ref),
+                    child: Text(l10n.bodyMetricsRecordWeight),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -151,18 +161,27 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               ),
             ],
             const Gap(AthlosSpacing.smd),
-            Row(
-              children: [
-                FilledButton.tonal(
-                  onPressed: () => _showRecordDialog(context, ref),
-                  child: Text(l10n.bodyMetricsRecordWeight),
+            AthlosDialogButtonTheme.wrap(
+              context,
+              Builder(
+                builder: (innerCtx) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextButton(
+                      style: AthlosDialogButtonStyles.stackedGhost(innerCtx),
+                      onPressed: () => _showHistory(context, ref),
+                      child: Text(l10n.bodyMetricsHistory),
+                    ),
+                    const SizedBox(height: AthlosSpacing.xs),
+                    FilledButton(
+                      style:
+                          AthlosDialogButtonStyles.stackedFilled(innerCtx),
+                      onPressed: () => _showRecordDialog(context, ref),
+                      child: Text(l10n.bodyMetricsRecordWeight),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => _showHistory(context, ref),
-                  child: Text(l10n.bodyMetricsHistory),
-                ),
-              ],
+              ),
             ),
           ],
         ),

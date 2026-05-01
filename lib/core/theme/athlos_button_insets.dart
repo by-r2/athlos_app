@@ -6,13 +6,13 @@ import 'athlos_spacing.dart';
 /// etc. outside modal dialogs ([AthlosTheme]).
 abstract final class AthlosButtonInsets {
   static const EdgeInsets screen = EdgeInsets.symmetric(
-    horizontal: AthlosSpacing.md,
+    horizontal: AthlosSpacing.xl,
     vertical: AthlosSpacing.md,
   );
 
   /// Tighter padding for buttons shown inside dialogs ([showAthlosDialog]).
   static const EdgeInsets dialog = EdgeInsets.symmetric(
     horizontal: AthlosSpacing.sm,
-    vertical: AthlosSpacing.xs,
+    vertical: AthlosSpacing.sm,
   );
 }

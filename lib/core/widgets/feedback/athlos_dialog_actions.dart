@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/athlos_button_insets.dart';
 import '../../theme/athlos_button_sizes.dart';
 import '../../theme/athlos_spacing.dart';
 
@@ -7,7 +8,7 @@ import '../../theme/athlos_spacing.dart';
 ///
 /// Order **top → bottom**: secondary / dismiss [TextButton] (ghost) first,
 /// [FilledButton] primary **last**. Ghost actions use neutral theme foreground
-/// (no error tint). Spacing between rows matches [AthlosSpacing.sm];
+/// (no error tint). Spacing between stacked rows matches [AthlosSpacing.xs];
 /// inset above the stack uses [AthlosSpacing.dialogBodyToActions] so body copy
 /// does not need extra [SizedBox] before this widget.
 final class AthlosStackedDialogActions extends StatelessWidget {
@@ -24,7 +25,7 @@ final class AthlosStackedDialogActions extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) const SizedBox(height: AthlosSpacing.sm),
+            if (i > 0) const SizedBox(height: AthlosSpacing.xs),
             children[i],
           ],
         ],
@@ -42,19 +43,31 @@ abstract final class AthlosDialogButtonStyles {
     Size(double.infinity, AthlosButtonSizes.dialogMinHeight),
   );
 
+  static const WidgetStatePropertyAll<EdgeInsetsGeometry> _dialogPadding =
+      WidgetStatePropertyAll<EdgeInsetsGeometry>(AthlosButtonInsets.dialog);
+
+  /// Prefer [copyWith] over [merge]: [merge] preserves the base style's fields
+  /// when non-null, so dialog theme defaults (e.g. [minimumSize] width 64)
+  /// would block full-width stacking and fixes from [AthlosDialogButtonTheme].
+  ///
+  /// Always set [ButtonStyle.padding] to [AthlosButtonInsets.dialog] here: the
+  /// button resolver reads [widget.style.padding] first; if it were null, the
+  /// icon button path would fall through to M3 default padding and changing
+  /// [AthlosButtonInsets.dialog] alone would appear to have no effect.
   static ButtonStyle stackedGhost(BuildContext context) =>
-      (Theme.of(context).textButtonTheme.style ?? const ButtonStyle()).merge(
-        const ButtonStyle(
-          alignment: Alignment.center,
-          minimumSize: _stackedMinSize,
-        ),
+      (Theme.of(context).textButtonTheme.style ?? const ButtonStyle()).copyWith(
+        alignment: Alignment.center,
+        minimumSize: _stackedMinSize,
+        padding: _dialogPadding,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       );
 
   static ButtonStyle stackedFilled(BuildContext context) =>
-      (Theme.of(context).filledButtonTheme.style ?? const ButtonStyle()).merge(
-        const ButtonStyle(
-          alignment: Alignment.center,
-          minimumSize: _stackedMinSize,
-        ),
+      (Theme.of(context).filledButtonTheme.style ?? const ButtonStyle())
+          .copyWith(
+        alignment: Alignment.center,
+        minimumSize: _stackedMinSize,
+        padding: _dialogPadding,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       );
 }

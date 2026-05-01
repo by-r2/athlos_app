@@ -60,6 +60,18 @@ class AthlosTheme {
               AthlosButtonSizes.screenMinHeight,
             ),
             tapTargetSize: MaterialTapTargetSize.padded,
+          ).copyWith(
+            side: WidgetStateProperty.resolveWith<BorderSide>(
+              (Set<WidgetState> states) {
+                final Color borderColor;
+                if (states.contains(WidgetState.disabled)) {
+                  borderColor = colorScheme.onSurface.withValues(alpha: 0.38);
+                } else {
+                  borderColor = colorScheme.primary;
+                }
+                return BorderSide(color: borderColor);
+              },
+            ),
           ),
         ),
         textButtonTheme: TextButtonThemeData(

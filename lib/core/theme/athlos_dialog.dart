@@ -10,8 +10,11 @@ import 'athlos_button_sizes.dart';
 /// [AthlosDialogButtonStyles.stackedFilled] for full-width minimum height.
 /// Inset above the buttons uses [AthlosSpacing.dialogBodyToActions].
 ///
-/// Applies [AthlosButtonInsets.dialog] and tighter [AthlosButtonSizes.dialogMinHeight]
-/// while keeping [MaterialTapTargetSize.padded] for touch targets.
+/// Applies [AthlosButtonInsets.dialog] and tighter [AthlosButtonSizes.dialogMinHeight].
+///
+/// Uses [MaterialTapTargetSize.shrinkWrap] so layout height can go below
+/// [kMinInteractiveDimension]: [MaterialTapTargetSize.padded] would wrap buttons
+/// in extra padding and visually lock rows to 48 dp regardless of [minimumSize].
 final class AthlosDialogButtonTheme {
   AthlosDialogButtonTheme._();
 
@@ -33,10 +36,14 @@ final class AthlosDialogButtonTheme {
         (style ?? const ButtonStyle()).copyWith(
           padding: pad,
           minimumSize: minSz,
-          tapTargetSize: MaterialTapTargetSize.padded,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         );
 
     return base.copyWith(
+      // Ensures M3 defaults (e.g. [TextButton.defaults] reading
+      // [ThemeData.materialTapTargetSize]) resolve to shrinkWrap when a style
+      // omits [ButtonStyle.tapTargetSize].
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       filledButtonTheme: FilledButtonThemeData(
         style: merge(base.filledButtonTheme.style),
       ),
