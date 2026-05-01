@@ -12,7 +12,7 @@ import 'athlos_button_sizes.dart';
 /// actions region; separation from [AlertDialog.content] is from Material layout
 /// ([AthlosTheme]).
 ///
-/// Applies [AthlosButtonInsets.dialog] and tighter [AthlosButtonSizes.dialogMinHeight].
+/// Applies [AthlosButtonInsets.screen] and tighter [AthlosButtonSizes.dialogMinHeight].
 ///
 /// Uses [MaterialTapTargetSize.shrinkWrap] so layout height can go below
 /// [kMinInteractiveDimension]: [MaterialTapTargetSize.padded] would wrap buttons
@@ -29,7 +29,7 @@ final class AthlosDialogButtonTheme {
 
   static ThemeData _withDialogButtonInsets(ThemeData base) {
     const pad = WidgetStatePropertyAll<EdgeInsetsGeometry>(
-      AthlosButtonInsets.dialog,
+      AthlosButtonInsets.screen,
     );
     const minSz = WidgetStatePropertyAll<Size>(
       Size(AthlosButtonSizes.minWidth, AthlosButtonSizes.dialogMinHeight),
@@ -62,7 +62,8 @@ final class AthlosDialogButtonTheme {
   }
 }
 
-/// Like [showDialog], but action buttons use [AthlosButtonInsets.dialog].
+/// Like [showDialog], but merges dialog-scoped button theme (same insets as
+/// [AthlosButtonInsets.screen], tighter [AthlosButtonSizes.dialogMinHeight]).
 Future<T?> showAthlosDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,

@@ -10,8 +10,8 @@ import 'athlos_spacing.dart';
 /// [MaterialTapTargetSize.shrinkWrap] so that size is not overridden by the
 /// padded 48 dp wrapper used elsewhere in the app ([AthlosTheme]).
 ///
-/// Dialog layout height stays below 48 dp visually; pairing with
-/// [AthlosButtonInsets.dialog] keeps stacked actions compact.
+/// Dialog layout height stays below 48 dp visually; padding matches
+/// [AthlosButtonInsets.screen] via [AthlosDialogButtonTheme].
 abstract final class AthlosButtonSizes {
   /// Typical minimum width for compact M3 buttons.
   static const double minWidth = AthlosSpacing.xxl + AthlosSpacing.md;

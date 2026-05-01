@@ -44,22 +44,22 @@ abstract final class AthlosDialogButtonStyles {
     Size(double.infinity, AthlosButtonSizes.dialogMinHeight),
   );
 
-  static const WidgetStatePropertyAll<EdgeInsetsGeometry> _dialogPadding =
-      WidgetStatePropertyAll<EdgeInsetsGeometry>(AthlosButtonInsets.dialog);
+  static const WidgetStatePropertyAll<EdgeInsetsGeometry> _padding =
+      WidgetStatePropertyAll<EdgeInsetsGeometry>(AthlosButtonInsets.screen);
 
   /// Prefer [copyWith] over [merge]: [merge] preserves the base style's fields
   /// when non-null, so dialog theme defaults (e.g. [minimumSize] width 64)
   /// would block full-width stacking and fixes from [AthlosDialogButtonTheme].
   ///
-  /// Always set [ButtonStyle.padding] to [AthlosButtonInsets.dialog] here: the
+  /// Always set [ButtonStyle.padding] to [AthlosButtonInsets.screen] here: the
   /// button resolver reads [widget.style.padding] first; if it were null, the
   /// icon button path would fall through to M3 default padding and changing
-  /// [AthlosButtonInsets.dialog] alone would appear to have no effect.
+  /// [AthlosButtonInsets.screen] alone would appear to have no effect.
   static ButtonStyle stackedGhost(BuildContext context) =>
       (Theme.of(context).textButtonTheme.style ?? const ButtonStyle()).copyWith(
         alignment: Alignment.center,
         minimumSize: _stackedMinSize,
-        padding: _dialogPadding,
+        padding: _padding,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       );
 
@@ -68,7 +68,7 @@ abstract final class AthlosDialogButtonStyles {
           .copyWith(
         alignment: Alignment.center,
         minimumSize: _stackedMinSize,
-        padding: _dialogPadding,
+        padding: _padding,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       );
 }
