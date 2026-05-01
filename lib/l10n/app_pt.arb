@@ -949,7 +949,7 @@
   "@trainingCycleTitle": { "description": "Cycle edit screen title" },
   "trainingCycleAddStep": "Adicionar treino",
   "@trainingCycleAddStep": { "description": "Add workout to cycle" },
-  "trainingCycleAddWorkout": "Treino",
+  "trainingCycleAddWorkout": "Adicionar treino",
   "@trainingCycleAddWorkout": { "description": "Add workout to cycle" },
   "trainingCycleEmptyHint": "O ciclo está vazio. A ordem dos treinos usa a ordem da lista na aba Treinos. Adicione treinos para definir a rotação.",
   "@trainingCycleEmptyHint": { "description": "Hint when cycle has no steps" },

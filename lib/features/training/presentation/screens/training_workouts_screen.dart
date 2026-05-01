@@ -279,11 +279,10 @@ class _ActiveProgramCycleViewState
                   ),
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: () =>
                           _showAddWorkoutPicker(context, workouts, ids),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(l10n.trainingCycleAddWorkout),
+                      child: Text(l10n.trainingCycleAddWorkout),
                     ),
                   ),
                 );

@@ -111,18 +111,22 @@ class _TrainingShell extends ConsumerWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (isSubPage) {
-          context.go(subPageBackTarget);
-          return;
-        }
-        context.go(RoutePaths.hub);
+        _TrainingShell._handleBackNavigation(
+          context,
+          isSubPage: isSubPage,
+          subPageBackTarget: subPageBackTarget,
+        );
       },
       child: Scaffold(
         appBar: AppBar(
           leading: isSubPage
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: () => context.go(subPageBackTarget),
+                  onPressed: () => _TrainingShell._handleBackNavigation(
+                    context,
+                    isSubPage: isSubPage,
+                    subPageBackTarget: subPageBackTarget,
+                  ),
                 )
               : null,
           automaticallyImplyLeading: false,
@@ -184,6 +188,22 @@ class _TrainingShell extends ConsumerWidget {
     RoutePaths.trainingWorkouts,
     RoutePaths.trainingHistory,
   };
+
+  static void _handleBackNavigation(
+    BuildContext context, {
+    required bool isSubPage,
+    required String subPageBackTarget,
+  }) {
+    if (isSubPage) {
+      if (context.canPop()) {
+        context.pop();
+        return;
+      }
+      context.go(subPageBackTarget);
+      return;
+    }
+    context.go(RoutePaths.hub);
+  }
 
   bool _isSubPage(String path) => !_primaryPaths.contains(path);
 

@@ -37,17 +37,48 @@ class ProgramDetailScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(AthlosSpacing.md),
+    final l10n = AppLocalizations.of(context)!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ProgramHeader(program: program),
-        const Gap(AthlosSpacing.lg),
-        _ProgressionSection(programId: programId),
-        const Gap(AthlosSpacing.lg),
-        _DeloadSection(program: program),
-        const Gap(AthlosSpacing.lg),
-        _ActionsSection(program: program),
-        const Gap(AthlosSpacing.fabClearance),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+            ),
+            children: [
+              _ProgramHeader(program: program),
+              const Gap(AthlosSpacing.lg),
+              _ProgressionSection(programId: programId),
+              const Gap(AthlosSpacing.lg),
+              _DeloadSection(program: program),
+              const Gap(AthlosSpacing.lg),
+              _ActionsSection(program: program),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            AthlosSpacing.xs,
+            AthlosSpacing.md,
+            AthlosSpacing.xs,
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => context.push(RoutePaths.trainingPrograms),
+                child: Text(l10n.trainingViewArchivedPrograms),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -361,7 +392,7 @@ class _ActionsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        OutlinedButton.icon(
+        FilledButton.icon(
           onPressed: () =>
               context.push(RoutePaths.trainingProgramEdit(program.id)),
           icon: const Icon(Icons.edit_outlined),
@@ -386,20 +417,17 @@ class _ActionsSection extends ConsumerWidget {
             icon: const Icon(Icons.spa),
             label: Text(l10n.deloadAccept),
           ),
-        const Gap(AthlosSpacing.sm),
+        if (program.isInDeload || (!program.isInDeload && program.deloadConfig != null))
+          const Gap(AthlosSpacing.sm),
         if (program.isActive && !program.isInDeload)
           OutlinedButton.icon(
             onPressed: () => _confirmArchive(context, ref),
             icon: const Icon(Icons.archive_outlined),
             label: Text(l10n.archiveProgramAction),
           ),
-        const Gap(AthlosSpacing.sm),
-        TextButton(
-          onPressed: () => context.go(RoutePaths.trainingPrograms),
-          child: Text(l10n.trainingViewArchivedPrograms),
-        ),
-        const Gap(AthlosSpacing.sm),
-        OutlinedButton.icon(
+        if (program.isActive && !program.isInDeload)
+          const Gap(AthlosSpacing.sm),
+        TextButton.icon(
           onPressed: () => _confirmDelete(context, ref),
           icon: const Icon(Icons.delete_outline),
           label: Text(l10n.programDeleteAction),
