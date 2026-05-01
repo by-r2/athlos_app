@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/athlos_router_pages.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -19,7 +20,8 @@ import 'workout_catalog_screen.dart';
 
 /// Training module shell with bottom navigation bar.
 ///
-/// 3 tabs: Home, Workouts, History.
+/// 3 tabs: Home, Workouts, History — Material Motion fade-through between tab
+/// roots. Sub-pages keep default [MaterialPage] stack transitions.
 /// Sub-pages: Exercises, Equipment, Programs, ProgramDetail, ProgramForm.
 ShellRoute trainingShellRoute() {
   return ShellRoute(
@@ -38,21 +40,27 @@ ShellRoute trainingShellRoute() {
       ),
       GoRoute(
         path: RoutePaths.trainingHome,
-        builder: (context, state) => const _TrainingRootTabBackGuard(
-          child: TrainingHomeScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThroughBottomNavPeers(
+              state,
+              const _TrainingRootTabBackGuard(child: TrainingHomeScreen()),
+            ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkouts,
-        builder: (context, state) => const _TrainingRootTabBackGuard(
-          child: TrainingWorkoutsScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThroughBottomNavPeers(
+              state,
+              const _TrainingRootTabBackGuard(child: TrainingWorkoutsScreen()),
+            ),
       ),
       GoRoute(
         path: RoutePaths.trainingHistory,
-        builder: (context, state) => const _TrainingRootTabBackGuard(
-          child: TrainingHistoryScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThroughBottomNavPeers(
+              state,
+              const _TrainingRootTabBackGuard(child: TrainingHistoryScreen()),
+            ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkoutCatalog,
