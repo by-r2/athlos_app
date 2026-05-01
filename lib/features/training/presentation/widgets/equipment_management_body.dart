@@ -346,40 +346,42 @@ class _EquipmentManagementBodyState extends ConsumerState<EquipmentManagementBod
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.deleteEquipmentMessage(equipment.name)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style:
-                      AthlosDialogButtonStyles.stackedGhost(dialogContext),
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop();
-                    try {
-                      await ref
-                          .read(equipmentListProvider.notifier)
-                          .deleteEquipment(equipment.id);
-                      ref.invalidate(userEquipmentIdsProvider);
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.genericError),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.delete),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(l10n.cancel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style:
+                    AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  try {
+                    await ref
+                        .read(equipmentListProvider.notifier)
+                        .deleteEquipment(equipment.id);
+                    ref.invalidate(userEquipmentIdsProvider);
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              AppLocalizations.of(context)!.genericError),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.delete),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.cancel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -581,22 +583,24 @@ class _EditEquipmentDialogState extends ConsumerState<_EditEquipmentDialog> {
               ),
             ],
           ),
-          AthlosStackedDialogActions(
-            children: [
-              TextButton(
-                style: AthlosDialogButtonStyles.stackedGhost(context),
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                style: AthlosDialogButtonStyles.stackedFilled(context),
-                onPressed: _onSave,
-                child: Text(l10n.save),
-              ),
-            ],
-          ),
         ],
       ),
+      actions: [
+        AthlosStackedDialogActions(
+          children: [
+            TextButton(
+              style: AthlosDialogButtonStyles.stackedGhost(context),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              style: AthlosDialogButtonStyles.stackedFilled(context),
+              onPressed: _onSave,
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

@@ -109,22 +109,24 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.danglingExecutionMessage(workoutName)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.danglingExecutionDiscard),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.danglingExecutionResume),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.danglingExecutionDiscard),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.danglingExecutionResume),
+              ),
+            ],
+          ),
+        ],
       ),
     );
 

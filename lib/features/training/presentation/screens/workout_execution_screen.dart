@@ -2714,22 +2714,24 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.deloadPromptMessage(config.frequency ?? 0)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.deloadSkip),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.deloadAccept),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.deloadSkip),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.deloadAccept),
+              ),
+            ],
+          ),
+        ],
       ),
     );
 
@@ -2760,22 +2762,24 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.programCompletedMessage(program.name)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.pop(ctx, 'archive'),
-                  child: Text(l10n.programCompletedArchive),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx, 'continue'),
-                  child: Text(l10n.programCompletedContinue),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx, 'archive'),
+                child: Text(l10n.programCompletedArchive),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx, 'continue'),
+                child: Text(l10n.programCompletedContinue),
+              ),
+            ],
+          ),
+        ],
       ),
     );
 
@@ -2800,41 +2804,43 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.cancelExecutionMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await ref
-                          .read(activeExecutionProvider.notifier)
-                          .cancelExecution();
-                      ref.read(restTimerProvider.notifier).reset();
-                      ref.read(cardioTimerProvider.notifier).reset();
-                      if (context.mounted) context.pop();
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                AppLocalizations.of(context)!.genericError),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.cancelExecution),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.back),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await ref
+                        .read(activeExecutionProvider.notifier)
+                        .cancelExecution();
+                    ref.read(restTimerProvider.notifier).reset();
+                    ref.read(cardioTimerProvider.notifier).reset();
+                    if (context.mounted) context.pop();
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              AppLocalizations.of(context)!.genericError),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.cancelExecution),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.back),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -2845,35 +2851,37 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final confirmed = await showAthlosDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-          title: Text(l10n.finishWorkoutIncompleteTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        title: Text(l10n.finishWorkoutIncompleteTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.finishWorkoutIncompleteMessage),
+          ],
+        ),
+        actions: [
+          AthlosStackedDialogActions(
             children: [
-              Text(l10n.finishWorkoutIncompleteMessage),
-              AthlosStackedDialogActions(
-                children: [
-                  TextButton(
-                    style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(
-                      l10n.finishWorkoutIncompleteConfirm,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  FilledButton(
-                    style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(
-                      l10n.finishWorkoutIncompleteStay,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(
+                  l10n.finishWorkoutIncompleteConfirm,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(
+                  l10n.finishWorkoutIncompleteStay,
+                  textAlign: TextAlign.center,
+                ),
               ),
             ],
           ),
-        ),
+        ],
+      ),
     );
 
     if (confirmed == true && context.mounted) {
@@ -2893,26 +2901,28 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.skipRestTimerMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ref.read(restTimerProvider.notifier).reset();
-                    setState(() => _viewMode = _ViewMode.overview);
-                  },
-                  child: Text(l10n.skipTimer),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.continueRest),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ref.read(restTimerProvider.notifier).reset();
+                  setState(() => _viewMode = _ViewMode.overview);
+                },
+                child: Text(l10n.skipTimer),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.continueRest),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -3266,25 +3276,27 @@ class _NumberInput extends StatelessWidget {
                 Navigator.pop(ctx, parsed);
               },
             ),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () {
-                    final parsed = double.tryParse(controller.text);
-                    Navigator.pop(ctx, parsed);
-                  },
-                  child: Text(AppLocalizations.of(ctx)!.okButton),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () {
+                  final parsed = double.tryParse(controller.text);
+                  Navigator.pop(ctx, parsed);
+                },
+                child: Text(AppLocalizations.of(ctx)!.okButton),
+              ),
+            ],
+          ),
+        ],
       ),
     );
 

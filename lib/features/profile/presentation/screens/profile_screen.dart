@@ -1043,30 +1043,32 @@ class _BodyMetricsSection extends ConsumerWidget {
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
               ],
             ),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () {
-                    final w = _tryParseDecimal(weightCtrl.text);
-                    if (w == null || w <= 0) return;
-                    final bf = _tryParseDecimal(bfCtrl.text);
-                    ref
-                        .read(bodyMetricListProvider.notifier)
-                        .add(weight: w, bodyFatPercent: bf);
-                    Navigator.pop(ctx);
-                  },
-                  child: Text(l10n.programSaveAction),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () {
+                  final w = _tryParseDecimal(weightCtrl.text);
+                  if (w == null || w <= 0) return;
+                  final bf = _tryParseDecimal(bfCtrl.text);
+                  ref
+                      .read(bodyMetricListProvider.notifier)
+                      .add(weight: w, bodyFatPercent: bf);
+                  Navigator.pop(ctx);
+                },
+                child: Text(l10n.programSaveAction),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -419,29 +419,31 @@ class _ActionsSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.deloadEndConfirmMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    await ref
-                        .read(programActionsProvider.notifier)
-                        .exitDeload(program.id);
-                    ref.invalidate(programListProvider);
-                    ref.invalidate(activeProgramProvider);
-                  },
-                  child: Text(l10n.deloadEndAction),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await ref
+                      .read(programActionsProvider.notifier)
+                      .exitDeload(program.id);
+                  ref.invalidate(programListProvider);
+                  ref.invalidate(activeProgramProvider);
+                },
+                child: Text(l10n.deloadEndAction),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -457,43 +459,45 @@ class _ActionsSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.programDeleteMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    try {
-                      await ref
-                          .read(programActionsProvider.notifier)
-                          .deleteProgram(program.id);
-                      ref.invalidate(programListProvider);
-                      ref.invalidate(activeProgramProvider);
-                      if (context.mounted) {
-                        context.go(RoutePaths.trainingHome);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.programDeleted)),
-                        );
-                      }
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.genericError)),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.programDeleteAction),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  try {
+                    await ref
+                        .read(programActionsProvider.notifier)
+                        .deleteProgram(program.id);
+                    ref.invalidate(programListProvider);
+                    ref.invalidate(activeProgramProvider);
+                    if (context.mounted) {
+                      context.go(RoutePaths.trainingHome);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.programDeleted)),
+                      );
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.programDeleteAction),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -509,32 +513,34 @@ class _ActionsSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.programCompletedMessage(program.name)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    await ref
-                        .read(programActionsProvider.notifier)
-                        .archiveProgram(program.id);
-                    ref.invalidate(programListProvider);
-                    ref.invalidate(activeProgramProvider);
-                    if (context.mounted) {
-                      context.go(RoutePaths.trainingHome);
-                    }
-                  },
-                  child: Text(l10n.programCompletedArchive),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await ref
+                      .read(programActionsProvider.notifier)
+                      .archiveProgram(program.id);
+                  ref.invalidate(programListProvider);
+                  ref.invalidate(activeProgramProvider);
+                  if (context.mounted) {
+                    context.go(RoutePaths.trainingHome);
+                  }
+                },
+                child: Text(l10n.programCompletedArchive),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

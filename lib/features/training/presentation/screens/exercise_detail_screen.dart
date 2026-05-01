@@ -256,42 +256,44 @@ class ExerciseDetailScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.deleteExerciseMessage(exercise.name)),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style:
-                      AthlosDialogButtonStyles.stackedGhost(dialogContext),
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop();
-                    try {
-                      await ref
-                          .read(exerciseListProvider.notifier)
-                          .deleteExercise(exercise.id);
-                      if (context.mounted) {
-                        context.pop();
-                      }
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                AppLocalizations.of(context)!.genericError),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.delete),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(l10n.cancel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style:
+                    AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  try {
+                    await ref
+                        .read(exerciseListProvider.notifier)
+                        .deleteExercise(exercise.id);
+                    if (context.mounted) {
+                      context.pop();
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              AppLocalizations.of(context)!.genericError),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.delete),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.cancel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

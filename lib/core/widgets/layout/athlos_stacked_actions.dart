@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../theme/athlos_spacing.dart';
 
 /// Full-width vertical stack of action widgets — for screens, sheets, and any
-/// layout that is not an [AlertDialog] (use [AthlosStackedDialogActions] there
-/// to get the dialog body inset).
+/// layout that is not an [AlertDialog] (Athlos dialogs use this inside
+/// [AlertDialog.actions] via [AthlosStackedDialogActions]; see
+/// [DialogThemeData.actionsPadding] for inset around the actions pane.
 ///
 /// When [invertStackOrder] is true (default), source order `[secondary, primary]`
 /// renders the **primary on top** — same convention as [AthlosStackedDialogActions].

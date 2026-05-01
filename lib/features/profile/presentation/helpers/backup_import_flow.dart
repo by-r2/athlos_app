@@ -117,23 +117,25 @@ Future<void> runBackupImportFlow({
                 Text(
                   l10n.profileDataImportConfirmMessage(preview.totalRecords),
                 ),
-                AthlosStackedDialogActions(
-                  children: [
-                    TextButton(
-                      style: AthlosDialogButtonStyles.stackedGhost(context),
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text(l10n.cancel),
-                    ),
-                    FilledButton(
-                      style:
-                          AthlosDialogButtonStyles.stackedFilled(context),
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: Text(l10n.profileDataImportAction),
-                    ),
-                  ],
-                ),
               ],
             ),
+            actions: [
+              AthlosStackedDialogActions(
+                children: [
+                  TextButton(
+                    style: AthlosDialogButtonStyles.stackedGhost(context),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(
+                    style:
+                        AthlosDialogButtonStyles.stackedFilled(context),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text(l10n.profileDataImportAction),
+                  ),
+                ],
+              ),
+            ],
           ),
         ) ??
         false;
@@ -189,17 +191,19 @@ Future<void> runBackupImportFlow({
                 report.failedCount,
               ),
             ),
-            AthlosStackedDialogActions(
-              children: [
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(context),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.okButton),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(context),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.okButton),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   } on Exception catch (e, stackTrace) {
@@ -258,19 +262,21 @@ Future<BackupConflictResolution?> _showConflictDialog({
                 )),
               ],
             ),
-            AthlosStackedDialogActions(
-              invertStackOrder: false,
-              children: [
-                for (final resolution in conflict.allowedResolutions)
-                  TextButton(
-                    style: AthlosDialogButtonStyles.stackedGhost(context),
-                    onPressed: () => Navigator.of(context).pop(resolution),
-                    child: Text(_resolutionLabel(resolution, l10n)),
-                  ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            invertStackOrder: false,
+            children: [
+              for (final resolution in conflict.allowedResolutions)
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(context),
+                  onPressed: () => Navigator.of(context).pop(resolution),
+                  child: Text(_resolutionLabel(resolution, l10n)),
+                ),
+            ],
+          ),
+        ],
       );
     },
   );
@@ -326,38 +332,40 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
                 Text(suggestionText),
               ],
             ),
-            AthlosStackedDialogActions(
-              invertStackOrder: false,
-              children: [
-                if (review.decisionScope !=
-                        BackupConflictDecisionScope.catalogGovernance &&
-                    review.suggestedLabel != null)
-                  TextButton(
-                    style: AthlosDialogButtonStyles.stackedGhost(context),
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pop(BackupPendingReviewResolution.linkSuggested),
-                    child: Text(l10n.profileDataPendingLinkSuggested),
-                  ),
-                if (review.decisionScope !=
-                    BackupConflictDecisionScope.catalogGovernance)
-                  TextButton(
-                    style: AthlosDialogButtonStyles.stackedGhost(context),
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pop(BackupPendingReviewResolution.createCustom),
-                    child: Text(l10n.profileDataPendingCreateCustom),
-                  ),
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(context),
-                  onPressed: () => Navigator.of(context)
-                      .pop(BackupPendingReviewResolution.skip),
-                  child: Text(l10n.profileDataPendingSkip),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            invertStackOrder: false,
+            children: [
+              if (review.decisionScope !=
+                      BackupConflictDecisionScope.catalogGovernance &&
+                  review.suggestedLabel != null)
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(context),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(BackupPendingReviewResolution.linkSuggested),
+                  child: Text(l10n.profileDataPendingLinkSuggested),
+                ),
+              if (review.decisionScope !=
+                  BackupConflictDecisionScope.catalogGovernance)
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(context),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(BackupPendingReviewResolution.createCustom),
+                  child: Text(l10n.profileDataPendingCreateCustom),
+                ),
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(context),
+                onPressed: () => Navigator.of(context)
+                    .pop(BackupPendingReviewResolution.skip),
+                child: Text(l10n.profileDataPendingSkip),
+              ),
+            ],
+          ),
+        ],
       );
     },
   );

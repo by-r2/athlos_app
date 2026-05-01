@@ -324,40 +324,42 @@ class _ExecutionCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.deleteExecutionMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    try {
-                      await ref
-                          .read(workoutExecutionListProvider.notifier)
-                          .deleteExecution(execution.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.executionDeleted)),
-                        );
-                      }
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.genericError)),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.delete),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.cancel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await ref
+                        .read(workoutExecutionListProvider.notifier)
+                        .deleteExecution(execution.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.executionDeleted)),
+                      );
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.delete),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

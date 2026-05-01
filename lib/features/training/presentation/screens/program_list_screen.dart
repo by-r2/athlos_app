@@ -258,41 +258,43 @@ class _ProgramCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.programDeleteMessage),
-            AthlosStackedDialogActions(
-              children: [
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    try {
-                      await ref
-                          .read(programActionsProvider.notifier)
-                          .deleteProgram(program.id);
-                      ref.invalidate(programListProvider);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.programDeleted)),
-                        );
-                      }
-                    } on Exception catch (_) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.genericError)),
-                        );
-                      }
-                    }
-                  },
-                  child: Text(l10n.programDeleteAction),
-                ),
-                FilledButton(
-                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-                ),
-              ],
-            ),
           ],
         ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  try {
+                    await ref
+                        .read(programActionsProvider.notifier)
+                        .deleteProgram(program.id);
+                    ref.invalidate(programListProvider);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.programDeleted)),
+                      );
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                },
+                child: Text(l10n.programDeleteAction),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

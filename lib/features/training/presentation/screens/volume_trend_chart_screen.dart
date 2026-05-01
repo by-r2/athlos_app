@@ -55,18 +55,20 @@ class _VolumeTrendChartScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(l10n.volumeTrendDescription),
-                    AthlosStackedDialogActions(
-                      children: [
-                        FilledButton(
-                          style: AthlosDialogButtonStyles.stackedFilled(
-                              dialogContext),
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: Text(l10n.okButton),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
+                actions: [
+                  AthlosStackedDialogActions(
+                    children: [
+                      FilledButton(
+                        style: AthlosDialogButtonStyles.stackedFilled(
+                            dialogContext),
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(l10n.okButton),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

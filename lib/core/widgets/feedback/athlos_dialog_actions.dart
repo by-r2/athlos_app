@@ -2,19 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../theme/athlos_button_insets.dart';
 import '../../theme/athlos_button_sizes.dart';
-import '../../theme/athlos_spacing.dart';
 import '../layout/athlos_stacked_actions.dart';
 
-/// One action widget per row, full width — use under [AlertDialog.content].
+/// One action widget per row, full width — pass in [AlertDialog.actions].
+/// Vertical separation from [AlertDialog.content] comes from the Material
+/// dialog layout; no extra top gap is applied here.
 ///
 /// By default (**[invertStackOrder] == true**) the vertical order is mirrored so
 /// a typical declarative `[ghost, filled]` list shows [FilledButton] **on top**
 /// and ghost **below**. Set [invertStackOrder] to false when every action is a
 /// peer (e.g. several [TextButton] choices whose order matters). Ghost actions
 /// use neutral theme foreground (no error tint). Spacing between stacked rows
-/// matches [AthlosSpacing.xs]; inset above the stack uses
-/// [AthlosSpacing.dialogBodyToActions] so body copy does not need extra
-/// [SizedBox] before this widget.
+/// matches [AthlosSpacing.xs].
 final class AthlosStackedDialogActions extends StatelessWidget {
   const AthlosStackedDialogActions({
     super.key,
@@ -29,12 +28,9 @@ final class AthlosStackedDialogActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AthlosSpacing.dialogBodyToActions),
-      child: AthlosStackedActions(
-        invertStackOrder: invertStackOrder,
-        children: children,
-      ),
+    return AthlosStackedActions(
+      invertStackOrder: invertStackOrder,
+      children: children,
     );
   }
 }

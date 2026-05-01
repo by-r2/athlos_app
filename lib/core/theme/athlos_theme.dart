@@ -21,113 +21,143 @@ class AthlosTheme {
   static ThemeData _buildTheme(
     ColorScheme colorScheme,
     AthlosCustomColors customColors,
-  ) =>
-      ThemeData(
-        extensions: [customColors],
-        useMaterial3: true,
-        colorScheme: colorScheme,
-        textTheme: AthlosTextTheme.textTheme,
-        appBarTheme: AppBarTheme(
-          centerTitle: true,
-          backgroundColor: colorScheme.surface,
-          foregroundColor: colorScheme.onSurface,
-          elevation: AthlosElevation.none,
+  ) {
+    final isDark = colorScheme.brightness == Brightness.dark;
+
+    /// Dark mode: softer than plain [onSurface] body text so ghost/outline read
+    /// as controls, not paragraphs.
+    const darkFgAlpha = 0.78;
+    const darkOutlineBorderAlpha = 0.42;
+
+    Color outlineGhostForeground(Set<WidgetState> states) {
+      if (states.contains(WidgetState.disabled)) {
+        return colorScheme.onSurface.withValues(alpha: 0.38);
+      }
+      return isDark
+          ? colorScheme.onSurface.withValues(alpha: darkFgAlpha)
+          : colorScheme.primary;
+    }
+
+    Color outlineGhostBorder(Set<WidgetState> states) {
+      if (states.contains(WidgetState.disabled)) {
+        return colorScheme.onSurface.withValues(alpha: 0.38);
+      }
+      return isDark
+          ? colorScheme.onSurface.withValues(alpha: darkOutlineBorderAlpha)
+          : colorScheme.primary;
+    }
+
+    return ThemeData(
+      extensions: [customColors],
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      textTheme: AthlosTextTheme.textTheme,
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        elevation: AthlosElevation.none,
+      ),
+      scaffoldBackgroundColor: colorScheme.surface,
+      dialogTheme: DialogThemeData(
+        // Lateral and bottom of the actions pane; content↔actions gap is Material.
+        actionsPadding: const EdgeInsets.fromLTRB(
+          AthlosSpacing.lg,
+          0,
+          AthlosSpacing.lg,
+          AthlosSpacing.md,
         ),
-        scaffoldBackgroundColor: colorScheme.surface,
-        dialogTheme: DialogThemeData(
-          actionsPadding: const EdgeInsets.fromLTRB(
-            AthlosSpacing.lg,
-            AthlosSpacing.xs,
-            AthlosSpacing.lg,
-            AthlosSpacing.md,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          padding: AthlosButtonInsets.screen,
+          minimumSize: const Size(
+            AthlosButtonSizes.minWidth,
+            AthlosButtonSizes.screenMinHeight,
           ),
+          tapTargetSize: MaterialTapTargetSize.padded,
         ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            padding: AthlosButtonInsets.screen,
-            minimumSize: const Size(
-              AthlosButtonSizes.minWidth,
-              AthlosButtonSizes.screenMinHeight,
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style:
+            OutlinedButton.styleFrom(
+              padding: AthlosButtonInsets.screen,
+              minimumSize: const Size(
+                AthlosButtonSizes.minWidth,
+                AthlosButtonSizes.screenMinHeight,
+              ),
+              tapTargetSize: MaterialTapTargetSize.padded,
+            ).copyWith(
+              foregroundColor: WidgetStateProperty.resolveWith(
+                outlineGhostForeground,
+              ),
+              side: WidgetStateProperty.resolveWith<BorderSide>((
+                Set<WidgetState> states,
+              ) {
+                return BorderSide(color: outlineGhostBorder(states));
+              }),
             ),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            padding: AthlosButtonInsets.screen,
-            minimumSize: const Size(
-              AthlosButtonSizes.minWidth,
-              AthlosButtonSizes.screenMinHeight,
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style:
+            TextButton.styleFrom(
+              padding: AthlosButtonInsets.screen,
+              minimumSize: const Size(
+                AthlosButtonSizes.minWidth,
+                AthlosButtonSizes.screenMinHeight,
+              ),
+              tapTargetSize: MaterialTapTargetSize.padded,
+            ).copyWith(
+              foregroundColor: WidgetStateProperty.resolveWith(
+                outlineGhostForeground,
+              ),
             ),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ).copyWith(
-            side: WidgetStateProperty.resolveWith<BorderSide>(
-              (Set<WidgetState> states) {
-                final Color borderColor;
-                if (states.contains(WidgetState.disabled)) {
-                  borderColor = colorScheme.onSurface.withValues(alpha: 0.38);
-                } else {
-                  borderColor = colorScheme.primary;
-                }
-                return BorderSide(color: borderColor);
-              },
-            ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          padding: AthlosButtonInsets.screen,
+          minimumSize: const Size(
+            AthlosButtonSizes.minWidth,
+            AthlosButtonSizes.screenMinHeight,
           ),
+          tapTargetSize: MaterialTapTargetSize.padded,
         ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            padding: AthlosButtonInsets.screen,
-            minimumSize: const Size(
-              AthlosButtonSizes.minWidth,
-              AthlosButtonSizes.screenMinHeight,
-            ),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 64,
+        elevation: AthlosElevation.none,
+        backgroundColor: colorScheme.surfaceContainer,
+        indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: AthlosRadius.lgAll,
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: AthlosButtonInsets.screen,
-            minimumSize: const Size(
-              AthlosButtonSizes.minWidth,
-              AthlosButtonSizes.screenMinHeight,
-            ),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          height: 64,
-          elevation: AthlosElevation.none,
-          backgroundColor: colorScheme.surfaceContainer,
-          indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
-          indicatorShape: RoundedRectangleBorder(
-            borderRadius: AthlosRadius.lgAll,
-          ),
-          iconTheme: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return IconThemeData(color: colorScheme.primary, size: 24);
-            }
-            return IconThemeData(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              size: 24,
-            );
-          }),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.primary,
-              );
-            }
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: colorScheme.primary, size: 24);
+          }
+          return IconThemeData(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            size: 24,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w600,
+              color: colorScheme.primary,
             );
-          }),
-          overlayColor: WidgetStatePropertyAll(
-            colorScheme.primary.withValues(alpha: 0.08),
-          ),
+          }
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          );
+        }),
+        overlayColor: WidgetStatePropertyAll(
+          colorScheme.primary.withValues(alpha: 0.08),
         ),
-      );
+      ),
+    );
+  }
 }

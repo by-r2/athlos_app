@@ -110,28 +110,30 @@ class _AddEquipmentDialogState extends ConsumerState<_AddEquipmentDialog> {
               ),
             ],
           ),
-          AthlosStackedDialogActions(
-            children: [
-              TextButton(
-                style: AthlosDialogButtonStyles.stackedGhost(context),
-                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                style: AthlosDialogButtonStyles.stackedFilled(context),
-                onPressed: _isSaving ? null : _onSave,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.save),
-              ),
-            ],
-          ),
         ],
       ),
+      actions: [
+        AthlosStackedDialogActions(
+          children: [
+            TextButton(
+              style: AthlosDialogButtonStyles.stackedGhost(context),
+              onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              style: AthlosDialogButtonStyles.stackedFilled(context),
+              onPressed: _isSaving ? null : _onSave,
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.save),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

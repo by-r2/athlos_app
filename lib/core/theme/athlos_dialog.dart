@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'athlos_button_insets.dart';
 import 'athlos_button_sizes.dart';
 
-/// Athlos dialogs stack actions in [AlertDialog.content] via
-/// [AthlosStackedDialogActions] (`core/widgets/feedback/athlos_dialog_actions.dart`):
-/// **one row per button**; default stack mirrors order so [FilledButton] primary
-/// is **on top** when declared after ghost. Prefer
-/// [AthlosDialogButtonStyles.stackedGhost] / [AthlosDialogButtonStyles.stackedFilled]
-/// for full-width minimum height.
-/// Inset above the buttons uses [AthlosSpacing.dialogBodyToActions].
+/// Athlos dialogs pass [AthlosStackedDialogActions] in [AlertDialog.actions]
+/// (`core/widgets/feedback/athlos_dialog_actions.dart`): **one row per button**;
+/// default stack mirrors order so [FilledButton] primary is **on top** when
+/// declared after ghost. Prefer [AthlosDialogButtonStyles.stackedGhost] /
+/// [AthlosDialogButtonStyles.stackedFilled] for full-width minimum height.
+/// [DialogThemeData.actionsPadding] provides lateral and bottom inset for the
+/// actions region; separation from [AlertDialog.content] is from Material layout
+/// ([AthlosTheme]).
 ///
 /// Applies [AthlosButtonInsets.dialog] and tighter [AthlosButtonSizes.dialogMinHeight].
 ///
