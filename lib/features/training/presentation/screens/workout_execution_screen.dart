@@ -6,23 +6,34 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/theme/athlos_button_insets.dart';
+import '../../../../core/theme/athlos_button_sizes.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/training_program.dart';
 import '../../domain/entities/workout_exercise.dart';
+import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../providers/active_execution_notifier.dart';
+import '../providers/cardio_timer_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
-import '../helpers/duration_format.dart';
-import '../providers/cardio_timer_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_notifier.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
-enum _ViewMode { overview, focused, timer, cardioTimer, timedSet, exerciseTransition }
+enum _ViewMode {
+  overview,
+  focused,
+  timer,
+  cardioTimer,
+  timedSet,
+  exerciseTransition,
+}
 
 enum _TimedSubState { ready, countdown, running, finishing }
 
@@ -58,8 +69,8 @@ class WorkoutExecutionScreen extends ConsumerStatefulWidget {
       _WorkoutExecutionScreenState();
 }
 
-class _WorkoutExecutionScreenState
-    extends ConsumerState<WorkoutExecutionScreen> with WidgetsBindingObserver {
+class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
+    with WidgetsBindingObserver {
   bool _isInitialized = false;
   _ViewMode _viewMode = _ViewMode.overview;
   bool _isInBackground = false;
@@ -117,8 +128,9 @@ class _WorkoutExecutionScreenState
 
   @override
   Widget build(BuildContext context) {
-    final exercisesAsync =
-        ref.watch(workoutExercisesProvider(widget.workoutId));
+    final exercisesAsync = ref.watch(
+      workoutExercisesProvider(widget.workoutId),
+    );
     final execState = ref.watch(activeExecutionProvider);
     final timerState = ref.watch(restTimerProvider);
     final cardioState = ref.watch(cardioTimerProvider);
@@ -137,8 +149,7 @@ class _WorkoutExecutionScreenState
         final router = GoRouter.of(context);
         try {
           final programRepo = ref.read(programRepositoryProvider);
-          final activeProgram =
-              (await programRepo.getActive()).getOrThrow();
+          final activeProgram = (await programRepo.getActive()).getOrThrow();
           if (activeProgram == null) throw Exception('No active program');
           final deloadConfig = activeProgram.isInDeload
               ? activeProgram.deloadConfig
@@ -160,14 +171,11 @@ class _WorkoutExecutionScreenState
                 programId: activeProgram.id,
                 deloadConfig: deloadConfig,
                 progressionRules: progressionRules,
-                defaultRestSeconds:
-                    activeProgram.defaultRestSeconds ?? 0,
+                defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
                 isometricExerciseIds: isometricIds,
               );
         } on Exception catch (_) {
-          messenger.showSnackBar(
-            SnackBar(content: Text(l10n.genericError)),
-          );
+          messenger.showSnackBar(SnackBar(content: Text(l10n.genericError)));
           router.pop();
         }
       });
@@ -195,20 +203,25 @@ class _WorkoutExecutionScreenState
         }
       },
       child: execState == null
-          ? const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            )
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : switch (_viewMode) {
               _ViewMode.overview => _buildOverview(context, execState),
               _ViewMode.focused => _buildFocused(context, execState),
-              _ViewMode.timer =>
-                _buildTimer(context, execState, timerState),
-              _ViewMode.cardioTimer =>
-                _buildCardioTimer(context, execState, cardioState),
-              _ViewMode.timedSet =>
-                _buildTimedSet(context, execState, cardioState),
-              _ViewMode.exerciseTransition =>
-                _buildExerciseCompleteTransition(context, execState),
+              _ViewMode.timer => _buildTimer(context, execState, timerState),
+              _ViewMode.cardioTimer => _buildCardioTimer(
+                context,
+                execState,
+                cardioState,
+              ),
+              _ViewMode.timedSet => _buildTimedSet(
+                context,
+                execState,
+                cardioState,
+              ),
+              _ViewMode.exerciseTransition => _buildExerciseCompleteTransition(
+                context,
+                execState,
+              ),
             },
     );
   }
@@ -318,7 +331,8 @@ class _WorkoutExecutionScreenState
 
   /// Returns the next incomplete (exerciseIndex, setNumber), or null if all done.
   (int exerciseIndex, int setNumber)? _findNextPendingSet(
-      ActiveExecutionState exec) {
+    ActiveExecutionState exec,
+  ) {
     for (var i = 0; i < exec.exercises.length; i++) {
       final exId = exec.exercises[i].exerciseId;
       final sets = exec.exerciseSets[exId] ?? [];
@@ -332,7 +346,9 @@ class _WorkoutExecutionScreenState
   /// Returns the indices of exercises that share the same superset group
   /// with the exercise at [exerciseIndex].
   List<int> _getSupersetGroupIndices(
-      ActiveExecutionState exec, int exerciseIndex) {
+    ActiveExecutionState exec,
+    int exerciseIndex,
+  ) {
     final gid = exec.exercises[exerciseIndex].groupId;
     if (gid == null) return [exerciseIndex];
     return [
@@ -344,7 +360,10 @@ class _WorkoutExecutionScreenState
   /// Returns the next exercise index in the superset group that has a pending
   /// set with [setNumber], or null if all done for this set round.
   int? _nextInSupersetGroup(
-      ActiveExecutionState exec, int currentIndex, int setNumber) {
+    ActiveExecutionState exec,
+    int currentIndex,
+    int setNumber,
+  ) {
     final group = _getSupersetGroupIndices(exec, currentIndex);
     final currentPosInGroup = group.indexOf(currentIndex);
     for (var offset = 1; offset < group.length; offset++) {
@@ -352,12 +371,12 @@ class _WorkoutExecutionScreenState
       final exId = exec.exercises[nextIdx].exerciseId;
       final sets = exec.exerciseSets[exId] ?? [];
       final match = sets.where(
-          (s) => s.setNumber == setNumber && !s.isCompleted);
+        (s) => s.setNumber == setNumber && !s.isCompleted,
+      );
       if (match.isNotEmpty) return nextIdx;
     }
     return null;
   }
-
 
   bool _isExerciseIsometric(int exerciseId) {
     final allExercises = ref.read(exerciseListProvider).value;
@@ -372,16 +391,17 @@ class _WorkoutExecutionScreenState
       exec.exercises[_focusedExerciseIndex].duration != null &&
       !_isFocusedIsometric(exec);
 
-  void _goToFocused(ActiveExecutionState exec, int exerciseIndex,
-      [int? setNumber]) {
+  void _goToFocused(
+    ActiveExecutionState exec,
+    int exerciseIndex, [
+    int? setNumber,
+  ]) {
     final exId = exec.exercises[exerciseIndex].exerciseId;
     final sets = exec.exerciseSets[exId] ?? [];
 
-    final targetSet = setNumber ??
-        sets
-            .where((s) => !s.isCompleted)
-            .map((s) => s.setNumber)
-            .firstOrNull ??
+    final targetSet =
+        setNumber ??
+        sets.where((s) => !s.isCompleted).map((s) => s.setNumber).firstOrNull ??
         1;
 
     final entry = sets.firstWhere(
@@ -394,7 +414,8 @@ class _WorkoutExecutionScreenState
         .toList();
 
     final isIsometric = _isExerciseIsometric(exId);
-    final isCardio = exec.exercises[exerciseIndex].duration != null && !isIsometric;
+    final isCardio =
+        exec.exercises[exerciseIndex].duration != null && !isIsometric;
 
     setState(() {
       _focusedExerciseIndex = exerciseIndex;
@@ -403,29 +424,32 @@ class _WorkoutExecutionScreenState
       if (isIsometric) {
         _viewMode = _ViewMode.timedSet;
         _timedSubState = _TimedSubState.ready;
-        _currentDuration = entry.duration ??
+        _currentDuration =
+            entry.duration ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.duration ?? 0
                 : exec.exercises[exerciseIndex].duration ?? 0);
-        _currentWeight = entry.weight ??
+        _currentWeight =
+            entry.weight ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.weight ?? 0
                 : entry.plannedWeight ?? 0);
         ref.read(cardioTimerProvider.notifier).reset();
       } else if (isCardio) {
         _viewMode = _ViewMode.cardioTimer;
-        _currentDuration = entry.duration ??
+        _currentDuration =
+            entry.duration ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.duration ?? 0
                 : exec.exercises[exerciseIndex].duration ?? 0);
-        _currentDistance = entry.distance ??
-            (prevCompleted.isNotEmpty
-                ? prevCompleted.last.distance ?? 0
-                : 0);
+        _currentDistance =
+            entry.distance ??
+            (prevCompleted.isNotEmpty ? prevCompleted.last.distance ?? 0 : 0);
         ref.read(cardioTimerProvider.notifier).reset();
       } else {
         _viewMode = _ViewMode.focused;
-        _currentWeight = entry.weight ??
+        _currentWeight =
+            entry.weight ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.weight ?? 0
                 : entry.plannedWeight ?? 0);
@@ -459,8 +483,7 @@ class _WorkoutExecutionScreenState
         .toList();
 
     if (nextInExercise.isNotEmpty) {
-      _goToFocused(
-          exec, _focusedExerciseIndex, nextInExercise.first.setNumber);
+      _goToFocused(exec, _focusedExerciseIndex, nextInExercise.first.setNumber);
     } else {
       final globalNext = _findNextPendingSet(exec);
       if (globalNext != null) {
@@ -531,10 +554,7 @@ class _WorkoutExecutionScreenState
         actions: [
           TextButton(
             onPressed: () => _showCancelDialog(context),
-            child: Text(
-              l10n.cancelExecution,
-              style: TextStyle(color: colorScheme.error),
-            ),
+            child: Text(l10n.cancelExecution),
           ),
         ],
       ),
@@ -550,8 +570,11 @@ class _WorkoutExecutionScreenState
               ),
               child: Row(
                 children: [
-                  Icon(Icons.spa,
-                      size: 16, color: colorScheme.onTertiaryContainer),
+                  Icon(
+                    Icons.spa,
+                    size: 16,
+                    color: colorScheme.onTertiaryContainer,
+                  ),
                   const SizedBox(width: AthlosSpacing.sm),
                   Expanded(
                     child: Text(
@@ -581,8 +604,11 @@ class _WorkoutExecutionScreenState
                       style: textTheme.labelLarge,
                     ),
                     if (completed == total && total > 0)
-                      Icon(Icons.check_circle,
-                          color: colorScheme.primary, size: 20),
+                      Icon(
+                        Icons.check_circle,
+                        color: colorScheme.primary,
+                        size: 20,
+                      ),
                   ],
                 ),
                 const SizedBox(height: AthlosSpacing.xs),
@@ -596,58 +622,59 @@ class _WorkoutExecutionScreenState
 
           // Exercise list
           Expanded(
-            child: Builder(builder: (context) {
-              final groupColorMap = <int, int>{};
-              var nextColorIdx = 0;
-              for (final ex in exec.exercises) {
-                if (ex.groupId != null &&
-                    !groupColorMap.containsKey(ex.groupId)) {
-                  groupColorMap[ex.groupId!] = nextColorIdx++;
+            child: Builder(
+              builder: (context) {
+                final groupColorMap = <int, int>{};
+                var nextColorIdx = 0;
+                for (final ex in exec.exercises) {
+                  if (ex.groupId != null &&
+                      !groupColorMap.containsKey(ex.groupId)) {
+                    groupColorMap[ex.groupId!] = nextColorIdx++;
+                  }
                 }
-              }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.sm,
-                ),
-                itemCount: exec.exercises.length,
-                itemBuilder: (context, index) {
-                  final exercise = exec.exercises[index];
-                  final sets =
-                      exec.exerciseSets[exercise.exerciseId] ?? [];
-                  final completedSets =
-                      sets.where((s) => s.isCompleted).length;
-                  final totalSets = sets.length;
-                  final isAllDone = completedSets == totalSets;
-                  final isActive = next != null && next.$1 == index;
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AthlosSpacing.sm,
+                  ),
+                  itemCount: exec.exercises.length,
+                  itemBuilder: (context, index) {
+                    final exercise = exec.exercises[index];
+                    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+                    final completedSets = sets
+                        .where((s) => s.isCompleted)
+                        .length;
+                    final totalSets = sets.length;
+                    final isAllDone = completedSets == totalSets;
+                    final isActive = next != null && next.$1 == index;
 
-                  final gid = exercise.groupId;
-                  final isGroupedWithPrev = index > 0 &&
-                      gid != null &&
-                      exec.exercises[index - 1].groupId == gid;
-                  final isGroupedWithNext =
-                      index < exec.exercises.length - 1 &&
-                          gid != null &&
-                          exec.exercises[index + 1].groupId == gid;
+                    final gid = exercise.groupId;
+                    final isGroupedWithPrev =
+                        index > 0 &&
+                        gid != null &&
+                        exec.exercises[index - 1].groupId == gid;
+                    final isGroupedWithNext =
+                        index < exec.exercises.length - 1 &&
+                        gid != null &&
+                        exec.exercises[index + 1].groupId == gid;
 
-                  return _OverviewExerciseCard(
-                    exerciseName: _exerciseName(exercise.exerciseId),
-                    muscleGroup: _muscleGroupName(exercise.exerciseId),
-                    completedSets: completedSets,
-                    totalSets: totalSets,
-                    isAllDone: isAllDone,
-                    isActive: isActive,
-                    isUnilateral: exercise.isUnilateral,
-                    isGroupedWithPrevious: isGroupedWithPrev,
-                    isGroupedWithNext: isGroupedWithNext,
-                    groupColorIndex: gid != null
-                        ? groupColorMap[gid]
-                        : null,
-                    onTap: () => _goToFocused(exec, index),
-                  );
-                },
-              );
-            }),
+                    return _OverviewExerciseCard(
+                      exerciseName: _exerciseName(exercise.exerciseId),
+                      muscleGroup: _muscleGroupName(exercise.exerciseId),
+                      completedSets: completedSets,
+                      totalSets: totalSets,
+                      isAllDone: isAllDone,
+                      isActive: isActive,
+                      isUnilateral: exercise.isUnilateral,
+                      isGroupedWithPrevious: isGroupedWithPrev,
+                      isGroupedWithNext: isGroupedWithNext,
+                      groupColorIndex: gid != null ? groupColorMap[gid] : null,
+                      onTap: () => _goToFocused(exec, index),
+                    );
+                  },
+                );
+              },
+            ),
           ),
 
           // Bottom buttons
@@ -660,39 +687,71 @@ class _WorkoutExecutionScreenState
                   if (next != null) ...[
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton.tonalIcon(
-                        onPressed: () =>
-                            _goToFocused(exec, next.$1, next.$2),
-                        icon: const Icon(Icons.play_arrow),
-                        label: Text(l10n.nextSetButton(
-                          _exerciseName(
-                              exec.exercises[next.$1].exerciseId),
-                          next.$2,
-                        )),
+                      child: TextButton.icon(
+                        onPressed:
+                            exec.hasCompletedSets && !exec.isFinishing
+                                ? () =>
+                                    _showFinishWorkoutIncompleteDialog(context)
+                                : null,
+                        style: TextButton.styleFrom(
+                          padding: AthlosButtonInsets.screen,
+                          minimumSize: const Size(
+                            AthlosButtonSizes.minWidth,
+                            AthlosButtonSizes.screenMinHeight,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.padded,
+                        ).merge(
+                          Theme.of(context).textButtonTheme.style ??
+                              const ButtonStyle(),
+                        ),
+                        icon: exec.isFinishing
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(l10n.finishWorkout),
                       ),
                     ),
                     const SizedBox(height: AthlosSpacing.sm),
-                  ],
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: exec.hasCompletedSets &&
-                              !exec.isFinishing
-                          ? () => _onFinish(context)
-                          : null,
-                      icon: exec.isFinishing
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colorScheme.onPrimary,
-                              ),
-                            )
-                          : const Icon(Icons.check),
-                      label: Text(l10n.finishWorkout),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _goToFocused(exec, next.$1, next.$2),
+                        icon: const Icon(Icons.play_arrow),
+                        label: Text(
+                          l10n.nextSetButton(
+                            _exerciseName(exec.exercises[next.$1].exerciseId),
+                            next.$2,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ] else
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed:
+                            exec.hasCompletedSets && !exec.isFinishing
+                                ? () => _onFinish(context)
+                                : null,
+                        icon: exec.isFinishing
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.onPrimary,
+                                ),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(l10n.finishWorkout),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -719,8 +778,7 @@ class _WorkoutExecutionScreenState
 
     // Find previous completed set for reference
     final prevCompleted = sets
-        .where(
-            (s) => s.isCompleted && s.setNumber < _focusedSetNumber)
+        .where((s) => s.isCompleted && s.setNumber < _focusedSetNumber)
         .toList();
     final prevSet = prevCompleted.isNotEmpty ? prevCompleted.last : null;
 
@@ -794,20 +852,20 @@ class _WorkoutExecutionScreenState
                           borderRadius: AthlosRadius.fullAll,
                           border: Border.all(
                             color: _isUnilateral
-                                ? colorScheme.secondary
-                                    .withValues(alpha: 0.5)
-                                : colorScheme.outline
-                                    .withValues(alpha: 0.3),
+                                ? colorScheme.secondary.withValues(alpha: 0.5)
+                                : colorScheme.outline.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.swap_horiz,
-                                size: 14,
-                                color: _isUnilateral
-                                    ? colorScheme.onSecondaryContainer
-                                    : colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.swap_horiz,
+                              size: 14,
+                              color: _isUnilateral
+                                  ? colorScheme.onSecondaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                            ),
                             const SizedBox(width: AthlosSpacing.xs),
                             Text(
                               l10n.unilateralLabel,
@@ -860,8 +918,7 @@ class _WorkoutExecutionScreenState
                 value: _currentDuration.toDouble(),
                 suffix: l10n.durationSecondsSuffix,
                 step: 30,
-                onChanged: (v) =>
-                    setState(() => _currentDuration = v.toInt()),
+                onChanged: (v) => setState(() => _currentDuration = v.toInt()),
                 textTheme: textTheme,
                 colorScheme: colorScheme,
               ),
@@ -873,8 +930,7 @@ class _WorkoutExecutionScreenState
                 value: _currentDistance,
                 suffix: l10n.distanceMetersSuffix,
                 step: 100,
-                onChanged: (v) =>
-                    setState(() => _currentDistance = v),
+                onChanged: (v) => setState(() => _currentDistance = v),
                 textTheme: textTheme,
                 colorScheme: colorScheme,
               ),
@@ -895,17 +951,17 @@ class _WorkoutExecutionScreenState
                 value: _currentReps.toDouble(),
                 suffix: l10n.repsShort,
                 step: 1,
-                onChanged: (v) =>
-                    setState(() => _currentReps = v.toInt()),
+                onChanged: (v) => setState(() => _currentReps = v.toInt()),
                 textTheme: textTheme,
                 colorScheme: colorScheme,
                 valueColor: repsDeviationColor(
-                    colorScheme,
-                    Theme.of(context).extension<AthlosCustomColors>()!,
-                    _currentReps,
-                    exercise.minReps ?? 0,
-                    exercise.maxReps ?? 0,
-                    exercise.isAmrap),
+                  colorScheme,
+                  Theme.of(context).extension<AthlosCustomColors>()!,
+                  _currentReps,
+                  exercise.minReps ?? 0,
+                  exercise.maxReps ?? 0,
+                  exercise.isAmrap,
+                ),
               ),
 
               const SizedBox(height: AthlosSpacing.md),
@@ -930,9 +986,12 @@ class _WorkoutExecutionScreenState
                   Expanded(
                     child: Column(
                       children: [
-                        Text(l10n.leftSideLabel,
-                            style: textTheme.labelMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant)),
+                        Text(
+                          l10n.leftSideLabel,
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         const SizedBox(height: AthlosSpacing.xs),
                         _NumberInput(
                           value: _leftReps.toDouble(),
@@ -944,13 +1003,13 @@ class _WorkoutExecutionScreenState
                           textTheme: textTheme,
                           colorScheme: colorScheme,
                           valueColor: repsDeviationColor(
-                              colorScheme,
-                              Theme.of(context)
-                                  .extension<AthlosCustomColors>()!,
-                              _leftReps,
-                              exercise.minReps ?? 0,
-                              exercise.maxReps ?? 0,
-                              exercise.isAmrap),
+                            colorScheme,
+                            Theme.of(context).extension<AthlosCustomColors>()!,
+                            _leftReps,
+                            exercise.minReps ?? 0,
+                            exercise.maxReps ?? 0,
+                            exercise.isAmrap,
+                          ),
                         ),
                       ],
                     ),
@@ -959,9 +1018,12 @@ class _WorkoutExecutionScreenState
                   Expanded(
                     child: Column(
                       children: [
-                        Text(l10n.rightSideLabel,
-                            style: textTheme.labelMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant)),
+                        Text(
+                          l10n.rightSideLabel,
+                          style: textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         const SizedBox(height: AthlosSpacing.xs),
                         _NumberInput(
                           value: _rightReps.toDouble(),
@@ -973,13 +1035,13 @@ class _WorkoutExecutionScreenState
                           textTheme: textTheme,
                           colorScheme: colorScheme,
                           valueColor: repsDeviationColor(
-                              colorScheme,
-                              Theme.of(context)
-                                  .extension<AthlosCustomColors>()!,
-                              _rightReps,
-                              exercise.minReps ?? 0,
-                              exercise.maxReps ?? 0,
-                              exercise.isAmrap),
+                            colorScheme,
+                            Theme.of(context).extension<AthlosCustomColors>()!,
+                            _rightReps,
+                            exercise.minReps ?? 0,
+                            exercise.maxReps ?? 0,
+                            exercise.isAmrap,
+                          ),
                         ),
                       ],
                     ),
@@ -995,19 +1057,15 @@ class _WorkoutExecutionScreenState
                   margin: const EdgeInsets.only(top: AthlosSpacing.xs),
                   padding: const EdgeInsets.all(AthlosSpacing.sm),
                   decoration: BoxDecoration(
-                    color: colorScheme.tertiaryContainer
-                        .withValues(alpha: 0.2),
+                    color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
                     borderRadius: AthlosRadius.mdAll,
                     border: Border.all(
-                      color:
-                          colorScheme.tertiary.withValues(alpha: 0.3),
+                      color: colorScheme.tertiary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Column(
                     children: [
-                      for (var idx = 0;
-                          idx < _dropSegments.length;
-                          idx++)
+                      for (var idx = 0; idx < _dropSegments.length; idx++)
                         _DropSegmentRow(
                           index: idx,
                           segment: _dropSegments[idx],
@@ -1015,15 +1073,15 @@ class _WorkoutExecutionScreenState
                           textTheme: textTheme,
                           l10n: l10n,
                           onWeightChanged: (w) => setState(
-                              () => _dropSegments[idx] =
-                                  _dropSegments[idx]
-                                      .copyWith(weight: w)),
+                            () => _dropSegments[idx] = _dropSegments[idx]
+                                .copyWith(weight: w),
+                          ),
                           onRepsChanged: (r) => setState(
-                              () => _dropSegments[idx] =
-                                  _dropSegments[idx]
-                                      .copyWith(reps: r)),
-                          onRemove: () => setState(
-                              () => _dropSegments.removeAt(idx)),
+                            () => _dropSegments[idx] = _dropSegments[idx]
+                                .copyWith(reps: r),
+                          ),
+                          onRemove: () =>
+                              setState(() => _dropSegments.removeAt(idx)),
                         ),
                     ],
                   ),
@@ -1032,25 +1090,29 @@ class _WorkoutExecutionScreenState
               // Add drop set button
               if (!currentSetEntry.isCompleted)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: AthlosSpacing.xs),
+                  padding: const EdgeInsets.only(top: AthlosSpacing.xs),
                   child: OutlinedButton.icon(
                     onPressed: () {
                       setState(() {
-                        _dropSegments.add(_DropSegmentInput(
-                          reps: (_currentReps * 0.5).ceil(),
-                          weight: _currentWeight * 0.8,
-                        ));
+                        _dropSegments.add(
+                          _DropSegmentInput(
+                            reps: (_currentReps * 0.5).ceil(),
+                            weight: _currentWeight * 0.8,
+                          ),
+                        );
                       });
                     },
-                    icon: Icon(Icons.arrow_downward,
-                        size: 16, color: colorScheme.tertiary),
+                    icon: Icon(
+                      Icons.arrow_downward,
+                      size: 16,
+                      color: colorScheme.tertiary,
+                    ),
                     label: Text(l10n.addDropSet),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colorScheme.tertiary,
                       side: BorderSide(
-                          color: colorScheme.tertiary
-                              .withValues(alpha: 0.5)),
+                        color: colorScheme.tertiary.withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
                 ),
@@ -1061,8 +1123,7 @@ class _WorkoutExecutionScreenState
             // Previous set reference (strength only)
             if (prevSet != null && !_isFocusedCardio(exec))
               Padding(
-                padding:
-                    const EdgeInsets.only(bottom: AthlosSpacing.md),
+                padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
                 child: Text(
                   l10n.previousSetRef(_formatSetSummary(prevSet)),
                   style: textTheme.bodyMedium?.copyWith(
@@ -1073,19 +1134,17 @@ class _WorkoutExecutionScreenState
 
             // Warmup toggle + notes toggle + RPE selector
             Padding(
-              padding:
-                  const EdgeInsets.only(bottom: AthlosSpacing.md),
+              padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
               child: Row(
                 children: [
                   _WarmupChip(
                     isSelected: _isWarmup,
-                    onTap: () =>
-                        setState(() => _isWarmup = !_isWarmup),
+                    onTap: () => setState(() => _isWarmup = !_isWarmup),
                   ),
                   const SizedBox(width: AthlosSpacing.xs),
                   GestureDetector(
-                    onTap: () => setState(
-                        () => _showNotesField = !_showNotesField),
+                    onTap: () =>
+                        setState(() => _showNotesField = !_showNotesField),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AthlosSpacing.sm,
@@ -1098,10 +1157,8 @@ class _WorkoutExecutionScreenState
                         borderRadius: AthlosRadius.fullAll,
                         border: Border.all(
                           color: _showNotesField
-                              ? colorScheme.secondary
-                                  .withValues(alpha: 0.5)
-                              : colorScheme.outline
-                                  .withValues(alpha: 0.3),
+                              ? colorScheme.secondary.withValues(alpha: 0.5)
+                              : colorScheme.outline.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Icon(
@@ -1118,8 +1175,7 @@ class _WorkoutExecutionScreenState
                     Expanded(
                       child: _RpeSelector(
                         value: _selectedRpe,
-                        onChanged: (v) =>
-                            setState(() => _selectedRpe = v),
+                        onChanged: (v) => setState(() => _selectedRpe = v),
                       ),
                     ),
                   ],
@@ -1128,8 +1184,7 @@ class _WorkoutExecutionScreenState
             ),
             if (_showNotesField)
               Padding(
-                padding:
-                    const EdgeInsets.only(bottom: AthlosSpacing.md),
+                padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
                 child: TextField(
                   decoration: InputDecoration(
                     hintText: l10n.setNotesHint,
@@ -1169,16 +1224,19 @@ class _WorkoutExecutionScreenState
                 child: FilledButton.tonalIcon(
                   onPressed: () {
                     final nextInExercise = sets
-                        .where((s) =>
-                            !s.isCompleted &&
-                            s.setNumber > _focusedSetNumber)
+                        .where(
+                          (s) =>
+                              !s.isCompleted && s.setNumber > _focusedSetNumber,
+                        )
                         .toList();
                     if (nextInExercise.isNotEmpty) {
-                      _goToFocused(exec, _focusedExerciseIndex,
-                          nextInExercise.first.setNumber);
+                      _goToFocused(
+                        exec,
+                        _focusedExerciseIndex,
+                        nextInExercise.first.setNumber,
+                      );
                     } else {
-                      setState(() =>
-                          _viewMode = _ViewMode.exerciseTransition);
+                      setState(() => _viewMode = _ViewMode.exerciseTransition);
                     }
                   },
                   icon: const Icon(Icons.arrow_forward),
@@ -1223,9 +1281,9 @@ class _WorkoutExecutionScreenState
     final focusedExId = exec.exercises[_focusedExerciseIndex].exerciseId;
     final focusedSets = exec.exerciseSets[focusedExId] ?? [];
     final nextInFocused = focusedSets.cast<SetEntry?>().firstWhere(
-          (s) => !s!.isCompleted,
-          orElse: () => null,
-        );
+      (s) => !s!.isCompleted,
+      orElse: () => null,
+    );
 
     final String nextLabel;
     if (nextInFocused != null) {
@@ -1268,7 +1326,8 @@ class _WorkoutExecutionScreenState
 
             Padding(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.xxl),
+                horizontal: AthlosSpacing.xxl,
+              ),
               child: LinearProgressIndicator(
                 value: timerState.progress,
                 borderRadius: AthlosRadius.fullAll,
@@ -1299,8 +1358,7 @@ class _WorkoutExecutionScreenState
             const Spacer(flex: 3),
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1335,8 +1393,9 @@ class _WorkoutExecutionScreenState
 
     final exId = exec.exercises[_focusedExerciseIndex].exerciseId;
     final sets = exec.exerciseSets[exId] ?? [];
-    final hasMoreSetsInExercise =
-        sets.any((s) => !s.isCompleted && s.setNumber > _focusedSetNumber);
+    final hasMoreSetsInExercise = sets.any(
+      (s) => !s.isCompleted && s.setNumber > _focusedSetNumber,
+    );
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerHighest,
@@ -1376,8 +1435,7 @@ class _WorkoutExecutionScreenState
             const Spacer(flex: 3),
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
               child: hasMoreSetsInExercise
                   ? SizedBox(
                       width: double.infinity,
@@ -1468,7 +1526,9 @@ class _WorkoutExecutionScreenState
   // ---------------------------------------------------------------------------
 
   Widget _buildExerciseCompleteTransition(
-      BuildContext context, ActiveExecutionState exec) {
+    BuildContext context,
+    ActiveExecutionState exec,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -1501,8 +1561,7 @@ class _WorkoutExecutionScreenState
             const Spacer(flex: 3),
 
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
               child: Column(
                 children: [
                   SizedBox(
@@ -1545,8 +1604,11 @@ class _WorkoutExecutionScreenState
     setState(() => _viewMode = _ViewMode.overview);
   }
 
-  PreferredSizeWidget _cardioAppBar(String name, int totalSets,
-      {VoidCallback? onBack}) {
+  PreferredSizeWidget _cardioAppBar(
+    String name,
+    int totalSets, {
+    VoidCallback? onBack,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
@@ -1590,8 +1652,11 @@ class _WorkoutExecutionScreenState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle,
-              size: 18, color: colorScheme.onPrimaryContainer),
+          Icon(
+            Icons.check_circle,
+            size: 18,
+            color: colorScheme.onPrimaryContainer,
+          ),
           const SizedBox(width: AthlosSpacing.xs),
           Text(
             l10n.cardioGoalReached,
@@ -1690,7 +1755,9 @@ class _WorkoutExecutionScreenState
   }
 
   Widget _buildCardioRunning(
-      ActiveExecutionState exec, CardioTimerState cardioState) {
+    ActiveExecutionState exec,
+    CardioTimerState cardioState,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -1704,12 +1771,11 @@ class _WorkoutExecutionScreenState
     final timerColor = isPaused
         ? colorScheme.onSurfaceVariant
         : hasReachedGoal
-            ? colorScheme.primary
-            : colorScheme.onSurface;
+        ? colorScheme.primary
+        : colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor:
-          isPaused ? colorScheme.surfaceContainerHighest : null,
+      backgroundColor: isPaused ? colorScheme.surfaceContainerHighest : null,
       appBar: _cardioAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
@@ -1756,7 +1822,8 @@ class _WorkoutExecutionScreenState
             if (cardioState.goalSeconds > 0) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.xxl),
+                  horizontal: AthlosSpacing.xxl,
+                ),
                 child: LinearProgressIndicator(
                   value: cardioState.progress,
                   borderRadius: AthlosRadius.fullAll,
@@ -1766,8 +1833,7 @@ class _WorkoutExecutionScreenState
               ),
               const SizedBox(height: AthlosSpacing.sm),
               Text(
-                l10n.cardioGoalLabel(
-                    formatDuration(cardioState.goalSeconds)),
+                l10n.cardioGoalLabel(formatDuration(cardioState.goalSeconds)),
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -1815,7 +1881,9 @@ class _WorkoutExecutionScreenState
   }
 
   Widget _buildCardioFinishing(
-      ActiveExecutionState exec, CardioTimerState cardioState) {
+    ActiveExecutionState exec,
+    CardioTimerState cardioState,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -1839,8 +1907,7 @@ class _WorkoutExecutionScreenState
               value: _currentDuration.toDouble(),
               suffix: l10n.cardioDurationLabel,
               step: 30,
-              onChanged: (v) =>
-                  setState(() => _currentDuration = v.toInt()),
+              onChanged: (v) => setState(() => _currentDuration = v.toInt()),
               textTheme: textTheme,
               colorScheme: colorScheme,
             ),
@@ -1860,8 +1927,7 @@ class _WorkoutExecutionScreenState
               value: _currentDistance,
               suffix: l10n.cardioDistanceOptional,
               step: 100,
-              onChanged: (v) =>
-                  setState(() => _currentDistance = v),
+              onChanged: (v) => setState(() => _currentDistance = v),
               textTheme: textTheme,
               colorScheme: colorScheme,
             ),
@@ -1888,8 +1954,7 @@ class _WorkoutExecutionScreenState
     );
   }
 
-  Widget _buildCardioCompleted(
-      ActiveExecutionState exec, List<SetEntry> sets) {
+  Widget _buildCardioCompleted(ActiveExecutionState exec, List<SetEntry> sets) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -1897,29 +1962,30 @@ class _WorkoutExecutionScreenState
     final exercise = exec.exercises[_focusedExerciseIndex];
     final name = _exerciseName(exercise.exerciseId);
     final nextInExercise = sets
-        .where(
-            (s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
+        .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
         .toList();
 
     return Scaffold(
-      appBar: _cardioAppBar(name, sets.length,
-          onBack: () => setState(() => _viewMode = _ViewMode.overview)),
+      appBar: _cardioAppBar(
+        name,
+        sets.length,
+        onBack: () => setState(() => _viewMode = _ViewMode.overview),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle,
-                size: 64, color: colorScheme.primary),
+            Icon(Icons.check_circle, size: 64, color: colorScheme.primary),
             const SizedBox(height: AthlosSpacing.lg),
-            Text(
-              l10n.restComplete,
-              style: textTheme.headlineSmall,
-            ),
+            Text(l10n.restComplete, style: textTheme.headlineSmall),
             const SizedBox(height: AthlosSpacing.xl),
             if (nextInExercise.isNotEmpty)
               FilledButton.icon(
-                onPressed: () => _goToFocused(exec, _focusedExerciseIndex,
-                    nextInExercise.first.setNumber),
+                onPressed: () => _goToFocused(
+                  exec,
+                  _focusedExerciseIndex,
+                  nextInExercise.first.setNumber,
+                ),
                 icon: const Icon(Icons.arrow_forward),
                 label: Text(l10n.nextSetLabel),
               )
@@ -1931,8 +1997,7 @@ class _WorkoutExecutionScreenState
               ),
               const SizedBox(height: AthlosSpacing.md),
               OutlinedButton.icon(
-                onPressed: () =>
-                    setState(() => _viewMode = _ViewMode.overview),
+                onPressed: () => setState(() => _viewMode = _ViewMode.overview),
                 icon: const Icon(Icons.list_alt),
                 label: Text(l10n.backToOverview),
               ),
@@ -1971,30 +2036,33 @@ class _WorkoutExecutionScreenState
     };
   }
 
-  PreferredSizeWidget _timedAppBar(String name, int totalSets,
-          {VoidCallback? onBack}) =>
-      AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: onBack ??
-              () {
-                ref.read(cardioTimerProvider.notifier).reset();
-                setState(() => _viewMode = _ViewMode.overview);
-              },
-        ),
-        title: Text(name),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AthlosSpacing.md),
-            child: Center(
-              child: Text(
-                '$_focusedSetNumber / $totalSets',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
+  PreferredSizeWidget _timedAppBar(
+    String name,
+    int totalSets, {
+    VoidCallback? onBack,
+  }) => AppBar(
+    leading: IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed:
+          onBack ??
+          () {
+            ref.read(cardioTimerProvider.notifier).reset();
+            setState(() => _viewMode = _ViewMode.overview);
+          },
+    ),
+    title: Text(name),
+    actions: [
+      Padding(
+        padding: const EdgeInsets.only(right: AthlosSpacing.md),
+        child: Center(
+          child: Text(
+            '$_focusedSetNumber / $totalSets',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
 
   Widget _buildTimedReady(ActiveExecutionState exec) {
     final l10n = AppLocalizations.of(context)!;
@@ -2146,7 +2214,8 @@ class _WorkoutExecutionScreenState
             if (cardioState.goalSeconds > 0) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.xxl),
+                  horizontal: AthlosSpacing.xxl,
+                ),
                 child: LinearProgressIndicator(
                   value: cardioState.progress,
                   borderRadius: AthlosRadius.fullAll,
@@ -2160,13 +2229,13 @@ class _WorkoutExecutionScreenState
                   children: [
                     TextSpan(
                       text: l10n.isometricGoalLabel(
-                          formatDuration(cardioState.goalSeconds)),
+                        formatDuration(cardioState.goalSeconds),
+                      ),
                       style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (hasReachedGoal &&
-                        cardioState.overtimeSeconds > 0) ...[
+                    if (hasReachedGoal && cardioState.overtimeSeconds > 0) ...[
                       TextSpan(
                         text: ' · ',
                         style: textTheme.bodyMedium?.copyWith(
@@ -2175,7 +2244,8 @@ class _WorkoutExecutionScreenState
                       ),
                       TextSpan(
                         text: l10n.isometricOverGoal(
-                            formatDuration(cardioState.overtimeSeconds)),
+                          formatDuration(cardioState.overtimeSeconds),
+                        ),
                         style: textTheme.bodyMedium?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -2222,8 +2292,7 @@ class _WorkoutExecutionScreenState
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final customColors =
-        Theme.of(context).extension<AthlosCustomColors>()!;
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
@@ -2270,7 +2339,8 @@ class _WorkoutExecutionScreenState
                     children: [
                       TextSpan(
                         text: l10n.isometricGoalLabel(
-                            formatDuration(goalSeconds)),
+                          formatDuration(goalSeconds),
+                        ),
                         style: textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -2314,8 +2384,7 @@ class _WorkoutExecutionScreenState
                 Expanded(
                   child: _RpeSelector(
                     value: _selectedRpe,
-                    onChanged: (v) =>
-                        setState(() => _selectedRpe = v),
+                    onChanged: (v) => setState(() => _selectedRpe = v),
                   ),
                 ),
               ],
@@ -2343,8 +2412,7 @@ class _WorkoutExecutionScreenState
     );
   }
 
-  Widget _buildTimedCompleted(
-      ActiveExecutionState exec, List<SetEntry> sets) {
+  Widget _buildTimedCompleted(ActiveExecutionState exec, List<SetEntry> sets) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -2352,29 +2420,30 @@ class _WorkoutExecutionScreenState
     final exercise = exec.exercises[_focusedExerciseIndex];
     final name = _exerciseName(exercise.exerciseId);
     final nextInExercise = sets
-        .where(
-            (s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
+        .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
         .toList();
 
     return Scaffold(
-      appBar: _timedAppBar(name, sets.length,
-          onBack: () => setState(() => _viewMode = _ViewMode.overview)),
+      appBar: _timedAppBar(
+        name,
+        sets.length,
+        onBack: () => setState(() => _viewMode = _ViewMode.overview),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle,
-                size: 64, color: colorScheme.primary),
+            Icon(Icons.check_circle, size: 64, color: colorScheme.primary),
             const SizedBox(height: AthlosSpacing.lg),
-            Text(
-              l10n.restComplete,
-              style: textTheme.headlineSmall,
-            ),
+            Text(l10n.restComplete, style: textTheme.headlineSmall),
             const SizedBox(height: AthlosSpacing.xl),
             if (nextInExercise.isNotEmpty)
               FilledButton.icon(
-                onPressed: () => _goToFocused(exec, _focusedExerciseIndex,
-                    nextInExercise.first.setNumber),
+                onPressed: () => _goToFocused(
+                  exec,
+                  _focusedExerciseIndex,
+                  nextInExercise.first.setNumber,
+                ),
                 icon: const Icon(Icons.arrow_forward),
                 label: Text(l10n.nextSetLabel),
               )
@@ -2386,8 +2455,7 @@ class _WorkoutExecutionScreenState
               ),
               const SizedBox(height: AthlosSpacing.md),
               OutlinedButton.icon(
-                onPressed: () =>
-                    setState(() => _viewMode = _ViewMode.overview),
+                onPressed: () => setState(() => _viewMode = _ViewMode.overview),
                 icon: const Icon(Icons.list_alt),
                 label: Text(l10n.backToOverview),
               ),
@@ -2412,16 +2480,15 @@ class _WorkoutExecutionScreenState
             weight: _currentWeight > 0 ? _currentWeight : null,
             isWarmup: _isWarmup,
             rpe: _selectedRpe,
-            notes:
-                _setNotes?.trim().isNotEmpty == true ? _setNotes!.trim() : null,
+            notes: _setNotes?.trim().isNotEmpty == true
+                ? _setNotes!.trim()
+                : null,
           );
       rest = r;
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
       return;
@@ -2434,7 +2501,10 @@ class _WorkoutExecutionScreenState
     if (updatedExec == null) return;
 
     final nextInGroup = _nextInSupersetGroup(
-        updatedExec, _focusedExerciseIndex, _focusedSetNumber);
+      updatedExec,
+      _focusedExerciseIndex,
+      _focusedSetNumber,
+    );
     if (nextInGroup != null) {
       _goToFocused(updatedExec, nextInGroup, _focusedSetNumber);
       return;
@@ -2466,26 +2536,32 @@ class _WorkoutExecutionScreenState
               reps: effectiveReps,
               weight: effectiveWeight > 0 ? effectiveWeight : null,
             ),
-            ..._dropSegments
-                .map((d) => SegmentEntry(reps: d.reps, weight: d.weight)),
+            ..._dropSegments.map(
+              (d) => SegmentEntry(reps: d.reps, weight: d.weight),
+            ),
           ];
 
     final int rest;
     final double? suggestedWeight;
     try {
-      final result =
-          await ref.read(activeExecutionProvider.notifier).completeSet(
+      final result = await ref
+          .read(activeExecutionProvider.notifier)
+          .completeSet(
             exercise.exerciseId,
             _focusedSetNumber,
             reps: isCardio ? null : effectiveReps,
-            weight:
-                isCardio ? null : (effectiveWeight > 0 ? effectiveWeight : null),
+            weight: isCardio
+                ? null
+                : (effectiveWeight > 0 ? effectiveWeight : null),
             duration: isCardio ? _currentDuration : null,
-            distance:
-                isCardio ? (_currentDistance > 0 ? _currentDistance : null) : null,
+            distance: isCardio
+                ? (_currentDistance > 0 ? _currentDistance : null)
+                : null,
             isWarmup: _isWarmup,
             rpe: _selectedRpe,
-            notes: _setNotes?.trim().isNotEmpty == true ? _setNotes!.trim() : null,
+            notes: _setNotes?.trim().isNotEmpty == true
+                ? _setNotes!.trim()
+                : null,
             segments: segments.isEmpty ? null : segments,
             leftReps: isUni && _leftReps > 0 ? _leftReps : null,
             leftWeight: isUni && _leftWeight > 0 ? _leftWeight : null,
@@ -2498,9 +2574,7 @@ class _WorkoutExecutionScreenState
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
       return;
@@ -2511,8 +2585,11 @@ class _WorkoutExecutionScreenState
     if (suggestedWeight != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!
-              .suggestedWeightIncrease(suggestedWeight.toStringAsFixed(1))),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            )!.suggestedWeightIncrease(suggestedWeight.toStringAsFixed(1)),
+          ),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -2522,7 +2599,10 @@ class _WorkoutExecutionScreenState
     if (updatedExec == null) return;
 
     final nextInGroup = _nextInSupersetGroup(
-        updatedExec, _focusedExerciseIndex, _focusedSetNumber);
+      updatedExec,
+      _focusedExerciseIndex,
+      _focusedSetNumber,
+    );
     if (nextInGroup != null) {
       _goToFocused(updatedExec, nextInGroup, _focusedSetNumber);
       return;
@@ -2536,23 +2616,24 @@ class _WorkoutExecutionScreenState
 
     final int rest;
     try {
-      final (r, _) = await ref.read(activeExecutionProvider.notifier).completeSet(
+      final (r, _) = await ref
+          .read(activeExecutionProvider.notifier)
+          .completeSet(
             exercise.exerciseId,
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
-            distance:
-                _currentDistance > 0 ? _currentDistance : null,
+            distance: _currentDistance > 0 ? _currentDistance : null,
             isWarmup: _isWarmup,
             rpe: _selectedRpe,
-            notes: _setNotes?.trim().isNotEmpty == true ? _setNotes!.trim() : null,
+            notes: _setNotes?.trim().isNotEmpty == true
+                ? _setNotes!.trim()
+                : null,
           );
       rest = r;
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
       return;
@@ -2574,15 +2655,14 @@ class _WorkoutExecutionScreenState
       ref.read(cardioTimerProvider.notifier).reset();
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.workoutFinished)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.workoutFinished)));
 
         final program = ref.read(activeProgramProvider).value;
 
         ref.invalidate(isDeloadDueProvider);
-        final isDeloadDue =
-            await ref.read(isDeloadDueProvider.future);
+        final isDeloadDue = await ref.read(isDeloadDueProvider.future);
         if (isDeloadDue && context.mounted && program != null) {
           await _showDeloadPrompt(context, program);
         }
@@ -2603,68 +2683,91 @@ class _WorkoutExecutionScreenState
     } on Exception catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     }
   }
 
   Future<void> _showDeloadPrompt(
-      BuildContext context, TrainingProgram program) async {
+    BuildContext context,
+    TrainingProgram program,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
     final config = program.deloadConfig;
     if (config == null) return;
 
-    final accept = await showDialog<bool>(
+    final accept = await showAthlosDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deloadPromptTitle),
-        content: Text(l10n.deloadPromptMessage(config.frequency ?? 0)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.deloadSkip),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.deloadAccept),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deloadPromptMessage(config.frequency ?? 0)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.deloadSkip),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.deloadAccept),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 
     if (accept == true && mounted) {
-      await ref
-          .read(programActionsProvider.notifier)
-          .enterDeload(program.id);
+      await ref.read(programActionsProvider.notifier).enterDeload(program.id);
       ref.invalidate(programListProvider);
       ref.invalidate(activeProgramProvider);
     }
   }
 
   Future<void> _showProgramCompletionPrompt(
-      BuildContext context, TrainingProgram program) async {
+    BuildContext context,
+    TrainingProgram program,
+  ) async {
     final l10n = AppLocalizations.of(context)!;
-    final action = await showDialog<String>(
+    final action = await showAthlosDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        icon: Icon(Icons.emoji_events_rounded,
-            color: Theme.of(ctx).colorScheme.primary, size: 40),
+        icon: Icon(
+          Icons.emoji_events_rounded,
+          color: Theme.of(ctx).colorScheme.primary,
+          size: 40,
+        ),
         title: Text(l10n.programCompletedTitle),
-        content: Text(l10n.programCompletedMessage(program.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'continue'),
-            child: Text(l10n.programCompletedContinue),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, 'archive'),
-            child: Text(l10n.programCompletedArchive),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.programCompletedMessage(program.name)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx, 'archive'),
+                  child: Text(l10n.programCompletedArchive),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx, 'continue'),
+                  child: Text(l10n.programCompletedContinue),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 
@@ -2680,68 +2783,128 @@ class _WorkoutExecutionScreenState
   void _showCancelDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    showDialog(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.cancelExecution),
-        content: Text(l10n.cancelExecutionMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.back),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref
-                    .read(activeExecutionProvider.notifier)
-                    .cancelExecution();
-                ref.read(restTimerProvider.notifier).reset();
-                ref.read(cardioTimerProvider.notifier).reset();
-                if (context.mounted) context.pop();
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.genericError),
-                    ),
-                  );
-                }
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.cancelExecutionMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await ref
+                          .read(activeExecutionProvider.notifier)
+                          .cancelExecution();
+                      ref.read(restTimerProvider.notifier).reset();
+                      ref.read(cardioTimerProvider.notifier).reset();
+                      if (context.mounted) context.pop();
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.genericError),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.cancelExecution),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.back),
+                ),
+              ],
             ),
-            child: Text(l10n.cancelExecution),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _showFinishWorkoutIncompleteDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    final confirmed = await showAthlosDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+          title: Text(l10n.finishWorkoutIncompleteTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.finishWorkoutIncompleteMessage),
+              AthlosStackedDialogActions(
+                children: [
+                  TextButton(
+                    style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(
+                      l10n.finishWorkoutIncompleteConfirm,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  FilledButton(
+                    style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(
+                      l10n.finishWorkoutIncompleteStay,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await _onFinish(context);
+    }
   }
 
   void _showSkipRestTimerDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    showDialog(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.skipRestTimerTitle),
-        content: Text(l10n.skipRestTimerMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.continueRest),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref.read(restTimerProvider.notifier).reset();
-              setState(() => _viewMode = _ViewMode.overview);
-            },
-            child: Text(l10n.skipTimer),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.skipRestTimerMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ref.read(restTimerProvider.notifier).reset();
+                    setState(() => _viewMode = _ViewMode.overview);
+                  },
+                  child: Text(l10n.skipTimer),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.continueRest),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2785,10 +2948,9 @@ class _OverviewExerciseCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isInGroup = isGroupedWithPrevious || isGroupedWithNext;
 
-    final groupColor =
-        isInGroup && groupColorIndex != null
-            ? supersetColorFor(groupColorIndex!, colorScheme)
-            : null;
+    final groupColor = isInGroup && groupColorIndex != null
+        ? supersetColorFor(groupColorIndex!, colorScheme)
+        : null;
 
     final IconData statusIcon;
     final Color statusColor;
@@ -2822,8 +2984,7 @@ class _OverviewExerciseCard extends StatelessWidget {
                         !isGroupedWithPrevious &&
                         groupColor != null)
                       Padding(
-                        padding:
-                            const EdgeInsets.only(right: AthlosSpacing.xs),
+                        padding: const EdgeInsets.only(right: AthlosSpacing.xs),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AthlosSpacing.xs,
@@ -2839,8 +3000,7 @@ class _OverviewExerciseCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.link,
-                                  size: 10, color: groupColor),
+                              Icon(Icons.link, size: 10, color: groupColor),
                               const SizedBox(width: AthlosSpacing.xs),
                               Text(
                                 l10n.supersetLabel,
@@ -2858,10 +3018,12 @@ class _OverviewExerciseCard extends StatelessWidget {
                       child: Text(
                         exerciseName,
                         style: textTheme.titleSmall?.copyWith(
-                          decoration:
-                              isAllDone ? TextDecoration.lineThrough : null,
-                          color:
-                              isAllDone ? colorScheme.onSurfaceVariant : null,
+                          decoration: isAllDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isAllDone
+                              ? colorScheme.onSurfaceVariant
+                              : null,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2890,24 +3052,25 @@ class _OverviewExerciseCard extends StatelessWidget {
                             vertical: AthlosSpacing.xxs,
                           ),
                           decoration: BoxDecoration(
-                            color: colorScheme.secondaryContainer
-                                .withValues(alpha: 0.5),
+                            color: colorScheme.secondaryContainer.withValues(
+                              alpha: 0.5,
+                            ),
                             borderRadius: AthlosRadius.fullAll,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.swap_horiz,
-                                  size: 10,
-                                  color:
-                                      colorScheme.onSecondaryContainer),
+                              Icon(
+                                Icons.swap_horiz,
+                                size: 10,
+                                color: colorScheme.onSecondaryContainer,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 l10n.unilateralLabel,
                                 style: textTheme.labelSmall?.copyWith(
                                   fontSize: 9,
-                                  color:
-                                      colorScheme.onSecondaryContainer,
+                                  color: colorScheme.onSecondaryContainer,
                                 ),
                               ),
                             ],
@@ -2940,10 +3103,7 @@ class _OverviewExerciseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AthlosSpacing.xs),
-          Icon(
-            Icons.chevron_right,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
         ],
       ),
     );
@@ -2967,9 +3127,7 @@ class _OverviewExerciseCard extends StatelessWidget {
         decoration: groupColor != null
             ? BoxDecoration(
                 borderRadius: AthlosRadius.mdAll,
-                border: Border(
-                  left: BorderSide(color: groupColor, width: 4),
-                ),
+                border: Border(left: BorderSide(color: groupColor, width: 4)),
               )
             : null,
         child: InkWell(
@@ -3009,15 +3167,14 @@ class _NumberInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayValue =
-        value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+    final displayValue = value % 1 == 0
+        ? value.toInt().toString()
+        : value.toStringAsFixed(1);
 
     final valueStyle = compact
         ? textTheme.headlineMedium
         : textTheme.displayMedium;
-    final suffixStyle = compact
-        ? textTheme.bodyMedium
-        : textTheme.titleMedium;
+    final suffixStyle = compact ? textTheme.bodyMedium : textTheme.titleMedium;
     final spacing = compact ? AthlosSpacing.sm : AthlosSpacing.lg;
 
     return Row(
@@ -3080,37 +3237,46 @@ class _NumberInput extends StatelessWidget {
           : value.toStringAsFixed(1),
     );
 
-    final result = await showDialog<double>(
+    final result = await showAthlosDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(suffix),
-        content: TextField(
-          controller: controller,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          autofocus: true,
-          decoration: InputDecoration(
-            suffixText: suffix,
-            border: const OutlineInputBorder(),
-          ),
-          onSubmitted: (v) {
-            final parsed = double.tryParse(v);
-            Navigator.pop(ctx, parsed);
-          },
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              decoration: InputDecoration(
+                suffixText: suffix,
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (v) {
+                final parsed = double.tryParse(v);
+                Navigator.pop(ctx, parsed);
+              },
+            ),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () {
+                    final parsed = double.tryParse(controller.text);
+                    Navigator.pop(ctx, parsed);
+                  },
+                  child: Text(AppLocalizations.of(ctx)!.okButton),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final parsed = double.tryParse(controller.text);
-              Navigator.pop(ctx, parsed);
-            },
-            child: Text(AppLocalizations.of(ctx)!.okButton),
-          ),
-        ],
       ),
     );
 
@@ -3166,10 +3332,7 @@ class _DropSegmentInput {
   const _DropSegmentInput({required this.reps, required this.weight});
 
   _DropSegmentInput copyWith({int? reps, double? weight}) =>
-      _DropSegmentInput(
-        reps: reps ?? this.reps,
-        weight: weight ?? this.weight,
-      );
+      _DropSegmentInput(reps: reps ?? this.reps, weight: weight ?? this.weight);
 }
 
 class _DropSegmentRow extends StatefulWidget {
@@ -3206,8 +3369,9 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
     super.initState();
     _weightController = TextEditingController(
       text: widget.segment.weight > 0
-          ? widget.segment.weight
-              .toStringAsFixed(widget.segment.weight % 1 == 0 ? 0 : 1)
+          ? widget.segment.weight.toStringAsFixed(
+              widget.segment.weight % 1 == 0 ? 0 : 1,
+            )
           : '',
     );
     _repsController = TextEditingController(
@@ -3228,8 +3392,11 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
       padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
       child: Row(
         children: [
-          Icon(Icons.arrow_downward,
-              size: 18, color: widget.colorScheme.tertiary),
+          Icon(
+            Icons.arrow_downward,
+            size: 18,
+            color: widget.colorScheme.tertiary,
+          ),
           const SizedBox(width: AthlosSpacing.xs),
           Text(
             widget.l10n.dropSetSegment(widget.index + 2),
@@ -3242,8 +3409,9 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
           Expanded(
             child: TextField(
               controller: _weightController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 isDense: true,
@@ -3255,8 +3423,7 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
                   vertical: AthlosSpacing.sm,
                 ),
               ),
-              onChanged: (v) =>
-                  widget.onWeightChanged(double.tryParse(v) ?? 0),
+              onChanged: (v) => widget.onWeightChanged(double.tryParse(v) ?? 0),
             ),
           ),
           const SizedBox(width: AthlosSpacing.sm),
@@ -3281,8 +3448,11 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
           ),
           const SizedBox(width: AthlosSpacing.xs),
           IconButton(
-            icon: Icon(Icons.close,
-                size: 20, color: widget.colorScheme.error),
+            icon: Icon(
+              Icons.close,
+              size: 20,
+              color: widget.colorScheme.onSurfaceVariant,
+            ),
             onPressed: widget.onRemove,
             visualDensity: VisualDensity.compact,
           ),
@@ -3329,9 +3499,7 @@ class _WarmupChip extends StatelessWidget {
             Icon(
               Icons.fitness_center,
               size: 12,
-              color: isSelected
-                  ? cs.onSecondaryContainer
-                  : cs.onSurfaceVariant,
+              color: isSelected ? cs.onSecondaryContainer : cs.onSurfaceVariant,
             ),
             const SizedBox(width: AthlosSpacing.xs),
             Text(
@@ -3380,9 +3548,7 @@ class _RpeSelector extends StatelessWidget {
           triggerMode: TooltipTriggerMode.longPress,
           child: Text(
             l10n.rpeLabel,
-            style: textTheme.labelSmall?.copyWith(
-              color: cs.onSurfaceVariant,
-            ),
+            style: textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
           ),
         ),
         const SizedBox(width: AthlosSpacing.sm),
@@ -3394,8 +3560,7 @@ class _RpeSelector extends StatelessWidget {
             colorScheme: cs,
             onTap: () => onChanged(value == rpe ? null : rpe),
           ),
-          if (rpe != _values.last)
-            const SizedBox(width: AthlosSpacing.xs),
+          if (rpe != _values.last) const SizedBox(width: AthlosSpacing.xs),
         ],
       ],
     );
@@ -3441,9 +3606,9 @@ class _RpeChip extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: isSelected ? color : colorScheme.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.w700 : null,
-              ),
+            color: isSelected ? color : colorScheme.onSurfaceVariant,
+            fontWeight: isSelected ? FontWeight.w700 : null,
+          ),
         ),
       ),
     );

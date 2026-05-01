@@ -12,6 +12,8 @@ import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../training/presentation/providers/equipment_notifier.dart';
@@ -104,23 +106,34 @@ Future<void> runBackupImportFlow({
 
     if (!context.mounted) return;
     final confirmed =
-        await showDialog<bool>(
+        await showAthlosDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: Text(l10n.profileDataImportConfirmTitle),
-            content: Text(
-              l10n.profileDataImportConfirmMessage(preview.totalRecords),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.profileDataImportConfirmMessage(preview.totalRecords),
+                ),
+                AthlosStackedDialogActions(
+                  children: [
+                    TextButton(
+                      style: AthlosDialogButtonStyles.stackedGhost(context),
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(l10n.cancel),
+                    ),
+                    FilledButton(
+                      style:
+                          AthlosDialogButtonStyles.stackedFilled(context),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text(l10n.profileDataImportAction),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l10n.profileDataImportAction),
-              ),
-            ],
           ),
         ) ??
         false;
@@ -160,24 +173,33 @@ Future<void> runBackupImportFlow({
     ref.invalidate(trainingHomeAnalyticsProvider);
 
     if (!context.mounted) return;
-    await showDialog<void>(
+    await showAthlosDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.profileDataImportResultTitle),
-        content: Text(
-          l10n.profileDataImportResultMessage(
-            report.createdCount,
-            report.updatedCount,
-            report.skippedCount,
-            report.failedCount,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.profileDataImportResultMessage(
+                report.createdCount,
+                report.updatedCount,
+                report.skippedCount,
+                report.failedCount,
+              ),
+            ),
+            AthlosStackedDialogActions(
+              children: [
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(context),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.okButton),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.okButton),
-          ),
-        ],
       ),
     );
   } on Exception catch (e, stackTrace) {
@@ -209,34 +231,45 @@ Future<BackupConflictResolution?> _showConflictDialog({
   required BackupImportConflict conflict,
   required AppLocalizations l10n,
 }) {
-  return showDialog<BackupConflictResolution>(
+  return showAthlosDialog<BackupConflictResolution>(
     context: context,
     builder: (context) {
       return AlertDialog(
         title: Text(l10n.profileDataConflictTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.profileDataConflictType(_conflictTypeLabel(conflict, l10n)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.profileDataConflictType(
+                      _conflictTypeLabel(conflict, l10n)),
+                ),
+                const Gap(AthlosSpacing.sm),
+                Text(l10n.profileDataConflictExisting(
+                  _resolveEntityLabel(
+                      conflict.type, conflict.existingLabel, l10n),
+                )),
+                Text(l10n.profileDataConflictImported(
+                  _resolveEntityLabel(
+                      conflict.type, conflict.importedLabel, l10n),
+                )),
+              ],
             ),
-            const Gap(AthlosSpacing.sm),
-            Text(l10n.profileDataConflictExisting(
-              _resolveEntityLabel(conflict.type, conflict.existingLabel, l10n),
-            )),
-            Text(l10n.profileDataConflictImported(
-              _resolveEntityLabel(conflict.type, conflict.importedLabel, l10n),
-            )),
+            AthlosStackedDialogActions(
+              children: [
+                for (final resolution in conflict.allowedResolutions)
+                  TextButton(
+                    style: AthlosDialogButtonStyles.stackedGhost(context),
+                    onPressed: () => Navigator.of(context).pop(resolution),
+                    child: Text(_resolutionLabel(resolution, l10n)),
+                  ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          for (final resolution in conflict.allowedResolutions)
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(resolution),
-              child: Text(_resolutionLabel(resolution, l10n)),
-            ),
-        ],
       );
     },
   );
@@ -263,55 +296,66 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
         )
       : l10n.profileDataPendingNoSuggestion;
 
-  return showDialog<BackupPendingReviewResolution>(
+  return showAthlosDialog<BackupPendingReviewResolution>(
     context: context,
     builder: (context) {
       return AlertDialog(
         title: Text(l10n.profileDataPendingTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.profileDataPendingType(_pendingTypeLabel(review, l10n))),
-            Text(
-              l10n.profileDataPendingScope(_pendingScopeLabel(review, l10n)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    l10n.profileDataPendingType(_pendingTypeLabel(review, l10n))),
+                Text(
+                  l10n.profileDataPendingScope(_pendingScopeLabel(review, l10n)),
+                ),
+                Text(
+                  l10n.profileDataPendingDetectedFrom(
+                    _pendingSourceLabel(review, l10n),
+                  ),
+                ),
+                const Gap(AthlosSpacing.sm),
+                Text(l10n.profileDataPendingImported(importedDisplay)),
+                if (existingDisplay != null)
+                  Text(l10n.profileDataPendingExisting(existingDisplay)),
+                Text(suggestionText),
+              ],
             ),
-            Text(
-              l10n.profileDataPendingDetectedFrom(
-                _pendingSourceLabel(review, l10n),
-              ),
+            AthlosStackedDialogActions(
+              children: [
+                if (review.decisionScope !=
+                        BackupConflictDecisionScope.catalogGovernance &&
+                    review.suggestedLabel != null)
+                  TextButton(
+                    style: AthlosDialogButtonStyles.stackedGhost(context),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop(BackupPendingReviewResolution.linkSuggested),
+                    child: Text(l10n.profileDataPendingLinkSuggested),
+                  ),
+                if (review.decisionScope !=
+                    BackupConflictDecisionScope.catalogGovernance)
+                  TextButton(
+                    style: AthlosDialogButtonStyles.stackedGhost(context),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop(BackupPendingReviewResolution.createCustom),
+                    child: Text(l10n.profileDataPendingCreateCustom),
+                  ),
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(context),
+                  onPressed: () => Navigator.of(context)
+                      .pop(BackupPendingReviewResolution.skip),
+                  child: Text(l10n.profileDataPendingSkip),
+                ),
+              ],
             ),
-            const Gap(AthlosSpacing.sm),
-            Text(l10n.profileDataPendingImported(importedDisplay)),
-            if (existingDisplay != null)
-              Text(l10n.profileDataPendingExisting(existingDisplay)),
-            Text(suggestionText),
           ],
         ),
-        actions: [
-          if (review.decisionScope !=
-                  BackupConflictDecisionScope.catalogGovernance &&
-              review.suggestedLabel != null)
-            TextButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(BackupPendingReviewResolution.linkSuggested),
-              child: Text(l10n.profileDataPendingLinkSuggested),
-            ),
-          if (review.decisionScope !=
-              BackupConflictDecisionScope.catalogGovernance)
-            TextButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(BackupPendingReviewResolution.createCustom),
-              child: Text(l10n.profileDataPendingCreateCustom),
-            ),
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context).pop(BackupPendingReviewResolution.skip),
-            child: Text(l10n.profileDataPendingSkip),
-          ),
-        ],
       );
     },
   );

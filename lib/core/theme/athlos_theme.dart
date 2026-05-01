@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'athlos_button_insets.dart';
+import 'athlos_button_sizes.dart';
 import 'athlos_color_scheme.dart';
 import 'athlos_custom_colors.dart';
 import 'athlos_elevation.dart';
 import 'athlos_radius.dart';
+import 'athlos_spacing.dart';
 import 'athlos_text_theme.dart';
 
 /// Main ThemeData factory for Athlos.
@@ -31,6 +34,54 @@ class AthlosTheme {
           elevation: AthlosElevation.none,
         ),
         scaffoldBackgroundColor: colorScheme.surface,
+        dialogTheme: DialogThemeData(
+          actionsPadding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.lg,
+            AthlosSpacing.xs,
+            AthlosSpacing.lg,
+            AthlosSpacing.md,
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            padding: AthlosButtonInsets.screen,
+            minimumSize: const Size(
+              AthlosButtonSizes.minWidth,
+              AthlosButtonSizes.screenMinHeight,
+            ),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            padding: AthlosButtonInsets.screen,
+            minimumSize: const Size(
+              AthlosButtonSizes.minWidth,
+              AthlosButtonSizes.screenMinHeight,
+            ),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            padding: AthlosButtonInsets.screen,
+            minimumSize: const Size(
+              AthlosButtonSizes.minWidth,
+              AthlosButtonSizes.screenMinHeight,
+            ),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: AthlosButtonInsets.screen,
+            minimumSize: const Size(
+              AthlosButtonSizes.minWidth,
+              AthlosButtonSizes.screenMinHeight,
+            ),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
         navigationBarTheme: NavigationBarThemeData(
           height: 64,
           elevation: AthlosElevation.none,

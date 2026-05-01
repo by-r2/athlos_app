@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/equipment.dart';
@@ -16,7 +18,7 @@ Future<bool?> showEquipmentWarningDialog(
   BuildContext context, {
   required List<Equipment> missingEquipment,
 }) =>
-    showDialog<bool>(
+    showAthlosDialog<bool>(
       context: context,
       builder: (context) =>
           _EquipmentWarningDialog(missingEquipment: missingEquipment),
@@ -44,58 +46,68 @@ class _EquipmentWarningDialog extends ConsumerWidget {
       title: Text(l10n.equipmentWarningTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.equipmentWarningMessage),
-          const SizedBox(height: AthlosSpacing.sm),
-          ...names.map(
-            (name) => Padding(
-              padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      size: 18, color: colorScheme.error),
-                  const SizedBox(width: AthlosSpacing.sm),
-                  Flexible(child: Text(name)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AthlosSpacing.sm),
-          Text(
-            l10n.equipmentWarningAutoAdd,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.equipmentWarningMessage),
+              const SizedBox(height: AthlosSpacing.sm),
+              ...names.map(
+                (name) => Padding(
+                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 18, color: colorScheme.error),
+                      const SizedBox(width: AthlosSpacing.sm),
+                      Flexible(child: Text(name)),
+                    ],
+                  ),
                 ),
+              ),
+              const SizedBox(height: AthlosSpacing.sm),
+              Text(
+                l10n.equipmentWarningAutoAdd,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(context),
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton.icon(
+                style: AthlosDialogButtonStyles.stackedFilled(context),
+                onPressed: () async {
+                  try {
+                    final notifier =
+                        ref.read(userEquipmentIdsProvider.notifier);
+                    await notifier.addAll(missingEquipment.map((e) => e.id));
+                    if (context.mounted) {
+                      Navigator.pop(context, true);
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                      Navigator.pop(context, false);
+                    }
+                  }
+                },
+                icon: const Icon(Icons.check),
+                label: Text(l10n.confirmAndAdd),
+              ),
+            ],
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton.icon(
-          onPressed: () async {
-            try {
-              final notifier = ref.read(userEquipmentIdsProvider.notifier);
-              await notifier.addAll(missingEquipment.map((e) => e.id));
-              if (context.mounted) {
-                Navigator.pop(context, true);
-              }
-            } on Exception catch (_) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.genericError)),
-                );
-                Navigator.pop(context, false);
-              }
-            }
-          },
-          icon: const Icon(Icons.check),
-          label: Text(l10n.confirmAndAdd),
-        ),
-      ],
     );
   }
 }

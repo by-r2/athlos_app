@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/equipment_category.dart';
@@ -12,7 +14,7 @@ Future<int?> showAddEquipmentDialog(
   BuildContext context, {
   String initialName = '',
 }) {
-  return showDialog<int>(
+  return showAthlosDialog<int>(
     context: context,
     builder: (context) => _AddEquipmentDialog(
       initialName: initialName,
@@ -55,6 +57,7 @@ class _AddEquipmentDialogState extends ConsumerState<_AddEquipmentDialog> {
       title: Text(l10n.addEquipment),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: _nameController,
@@ -107,24 +110,28 @@ class _AddEquipmentDialogState extends ConsumerState<_AddEquipmentDialog> {
               ),
             ],
           ),
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(context),
+                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(context),
+                onPressed: _isSaving ? null : _onSave,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.save),
+              ),
+            ],
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _isSaving ? null : _onSave,
-          child: _isSaving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l10n.save),
-        ),
-      ],
     );
   }
 

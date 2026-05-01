@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -264,7 +266,10 @@ class _EquipmentManagementBodyState extends ConsumerState<EquipmentManagementBod
                     onPressed: () => _showEditEquipmentDialog(context, equipment),
                   ),
                 IconButton(
-                  icon: Icon(Icons.remove_circle_outline, color: colorScheme.error),
+                  icon: Icon(
+                    Icons.remove_circle_outline,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   tooltip: l10n.removeEquipment,
                   onPressed: () => _toggleEquipment(equipment.id),
                 ),
@@ -307,12 +312,11 @@ class _EquipmentManagementBodyState extends ConsumerState<EquipmentManagementBod
               },
             ),
             ListTile(
-              leading:
-                  Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
-              title: Text(
-                l10n.delete,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              leading: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              title: Text(l10n.delete),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _confirmDeleteEquipment(context, equipment, l10n);
@@ -325,7 +329,7 @@ class _EquipmentManagementBodyState extends ConsumerState<EquipmentManagementBod
   }
 
   void _showEditEquipmentDialog(BuildContext context, Equipment equipment) {
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (context) => _EditEquipmentDialog(equipment: equipment),
     );
@@ -333,40 +337,49 @@ class _EquipmentManagementBodyState extends ConsumerState<EquipmentManagementBod
 
   void _confirmDeleteEquipment(
       BuildContext context, Equipment equipment, AppLocalizations l10n) {
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.deleteEquipmentTitle),
-        content: Text(l10n.deleteEquipmentMessage(equipment.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deleteEquipmentMessage(equipment.name)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style:
+                      AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    try {
+                      await ref
+                          .read(equipmentListProvider.notifier)
+                          .deleteEquipment(equipment.id);
+                      ref.invalidate(userEquipmentIdsProvider);
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context)!.genericError),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.delete),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+              ],
             ),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              try {
-                await ref
-                    .read(equipmentListProvider.notifier)
-                    .deleteEquipment(equipment.id);
-                ref.invalidate(userEquipmentIdsProvider);
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.genericError),
-                    ),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.delete),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -518,6 +531,7 @@ class _EditEquipmentDialogState extends ConsumerState<_EditEquipmentDialog> {
       title: Text(l10n.editEquipment),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
             controller: _nameController,
@@ -567,18 +581,22 @@ class _EditEquipmentDialogState extends ConsumerState<_EditEquipmentDialog> {
               ),
             ],
           ),
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(context),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(context),
+                onPressed: _onSave,
+                child: Text(l10n.save),
+              ),
+            ],
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _onSave,
-          child: Text(l10n.save),
-        ),
-      ],
     );
   }
 

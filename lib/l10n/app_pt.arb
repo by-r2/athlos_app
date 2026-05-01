@@ -1436,6 +1436,22 @@
   "@restTimerDone": { "description": "Message when rest timer finishes" },
   "finishWorkout": "Finalizar treino",
   "@finishWorkout": { "description": "Button to finish workout execution" },
+  "finishWorkoutIncompleteTitle": "Finalizar treino agora?",
+  "@finishWorkoutIncompleteTitle": {
+    "description": "Title when finishing execution with sets still pending"
+  },
+  "finishWorkoutIncompleteMessage": "Ainda há séries por concluir. Quer mesmo terminar este treino?",
+  "@finishWorkoutIncompleteMessage": {
+    "description": "Body when finishing execution with sets still pending"
+  },
+  "finishWorkoutIncompleteStay": "Continuar treino",
+  "@finishWorkoutIncompleteStay": {
+    "description": "Dismiss finish-early dialog and keep training"
+  },
+  "finishWorkoutIncompleteConfirm": "Finalizar mesmo assim",
+  "@finishWorkoutIncompleteConfirm": {
+    "description": "Confirm finishing workout despite incomplete sets"
+  },
   "cancelExecution": "Cancelar treino",
   "@cancelExecution": { "description": "Button to cancel workout execution" },
   "cancelExecutionMessage": "Tem certeza? O progresso será perdido.",

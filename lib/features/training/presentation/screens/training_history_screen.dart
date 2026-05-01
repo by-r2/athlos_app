@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -292,12 +294,11 @@ class _ExecutionCard extends ConsumerWidget {
                   PopupMenuItem(
                     value: 'delete',
                     child: ListTile(
-                      leading:
-                          Icon(Icons.delete_outline, color: colorScheme.error),
-                      title: Text(
-                        l10n.delete,
-                        style: TextStyle(color: colorScheme.error),
+                      leading: Icon(
+                        Icons.delete_outline,
+                        color: colorScheme.onSurfaceVariant,
                       ),
+                      title: Text(l10n.delete),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -314,39 +315,49 @@ class _ExecutionCard extends ConsumerWidget {
   void _confirmDelete(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    showDialog(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteExecutionTitle),
-        content: Text(l10n.deleteExecutionMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref
-                    .read(workoutExecutionListProvider.notifier)
-                    .deleteExecution(execution.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.executionDeleted)),
-                  );
-                }
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.genericError)),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.delete),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deleteExecutionMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await ref
+                          .read(workoutExecutionListProvider.notifier)
+                          .deleteExecution(execution.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.executionDeleted)),
+                        );
+                      }
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.genericError)),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.delete),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.cancel),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

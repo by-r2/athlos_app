@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -355,7 +357,6 @@ class _ActionsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -388,18 +389,12 @@ class _ActionsSection extends ConsumerWidget {
         const Gap(AthlosSpacing.sm),
         if (program.isActive && !program.isInDeload)
           OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.error,
-            ),
             onPressed: () => _confirmArchive(context, ref),
             icon: const Icon(Icons.archive_outlined),
             label: Text(l10n.archiveProgramAction),
           ),
         const Gap(AthlosSpacing.sm),
         OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: colorScheme.error,
-          ),
           onPressed: () => _confirmDelete(context, ref),
           icon: const Icon(Icons.delete_outline),
           label: Text(l10n.programDeleteAction),
@@ -415,102 +410,131 @@ class _ActionsSection extends ConsumerWidget {
 
   void _confirmEndDeload(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deloadEndConfirmTitle),
-        content: Text(l10n.deloadEndConfirmMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await ref
-                  .read(programActionsProvider.notifier)
-                  .exitDeload(program.id);
-              ref.invalidate(programListProvider);
-              ref.invalidate(activeProgramProvider);
-            },
-            child: Text(l10n.deloadEndAction),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deloadEndConfirmMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await ref
+                        .read(programActionsProvider.notifier)
+                        .exitDeload(program.id);
+                    ref.invalidate(programListProvider);
+                    ref.invalidate(activeProgramProvider);
+                  },
+                  child: Text(l10n.deloadEndAction),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.programDeleteTitle),
-        content: Text(l10n.programDeleteMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.programDeleteMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    try {
+                      await ref
+                          .read(programActionsProvider.notifier)
+                          .deleteProgram(program.id);
+                      ref.invalidate(programListProvider);
+                      ref.invalidate(activeProgramProvider);
+                      if (context.mounted) {
+                        context.go(RoutePaths.trainingHome);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.programDeleted)),
+                        );
+                      }
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.genericError)),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.programDeleteAction),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+              ],
             ),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              try {
-                await ref
-                    .read(programActionsProvider.notifier)
-                    .deleteProgram(program.id);
-                ref.invalidate(programListProvider);
-                ref.invalidate(activeProgramProvider);
-                if (context.mounted) {
-                  context.go(RoutePaths.trainingHome);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.programDeleted)),
-                  );
-                }
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.genericError)),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.programDeleteAction),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   void _confirmArchive(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.programCompletedTitle),
-        content: Text(l10n.programCompletedMessage(program.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await ref
-                  .read(programActionsProvider.notifier)
-                  .archiveProgram(program.id);
-              ref.invalidate(programListProvider);
-              ref.invalidate(activeProgramProvider);
-              if (context.mounted) context.go(RoutePaths.trainingHome);
-            },
-            child: Text(l10n.programCompletedArchive),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.programCompletedMessage(program.name)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await ref
+                        .read(programActionsProvider.notifier)
+                        .archiveProgram(program.id);
+                    ref.invalidate(programListProvider);
+                    ref.invalidate(activeProgramProvider);
+                    if (context.mounted) {
+                      context.go(RoutePaths.trainingHome);
+                    }
+                  },
+                  child: Text(l10n.programCompletedArchive),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -200,9 +202,6 @@ class _ProgramCard extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.error,
-                      ),
                       onPressed: () => _confirmDelete(context, ref, program),
                       icon: const Icon(Icons.delete_outline, size: 18),
                       label: Text(l10n.programDeleteAction),
@@ -250,43 +249,50 @@ class _ProgramCard extends ConsumerWidget {
     TrainingProgram program,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.programDeleteTitle),
-        content: Text(l10n.programDeleteMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.programDeleteMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    try {
+                      await ref
+                          .read(programActionsProvider.notifier)
+                          .deleteProgram(program.id);
+                      ref.invalidate(programListProvider);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.programDeleted)),
+                        );
+                      }
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.genericError)),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.programDeleteAction),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+              ],
             ),
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              try {
-                await ref
-                    .read(programActionsProvider.notifier)
-                    .deleteProgram(program.id);
-                ref.invalidate(programListProvider);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.programDeleted)),
-                  );
-                }
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.genericError)),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.programDeleteAction),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

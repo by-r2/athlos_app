@@ -5,6 +5,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -263,37 +265,47 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
   void _confirmDelete(BuildContext context, Workout workout) {
     final l10n = AppLocalizations.of(context)!;
 
-    showDialog(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteWorkoutTitle),
-        content: Text(l10n.deleteWorkoutMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref
-                    .read(workoutListProvider.notifier)
-                    .deleteWorkout(workout.id);
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text(AppLocalizations.of(context)!.genericError),
-                    ),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.delete),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deleteWorkoutMessage),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    try {
+                      await ref
+                          .read(workoutListProvider.notifier)
+                          .deleteWorkout(workout.id);
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.genericError),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.delete),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(l10n.cancel),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -402,10 +414,11 @@ class _WorkoutCard extends StatelessWidget {
                   PopupMenuItem(
                     value: 'delete',
                     child: ListTile(
-                      leading: Icon(Icons.delete_outline,
-                          color: colorScheme.error),
-                      title: Text(l10n.delete,
-                          style: TextStyle(color: colorScheme.error)),
+                      leading: Icon(
+                        Icons.delete_outline,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      title: Text(l10n.delete),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                     ),

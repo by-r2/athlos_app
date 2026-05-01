@@ -4,6 +4,8 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/muscle_group.dart';
@@ -29,17 +31,27 @@ class PRHistoryScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: l10n.prTooltip,
-            onPressed: () => showDialog<void>(
+            onPressed: () => showAthlosDialog<void>(
               context: context,
               builder: (dialogContext) => AlertDialog(
                 title: Text(l10n.prHistoryTitle),
-                content: Text(l10n.prHistoryDescription),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: Text(l10n.okButton),
-                  ),
-                ],
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(l10n.prHistoryDescription),
+                    AthlosStackedDialogActions(
+                      children: [
+                        FilledButton(
+                          style: AthlosDialogButtonStyles.stackedFilled(
+                              dialogContext),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text(l10n.okButton),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -12,6 +12,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -1006,12 +1008,13 @@ class _BodyMetricsSection extends ConsumerWidget {
     final weightCtrl = TextEditingController();
     final bfCtrl = TextEditingController();
 
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.bodyMetricsRecordWeight),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: weightCtrl,
@@ -1040,26 +1043,30 @@ class _BodyMetricsSection extends ConsumerWidget {
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
               ],
             ),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () {
+                    final w = _tryParseDecimal(weightCtrl.text);
+                    if (w == null || w <= 0) return;
+                    final bf = _tryParseDecimal(bfCtrl.text);
+                    ref
+                        .read(bodyMetricListProvider.notifier)
+                        .add(weight: w, bodyFatPercent: bf);
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(l10n.programSaveAction),
+                ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final w = _tryParseDecimal(weightCtrl.text);
-              if (w == null || w <= 0) return;
-              final bf = _tryParseDecimal(bfCtrl.text);
-              ref
-                  .read(bodyMetricListProvider.notifier)
-                  .add(weight: w, bodyFatPercent: bf);
-              Navigator.pop(ctx);
-            },
-            child: Text(l10n.programSaveAction),
-          ),
-        ],
       ),
     );
   }

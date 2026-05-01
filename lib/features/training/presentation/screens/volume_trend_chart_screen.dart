@@ -6,6 +6,8 @@ import 'package:intl/intl.dart' as intl;
 
 import 'dart:math' as math;
 
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
@@ -44,17 +46,27 @@ class _VolumeTrendChartScreenState
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: l10n.weeklyVolumeTooltip,
-            onPressed: () => showDialog<void>(
+            onPressed: () => showAthlosDialog<void>(
               context: context,
               builder: (dialogContext) => AlertDialog(
                 title: Text(l10n.weeklyVolume),
-                content: Text(l10n.volumeTrendDescription),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: Text(l10n.okButton),
-                  ),
-                ],
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(l10n.volumeTrendDescription),
+                    AthlosStackedDialogActions(
+                      children: [
+                        FilledButton(
+                          style: AthlosDialogButtonStyles.stackedFilled(
+                              dialogContext),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text(l10n.okButton),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/route_paths.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -82,7 +84,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   onPressed: () => _showEditSheet(context, ref, displayExercise),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   tooltip: l10n.delete,
                   onPressed: () =>
                       _confirmDelete(context, ref, displayExercise, l10n),
@@ -242,42 +247,51 @@ class ExerciseDetailScreen extends ConsumerWidget {
 
   void _confirmDelete(BuildContext context, WidgetRef ref, Exercise exercise,
       AppLocalizations l10n) {
-    showDialog<void>(
+    showAthlosDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.deleteExerciseTitle),
-        content: Text(l10n.deleteExerciseMessage(exercise.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.deleteExerciseMessage(exercise.name)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style:
+                      AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    try {
+                      await ref
+                          .read(exerciseListProvider.notifier)
+                          .deleteExercise(exercise.id);
+                      if (context.mounted) {
+                        context.pop();
+                      }
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.genericError),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Text(l10n.delete),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+              ],
             ),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              try {
-                await ref
-                    .read(exerciseListProvider.notifier)
-                    .deleteExercise(exercise.id);
-                if (context.mounted) {
-                  context.pop();
-                }
-              } on Exception catch (_) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.genericError),
-                    ),
-                  );
-                }
-              }
-            },
-            child: Text(l10n.delete),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -7,7 +7,9 @@ import 'package:intl/intl.dart' as intl;
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/execution_comparison.dart';
@@ -97,22 +99,32 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     final workoutName = workout?.name ?? '—';
     if (!context.mounted) return;
 
-    final resumed = await showDialog<bool>(
+    final resumed = await showAthlosDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.danglingExecutionTitle),
-        content: Text(l10n.danglingExecutionMessage(workoutName)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.danglingExecutionDiscard),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.danglingExecutionResume),
-          ),
-        ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.danglingExecutionMessage(workoutName)),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.danglingExecutionDiscard),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.danglingExecutionResume),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 

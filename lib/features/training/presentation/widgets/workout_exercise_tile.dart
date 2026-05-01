@@ -466,7 +466,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.close, color: colorScheme.error),
+                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                 onPressed: widget.onRemove,
                 tooltip: l10n.removeExercise,
               ),
