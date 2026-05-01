@@ -7,13 +7,17 @@ import '../../theme/athlos_spacing.dart';
 /// [AlertDialog.actions] via [AthlosStackedDialogActions]; see
 /// [DialogThemeData.actionsPadding] for inset around the actions pane.
 ///
-/// When [invertStackOrder] is true (default), source order `[secondary, primary]`
-/// renders the **primary on top** — same convention as [AthlosStackedDialogActions].
+/// Declarative **[children]** order is **top → bottom**.
+/// Typical dialogs: destructive / secondary actions first, [FilledButton] primary
+/// last ([AthlosStackedDialogActions] wraps this widget).
+///
+/// Set [invertStackOrder] to true to reverse the list (use when order must stay
+/// source-first visually in code but appear flipped on screen — rare).
 final class AthlosStackedActions extends StatelessWidget {
   const AthlosStackedActions({
     super.key,
     required this.children,
-    this.invertStackOrder = true,
+    this.invertStackOrder = false,
     this.padding = EdgeInsets.zero,
     this.spacing = AthlosSpacing.xs,
     this.crossAxisAlignment = CrossAxisAlignment.stretch,
@@ -22,7 +26,7 @@ final class AthlosStackedActions extends StatelessWidget {
 
   final List<Widget> children;
 
-  /// Mirrors [children] for layout so callers keep writing `[secondary, primary]`.
+  /// When true, shows [children] in reverse vertical order.
   final bool invertStackOrder;
 
   final EdgeInsetsGeometry padding;

@@ -266,7 +266,6 @@ Future<BackupConflictResolution?> _showConflictDialog({
         ),
         actions: [
           AthlosStackedDialogActions(
-            invertStackOrder: false,
             children: [
               for (final resolution in conflict.allowedResolutions)
                 TextButton(
@@ -336,7 +335,6 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
         ),
         actions: [
           AthlosStackedDialogActions(
-            invertStackOrder: false,
             children: [
               if (review.decisionScope !=
                       BackupConflictDecisionScope.catalogGovernance &&

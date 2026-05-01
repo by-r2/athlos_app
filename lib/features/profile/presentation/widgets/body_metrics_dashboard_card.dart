@@ -167,17 +167,17 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
                 builder: (innerCtx) => Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    TextButton(
+                      style: AthlosDialogButtonStyles.stackedGhost(innerCtx),
+                      onPressed: () => _showHistory(context, ref),
+                      child: Text(l10n.bodyMetricsHistory),
+                    ),
+                    const SizedBox(height: AthlosSpacing.xs),
                     FilledButton(
                       style:
                           AthlosDialogButtonStyles.stackedFilled(innerCtx),
                       onPressed: () => _showRecordDialog(context, ref),
                       child: Text(l10n.bodyMetricsRecordWeight),
-                    ),
-                    const SizedBox(height: AthlosSpacing.xs),
-                    TextButton(
-                      style: AthlosDialogButtonStyles.stackedGhost(innerCtx),
-                      onPressed: () => _showHistory(context, ref),
-                      child: Text(l10n.bodyMetricsHistory),
                     ),
                   ],
                 ),

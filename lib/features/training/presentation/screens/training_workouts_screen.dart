@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -273,16 +274,20 @@ class _ActiveProgramCycleViewState
               if (index == ids.length) {
                 return Padding(
                   key: const ValueKey('add-workout-btn'),
-                  padding: const EdgeInsets.only(
-                    top: AthlosSpacing.xs,
-                    right: AthlosSpacing.xs,
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton(
+                  padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(
+                          double.infinity,
+                          AthlosButtonSizes.screenMinHeight,
+                        ),
+                      ),
                       onPressed: () =>
                           _showAddWorkoutPicker(context, workouts, ids),
-                      child: Text(l10n.trainingCycleAddWorkout),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(l10n.trainingCycleAddWorkout),
                     ),
                   ),
                 );

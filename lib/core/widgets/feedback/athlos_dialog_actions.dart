@@ -8,22 +8,23 @@ import '../layout/athlos_stacked_actions.dart';
 /// Vertical separation from [AlertDialog.content] comes from the Material
 /// dialog layout; no extra top gap is applied here.
 ///
-/// By default (**[invertStackOrder] == true**) the vertical order is mirrored so
-/// a typical declarative `[ghost, filled]` list shows [FilledButton] **on top**
-/// and ghost **below**. Set [invertStackOrder] to false when every action is a
-/// peer (e.g. several [TextButton] choices whose order matters). Ghost actions
-/// use neutral theme foreground (no error tint). Spacing between stacked rows
-/// matches [AthlosSpacing.xs].
+/// Declares actions **top → bottom**. Prefer destructive or low-commitment
+/// actions **first**, [FilledButton] primary / safe action **last** (Material
+/// pattern: thumb reach for confirmation).
+///
+/// Set [invertStackOrder] to true only when actions are peers listed in logical
+/// order that must render bottom-up. Ghost actions use neutral theme foreground
+/// (no error tint). Spacing between stacked rows matches [AthlosSpacing.xs].
 final class AthlosStackedDialogActions extends StatelessWidget {
   const AthlosStackedDialogActions({
     super.key,
     required this.children,
-    this.invertStackOrder = true,
+    this.invertStackOrder = false,
   });
 
   final List<Widget> children;
 
-  /// Mirrors [children] for layout so callers keep writing `[secondary, primary]`.
+  /// When true, shows [children] in reverse vertical order.
   final bool invertStackOrder;
 
   @override
