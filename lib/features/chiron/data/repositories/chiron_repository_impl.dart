@@ -534,13 +534,6 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
             ? args['exerciseId'] as int
             : int.tryParse(args['exerciseId']?.toString() ?? '');
         return _handleGetEstimated1RM(exerciseId);
-      case 'suggestWarmup':
-        final workingWeight = args['workingWeight'] is num
-            ? (args['workingWeight'] as num).toDouble()
-            : double.tryParse(args['workingWeight']?.toString() ?? '') ?? 0;
-        final workingSets = _parseInt(args['workingSets'], 3);
-        final workingReps = _parseInt(args['workingReps'], 8);
-        return _handleSuggestWarmup(workingWeight, workingSets, workingReps);
       default:
         return {'success': false, 'error': 'Unknown function: $name'};
     }
@@ -981,7 +974,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         final setsResult = await _executionRepo.getSets(exec.id);
         if (!setsResult.isSuccess) continue;
         for (final s in setsResult.getOrThrow()) {
-          if (!s.isCompleted || s.isWarmup) continue;
+          if (!s.isCompleted) continue;
           final ex = exerciseMap[s.exerciseId];
           if (ex == null) continue;
           final key = ex.muscleGroup.name;
@@ -1055,36 +1048,6 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     } on Exception catch (e) {
       return {'success': false, 'error': e.toString()};
     }
-  }
-
-  Map<String, Object?> _handleSuggestWarmup(
-    double workingWeight,
-    int workingSets,
-    int workingReps,
-  ) {
-    if (workingWeight <= 20) {
-      return {
-        'success': true,
-        'warmupSets': [
-          {'weight': 0, 'reps': 15, 'label': 'Barra vazia / peso corporal'},
-        ],
-      };
-    }
-
-    final sets = <Map<String, Object?>>[];
-    final percentages = [0.4, 0.6, 0.8];
-    final repsPerStep = [12, 8, 5];
-
-    for (var i = 0; i < percentages.length; i++) {
-      final w = (workingWeight * percentages[i] / 2.5).round() * 2.5;
-      if (w < 5) continue;
-      sets.add({
-        'weight': w,
-        'reps': repsPerStep[i],
-      });
-    }
-
-    return {'success': true, 'warmupSets': sets};
   }
 
   static const int _maxBioLength = 500;

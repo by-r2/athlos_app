@@ -90,7 +90,7 @@ Future<bool> isSetNewPR(
   return setE1rm > pr.best1RM;
 }
 
-/// Weekly volume per muscle group: total working (non-warmup) sets
+/// Weekly volume per muscle group: total completed sets
 /// per [MuscleGroup] in the last 7 days.
 @riverpod
 Future<Map<String, int>> weeklyVolumePerMuscleGroup(Ref ref) async {
@@ -113,7 +113,7 @@ Future<Map<String, int>> weeklyVolumePerMuscleGroup(Ref ref) async {
     if (!setsResult.isSuccess) continue;
     final sets = setsResult.getOrThrow();
     for (final s in sets) {
-      if (!s.isCompleted || s.isWarmup) continue;
+      if (!s.isCompleted) continue;
       final exercise = exerciseMap[s.exerciseId];
       if (exercise == null) continue;
       final key = exercise.muscleGroup.name;
@@ -370,7 +370,7 @@ Future<Map<String, List<({DateTime weekStart, int sets})>>> weeklyVolumeTrend(
     final sets = setsResult.getOrThrow();
     final weekIdx = now.difference(exec.startedAt).inDays ~/ 7;
     for (final s in sets) {
-      if (!s.isCompleted || s.isWarmup) continue;
+      if (!s.isCompleted) continue;
       final exercise = exerciseMap[s.exerciseId];
       if (exercise == null) continue;
       final key = exercise.muscleGroup.name;

@@ -35,17 +35,17 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<Map<int, double>>> getLastWeightsForExercises(
       List<int> exerciseIds);
 
-  /// Completed non-warmup sets from the most recent finished execution
+  /// Completed sets from the most recent finished execution
   /// that included [exerciseId].
   Future<Result<List<ExecutionSet>>> getLastCompletedSetsForExercise(
       int exerciseId);
 
-  /// All completed non-warmup sets for [exerciseId] across all finished
+  /// All completed sets for [exerciseId] across all finished
   /// executions (for PR detection and 1RM history).
   Future<Result<List<ExecutionSet>>> getAllCompletedSetsForExercise(
       int exerciseId);
 
-  /// Completed non-warmup sets for [exerciseId] with the execution date,
+  /// Completed sets for [exerciseId] with the execution date,
   /// for charting load progression over time.
   Future<Result<List<({ExecutionSet set, DateTime date})>>>
       getCompletedSetsWithDateForExercise(int exerciseId);

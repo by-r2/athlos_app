@@ -92,7 +92,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     final sets = setsResult.getOrThrow();
     var volume = 0.0;
     for (final s in sets) {
-      if (s.isCompleted && !s.isWarmup && s.weight != null && s.reps != null) {
+      if (s.isCompleted && s.weight != null && s.reps != null) {
         volume += s.weight! * s.reps!;
       }
     }

@@ -80,11 +80,6 @@ class ChironMessageBubble extends StatelessWidget {
                   ),
                 ],
               )
-            : isUser
-            ? Text(
-                message.content,
-                style: textTheme.bodyMedium?.copyWith(color: textColor),
-              )
             : MarkdownBody(
                 data: message.content,
                 shrinkWrap: true,

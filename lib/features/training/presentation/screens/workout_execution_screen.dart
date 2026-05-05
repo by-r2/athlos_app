@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -90,7 +91,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   int _currentDuration = 0;
   double _currentDistance = 0;
   int? _selectedRpe;
-  bool _isWarmup = false;
   bool _isUnilateral = false;
   String? _setNotes;
   bool _showNotesField = false;
@@ -460,7 +460,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             : entry.reps ?? 0;
       }
       _selectedRpe = entry.rpe;
-      _isWarmup = entry.isWarmup;
       _setNotes = entry.notes;
       _showNotesField = entry.notes != null && entry.notes!.isNotEmpty;
       _dropSegments = entry.segments
@@ -545,6 +544,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
     final workoutAsync = ref.watch(workoutByIdProvider(widget.workoutId));
     final workoutName = workoutAsync.value?.name ?? '';
+    final warmupInstructions = workoutAsync.value?.description?.trim();
     final completed = exec.completedSetCount;
     final total = _totalSetCount;
     final next = _findNextPendingSet(exec);
@@ -587,6 +587,41 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     ),
                   ),
                 ],
+              ),
+            ),
+          if (warmupInstructions != null && warmupInstructions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AthlosSpacing.md,
+                AthlosSpacing.sm,
+                AthlosSpacing.md,
+                AthlosSpacing.xs,
+              ),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AthlosSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.warmupSuggestionTitle,
+                        style: textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: AthlosSpacing.xs),
+                      MarkdownBody(
+                        data: warmupInstructions,
+                        styleSheet: MarkdownStyleSheet(
+                          p: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          listBullet: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
@@ -1141,16 +1176,11 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ),
               ),
 
-            // Warmup toggle + notes toggle + RPE selector
+            // Notes toggle + RPE selector
             Padding(
               padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
               child: Row(
                 children: [
-                  _WarmupChip(
-                    isSelected: _isWarmup,
-                    onTap: () => setState(() => _isWarmup = !_isWarmup),
-                  ),
-                  const SizedBox(width: AthlosSpacing.xs),
                   GestureDetector(
                     onTap: () =>
                         setState(() => _showNotesField = !_showNotesField),
@@ -1495,10 +1525,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final completedReps = sets
-        .where((s) => s.isCompleted && !s.isWarmup && s.reps != null)
-        .map((s) => s.reps!)
-        .toList();
+    final completedReps =
+        sets.where((s) => s.isCompleted && s.reps != null).map((s) => s.reps!).toList();
 
     final feedback = loadFeedback(
       cs: colorScheme,
@@ -2486,7 +2514,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
             weight: _currentWeight > 0 ? _currentWeight : null,
-            isWarmup: _isWarmup,
             rpe: _selectedRpe,
             notes: _setNotes?.trim().isNotEmpty == true
                 ? _setNotes!.trim()
@@ -2565,7 +2592,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             distance: isCardio
                 ? (_currentDistance > 0 ? _currentDistance : null)
                 : null,
-            isWarmup: _isWarmup,
             rpe: _selectedRpe,
             notes: _setNotes?.trim().isNotEmpty == true
                 ? _setNotes!.trim()
@@ -2631,7 +2657,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
             distance: _currentDistance > 0 ? _currentDistance : null,
-            isWarmup: _isWarmup,
             rpe: _selectedRpe,
             notes: _setNotes?.trim().isNotEmpty == true
                 ? _setNotes!.trim()
@@ -3475,62 +3500,6 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
             visualDensity: VisualDensity.compact,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _WarmupChip extends StatelessWidget {
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _WarmupChip({required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final l10n = AppLocalizations.of(context)!;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AthlosSpacing.sm,
-          vertical: AthlosSpacing.xxs,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? cs.secondaryContainer
-              : cs.surfaceContainerHighest,
-          borderRadius: AthlosRadius.fullAll,
-          border: Border.all(
-            color: isSelected
-                ? cs.secondary.withValues(alpha: 0.5)
-                : cs.outline.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.fitness_center,
-              size: 12,
-              color: isSelected ? cs.onSecondaryContainer : cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: AthlosSpacing.xs),
-            Text(
-              l10n.warmupLabel,
-              style: textTheme.labelSmall?.copyWith(
-                color: isSelected
-                    ? cs.onSecondaryContainer
-                    : cs.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.w600 : null,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

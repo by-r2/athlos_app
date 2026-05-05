@@ -342,7 +342,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                   TextFormField(
                     controller: _descController,
                     decoration: InputDecoration(
-                      labelText: l10n.workoutDescriptionLabel,
+                      labelText: l10n.warmupSuggestionTitle,
                       hintText: l10n.workoutDescriptionHint,
                     ),
                     maxLines: 2,

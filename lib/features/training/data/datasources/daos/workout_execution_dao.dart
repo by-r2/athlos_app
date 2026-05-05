@@ -159,7 +159,7 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     return result;
   }
 
-  /// Returns completed, non-warmup sets from the most recent finished execution
+  /// Returns completed sets from the most recent finished execution
   /// that included [exerciseId]. Empty list if no history found.
   Future<List<ExecutionSet>> getLastCompletedSetsForExercise(
       int exerciseId) async {
@@ -180,13 +180,12 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
           ..where((s) =>
               s.executionId.equals(execId) &
               s.exerciseId.equals(exerciseId) &
-              s.isCompleted.equals(true) &
-              s.isWarmup.equals(false))
+              s.isCompleted.equals(true))
           ..orderBy([(s) => OrderingTerm.asc(s.setNumber)]))
         .get();
   }
 
-  /// All completed, non-warmup sets for [exerciseId] across all finished
+  /// All completed sets for [exerciseId] across all finished
   /// executions. Used for PR detection and 1RM history.
   Future<List<ExecutionSet>> getAllCompletedSetsForExercise(
       int exerciseId) async {
@@ -196,14 +195,13 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     ])
           ..where(executionSets.exerciseId.equals(exerciseId) &
               executionSets.isCompleted.equals(true) &
-              executionSets.isWarmup.equals(false) &
               workoutExecutions.finishedAt.isNotNull())
           ..orderBy([OrderingTerm.desc(workoutExecutions.startedAt)]))
         .map((row) => row.readTable(executionSets))
         .get();
   }
 
-  /// Returns completed non-warmup sets for [exerciseId] paired with
+  /// Returns completed sets for [exerciseId] paired with
   /// the execution's startedAt date (for charting over time).
   Future<List<({ExecutionSet set, DateTime date})>>
       getCompletedSetsWithDateForExercise(int exerciseId) async {
@@ -213,7 +211,6 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     ])
           ..where(executionSets.exerciseId.equals(exerciseId) &
               executionSets.isCompleted.equals(true) &
-              executionSets.isWarmup.equals(false) &
               workoutExecutions.finishedAt.isNotNull())
           ..orderBy([OrderingTerm.asc(workoutExecutions.startedAt)]))
         .get();

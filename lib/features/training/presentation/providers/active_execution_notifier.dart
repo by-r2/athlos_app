@@ -262,7 +262,6 @@ class ActiveExecution extends _$ActiveExecution {
     double? weight,
     int? duration,
     double? distance,
-    bool isWarmup = false,
     int? rpe,
     String? notes,
     List<SegmentEntry>? segments,
@@ -293,7 +292,7 @@ class ActiveExecution extends _$ActiveExecution {
       duration: duration,
       distance: distance,
       isCompleted: true,
-      isWarmup: isWarmup,
+      isWarmup: false,
       rpe: rpe,
       notes: notes,
       leftReps: leftReps,
@@ -329,7 +328,7 @@ class ActiveExecution extends _$ActiveExecution {
             duration: duration != null ? () => duration : null,
             distance: distance != null ? () => distance : null,
             isCompleted: true,
-            isWarmup: isWarmup,
+            isWarmup: false,
             rpe: () => rpe,
             notes: () => notes,
             leftReps: () => leftReps,
@@ -355,7 +354,7 @@ class ActiveExecution extends _$ActiveExecution {
     final maxReps = exercise.maxReps;
     if (maxReps != null && maxReps > 0) {
       final latestSets = state!.exerciseSets[exerciseId] ?? [];
-      final workingSets = latestSets.where((s) => !s.isWarmup);
+      final workingSets = latestSets.where((s) => s.isCompleted);
       final allComplete = workingSets.every((s) => s.isCompleted);
       final allHitMax =
           workingSets.every((s) => s.reps != null && s.reps! >= maxReps);

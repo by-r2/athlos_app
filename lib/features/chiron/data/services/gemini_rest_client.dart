@@ -637,8 +637,8 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     {
       'name': 'getWeeklyVolume',
       'description':
-          'Get total working sets per muscle group for the last 7 days. '
-              'Excludes warmup sets. Use to check if user is under/over volume.',
+          'Get total completed sets per muscle group for the last 7 days. '
+              'Use to check if user is under/over volume.',
       'parameters': _schema(
         properties: {},
         required: [],
@@ -658,25 +658,6 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
           ),
         },
         required: ['exerciseId'],
-      ),
-    },
-    {
-      'name': 'suggestWarmup',
-      'description':
-          'Calculate warmup sets for an exercise based on the working weight. '
-              'Returns a pyramid ramp-up. '
-              'Consider the user\'s available training time before suggesting — '
-              'if time is tight, skip or reduce warmup.',
-      'parameters': _schema(
-        properties: {
-          'workingWeight': {
-            'type': 'number',
-            'description': 'Target working weight in kg',
-          },
-          'workingSets': _propInteger('Number of working sets planned'),
-          'workingReps': _propInteger('Reps per working set'),
-        },
-        required: ['workingWeight', 'workingSets', 'workingReps'],
       ),
     },
     {
