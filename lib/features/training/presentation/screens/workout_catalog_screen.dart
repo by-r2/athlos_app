@@ -6,9 +6,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
 import '../providers/workout_notifier.dart';
@@ -358,21 +359,19 @@ class _WorkoutCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AthlosTruncatedText(
                       workout.name,
                       style: textTheme.titleMedium,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     if (workout.description != null &&
                         workout.description!.isNotEmpty)
-                      Text(
+                      AthlosTruncatedText(
                         workout.description!,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),
@@ -460,10 +459,9 @@ class _ArchivedWorkoutTile extends StatelessWidget {
           Icon(Icons.archive_outlined, color: colorScheme.onSurfaceVariant),
       title: Text(workout.name),
       subtitle: workout.description != null && workout.description!.isNotEmpty
-          ? Text(
+          ? AthlosTruncatedText(
               workout.description!,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             )
           : null,
       onTap: onTap,
@@ -597,11 +595,10 @@ class _ActionChip extends StatelessWidget {
                 horizontal: AthlosSpacing.sm,
                 vertical: AthlosSpacing.xs,
               ),
-              child: Text(
+              child: AthlosTruncatedText(
                 label,
                 style: textTheme.labelLarge,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),

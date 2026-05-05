@@ -4,6 +4,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/muscle_group.dart';
@@ -236,10 +237,9 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                                   color: colorScheme.error, size: 20)
                               : null,
                           title: Text(displayName),
-                          subtitle: Text(
+                          subtitle: AthlosTruncatedText(
                             subtitle,
                             maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
                           trailing: const Icon(Icons.add_circle_outline),
                           onTap: () => Navigator.of(context).pop(ex),

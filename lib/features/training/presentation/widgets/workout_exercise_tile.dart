@@ -431,14 +431,13 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                                   !_showNotes) ...[
                                 const SizedBox(width: AthlosSpacing.xs),
                                 Flexible(
-                                  child: Text(
+                                  child: AthlosTruncatedText(
                                     entry.notes!,
                                     style: textTheme.labelSmall?.copyWith(
                                       color: colorScheme.onSurfaceVariant,
                                       fontStyle: FontStyle.italic,
                                     ),
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],

@@ -7,6 +7,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/training_program.dart';
 import '../../domain/enums/program_focus.dart';
@@ -141,11 +142,10 @@ class _ProgramCard extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
+                    child: AthlosTruncatedText(
                       program.name,
                       style: textTheme.titleMedium,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (isActive) ...[

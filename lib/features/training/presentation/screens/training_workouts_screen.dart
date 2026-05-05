@@ -9,6 +9,7 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
@@ -170,10 +171,9 @@ class _ActiveProgramCycleViewState
                         title: Text(w.name),
                         subtitle:
                             w.description != null && w.description!.isNotEmpty
-                                ? Text(
+                                ? AthlosTruncatedText(
                                     w.description!,
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   )
                                 : null,
                         onTap: () {
@@ -357,11 +357,10 @@ class _ProgramHeader extends ConsumerWidget {
               Icon(Icons.auto_awesome, color: colorScheme.primary, size: 18),
               const Gap(AthlosSpacing.sm),
               Expanded(
-                child: Text(
+                child: AthlosTruncatedText(
                   program.name as String,
                   style: textTheme.titleMedium,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
@@ -501,23 +500,21 @@ class _CycleWorkoutCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AthlosTruncatedText(
                       workoutName,
                       style: textTheme.titleSmall?.copyWith(
                         fontWeight: isNext ? FontWeight.w600 : null,
                       ),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     if (workoutDescription != null &&
                         workoutDescription!.isNotEmpty)
-                      Text(
+                      AthlosTruncatedText(
                         workoutDescription!,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                         maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),

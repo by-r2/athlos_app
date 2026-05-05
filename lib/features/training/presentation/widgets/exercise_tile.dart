@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 
 /// List tile for displaying an exercise in the catalog.
 class ExerciseTile extends StatelessWidget {
@@ -25,10 +26,9 @@ class ExerciseTile extends StatelessWidget {
     return ListTile(
       title: Text(displayName),
       subtitle: targetMusclesLabel != null && targetMusclesLabel!.isNotEmpty
-          ? Text(
+          ? AthlosTruncatedText(
               targetMusclesLabel!,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),

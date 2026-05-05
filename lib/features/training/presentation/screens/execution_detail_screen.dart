@@ -6,6 +6,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/execution_set.dart';
@@ -341,11 +342,10 @@ class _SummaryCard extends StatelessWidget {
           Icon(icon, size: 20, color: color),
           const SizedBox(width: AthlosSpacing.xs),
           Expanded(
-            child: Text(
+            child: AthlosTruncatedText(
               label,
               style: textTheme.labelMedium?.copyWith(color: color),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

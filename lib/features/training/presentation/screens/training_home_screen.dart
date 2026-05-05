@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/execution_comparison.dart';
@@ -229,11 +230,10 @@ class _CompactProgramBanner extends ConsumerWidget {
                   ),
                   const Gap(AthlosSpacing.sm),
                   Expanded(
-                    child: Text(
+                    child: AthlosTruncatedText(
                       program.name,
                       style: textTheme.titleSmall,
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
@@ -693,10 +693,10 @@ class _VolumeRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text(
+            child: AthlosTruncatedText(
               label,
               style: textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           const Gap(AthlosSpacing.sm),

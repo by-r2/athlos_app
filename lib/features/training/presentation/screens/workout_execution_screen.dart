@@ -906,7 +906,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     ),
                     const SizedBox(width: AthlosSpacing.xs),
                     Flexible(
-                      child: Text(
+                      child: AthlosTruncatedText(
                         exercise.notes!,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
@@ -914,7 +914,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

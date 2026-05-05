@@ -535,14 +535,13 @@ class _ExerciseDetailTile extends ConsumerWidget {
                       ),
                       const SizedBox(width: AthlosSpacing.xs),
                       Flexible(
-                        child: Text(
+                        child: AthlosTruncatedText(
                           exercise.notes!,
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontStyle: FontStyle.italic,
                           ),
                           maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
