@@ -60,6 +60,8 @@ class WorkoutExerciseTile extends StatefulWidget {
   final VoidCallback? onToggleLinkNext;
   final int? groupColorIndex;
   final int index;
+  final bool isExpanded;
+  final VoidCallback onToggleExpand;
 
   const WorkoutExerciseTile({
     super.key,
@@ -67,6 +69,8 @@ class WorkoutExerciseTile extends StatefulWidget {
     required this.onRemove,
     required this.onChanged,
     required this.index,
+    required this.isExpanded,
+    required this.onToggleExpand,
     this.isLinkedToNext = false,
     this.isLinkedToPrevious = false,
     this.onToggleLinkNext,
@@ -105,6 +109,9 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
     );
     final groupName =
         localizedMuscleGroupName(entry.exercise.muscleGroup, l10n);
+    final summary = entry.usesDuration
+        ? '${entry.sets}x ${entry.duration ?? 60}s · ${entry.rest}s'
+        : '${entry.sets}x ${entry.minReps ?? 12}-${entry.maxReps ?? entry.minReps ?? 12} · ${entry.rest}s';
 
     final cardWidget = Card(
       margin: const EdgeInsets.symmetric(
@@ -128,74 +135,267 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
             : null,
         child: Padding(
           padding: const EdgeInsets.all(AthlosSpacing.sm),
-          child: Row(
+          child: Column(
             children: [
-              ReorderableDragStartListener(
-                index: widget.index,
-                child: Icon(
-                  Icons.drag_handle,
-                  color: colorScheme.onSurfaceVariant,
+              InkWell(
+                onTap: widget.onToggleExpand,
+                borderRadius: AthlosRadius.mdAll,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xxs),
+                  child: Row(
+                    children: [
+                      ReorderableDragStartListener(
+                        index: widget.index,
+                        child: Icon(
+                          Icons.drag_handle,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: AthlosSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (isInGroup && !widget.isLinkedToPrevious &&
+                                    groupColor != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        right: AthlosSpacing.xs),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AthlosSpacing.sm,
+                                        vertical: AthlosSpacing.xxs,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: groupColor.withValues(alpha: 0.15),
+                                        borderRadius: AthlosRadius.xsAll,
+                                        border: Border.all(
+                                          color: groupColor.withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.link,
+                                              size: 10, color: groupColor),
+                                          const SizedBox(width: AthlosSpacing.xs),
+                                          Text(
+                                            l10n.supersetLabel,
+                                            style: textTheme.labelSmall?.copyWith(
+                                              color: groupColor,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                Expanded(
+                                  child: AthlosTruncatedText(
+                                    displayName,
+                                    style: textTheme.titleSmall,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AthlosSpacing.xxs),
+                            Text(
+                              groupName,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (!widget.isExpanded) ...[
+                              const SizedBox(height: AthlosSpacing.xxs),
+                              Row(
+                                children: [
+                                  Text(
+                                    summary,
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (entry.isAmrap) ...[
+                                    const SizedBox(width: AthlosSpacing.xs),
+                                    Icon(
+                                      Icons.whatshot,
+                                      size: 12,
+                                      color: colorScheme.tertiary,
+                                    ),
+                                  ],
+                                  if (entry.isUnilateral) ...[
+                                    const SizedBox(width: AthlosSpacing.xs),
+                                    Icon(
+                                      Icons.swap_horiz,
+                                      size: 12,
+                                      color: colorScheme.secondary,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          widget.isExpanded
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: widget.onToggleExpand,
+                        tooltip: null,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+                        onPressed: widget.onRemove,
+                        tooltip: l10n.removeExercise,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: AthlosSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              if (widget.isExpanded) ...[
+                const SizedBox(height: AthlosSpacing.xs),
+                Row(
                   children: [
-                    Row(
+                    Expanded(
+                      child: _NumberField(
+                        label: l10n.setsLabel,
+                        value: entry.sets,
+                        onChanged: (v) {
+                          entry.sets = v;
+                          widget.onChanged(entry);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AthlosSpacing.sm),
+                    if (entry.usesDuration)
+                      Expanded(
+                        child: _NumberField(
+                          label: l10n.durationSecondsLabel,
+                          value: entry.duration ?? 60,
+                          onChanged: (v) {
+                            entry.duration = v;
+                            widget.onChanged(entry);
+                          },
+                        ),
+                      ),
+                    const SizedBox(width: AthlosSpacing.sm),
+                    Expanded(
+                      child: _NumberField(
+                        label: l10n.restSecondsLabel,
+                        value: entry.rest,
+                        onChanged: (v) {
+                          entry.rest = v;
+                          widget.onChanged(entry);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                if (!entry.usesDuration)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: AthlosSpacing.xs),
+                    child: Row(
                       children: [
-                        if (isInGroup && !widget.isLinkedToPrevious &&
-                            groupColor != null)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                right: AthlosSpacing.xs),
+                        Expanded(
+                          child: _NumberField(
+                            label: l10n.minRepsLabel,
+                            value: entry.minReps ?? 12,
+                            onChanged: (v) {
+                              entry.minReps = v;
+                              if (entry.maxReps != null &&
+                                  entry.maxReps! < v) {
+                                entry.maxReps = v;
+                              }
+                              widget.onChanged(entry);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: AthlosSpacing.sm),
+                        Expanded(
+                          child: _NumberField(
+                            label: l10n.maxRepsLabel,
+                            value:
+                                entry.maxReps ?? entry.minReps ?? 12,
+                            onChanged: (v) {
+                              entry.maxReps = v;
+                              if (entry.minReps != null &&
+                                  entry.minReps! > v) {
+                                entry.minReps = v;
+                              }
+                              widget.onChanged(entry);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (!entry.usesDuration)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(top: AthlosSpacing.xs),
+                    child: Row(
+                      children: [
+                        Tooltip(
+                          message: l10n.amrapTooltip,
+                          triggerMode: TooltipTriggerMode.longPress,
+                          child: GestureDetector(
+                            onTap: () {
+                              entry.isAmrap = !entry.isAmrap;
+                              widget.onChanged(entry);
+                            },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AthlosSpacing.sm,
                                 vertical: AthlosSpacing.xxs,
                               ),
                               decoration: BoxDecoration(
-                                color: groupColor.withValues(alpha: 0.15),
-                                borderRadius: AthlosRadius.xsAll,
+                                color: entry.isAmrap
+                                    ? colorScheme.tertiaryContainer
+                                    : colorScheme.surfaceContainerHighest,
+                                borderRadius: AthlosRadius.fullAll,
                                 border: Border.all(
-                                  color: groupColor.withValues(alpha: 0.4),
+                                  color: entry.isAmrap
+                                      ? colorScheme.tertiary
+                                          .withValues(alpha: 0.5)
+                                      : colorScheme.outline
+                                          .withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.link,
-                                      size: 10, color: groupColor),
+                                  Icon(
+                                    Icons.whatshot,
+                                    size: 12,
+                                    color: entry.isAmrap
+                                        ? colorScheme.onTertiaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
                                   const SizedBox(width: AthlosSpacing.xs),
                                   Text(
-                                    l10n.supersetLabel,
+                                    l10n.amrapLabel,
                                     style: textTheme.labelSmall?.copyWith(
-                                      color: groupColor,
-                                      fontWeight: FontWeight.w700,
+                                      color: entry.isAmrap
+                                          ? colorScheme.onTertiaryContainer
+                                          : colorScheme.onSurfaceVariant,
+                                      fontWeight: entry.isAmrap
+                                          ? FontWeight.w600
+                                          : null,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        Expanded(
-                          child: AthlosTruncatedText(
-                            displayName,
-                            style: textTheme.titleSmall,
-                          ),
                         ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            groupName,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
+                        const SizedBox(width: AthlosSpacing.sm),
                         GestureDetector(
                           onTap: () {
                             entry.isUnilateral = !entry.isUnilateral;
@@ -213,10 +413,8 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                               borderRadius: AthlosRadius.fullAll,
                               border: Border.all(
                                 color: entry.isUnilateral
-                                    ? colorScheme.secondary
-                                        .withValues(alpha: 0.5)
-                                    : colorScheme.outline
-                                        .withValues(alpha: 0.3),
+                                    ? colorScheme.secondary.withValues(alpha: 0.5)
+                                    : colorScheme.outline.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Row(
@@ -236,9 +434,6 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                                     color: entry.isUnilateral
                                         ? colorScheme.onSecondaryContainer
                                         : colorScheme.onSurfaceVariant,
-                                    fontWeight: entry.isUnilateral
-                                        ? FontWeight.w600
-                                        : null,
                                   ),
                                 ),
                               ],
@@ -247,227 +442,70 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: AthlosSpacing.sm),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _NumberField(
-                            label: l10n.setsLabel,
-                            value: entry.sets,
-                            onChanged: (v) {
-                              entry.sets = v;
-                              widget.onChanged(entry);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: AthlosSpacing.sm),
-                        if (entry.usesDuration)
-                          Expanded(
-                            child: _NumberField(
-                              label: l10n.durationSecondsLabel,
-                              value: entry.duration ?? 60,
-                              onChanged: (v) {
-                                entry.duration = v;
-                                widget.onChanged(entry);
-                              },
-                            ),
-                          ),
-                        const SizedBox(width: AthlosSpacing.sm),
-                        Expanded(
-                          child: _NumberField(
-                            label: l10n.restSecondsLabel,
-                            value: entry.rest,
-                            onChanged: (v) {
-                              entry.rest = v;
-                              widget.onChanged(entry);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (!entry.usesDuration)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            top: AthlosSpacing.xs),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _NumberField(
-                                label: l10n.minRepsLabel,
-                                value: entry.minReps ?? 12,
-                                onChanged: (v) {
-                                  entry.minReps = v;
-                                  if (entry.maxReps != null &&
-                                      entry.maxReps! < v) {
-                                    entry.maxReps = v;
-                                  }
-                                  widget.onChanged(entry);
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: AthlosSpacing.sm),
-                            Expanded(
-                              child: _NumberField(
-                                label: l10n.maxRepsLabel,
-                                value:
-                                    entry.maxReps ?? entry.minReps ?? 12,
-                                onChanged: (v) {
-                                  entry.maxReps = v;
-                                  if (entry.minReps != null &&
-                                      entry.minReps! > v) {
-                                    entry.minReps = v;
-                                  }
-                                  widget.onChanged(entry);
-                                },
-                              ),
-                            ),
-                          ],
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showNotes = !_showNotes),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AthlosSpacing.sm,
+                        vertical: AthlosSpacing.xxs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _showNotes
+                            ? colorScheme.secondaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: AthlosRadius.fullAll,
+                        border: Border.all(
+                          color: _showNotes
+                              ? colorScheme.secondary.withValues(alpha: 0.5)
+                              : colorScheme.outline.withValues(alpha: 0.3),
                         ),
                       ),
-                    if (!entry.usesDuration)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(top: AthlosSpacing.xs),
-                        child: Row(
-                          children: [
-                            Tooltip(
-                              message: l10n.amrapTooltip,
-                              triggerMode: TooltipTriggerMode.longPress,
-                              child: GestureDetector(
-                                onTap: () {
-                                  entry.isAmrap = !entry.isAmrap;
-                                  widget.onChanged(entry);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AthlosSpacing.sm,
-                                    vertical: AthlosSpacing.xxs,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: entry.isAmrap
-                                        ? colorScheme.tertiaryContainer
-                                        : colorScheme
-                                            .surfaceContainerHighest,
-                                    borderRadius: AthlosRadius.fullAll,
-                                    border: Border.all(
-                                      color: entry.isAmrap
-                                          ? colorScheme.tertiary
-                                              .withValues(alpha: 0.5)
-                                          : colorScheme.outline
-                                              .withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.whatshot,
-                                        size: 12,
-                                        color: entry.isAmrap
-                                            ? colorScheme
-                                                .onTertiaryContainer
-                                            : colorScheme
-                                                .onSurfaceVariant,
-                                      ),
-                                      const SizedBox(
-                                          width: AthlosSpacing.xs),
-                                      Text(
-                                        l10n.amrapLabel,
-                                        style: textTheme.labelSmall
-                                            ?.copyWith(
-                                          color: entry.isAmrap
-                                              ? colorScheme
-                                                  .onTertiaryContainer
-                                              : colorScheme
-                                                  .onSurfaceVariant,
-                                          fontWeight: entry.isAmrap
-                                              ? FontWeight.w600
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(top: AthlosSpacing.xs),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _showNotes = !_showNotes),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AthlosSpacing.sm,
-                            vertical: AthlosSpacing.xxs,
-                          ),
-                          decoration: BoxDecoration(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.note_alt_outlined,
+                            size: 12,
                             color: _showNotes
-                                ? colorScheme.secondaryContainer
-                                : colorScheme.surfaceContainerHighest,
-                            borderRadius: AthlosRadius.fullAll,
-                            border: Border.all(
-                              color: _showNotes
-                                  ? colorScheme.secondary
-                                      .withValues(alpha: 0.5)
-                                  : colorScheme.outline
-                                      .withValues(alpha: 0.3),
-                            ),
+                                ? colorScheme.onSecondaryContainer
+                                : colorScheme.onSurfaceVariant,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.note_alt_outlined,
-                                size: 12,
-                                color: _showNotes
-                                    ? colorScheme.onSecondaryContainer
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                              if (entry.notes != null &&
-                                  entry.notes!.isNotEmpty &&
-                                  !_showNotes) ...[
-                                const SizedBox(width: AthlosSpacing.xs),
-                                Flexible(
-                                  child: AthlosTruncatedText(
-                                    entry.notes!,
-                                    style: textTheme.labelSmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                    maxLines: 1,
-                                  ),
+                          if (entry.notes != null &&
+                              entry.notes!.isNotEmpty &&
+                              !_showNotes) ...[
+                            const SizedBox(width: AthlosSpacing.xs),
+                            Flexible(
+                              child: AthlosTruncatedText(
+                                entry.notes!,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontStyle: FontStyle.italic,
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (_showNotes)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(top: AthlosSpacing.xs),
-                        child: _NotesField(
-                          value: entry.notes ?? '',
-                          hintText: l10n.exerciseNotesHint,
-                          onChanged: (v) {
-                            entry.notes =
-                                v.trim().isEmpty ? null : v.trim();
-                            widget.onChanged(entry);
-                          },
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-                onPressed: widget.onRemove,
-                tooltip: l10n.removeExercise,
-              ),
+                if (_showNotes)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                    child: _NotesField(
+                      value: entry.notes ?? '',
+                      hintText: l10n.exerciseNotesHint,
+                      onChanged: (v) {
+                        entry.notes = v.trim().isEmpty ? null : v.trim();
+                        widget.onChanged(entry);
+                      },
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -478,7 +516,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
       mainAxisSize: MainAxisSize.min,
       children: [
         cardWidget,
-        if (widget.onToggleLinkNext != null)
+        if (widget.isExpanded && widget.onToggleLinkNext != null)
           _SupersetLinkButton(
             isLinked: widget.isLinkedToNext,
             onTap: widget.onToggleLinkNext!,

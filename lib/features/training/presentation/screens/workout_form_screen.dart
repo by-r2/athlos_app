@@ -34,6 +34,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   bool _isLoading = false;
   bool _hasLoadedExisting = false;
   int _nextGroupId = 1;
+  int? _expandedExerciseIndex;
 
   @override
   void dispose() {
@@ -140,6 +141,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           maxReps: exercise.isCardio ? null : 12,
           duration: exercise.isCardio ? 300 : null,
         ));
+        _expandedExerciseIndex = _entries.length - 1;
       });
     } on Exception catch (_) {
       if (mounted) {
@@ -222,6 +224,43 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _toggleExpandedExercise(int index) {
+    setState(() {
+      _expandedExerciseIndex = _expandedExerciseIndex == index ? null : index;
+    });
+  }
+
+  void _removeExercise(int index) {
+    setState(() {
+      _entries.removeAt(index);
+      final expandedIndex = _expandedExerciseIndex;
+      if (expandedIndex == null) return;
+      if (expandedIndex == index) {
+        _expandedExerciseIndex = null;
+      } else if (expandedIndex > index) {
+        _expandedExerciseIndex = expandedIndex - 1;
+      }
+    });
+  }
+
+  void _reorderExercises(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+      final item = _entries.removeAt(oldIndex);
+      _entries.insert(newIndex, item);
+
+      final expandedIndex = _expandedExerciseIndex;
+      if (expandedIndex == null) return;
+      if (expandedIndex == oldIndex) {
+        _expandedExerciseIndex = newIndex;
+      } else if (oldIndex < expandedIndex && newIndex >= expandedIndex) {
+        _expandedExerciseIndex = expandedIndex - 1;
+      } else if (oldIndex > expandedIndex && newIndex <= expandedIndex) {
+        _expandedExerciseIndex = expandedIndex + 1;
+      }
+    });
   }
 
   @override
@@ -356,13 +395,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                     )
                   : ReorderableListView.builder(
                       itemCount: _entries.length,
-                      onReorder: (oldIndex, newIndex) {
-                        setState(() {
-                          if (newIndex > oldIndex) newIndex--;
-                          final item = _entries.removeAt(oldIndex);
-                          _entries.insert(newIndex, item);
-                        });
-                      },
+                      onReorder: _reorderExercises,
                       itemBuilder: (context, index) {
                         final entry = _entries[index];
                         final isLast = index == _entries.length - 1;
@@ -385,14 +418,15 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                               '${entry.exercise.id}_$index'),
                           entry: entry,
                           index: index,
+                          isExpanded: _expandedExerciseIndex == index,
                           isLinkedToNext: isLinkedToNext,
                           isLinkedToPrevious: isLinkedToPrevious,
                           groupColorIndex: groupColorIndex,
+                          onToggleExpand: () => _toggleExpandedExercise(index),
                           onToggleLinkNext: isLast
                               ? null
                               : () => _toggleSupersetLink(index),
-                          onRemove: () =>
-                              setState(() => _entries.removeAt(index)),
+                          onRemove: () => _removeExercise(index),
                           onChanged: (_) => setState(() {}),
                         );
                       },
