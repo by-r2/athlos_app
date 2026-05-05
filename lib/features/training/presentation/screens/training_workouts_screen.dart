@@ -557,48 +557,50 @@ class _NoProgramActiveView extends ConsumerWidget {
             .toList() ??
         [];
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome_outlined,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+    return Padding(
+      padding: const EdgeInsets.all(AthlosSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(),
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 64,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+          const Gap(AthlosSpacing.md),
+          Text(
+            l10n.noProgramActiveTitle,
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
-            const Gap(AthlosSpacing.md),
-            Text(
-              l10n.noProgramActiveTitle,
-              style: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            textAlign: TextAlign.center,
+          ),
+          const Gap(AthlosSpacing.sm),
+          Text(
+            l10n.noProgramActiveHint,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
-            const Gap(AthlosSpacing.sm),
-            Text(
-              l10n.noProgramActiveHint,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const Gap(AthlosSpacing.lg),
-            FilledButton.icon(
-              onPressed: () => context.push(RoutePaths.trainingProgramNew),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.noProgramActiveCreateAction),
-            ),
-            if (archivedPrograms.isNotEmpty) ...[
-              const Gap(AthlosSpacing.sm),
-              OutlinedButton.icon(
+            textAlign: TextAlign.center,
+          ),
+          const Gap(AthlosSpacing.lg),
+          FilledButton.icon(
+            onPressed: () => context.push(RoutePaths.trainingProgramNew),
+            icon: const Icon(Icons.add),
+            label: Text(l10n.noProgramActiveCreateAction),
+          ),
+          const Spacer(),
+          if (archivedPrograms.isNotEmpty)
+            SafeArea(
+              top: false,
+              child: TextButton.icon(
                 onPressed: () => context.push(RoutePaths.trainingPrograms),
                 icon: const Icon(Icons.inventory_2_outlined),
                 label: Text(l10n.noProgramActiveViewArchived),
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

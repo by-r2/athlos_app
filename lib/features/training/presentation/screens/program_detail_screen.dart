@@ -72,9 +72,10 @@ class ProgramDetailScreen extends ConsumerWidget {
             top: false,
             child: SizedBox(
               width: double.infinity,
-              child: TextButton(
+              child: TextButton.icon(
                 onPressed: () => context.push(RoutePaths.trainingPrograms),
-                child: Text(l10n.trainingViewArchivedPrograms),
+                icon: const Icon(Icons.inventory_2_outlined),
+                label: Text(l10n.trainingViewArchivedPrograms),
               ),
             ),
           ),
