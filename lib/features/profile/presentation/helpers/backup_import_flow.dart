@@ -19,6 +19,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../training/presentation/providers/equipment_notifier.dart';
 import '../../../training/presentation/providers/exercise_notifier.dart';
 import '../../../training/presentation/providers/program_notifier.dart';
+import '../../../training/presentation/providers/recalculate_training_streaks.dart';
 import '../../../training/presentation/providers/training_analytics_provider.dart';
 import '../../../training/presentation/providers/workout_execution_notifier.dart';
 import '../../../training/presentation/providers/workout_notifier.dart';
@@ -173,6 +174,9 @@ Future<void> runBackupImportFlow({
     ref.invalidate(nextCycleStepIndexProvider);
     ref.invalidate(executionStreakProvider);
     ref.invalidate(trainingHomeAnalyticsProvider);
+
+    await ref.read(recalculateTrainingStreaksProvider.notifier).run();
+    ref.invalidate(profileProvider);
 
     if (!context.mounted) return;
     await showAthlosDialog<void>(

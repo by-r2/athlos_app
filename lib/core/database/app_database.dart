@@ -102,7 +102,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 29;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
       if (_shouldSeedDevData) await seedDevData(this);
     },
     onUpgrade: (m, from, to) async {
-      if (_shouldSeedDevData && from >= 3 && from <= 27) {
+      if (_shouldSeedDevData && from >= 3 && from <= 28) {
         for (final table in allTables) {
           await m.deleteTable(table.actualTableName);
         }
@@ -592,6 +592,24 @@ class AppDatabase extends _$AppDatabase {
             AND reps IS NOT NULL
         ''');
         await seedExercisesV7(this);
+      }
+
+      if (from < 29) {
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN current_cycle_streak INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN best_cycle_streak INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN current_frequency_streak INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN best_frequency_streak INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN training_streaks_schema INTEGER NOT NULL DEFAULT 0',
+        );
       }
 
     },

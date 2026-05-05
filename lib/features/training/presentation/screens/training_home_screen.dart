@@ -416,7 +416,10 @@ class _FrequencyPill extends ConsumerWidget {
         profileAsync.value?.trainingFrequency ?? kDefaultTrainingFrequency;
     final consistencyStatus = ref.watch(consistencyStatusProvider).value ??
         const ConsistencyStatus(streakCount: 0, isCurrentWeekSecured: false);
-    final consistencyStreak = consistencyStatus.streakCount;
+    final frequencyStreak =
+        profileAsync.value?.currentFrequencyStreak ?? 0;
+    final bestFrequencyStreak =
+        profileAsync.value?.bestFrequencyStreak ?? 0;
 
     final dotCount = thisWeek > target ? thisWeek : target;
 
@@ -484,7 +487,7 @@ class _FrequencyPill extends ConsumerWidget {
                   ),
                   const Gap(AthlosSpacing.xxs),
                   Text(
-                    l10n.dashboardConsistencyStreak(consistencyStreak),
+                    l10n.dashboardConsistencyStreak(frequencyStreak),
                     style: textTheme.bodySmall?.copyWith(
                       color: consistencyStatus.isCurrentWeekSecured
                           ? colorScheme.onSurface
@@ -493,6 +496,15 @@ class _FrequencyPill extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (bestFrequencyStreak > 0) ...[
+                const Gap(AthlosSpacing.xxs),
+                Text(
+                  l10n.dashboardStreakBestFrequency(bestFrequencyStreak),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -511,7 +523,9 @@ class _CycleStreakPill extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final cycleStreak = ref.watch(executionStreakProvider).value ?? 0;
+    final profileAsync = ref.watch(profileProvider);
+    final cycleStreak = profileAsync.value?.currentCycleStreak ?? 0;
+    final bestCycleStreak = profileAsync.value?.bestCycleStreak ?? 0;
     final isActive = cycleStreak > 0;
 
     return Tooltip(
@@ -543,7 +557,7 @@ class _CycleStreakPill extends ConsumerWidget {
                     Icons.workspace_premium,
                     size: 20,
                     color: isActive
-                        ? const Color(0xFFD4AF37)
+                        ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,
                   ),
                   const Gap(AthlosSpacing.xs),
@@ -555,6 +569,15 @@ class _CycleStreakPill extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (bestCycleStreak > 0) ...[
+                const Gap(AthlosSpacing.xxs),
+                Text(
+                  l10n.dashboardStreakBestCycle(bestCycleStreak),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

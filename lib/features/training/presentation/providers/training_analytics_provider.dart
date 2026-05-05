@@ -8,6 +8,8 @@ import '../../domain/entities/workout.dart';
 import 'program_notifier.dart';
 import 'workout_notifier.dart';
 
+import '../../../profile/presentation/providers/profile_notifier.dart';
+
 part 'training_analytics_provider.g.dart';
 
 /// Single item in the cycle list for display.
@@ -219,39 +221,9 @@ Future<int?> nextCycleStepIndex(Ref ref) async {
   return lastStepIndex < 0 ? 0 : (lastStepIndex + 1) % steps.length;
 }
 
-/// Number of consecutive finished executions (newest to oldest) that follow
-/// the cycle order.
+/// Persisted consecutive cycle streak (may span programs). See profile fields.
 @riverpod
 Future<int> executionStreak(Ref ref) async {
-  final execRepo = ref.watch(workoutExecutionRepositoryProvider);
-  final stepsAsync = ref.watch(effectiveCycleStepsProvider);
-
-  final allResult = await execRepo.getAll();
-  final executions = allResult.getOrThrow();
-  if (executions.isEmpty) return 0;
-
-  final steps = stepsAsync.value;
-  if (steps == null || steps.isEmpty) return 0;
-
-  final cycleWorkoutIds = [for (final s in steps) s.workoutId];
-  final cycleIndexById = {
-    for (var i = 0; i < cycleWorkoutIds.length; i++) cycleWorkoutIds[i]: i,
-  };
-
-  if (cycleWorkoutIds.isEmpty) return 0;
-
-  int previousWorkoutInCycle(int workoutId) {
-    final idx = cycleIndexById[workoutId];
-    if (idx == null) return -1;
-    return cycleWorkoutIds[
-        (idx - 1 + cycleWorkoutIds.length) % cycleWorkoutIds.length];
-  }
-
-  var streak = 1;
-  for (var i = 1; i < executions.length; i++) {
-    final expected = previousWorkoutInCycle(executions[i - 1].workoutId);
-    if (expected < 0 || executions[i].workoutId != expected) break;
-    streak++;
-  }
-  return streak;
+  final profile = await ref.watch(profileProvider.future);
+  return profile?.currentCycleStreak ?? 0;
 }

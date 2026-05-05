@@ -21,6 +21,9 @@ import 'program_notifier.dart';
 import 'workout_execution_notifier.dart';
 import 'workout_notifier.dart';
 
+import '../../../profile/presentation/providers/profile_notifier.dart';
+import 'recalculate_training_streaks.dart';
+
 part 'active_execution_notifier.g.dart';
 
 @Riverpod(keepAlive: true)
@@ -384,6 +387,9 @@ class ActiveExecution extends _$ActiveExecution {
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
     ref.invalidate(programSessionCountProvider);
+
+    await ref.read(recalculateTrainingStreaksProvider.notifier).run();
+    ref.invalidate(profileProvider);
 
     state = null;
   }

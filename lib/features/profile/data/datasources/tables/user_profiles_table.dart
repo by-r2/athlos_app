@@ -45,4 +45,24 @@ class UserProfiles extends Table {
   /// Last module the user was in.
   TextColumn get lastActiveModule =>
       textEnum<AppModule>().withDefault(Constant(AppModule.training.name))();
+
+  /// Consecutive sessions following expected cycle order (cross-program).
+  IntColumn get currentCycleStreak =>
+      integer().withDefault(const Constant(0))();
+
+  /// Best ever cycle streak.
+  IntColumn get bestCycleStreak =>
+      integer().withDefault(const Constant(0))();
+
+  /// Consecutive weeks hitting weekly session target (Mon–Sun).
+  IntColumn get currentFrequencyStreak =>
+      integer().withDefault(const Constant(0))();
+
+  /// Best ever weekly frequency streak.
+  IntColumn get bestFrequencyStreak =>
+      integer().withDefault(const Constant(0))();
+
+  /// Bump when streak algorithm changes; 0 triggers one recompute from history.
+  IntColumn get trainingStreaksSchema =>
+      integer().withDefault(const Constant(0))();
 }

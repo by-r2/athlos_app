@@ -42,6 +42,21 @@ class UserProfile {
   /// Last module the user was in. Defaults to training.
   final AppModule lastActiveModule;
 
+  /// Consecutive sessions following expected cycle order (may span programs).
+  final int currentCycleStreak;
+
+  /// Best cycle streak ever recorded.
+  final int bestCycleStreak;
+
+  /// Consecutive weeks hitting the weekly session target.
+  final int currentFrequencyStreak;
+
+  /// Best weekly frequency streak ever recorded.
+  final int bestFrequencyStreak;
+
+  /// Version of streak algorithm; 0 means history should be materialized once.
+  final int trainingStreaksSchema;
+
   const UserProfile({
     required this.id,
     this.name,
@@ -58,6 +73,11 @@ class UserProfile {
     this.injuries,
     this.bio,
     this.lastActiveModule = AppModule.training,
+    this.currentCycleStreak = 0,
+    this.bestCycleStreak = 0,
+    this.currentFrequencyStreak = 0,
+    this.bestFrequencyStreak = 0,
+    this.trainingStreaksSchema = 0,
   });
 
   UserProfile copyWith({
@@ -76,6 +96,11 @@ class UserProfile {
     String? Function()? injuries,
     String? Function()? bio,
     AppModule? lastActiveModule,
+    int? currentCycleStreak,
+    int? bestCycleStreak,
+    int? currentFrequencyStreak,
+    int? bestFrequencyStreak,
+    int? trainingStreaksSchema,
   }) =>
       UserProfile(
         id: id ?? this.id,
@@ -100,5 +125,13 @@ class UserProfile {
         injuries: injuries != null ? injuries() : this.injuries,
         bio: bio != null ? bio() : this.bio,
         lastActiveModule: lastActiveModule ?? this.lastActiveModule,
+        currentCycleStreak: currentCycleStreak ?? this.currentCycleStreak,
+        bestCycleStreak: bestCycleStreak ?? this.bestCycleStreak,
+        currentFrequencyStreak:
+            currentFrequencyStreak ?? this.currentFrequencyStreak,
+        bestFrequencyStreak:
+            bestFrequencyStreak ?? this.bestFrequencyStreak,
+        trainingStreaksSchema:
+            trainingStreaksSchema ?? this.trainingStreaksSchema,
       );
 }

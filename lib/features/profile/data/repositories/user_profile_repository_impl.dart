@@ -41,6 +41,11 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
           injuries: Value(profile.injuries),
           bio: Value(profile.bio),
           lastActiveModule: Value(profile.lastActiveModule),
+          currentCycleStreak: const Value(0),
+          bestCycleStreak: const Value(0),
+          currentFrequencyStreak: const Value(0),
+          bestFrequencyStreak: const Value(0),
+          trainingStreaksSchema: const Value(1),
         ),
       );
       return Success(id);
@@ -69,6 +74,11 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
           injuries: Value(profile.injuries),
           bio: Value(profile.bio),
           lastActiveModule: Value(profile.lastActiveModule),
+          currentCycleStreak: Value(profile.currentCycleStreak),
+          bestCycleStreak: Value(profile.bestCycleStreak),
+          currentFrequencyStreak: Value(profile.currentFrequencyStreak),
+          bestFrequencyStreak: Value(profile.bestFrequencyStreak),
+          trainingStreaksSchema: Value(profile.trainingStreaksSchema),
         ),
       );
       return const Success(null);
@@ -103,5 +113,10 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
         injuries: row.injuries,
         bio: row.bio,
         lastActiveModule: row.lastActiveModule,
+        currentCycleStreak: row.currentCycleStreak,
+        bestCycleStreak: row.bestCycleStreak,
+        currentFrequencyStreak: row.currentFrequencyStreak,
+        bestFrequencyStreak: row.bestFrequencyStreak,
+        trainingStreaksSchema: row.trainingStreaksSchema,
       );
 }

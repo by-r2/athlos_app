@@ -57,7 +57,10 @@ class ProfileNotifier extends _$ProfileNotifier {
     );
     final result = await repo.create(profile);
     final id = result.getOrThrow();
-    state = AsyncData(profile.copyWith(id: id));
+    state = AsyncData(profile.copyWith(
+      id: id,
+      trainingStreaksSchema: 1,
+    ));
   }
 
   /// Updates an existing user profile and refreshes the state.

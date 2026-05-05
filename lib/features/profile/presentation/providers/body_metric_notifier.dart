@@ -30,14 +30,14 @@ class BodyMetricList extends _$BodyMetricList {
     );
     final result = await repo.create(metric);
     result.getOrThrow();
-    ref.invalidateSelf();
+    if (ref.mounted) ref.invalidateSelf();
   }
 
   Future<void> remove(int id) async {
     final repo = ref.read(bodyMetricRepositoryProvider);
     final result = await repo.delete(id);
     result.getOrThrow();
-    ref.invalidateSelf();
+    if (ref.mounted) ref.invalidateSelf();
   }
 }
 

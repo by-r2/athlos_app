@@ -2330,6 +2330,16 @@
     "description": "Tooltip explaining the consistency streak metric",
     "placeholders": { "target": { "type": "int" } }
   },
+  "dashboardStreakBestFrequency": "Melhor: {count} sem.",
+  "@dashboardStreakBestFrequency": {
+    "description": "Best weekly frequency streak",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "dashboardStreakBestCycle": "Melhor: {count} treinos",
+  "@dashboardStreakBestCycle": {
+    "description": "Best cycle streak (consecutive workouts)",
+    "placeholders": { "count": { "type": "int" } }
+  },
   "dashboardCycleTitle": "Ciclo",
   "@dashboardCycleTitle": { "description": "Title for the cycle streak stat pill" },
   "dashboardCycleStreakCount": "{count} treinos",
