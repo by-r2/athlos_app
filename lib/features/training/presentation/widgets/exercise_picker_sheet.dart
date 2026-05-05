@@ -8,9 +8,7 @@ import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/muscle_group.dart';
-import '../helpers/equipment_l10n.dart';
 import '../helpers/exercise_l10n.dart';
-import '../providers/equipment_notifier.dart';
 import '../providers/exercise_notifier.dart';
 
 final _placeholderExercises = List.generate(
@@ -55,7 +53,6 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
   final _searchController = TextEditingController();
   String _query = '';
   MuscleGroup? _selectedGroup;
-  bool _isOnlyMyEquipment = true;
 
   @override
   void dispose() {
@@ -69,9 +66,6 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final exercisesAsync = ref.watch(exerciseListProvider);
-    final equipmentMapAsync = ref.watch(exerciseEquipmentMapProvider);
-    final userEquipmentAsync = ref.watch(userEquipmentIdsProvider);
-    final allEquipmentAsync = ref.watch(equipmentListProvider);
 
     return Column(
       children: [
@@ -112,19 +106,6 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                 const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
             children: [
               FilterChip(
-                avatar: Icon(
-                  _isOnlyMyEquipment
-                      ? Icons.fitness_center
-                      : Icons.fitness_center_outlined,
-                  size: 18,
-                ),
-                label: Text(l10n.filterMyEquipment),
-                selected: _isOnlyMyEquipment,
-                onSelected: (v) =>
-                    setState(() => _isOnlyMyEquipment = v),
-              ),
-              const SizedBox(width: AthlosSpacing.sm),
-              FilterChip(
                 label: Text(l10n.filterAll),
                 selected: _selectedGroup == null,
                 onSelected: (_) =>
@@ -154,15 +135,6 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
             }
             final exercises =
                 exercisesAsync.value ?? _placeholderExercises;
-            final equipmentMap =
-                equipmentMapAsync.value ?? <int, List<int>>{};
-            final userEquipment =
-                userEquipmentAsync.value ?? <int>{};
-            final allEquipment =
-                allEquipmentAsync.value ?? [];
-            final equipmentById = {
-              for (final e in allEquipment) e.id: e,
-            };
 
             final filtered = exercises.where((ex) {
               if (_selectedGroup != null &&
@@ -176,12 +148,6 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                   l10n: l10n,
                 ).toLowerCase();
                 if (!name.contains(_query)) return false;
-              }
-              if (_isOnlyMyEquipment) {
-                final required = equipmentMap[ex.id] ?? [];
-                if (required.any((id) => !userEquipment.contains(id))) {
-                  return false;
-                }
               }
               return true;
             }).toList();
@@ -210,35 +176,10 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                         final groupName =
                             localizedMuscleGroupName(ex.muscleGroup, l10n);
 
-                        final reqIds = equipmentMap[ex.id] ?? [];
-                        final equipNames = reqIds
-                            .map((id) {
-                              final eq = equipmentById[id];
-                              if (eq == null) return null;
-                              return localizedEquipmentName(
-                                eq.name,
-                                isVerified: eq.isVerified,
-                                l10n: l10n,
-                              );
-                            })
-                            .whereType<String>()
-                            .toList();
-
-                        final subtitle = equipNames.isEmpty
-                            ? groupName
-                            : '$groupName  •  ${equipNames.join(', ')}';
-
-                        final hasMissing = reqIds
-                            .any((id) => !userEquipment.contains(id));
-
                         return ListTile(
-                          leading: hasMissing
-                              ? Icon(Icons.warning_amber_rounded,
-                                  color: colorScheme.error, size: 20)
-                              : null,
                           title: Text(displayName),
                           subtitle: AthlosTruncatedText(
-                            subtitle,
+                            groupName,
                             maxLines: 2,
                           ),
                           trailing: const Icon(Icons.add_circle_outline),

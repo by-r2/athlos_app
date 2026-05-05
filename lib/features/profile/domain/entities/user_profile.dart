@@ -39,6 +39,9 @@ class UserProfile {
   /// Free-text background/history, enriched by Chiron over time.
   final String? bio;
 
+  /// Optional free-text names of equipment the user owns.
+  final List<String> ownedEquipmentNames;
+
   /// Last module the user was in. Defaults to training.
   final AppModule lastActiveModule;
 
@@ -72,6 +75,7 @@ class UserProfile {
     this.trainsAtGym,
     this.injuries,
     this.bio,
+    this.ownedEquipmentNames = const [],
     this.lastActiveModule = AppModule.training,
     this.currentCycleStreak = 0,
     this.bestCycleStreak = 0,
@@ -95,6 +99,7 @@ class UserProfile {
     bool? Function()? trainsAtGym,
     String? Function()? injuries,
     String? Function()? bio,
+    List<String>? ownedEquipmentNames,
     AppModule? lastActiveModule,
     int? currentCycleStreak,
     int? bestCycleStreak,
@@ -124,6 +129,7 @@ class UserProfile {
         trainsAtGym: trainsAtGym != null ? trainsAtGym() : this.trainsAtGym,
         injuries: injuries != null ? injuries() : this.injuries,
         bio: bio != null ? bio() : this.bio,
+        ownedEquipmentNames: ownedEquipmentNames ?? this.ownedEquipmentNames,
         lastActiveModule: lastActiveModule ?? this.lastActiveModule,
         currentCycleStreak: currentCycleStreak ?? this.currentCycleStreak,
         bestCycleStreak: bestCycleStreak ?? this.bestCycleStreak,

@@ -447,8 +447,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   Future<void> _saveProfile() => _persist();
 
-  Future<void> _onSkip() => _persist();
-
+  /// Persist everything collected so far (nulls for steps not reached yet) and exit to hub.
   Future<void> _persist() async {
     setState(() => _isSaving = true);
     try {
@@ -478,7 +477,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       ref.read(hasProfileProvider.notifier).markAsCreated();
 
       if (mounted) context.go(RoutePaths.hub);
-    } on Exception catch (e, st) {
+    } catch (e, st) {
       debugPrint('[ProfileSetup] Save failed: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -533,7 +532,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _onSkip,
+            onPressed: _isSaving ? null : _persist,
             child: Text(l10n.skip),
           ),
         ],

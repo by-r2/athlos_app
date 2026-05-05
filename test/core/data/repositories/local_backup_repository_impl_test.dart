@@ -5,7 +5,8 @@ import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/domain/entities/local_backup_models.dart';
 import 'package:athlos_app/core/errors/app_exception.dart';
 import 'package:athlos_app/core/errors/result.dart';
-import 'package:drift/drift.dart';
+import 'package:athlos_app/features/training/data/datasources/exercise_seeder.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -119,25 +120,60 @@ void main() {
 
       final result = await repository.previewImport(jsonContent);
       final preview = result.getOrThrow();
-      final profileConflicts = preview.conflicts
-          .where((c) => c.type == BackupConflictType.profile)
-          .toList();
 
-      expect(profileConflicts, isEmpty);
+      expect(
+        preview.conflicts.where((c) => c.type == BackupConflictType.profile),
+        isEmpty,
+      );
     });
 
-    test('importBackup insere perfil quando nao existe local', () async {
+    test('exportBackup inclui equipamentos e user_equipments vazios na carga',
+        () async {
+      await db.customInsert(
+        'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
+        variables: [
+          const Variable<String>('U'),
+          Variable<String>(jsonEncode(['haltere'])),
+        ],
+      );
+
+      final exportResult = await repository.exportBackup();
+      final exportData = exportResult.getOrThrow();
+      final parsed = jsonDecode(exportData.jsonContent) as Map<String, dynamic>;
+      final tables = parsed['tables'] as Map<String, dynamic>;
+
+      expect(tables['equipments'], isEmpty);
+      expect(tables['exercise_equipments'], isEmpty);
+      expect(tables['user_equipments'], isEmpty);
+
+      final profiles = (tables['user_profiles'] as List).cast<Map>();
+      expect(profiles, isNotEmpty);
+      expect(profiles.first['owned_equipment_names'], contains('haltere'));
+    });
+
+    test(
+      'importBackup merge de backup legado: user_equipments vira owned_equipment_names',
+      () async {
+      await db.customInsert(
+        'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
+        variables: [
+          const Variable<String>('U'),
+          const Variable<String>('[]'),
+        ],
+      );
+
       final jsonContent = jsonEncode(
         _payloadWithTables({
-          'user_profiles': [
+          'equipments': [
             {
               'id': 1,
-              'name': 'Novo',
-              'weight': 80.0,
-              'height': 180.0,
-              'age': 30,
-              'trains_at_gym': 1,
+              'name': 'barbell',
+              'category': 'freeWeights',
+              'is_verified': 1,
             },
+          ],
+          'user_equipments': [
+            {'equipment_id': 1},
           ],
         }),
       );
@@ -148,127 +184,156 @@ void main() {
           conflictResolutions: const {},
         ),
       );
-      final report = result.getOrThrow();
-      final rows = await db
-          .customSelect('SELECT * FROM "user_profiles" LIMIT 1')
-          .get();
 
-      expect(report.createdCount, 1);
-      expect(rows.first.data['name'], 'Novo');
+      expect(result.isSuccess, isTrue);
+
+      final rows = await db
+          .customSelect('SELECT owned_equipment_names FROM user_profiles')
+          .get();
+      final raw = rows.first.data['owned_equipment_names'] as String?;
+      expect(raw, isNotNull);
+      final decoded = (jsonDecode(raw!) as List).cast<String>();
+      expect(decoded, contains('barbell'));
     });
 
     test(
-      'importBackup com perfil keepExisting incrementa skippedCount',
+      'previewImport omitido missing_canonical quando nome backup e pre-v30',
       () async {
-        await db.customInsert(
-          'INSERT INTO "user_profiles" ("name", "height", "age", "trains_at_gym") VALUES (?, ?, ?, ?)',
-          variables: [
-            const Variable<String>('Rafa'),
-            const Variable<double>(181.0),
-            const Variable<int>(24),
-            const Variable<bool>(false),
-          ],
-        );
-
-        final jsonContent = jsonEncode(
-          _payloadWithTables({
-            'user_profiles': [
-              {
-                'id': 1,
-                'name': 'Rafael',
-                'height': 181.0,
-                'age': 24,
-                'trains_at_gym': 1,
-              },
-            ],
-          }),
-        );
-
-        final result = await repository.importBackup(
-          BackupImportRequest(
-            jsonContent: jsonContent,
-            conflictResolutions: const {
-              'profile:name': BackupConflictResolution.keepExisting,
-              'profile:trains_at_gym': BackupConflictResolution.keepExisting,
+        await seedExercises(db);
+        final payload = _payloadWithTables(const {});
+        payload['catalogReferences'] = {
+          'equipments': <dynamic>[],
+          'exercises': [
+            {
+              'localId': 42,
+              'catalogRemoteId': '',
+              'name': 'flatBarbellBenchPress',
+              'fallbackData': const <String, dynamic>{},
             },
-          ),
-        );
-        final report = result.getOrThrow();
+          ],
+        };
 
-        expect(report.skippedCount, 1);
-        expect(report.updatedCount, 0);
+        final result = await repository.previewImport(jsonEncode(payload));
+        final preview = result.getOrThrow();
+
+        expect(
+          preview.pendingReviews.where(
+            (r) => r.type == BackupPendingReviewType.missingCanonicalReference,
+          ),
+          isEmpty,
+        );
       },
     );
 
     test(
-      'importBackup aplica resolucao de conflito de perfil por campo',
+      'importBackup resolve catalogRefs pre-v30 para exercicio seeded (sem dados perdidos nos links)',
       () async {
-        await db.customInsert(
-          'INSERT INTO "user_profiles" ("name", "height", "age", "trains_at_gym") VALUES (?, ?, ?, ?)',
-          variables: [
-            const Variable<String>('Rafa'),
-            const Variable<double>(181.0),
-            const Variable<int>(24),
-            const Variable<bool>(false),
-          ],
-        );
+        await seedExercises(db);
 
-        final jsonContent = jsonEncode(
-          _payloadWithTables({
-            'user_profiles': [
-              {
-                'id': 1,
-                'name': 'Rafael',
-                'height': 185.0,
-                'age': 24,
-                'trains_at_gym': null,
-              },
-            ],
-          }),
-        );
-
-        final result = await repository.importBackup(
-          BackupImportRequest(
-            jsonContent: jsonContent,
-            conflictResolutions: const {
-              'profile:name': BackupConflictResolution.keepExisting,
-              'profile:height': BackupConflictResolution.overwriteExisting,
-            },
-          ),
-        );
-        final report = result.getOrThrow();
-
-        final rows = await db
-            .customSelect('SELECT * FROM "user_profiles" LIMIT 1')
+        final benchRows = await db
+            .customSelect(
+              'SELECT id FROM exercises WHERE name = ? LIMIT 1',
+              variables: [const Variable<String>('benchPress')],
+            )
             .get();
-        final profile = rows.first.data;
+        final benchPressId = benchRows.first.data['id'] as int;
 
-        expect(report.updatedCount, 1);
-        expect(profile['name'], 'Rafa');
-        expect(profile['height'], 185.0);
-      },
-    );
-
-    test('importBackup aceita coluna order sem erro SQL', () async {
-      final jsonContent = jsonEncode(
-        _payloadWithTables({
+        final payload = _payloadWithTables({
           'workouts': [
             {
-              'id': 1,
-              'name': 'Treino A',
+              'id': 10,
+              'name': 'Test backup workout',
               'description': null,
               'sort_order': 0,
               'is_archived': 0,
-              'created_at': 1,
             },
           ],
           'workout_exercises': [
             {
-              'workout_id': 1,
-              'exercise_id': 1,
-              'order': 0,
+              'workout_id': 10,
+              'exercise_id': 501,
+              'order': 1,
               'sets': 3,
-              'reps': 10,
+              'min_reps': 8,
+              'max_reps': 8,
+              'is_amrap': 0,
+              'rest': 90,
+              'duration': null,
+              'group_id': null,
+              'is_unilateral': 0,
+              'notes': null,
+            },
+          ],
+        });
+        payload['catalogReferences'] = {
+          'equipments': <dynamic>[],
+          'exercises': [
+            {
+              'localId': 501,
+              'catalogRemoteId': '',
+              'name': 'flatBarbellBenchPress',
+              'fallbackData': const <String, dynamic>{},
+            },
+          ],
+        };
+
+        final result = await repository.importBackup(
+          BackupImportRequest(
+            jsonContent: jsonEncode(payload),
+            conflictResolutions: const {},
+          ),
+        );
+        expect(result.isSuccess, isTrue);
+
+        final importReport = result.getOrThrow();
+        expect(importReport.failedCount, 0);
+
+        final junction = await db
+            .customSelect(
+              'SELECT exercise_id FROM workout_exercises '
+              'WHERE workout_id IS NOT NULL',
+            )
+            .get();
+
+        expect(
+          junction.map((r) => r.data['exercise_id']).toSet(),
+          contains(benchPressId),
+        );
+      },
+    );
+
+    test(
+      'importBackup merge pre-v30: ezBarCurl alinha para bicepsCurl seeded',
+      () async {
+        await seedExercises(db);
+
+        final idRows = await db
+            .customSelect(
+              'SELECT id FROM exercises WHERE name = ? LIMIT 1',
+              variables: [const Variable<String>('bicepsCurl')],
+            )
+            .get();
+        final bicepsId = idRows.first.data['id'] as int;
+
+        final payload = _payloadWithTables({
+          'workouts': [
+            {
+              'id': 2,
+              'name': 'Arms day',
+              'description': null,
+              'sort_order': 0,
+              'is_archived': 0,
+            },
+          ],
+          'workout_exercises': [
+            {
+              'workout_id': 2,
+              'exercise_id': 88,
+              'order': 1,
+              'sets': 4,
+              'min_reps': 10,
+              'max_reps': 12,
+              'is_amrap': 0,
               'rest': 60,
               'duration': null,
               'group_id': null,
@@ -276,692 +341,177 @@ void main() {
               'notes': null,
             },
           ],
-        }),
-      );
-
-      final result = await repository.importBackup(
-        BackupImportRequest(
-          jsonContent: jsonContent,
-          conflictResolutions: const {},
-        ),
-      );
-      final report = result.getOrThrow();
-
-      expect(report.failedCount, 0);
-      expect(report.createdCount, greaterThan(0));
-    });
-
-    test(
-      'importBackup suporta resolucao keepBoth para workout duplicado',
-      () async {
-        await db.customInsert(
-          'INSERT INTO "workouts" ("name", "description", "sort_order", "is_archived", "created_at") VALUES (?, ?, ?, ?, ?)',
-          variables: [
-            const Variable<String>('Treino A'),
-            const Variable<String>('Atual'),
-            const Variable<int>(0),
-            const Variable<bool>(false),
-            const Variable<int>(1),
+        });
+        payload['catalogReferences'] = {
+          'equipments': <dynamic>[],
+          'exercises': [
+            {
+              'localId': 88,
+              'catalogRemoteId': '',
+              'name': 'ezBarCurl',
+              'fallbackData': const <String, dynamic>{},
+            },
           ],
-        );
-
-        final jsonContent = jsonEncode(
-          _payloadWithTables({
-            'workouts': [
-              {
-                'id': 7,
-                'name': 'Treino A',
-                'description': 'Importado',
-                'sort_order': 1,
-                'is_archived': 0,
-                'created_at': 2,
-              },
-            ],
-          }),
-        );
+        };
 
         final result = await repository.importBackup(
           BackupImportRequest(
-            jsonContent: jsonContent,
-            conflictResolutions: const {
-              'workout:7': BackupConflictResolution.keepBoth,
-            },
+            jsonContent: jsonEncode(payload),
+            conflictResolutions: const {},
           ),
         );
-        final report = result.getOrThrow();
-        final rows = await db
-            .customSelect('SELECT "name" FROM "workouts"')
-            .get();
-        final names = rows.map((r) => r.data['name'] as String).toList();
+        expect(result.isSuccess, isTrue);
+        expect(result.getOrThrow().failedCount, 0);
 
-        expect(report.createdCount, greaterThanOrEqualTo(1));
-        expect(names.any((n) => n.contains('(importado)')), isTrue);
+        final junction = await db
+            .customSelect('SELECT exercise_id FROM workout_exercises')
+            .get();
+        expect(
+          junction.map((r) => r.data['exercise_id']).toSet(),
+          contains(bicepsId),
+        );
       },
     );
 
-    test('importBackup nao conta falha para cadeias de workout pulado', () async {
-      await db.customInsert(
-        'INSERT INTO "workouts" ("name", "description", "sort_order", "is_archived", "created_at") VALUES (?, ?, ?, ?, ?)',
-        variables: [
-          const Variable<String>('Treino A'),
-          const Variable<String>('Atual'),
-          const Variable<int>(0),
-          const Variable<bool>(false),
-          const Variable<int>(1),
-        ],
-      );
-
-      final jsonContent = jsonEncode(
-        _payloadWithTables({
-          'workouts': [
-            {
-              'id': 5,
-              'name': 'Treino A',
-              'description': 'Importado',
-              'sort_order': 0,
-              'is_archived': 0,
-              'created_at': 1,
-            },
-          ],
-          'workout_executions': [
-            {
-              'id': 50,
-              'workout_id': 5,
-              'started_at': 100,
-              'finished_at': 120,
-              'notes': null,
-            },
-          ],
-          'execution_sets': [
-            {
-              'id': 500,
-              'execution_id': 50,
-              'exercise_id': 9999,
-              'set_number': 1,
-              'planned_reps': 10,
-              'planned_weight': null,
-              'reps': 10,
-              'weight': null,
-              'duration': null,
-              'distance': null,
-              'is_completed': 1,
-              'notes': null,
-            },
-          ],
-          'execution_set_segments': [
-            {
-              'id': 5000,
-              'execution_set_id': 500,
-              'segment_order': 1,
-              'reps': 10,
-              'weight': null,
-            },
-          ],
-        }),
-      );
-
-      final result = await repository.importBackup(
-        BackupImportRequest(
-          jsonContent: jsonContent,
-          conflictResolutions: const {
-            'workout:5': BackupConflictResolution.keepExisting,
-          },
-        ),
-      );
-      final report = result.getOrThrow();
-
-      expect(report.failedCount, 0);
-      expect(report.skippedCount, 1);
-    });
-
     test(
-      'importBackup usa fallback de IDs verificados sem catalogReferences',
+      'importBackup schema 29: exercicio verified na tabela só liga ao seed; sem INSERT nome legado',
       () async {
-        final jsonContent = jsonEncode(
-          _payloadWithTables({
+        await seedExercises(db);
+
+        final benchRows = await db
+            .customSelect(
+              'SELECT id FROM exercises WHERE name = ? LIMIT 1',
+              variables: [const Variable<String>('benchPress')],
+            )
+            .get();
+        final benchPressId = benchRows.first.data['id'] as int;
+
+        final countBeforeRows =
+            await db.customSelect('SELECT COUNT(*) AS c FROM exercises').get();
+        final countBefore = countBeforeRows.first.data['c'] as int;
+
+        final payload = _payloadWithTables(
+          {
+            'exercises': [
+              {
+                'id': 77,
+                'catalog_remote_id': '',
+                'name': 'flatBarbellBenchPress',
+                'muscle_group': 'chest',
+                'type': 'strength',
+                'movement_pattern': 'push',
+                'description': null,
+                'is_verified': 1,
+                'is_bodyweight': 0,
+                'is_isometric': 0,
+              },
+            ],
             'workouts': [
               {
-                'id': 10,
-                'name': 'Treino Fallback',
+                'id': 3,
+                'name': 'Treino legado',
                 'description': null,
                 'sort_order': 0,
                 'is_archived': 0,
-                'created_at': 1,
               },
             ],
             'workout_exercises': [
               {
-                'workout_id': 10,
-                'exercise_id': 1,
-                'order': 0,
+                'workout_id': 3,
+                'exercise_id': 77,
+                'order': 1,
                 'sets': 3,
-                'reps': 10,
-                'rest': 60,
+                'min_reps': 8,
+                'max_reps': 10,
+                'is_amrap': 0,
+                'rest': 120,
                 'duration': null,
                 'group_id': null,
                 'is_unilateral': 0,
                 'notes': null,
               },
             ],
-            'workout_executions': [
-              {
-                'id': 11,
-                'workout_id': 10,
-                'started_at': 100,
-                'finished_at': 120,
-                'notes': null,
-              },
-            ],
-            'execution_sets': [
-              {
-                'id': 12,
-                'execution_id': 11,
-                'exercise_id': 1,
-                'set_number': 1,
-                'planned_reps': 10,
-                'planned_weight': null,
-                'reps': 10,
-                'weight': null,
-                'duration': null,
-                'distance': null,
-                'is_completed': 1,
-                'notes': null,
-              },
-            ],
-            'user_equipments': [
-              {'equipment_id': 1},
-            ],
-          }),
+          },
+          databaseSchemaVersion: 29,
         );
 
         final result = await repository.importBackup(
           BackupImportRequest(
-            jsonContent: jsonContent,
+            jsonContent: jsonEncode(payload),
             conflictResolutions: const {},
           ),
         );
-        final report = result.getOrThrow();
+        expect(result.isSuccess, isTrue);
+        expect(result.getOrThrow().failedCount, 0);
 
-        final workoutExerciseRows = await db
-            .customSelect('SELECT * FROM "workout_exercises"')
-            .get();
-        final userEquipmentRows = await db
-            .customSelect('SELECT * FROM "user_equipments"')
-            .get();
+        final countAfterRows =
+            await db.customSelect('SELECT COUNT(*) AS c FROM exercises').get();
+        expect(countAfterRows.first.data['c'], countBefore);
 
-        expect(report.failedCount, 0);
-        expect(workoutExerciseRows, isNotEmpty);
-        expect(userEquipmentRows, isNotEmpty);
+        final ghostNameRows = await db
+            .customSelect(
+              "SELECT COUNT(*) AS c FROM exercises WHERE name = 'flatBarbellBenchPress'",
+            )
+            .get();
+        expect(ghostNameRows.first.data['c'], 0);
+
+        final junction = await db
+            .customSelect(
+              'SELECT exercise_id FROM workout_exercises ORDER BY workout_id DESC LIMIT 1',
+            )
+            .get();
+        expect(junction.first.data['exercise_id'], benchPressId);
       },
     );
 
-    test('exportBackup exporta apenas equipamentos customizados', () async {
-      await db.customInsert(
-        'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-        variables: [
-          const Variable<String>('Custom Band'),
-          const Variable<String>('accessories'),
-          const Variable<bool>(false),
-        ],
-      );
-      final exportResult = await repository.exportBackup();
-      final exportData = exportResult.getOrThrow();
-      final parsed = jsonDecode(exportData.jsonContent) as Map<String, dynamic>;
-
-      final tables = parsed['tables'] as Map<String, dynamic>;
-      final exportedEquipments = (tables['equipments'] as List)
-          .cast<Map>()
-          .map((e) => Map<String, dynamic>.from(e.cast<String, dynamic>()))
-          .toList();
-
-      expect(
-        exportedEquipments.any((row) => row['name'] == 'Custom Band'),
-        isTrue,
-      );
-      expect(
-        exportedEquipments.every((row) => row['is_verified'] == 0),
-        isTrue,
-      );
-    });
-
     test(
-      'previewImport separa scope de governanca e origem de deteccao',
+      'importBackup schema 30+custom:user exercise isVerified false ainda pode ser inserido',
       () async {
-        await db.customInsert(
-          'INSERT INTO "equipments" ("name", "category", "is_verified", "catalog_remote_id") VALUES (?, ?, ?, ?)',
-          variables: [
-            const Variable<String>('Barbell'),
-            const Variable<String>('barbell'),
-            const Variable<bool>(true),
-            const Variable<String>('remote_a'),
-          ],
-        );
+        await seedExercises(db);
 
-        final jsonContent = jsonEncode(
-          _payloadWithTables({
-            'equipments': [
+        final payload = _payloadWithTables(
+          {
+            'exercises': [
               {
-                'id': 77,
-                'name': 'Barbell',
-                'category': 'barbell',
-                'is_verified': 1,
-                'catalog_remote_id': 'remote_b',
+                'id': 900,
+                'catalog_remote_id': '',
+                'name': 'meuExercicioCustomizado',
+                'muscle_group': 'chest',
+                'type': 'strength',
+                'movement_pattern': 'push',
+                'description': null,
+                'is_verified': 0,
+                'is_bodyweight': 0,
+                'is_isometric': 0,
               },
             ],
-          }),
-        );
-
-        final result = await repository.previewImport(jsonContent);
-        final preview = result.getOrThrow();
-        final governanceReview = preview.pendingReviews.firstWhere(
-          (review) => review.type == BackupPendingReviewType.governanceConflict,
-        );
-
-        expect(
-          governanceReview.decisionScope,
-          BackupConflictDecisionScope.catalogGovernance,
-        );
-        expect(
-          governanceReview.detectedFrom,
-          BackupConflictDetectedFrom.importPreview,
-        );
-      },
-    );
-
-    test('previewImport mantem conflito local como scope do usuario', () async {
-      await db.customInsert(
-        'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-        variables: [
-          const Variable<String>('Dumbbell'),
-          const Variable<String>('dumbbell'),
-          const Variable<bool>(false),
-        ],
-      );
-
-      final payload = _payloadWithTables(const {});
-      payload['catalogReferences'] = {
-        'equipments': [
-          {'localId': 91, 'catalogRemoteId': 'missing_id', 'name': 'Halter'},
-        ],
-        'exercises': [],
-      };
-
-      final result = await repository.previewImport(jsonEncode(payload));
-      final preview = result.getOrThrow();
-      final localReview = preview.pendingReviews.firstWhere(
-        (review) =>
-            review.type == BackupPendingReviewType.missingCanonicalReference &&
-            review.entityType == BackupConflictType.equipment,
-      );
-
-      expect(localReview.decisionScope, BackupConflictDecisionScope.userLocal);
-      expect(
-        localReview.detectedFrom,
-        BackupConflictDetectedFrom.importPreview,
-      );
-    });
-
-    test(
-      'scanRuntimeLocalDuplicates detecta duplicados locais por similaridade',
-      () async {
-        await db.customInsert(
-          'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-          variables: [
-            const Variable<String>('Cadeira Flexora'),
-            const Variable<String>('legMachine'),
-            const Variable<bool>(false),
-          ],
-        );
-        await db.customInsert(
-          'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-          variables: [
-            const Variable<String>('cadeira   flexora'),
-            const Variable<String>('legMachine'),
-            const Variable<bool>(false),
-          ],
-        );
-
-        final result = await repository.scanRuntimeLocalDuplicates();
-        final reviews = result.getOrThrow();
-
-        final equipmentDuplicate = reviews.firstWhere(
-          (review) => review.entityType == BackupConflictType.equipment,
-        );
-        expect(
-          equipmentDuplicate.detectedFrom,
-          BackupConflictDetectedFrom.runtimeScan,
-        );
-        expect(
-          equipmentDuplicate.decisionScope,
-          BackupConflictDecisionScope.userLocal,
-        );
-        expect(equipmentDuplicate.similarityScore, greaterThanOrEqualTo(0.84));
-      },
-    );
-
-    test(
-      'resolveRuntimeDuplicate com notDuplicate suprime par em scans futuros',
-      () async {
-        Future<int> insertId(String name) async {
-          await db.customInsert(
-            'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-            variables: [
-              Variable<String>(name),
-              const Variable<String>('legMachine'),
-              const Variable<bool>(false),
-            ],
-          );
-          final inserted = await db
-              .customSelect(
-                'SELECT id FROM "equipments" WHERE "name" = ? ORDER BY id DESC LIMIT 1',
-                variables: [Variable<String>(name)],
-              )
-              .get();
-          return inserted.first.data['id'] as int;
-        }
-
-        final leftId = await insertId('Cadeira Flexora');
-        final rightId = await insertId('cadeira   flexora');
-
-        final initialScan = await repository.scanRuntimeLocalDuplicates();
-        final initialReviews = initialScan.getOrThrow();
-        final initialPair = initialReviews.firstWhere(
-          (review) =>
-              review.entityType == BackupConflictType.equipment &&
-              (review.leftEntityId == leftId ||
-                  review.rightEntityId == leftId ||
-                  review.leftEntityId == rightId ||
-                  review.rightEntityId == rightId),
-        );
-
-        final decision = await repository.resolveRuntimeDuplicate(
-          entityType: BackupConflictType.equipment,
-          leftEntityId: initialPair.leftEntityId!,
-          rightEntityId: initialPair.rightEntityId!,
-          decision: RuntimeDuplicateDecision.notDuplicate,
-        );
-        expect(decision.isSuccess, isTrue);
-
-        final secondScan = await repository.scanRuntimeLocalDuplicates();
-        final afterReviews = secondScan.getOrThrow();
-        final stillShowsPair = afterReviews.any(
-          (review) =>
-              review.entityType == BackupConflictType.equipment &&
-              review.reviewId == initialPair.reviewId,
-        );
-        expect(stillShowsPair, isFalse);
-      },
-    );
-
-    test(
-      'resolveRuntimeDuplicate com merge mantém verificado e remove local',
-      () async {
-        Future<int> insertEquipment({
-          required String name,
-          required bool isVerified,
-          String? remoteId,
-        }) async {
-          await db.customInsert(
-            'INSERT INTO "equipments" ("name", "category", "is_verified", "catalog_remote_id") VALUES (?, ?, ?, ?)',
-            variables: [
-              Variable<String>(name),
-              const Variable<String>('legMachine'),
-              Variable<bool>(isVerified),
-              Variable<String>(remoteId ?? ''),
-            ],
-          );
-          final inserted = await db
-              .customSelect(
-                'SELECT id FROM "equipments" WHERE "name" = ? ORDER BY id DESC LIMIT 1',
-                variables: [Variable<String>(name)],
-              )
-              .get();
-          return inserted.first.data['id'] as int;
-        }
-
-        final verifiedId = await insertEquipment(
-          name: 'seatedLegCurlMachine',
-          isVerified: true,
-          remoteId: 'seed_remote_1',
-        );
-        final localId = await insertEquipment(
-          name: 'Cadeira Flexora',
-          isVerified: false,
-        );
-
-        await db.customInsert(
-          'INSERT INTO "user_equipments" ("equipment_id") VALUES (?)',
-          variables: [Variable<int>(localId)],
-        );
-
-        final mergeResult = await repository.resolveRuntimeDuplicate(
-          entityType: BackupConflictType.equipment,
-          leftEntityId: localId,
-          rightEntityId: verifiedId,
-          decision: RuntimeDuplicateDecision.confirmDuplicate,
-          winnerId: verifiedId,
-        );
-        expect(mergeResult.isSuccess, isTrue);
-
-        final localRows = await db
-            .customSelect(
-              'SELECT id FROM "equipments" WHERE id = ?',
-              variables: [Variable<int>(localId)],
-            )
-            .get();
-        final mappedRows = await db
-            .customSelect(
-              'SELECT equipment_id FROM "user_equipments" WHERE equipment_id = ?',
-              variables: [Variable<int>(verifiedId)],
-            )
-            .get();
-
-        expect(localRows, isEmpty);
-        expect(mappedRows, isNotEmpty);
-      },
-    );
-
-    test(
-      'confirmDuplicate com winnerId = right mantém right e remove left',
-      () async {
-        Future<int> insertEquipment({
-          required String name,
-          required bool isVerified,
-        }) async {
-          await db.customInsert(
-            'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-            variables: [
-              Variable<String>(name),
-              const Variable<String>('freeWeights'),
-              Variable<bool>(isVerified),
-            ],
-          );
-          final inserted = await db
-              .customSelect(
-                'SELECT id FROM "equipments" WHERE "name" = ? ORDER BY id DESC LIMIT 1',
-                variables: [Variable<String>(name)],
-              )
-              .get();
-          return inserted.first.data['id'] as int;
-        }
-
-        final idA = await insertEquipment(name: 'Halter', isVerified: false);
-        final idB = await insertEquipment(name: 'Halteres', isVerified: false);
-
-        final result = await repository.resolveRuntimeDuplicate(
-          entityType: BackupConflictType.equipment,
-          leftEntityId: idA,
-          rightEntityId: idB,
-          decision: RuntimeDuplicateDecision.confirmDuplicate,
-          winnerId: idB,
-        );
-        expect(result.isSuccess, isTrue);
-
-        final rowsA = await db
-            .customSelect(
-              'SELECT id FROM "equipments" WHERE id = ?',
-              variables: [Variable<int>(idA)],
-            )
-            .get();
-        final rowsB = await db
-            .customSelect(
-              'SELECT id FROM "equipments" WHERE id = ?',
-              variables: [Variable<int>(idB)],
-            )
-            .get();
-
-        expect(rowsA, isEmpty);
-        expect(rowsB, isNotEmpty);
-      },
-    );
-
-    test(
-      'mergeAttributes atualiza winner com atributos mesclados e remove loser',
-      () async {
-        Future<int> insertEquipment({
-          required String name,
-          required String category,
-          required String? description,
-        }) async {
-          await db.customInsert(
-            'INSERT INTO "equipments" ("name", "category", "is_verified", "description") VALUES (?, ?, ?, ?)',
-            variables: [
-              Variable<String>(name),
-              Variable<String>(category),
-              const Variable<bool>(false),
-              Variable<String>(description ?? ''),
-            ],
-          );
-          final inserted = await db
-              .customSelect(
-                'SELECT id FROM "equipments" WHERE "name" = ? ORDER BY id DESC LIMIT 1',
-                variables: [Variable<String>(name)],
-              )
-              .get();
-          return inserted.first.data['id'] as int;
-        }
-
-        final idA = await insertEquipment(
-          name: 'Polia',
-          category: 'machines',
-          description: 'Descricao A',
-        );
-        final idB = await insertEquipment(
-          name: 'Polia Cabo',
-          category: 'machines',
-          description: 'Descricao B',
-        );
-
-        final result = await repository.resolveRuntimeDuplicate(
-          entityType: BackupConflictType.equipment,
-          leftEntityId: idA,
-          rightEntityId: idB,
-          decision: RuntimeDuplicateDecision.mergeAttributes,
-          winnerId: idA,
-          mergedAttributes: {
-            'name': 'Polia Cabo',
-            'category': 'machines',
-            'description': 'Descricao A',
           },
+          databaseSchemaVersion: 30,
+        );
+
+        final result = await repository.importBackup(
+          BackupImportRequest(
+            jsonContent: jsonEncode(payload),
+            conflictResolutions: const {},
+          ),
         );
         expect(result.isSuccess, isTrue);
 
-        final winnerRows = await db
+        final customRows = await db
             .customSelect(
-              'SELECT * FROM "equipments" WHERE id = ?',
-              variables: [Variable<int>(idA)],
+              "SELECT COUNT(*) AS c FROM exercises WHERE name = 'meuExercicioCustomizado'",
             )
             .get();
-        expect(winnerRows, isNotEmpty);
-        expect(winnerRows.first.data['name'], 'Polia Cabo');
-        expect(winnerRows.first.data['description'], 'Descricao A');
-
-        final loserRows = await db
-            .customSelect(
-              'SELECT id FROM "equipments" WHERE id = ?',
-              variables: [Variable<int>(idB)],
-            )
-            .get();
-        expect(loserRows, isEmpty);
-      },
-    );
-
-    test(
-      'scanner retorna isLeftVerified e isRightVerified corretamente',
-      () async {
-        await db.customStatement(
-          "INSERT INTO equipments (name, category, is_verified) VALUES ('seatedLegCurlMachine', 'legMachine', 1)",
-        );
-        await db.customStatement(
-          "INSERT INTO equipments (name, category, is_verified) VALUES ('Cadeira Flexora', 'legMachine', 0)",
-        );
-
-        final rawCheck = await db
-            .customSelect('SELECT name, is_verified FROM equipments')
-            .get();
-        final verifiedRaw = rawCheck.firstWhere(
-          (r) => r.data['name'] == 'seatedLegCurlMachine',
-        );
-        expect(verifiedRaw.data['is_verified'], 1);
-
-        final result = await repository.scanRuntimeLocalDuplicates();
-        final reviews = result.getOrThrow();
-        final pair = reviews.firstWhere(
-          (r) => r.entityType == BackupConflictType.equipment,
-        );
-
-        expect(
-          pair.isLeftVerified || pair.isRightVerified,
-          isTrue,
-          reason:
-              'At least one side verified. '
-              'left=${pair.isLeftVerified} (${pair.importedLabel}), '
-              'right=${pair.isRightVerified} (${pair.existingLabel})',
-        );
-      },
-    );
-
-    test(
-      'scanRuntimeLocalDuplicates reconhece tradução pt-BR para chave canônica da seed',
-      () async {
-        await db.customInsert(
-          'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-          variables: [
-            const Variable<String>('seatedLegCurlMachine'),
-            const Variable<String>('legMachine'),
-            const Variable<bool>(true),
-          ],
-        );
-
-        await db.customInsert(
-          'INSERT INTO "equipments" ("name", "category", "is_verified") VALUES (?, ?, ?)',
-          variables: [
-            const Variable<String>('Cadeira Flexora'),
-            const Variable<String>('legMachine'),
-            const Variable<bool>(false),
-          ],
-        );
-
-        final result = await repository.scanRuntimeLocalDuplicates();
-        final reviews = result.getOrThrow();
-        final matched = reviews.any(
-          (review) =>
-              review.entityType == BackupConflictType.equipment &&
-              ((review.importedLabel == 'Cadeira Flexora' &&
-                      review.existingLabel == 'seatedLegCurlMachine') ||
-                  (review.importedLabel == 'seatedLegCurlMachine' &&
-                      review.existingLabel == 'Cadeira Flexora')),
-        );
-
-        expect(matched, isTrue);
+        expect(customRows.first.data['c'], 1);
       },
     );
   });
 }
 
 Map<String, dynamic> _payloadWithTables(
-  Map<String, List<Map<String, dynamic>>> tablesOverride,
-) {
+  Map<String, List<Map<String, dynamic>>> tablesOverride, {
+  int databaseSchemaVersion = 30,
+}) {
   final tables = <String, List<Map<String, dynamic>>>{
     'user_profiles': [],
     'equipments': [],
@@ -975,13 +525,16 @@ Map<String, dynamic> _payloadWithTables(
     'execution_sets': [],
     'execution_set_segments': [],
     'cycle_steps': [],
+    'programs': [],
+    'progression_rules': [],
+    'body_metrics': [],
     'user_equipments': [],
   };
   tables.addAll(tablesOverride);
 
   return {
     'backupFormatVersion': 2,
-    'databaseSchemaVersion': 12,
+    'databaseSchemaVersion': databaseSchemaVersion,
     'mode': 'user_only',
     'exportedAt': DateTime.now().toIso8601String(),
     'tables': tables,

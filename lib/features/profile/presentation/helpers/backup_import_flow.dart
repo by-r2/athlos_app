@@ -16,7 +16,6 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../training/presentation/providers/equipment_notifier.dart';
 import '../../../training/presentation/providers/exercise_notifier.dart';
 import '../../../training/presentation/providers/program_notifier.dart';
 import '../../../training/presentation/providers/recalculate_training_streaks.dart';
@@ -163,9 +162,6 @@ Future<void> runBackupImportFlow({
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
     ref.invalidate(exerciseListProvider);
-    ref.invalidate(exerciseEquipmentMapProvider);
-    ref.invalidate(equipmentListProvider);
-    ref.invalidate(userEquipmentIdsProvider);
     ref.invalidate(cycleStepsProvider);
     ref.invalidate(effectiveCycleStepsProvider);
     ref.invalidate(cycleListItemsProvider);

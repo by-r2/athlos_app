@@ -20,7 +20,6 @@ import '../../domain/enums/program_focus.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/active_execution_notifier.dart';
-import '../providers/equipment_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
@@ -346,9 +345,6 @@ class _LibrarySection extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final equipmentAsync = ref.watch(equipmentListProvider);
-    final equipmentCount = equipmentAsync.value?.length ?? 0;
-
     final exercisesAsync = ref.watch(exerciseListProvider);
     final exerciseCount = exercisesAsync.value?.length ?? 0;
 
@@ -381,15 +377,6 @@ class _LibrarySection extends ConsumerWidget {
               ? l10n.exercisesCount(exerciseCount)
               : l10n.exercisesCatalogDesc,
           onTap: () => context.go(RoutePaths.trainingExercises),
-        ),
-        const Gap(AthlosSpacing.sm),
-        _CatalogCard(
-          icon: Icons.handyman,
-          title: l10n.equipmentCatalogTitle,
-          subtitle: equipmentCount > 0
-              ? l10n.equipmentCatalogCount(equipmentCount)
-              : l10n.equipmentCatalogDesc,
-          onTap: () => context.go(RoutePaths.trainingEquipment),
         ),
       ],
     );

@@ -3,15 +3,12 @@ import '../../../profile/domain/entities/body_metric.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../../profile/domain/repositories/user_profile_repository.dart';
-import '../../../training/domain/entities/equipment.dart';
 import '../../../training/domain/entities/exercise.dart';
 import '../../../training/domain/entities/workout.dart';
 import '../../../training/domain/entities/workout_execution.dart';
-import '../../../training/domain/repositories/equipment_repository.dart';
 import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/repositories/workout_execution_repository.dart';
 import '../../../training/domain/repositories/workout_repository.dart';
-import 'chiron_equipment_names.dart';
 import '../seeds/chiron_context_seed.dart';
 
 /// Builds a structured context string from user data for the Gemini prompt.
@@ -26,7 +23,6 @@ class PromptBuilder {
 
   final UserProfileRepository _profileRepo;
   final BodyMetricRepository _bodyMetricRepo;
-  final EquipmentRepository _equipmentRepo;
   final WorkoutRepository _workoutRepo;
   final WorkoutExecutionRepository _executionRepo;
   final ExerciseRepository _exerciseRepo;
@@ -34,13 +30,11 @@ class PromptBuilder {
   const PromptBuilder({
     required UserProfileRepository profileRepo,
     required BodyMetricRepository bodyMetricRepo,
-    required EquipmentRepository equipmentRepo,
     required WorkoutRepository workoutRepo,
     required WorkoutExecutionRepository executionRepo,
     required ExerciseRepository exerciseRepo,
   }) : _profileRepo = profileRepo,
        _bodyMetricRepo = bodyMetricRepo,
-       _equipmentRepo = equipmentRepo,
        _workoutRepo = workoutRepo,
        _executionRepo = executionRepo,
        _exerciseRepo = exerciseRepo;
@@ -51,10 +45,8 @@ class PromptBuilder {
         : maxRecentExecutions;
     final workoutsLimit = extended ? maxWorkoutsExtended : maxWorkouts;
 
-    // Parallel fetch of all independent data sources
     final futures = await Future.wait([
       _profileRepo.get(),
-      _equipmentRepo.getByUser(),
       _workoutRepo.getActive(),
       _executionRepo.getAll(),
       _exerciseRepo.getAll(),
@@ -62,16 +54,14 @@ class PromptBuilder {
     ]);
 
     final profileResult = futures[0] as Result<UserProfile?>;
-    final equipResult = futures[1] as Result<List<Equipment>>;
-    final workoutResult = futures[2] as Result<List<Workout>>;
-    final execResult = futures[3] as Result<List<WorkoutExecution>>;
-    final exerciseResult = futures[4] as Result<List<Exercise>>;
-    final bodyMetricResult = futures[5] as Result<BodyMetric?>;
+    final workoutResult = futures[1] as Result<List<Workout>>;
+    final execResult = futures[2] as Result<List<WorkoutExecution>>;
+    final exerciseResult = futures[3] as Result<List<Exercise>>;
+    final bodyMetricResult = futures[4] as Result<BodyMetric?>;
     final bodyWeight = bodyMetricResult.isSuccess
         ? bodyMetricResult.getOrThrow()?.weight
         : null;
 
-    // Pre-build exercise ID → name map (avoids N+1 later)
     final exerciseMap = <int, String>{};
     var allExercises = <Exercise>[];
     if (exerciseResult.isSuccess) {
@@ -85,14 +75,11 @@ class PromptBuilder {
 
     final profile = profileResult.isSuccess ? profileResult.getOrThrow() : null;
 
-    // --- Profile ---
     _buildProfile(profileResult, bodyWeight, sections);
 
-    // --- Equipment ---
     final isHomeUser = profile?.trainsAtGym == false;
-    _buildEquipment(equipResult, sections, isHomeUser: isHomeUser);
+    _buildOwnedEquipment(profile, sections, isHomeUser: isHomeUser);
 
-    // --- Active Workouts (with exercises, no N+1) ---
     await _buildWorkouts(
       workoutResult,
       exerciseMap,
@@ -100,7 +87,6 @@ class PromptBuilder {
       maxItems: workoutsLimit,
     );
 
-    // --- Recent Executions (with set details, no N+1) ---
     await _buildExecutions(
       execResult,
       workoutResult,
@@ -109,7 +95,6 @@ class PromptBuilder {
       maxItems: recentExecutionsLimit,
     );
 
-    // --- Exercise catalog names ---
     _buildCatalog(allExercises, sections);
 
     return sections.isEmpty ? 'No data available yet.' : sections.join('\n\n');
@@ -166,30 +151,22 @@ class PromptBuilder {
     sections.add(lines.join('\n'));
   }
 
-  void _buildEquipment(
-    Result<List<Equipment>> equipResult,
+  void _buildOwnedEquipment(
+    UserProfile? profile,
     List<String> sections, {
     bool isHomeUser = false,
   }) {
-    if (!equipResult.isSuccess) return;
-    final equipment = equipResult.getOrThrow();
-    if (equipment.isNotEmpty) {
-      final names = equipment
-          .map(
-            (e) => chironEquipmentDisplayName(
-              canonicalName: e.name,
-              isVerified: e.isVerified,
-            ),
-          )
-          .join(', ');
-      sections.add('## Registered Equipment\n$names');
+    final names = profile?.ownedEquipmentNames ?? const <String>[];
+    if (names.isNotEmpty) {
+      sections.add('## Owned equipment\n${names.join(', ')}');
     } else if (isHomeUser) {
       sections.add(
-        '## Registered Equipment\n'
-        'No equipment registered. User trains at home — ask what they have.',
+        '## Owned equipment\n'
+        'No equipment listed on profile — user trains at home; '
+        'ask what they have and register with registerEquipment.',
       );
     } else {
-      sections.add('## Registered Equipment\nNo equipment registered.');
+      sections.add('## Owned equipment\nNone listed on profile.');
     }
   }
 
@@ -204,7 +181,6 @@ class PromptBuilder {
     final workoutsToShow = workouts.take(maxItems).toList();
     if (workoutsToShow.isEmpty) return;
 
-    // Fetch exercises for all workouts in parallel
     final exerciseResults = await Future.wait(
       workoutsToShow.map((w) => _workoutRepo.getExercises(w.id)),
     );
@@ -245,7 +221,6 @@ class PromptBuilder {
         .toList();
     if (recent.isEmpty) return;
 
-    // Reuse workout names from the already-fetched workouts result
     final workoutNames = <int, String>{};
     if (workoutResult.isSuccess) {
       for (final w in workoutResult.getOrThrow()) {
@@ -253,7 +228,6 @@ class PromptBuilder {
       }
     }
 
-    // Fetch all sets in parallel
     final setResults = await Future.wait(
       recent.map((exec) => _executionRepo.getSets(exec.id)),
     );

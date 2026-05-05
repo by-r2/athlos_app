@@ -49,7 +49,7 @@
   },
   "profileEquipmentTab": "Equipamentos",
   "@profileEquipmentTab": {
-    "description": "Profile tab label for equipment category"
+    "description": "Profile tab: user's owned equipment list (not a catalog screen)"
   },
   "profileDataTab": "Dados",
   "@profileDataTab": {
@@ -716,124 +716,8 @@
     "description": "Unidade de idade"
   },
 
-  "equipmentScreenTitle": "Equipamentos",
-  "@equipmentScreenTitle": {
-    "description": "Título da tela de equipamentos"
-  },
-  "myEquipment": "Meus Equipamentos",
-  "@myEquipment": {
-    "description": "Card na training home para acessar equipamentos"
-  },
-  "myEquipmentDesc": "Defina os equipamentos que você tem acesso",
-  "@myEquipmentDesc": {
-    "description": "Descrição do card meus equipamentos"
-  },
-  "equipmentCatalogTitle": "Equipamentos",
-  "@equipmentCatalogTitle": {
-    "description": "Card title for equipment catalog"
-  },
-  "equipmentCatalogDesc": "Explore e marque os equipamentos disponíveis para você",
-  "@equipmentCatalogDesc": {
-    "description": "Card description for equipment catalog"
-  },
-  "equipmentCatalogCount": "{count} equipamentos no catálogo",
-  "@equipmentCatalogCount": {
-    "description": "Equipment catalog count label",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "equipmentSelected": "{count} selecionados",
-  "@equipmentSelected": {
-    "description": "Contador de equipamentos selecionados",
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "addEquipment": "Registrar equipamento",
-  "@addEquipment": {
-    "description": "Botão para registrar equipamento personalizado"
-  },
-  "equipmentNameLabel": "Nome do equipamento",
-  "@equipmentNameLabel": {
-    "description": "Label do campo nome no dialog"
-  },
-  "equipmentCategoryLabel": "Categoria",
-  "@equipmentCategoryLabel": {
-    "description": "Label do campo categoria no dialog"
-  },
-  "searchEquipment": "Buscar no catálogo...",
-  "@searchEquipment": {
-    "description": "Placeholder do campo de busca no catálogo"
-  },
-  "emptyEquipment": "Nenhum equipamento adicionado ainda",
-  "@emptyEquipment": {
-    "description": "Estado vazio da lista de equipamentos do usuário"
-  },
-  "emptyEquipmentHint": "Use a busca acima para encontrar e adicionar",
-  "@emptyEquipmentHint": {
-    "description": "Dica no estado vazio"
-  },
-  "equipmentCatalogEmpty": "Nenhum equipamento encontrado no catálogo",
-  "@equipmentCatalogEmpty": {
-    "description": "Empty state title when catalog search has no matches"
-  },
-  "equipmentCatalogEmptyHint": "Tente outro termo ou cadastre um equipamento novo.",
-  "@equipmentCatalogEmptyHint": {
-    "description": "Empty state hint when catalog search has no matches"
-  },
-  "registerNewEquipment": "Registrar novo equipamento",
-  "@registerNewEquipment": {
-    "description": "Action to register a new equipment from catalog empty search result"
-  },
-  "removeEquipment": "Remover",
-  "@removeEquipment": {
-    "description": "Ação para remover equipamento da lista do usuário"
-  },
-  "editEquipment": "Editar equipamento",
-  "@editEquipment": { "description": "Title for edit equipment dialog" },
-  "deleteEquipmentTitle": "Excluir equipamento",
-  "@deleteEquipmentTitle": { "description": "Title for delete equipment confirmation" },
-  "deleteEquipmentMessage": "Tem certeza que deseja excluir \"{name}\"?",
-  "@deleteEquipmentMessage": {
-    "description": "Delete equipment confirmation message",
-    "placeholders": {
-      "name": { "type": "String" }
-    }
-  },
   "delete": "Excluir",
   "@delete": { "description": "Delete action button" },
-
-  "categoryFreeWeights": "Pesos Livres",
-  "@categoryFreeWeights": {
-    "description": "Categoria: pesos livres"
-  },
-  "categoryMachines": "Máquinas",
-  "@categoryMachines": {
-    "description": "Categoria: máquinas"
-  },
-  "categoryStructures": "Barras e Suportes",
-  "@categoryStructures": {
-    "description": "Categoria: barras fixas, paralelas, argolas, suspension trainer"
-  },
-  "categoryAccessories": "Acessórios",
-  "@categoryAccessories": {
-    "description": "Categoria: acessórios"
-  },
-  "categoryCardio": "Cardio",
-  "@categoryCardio": {
-    "description": "Categoria: cardio"
-  },
-  "categoryFreeWeightsDesc": "Barras, halteres, kettlebells e anilhas",
-  "@categoryFreeWeightsDesc": { "description": "Tooltip for freeWeights category" },
-  "categoryMachinesDesc": "Polias, Smith, leg press e outras máquinas guiadas",
-  "@categoryMachinesDesc": { "description": "Tooltip for machines category" },
-  "categoryStructuresDesc": "Barra fixa, paralelas, argolas e suspension trainer",
-  "@categoryStructuresDesc": { "description": "Tooltip for structures category" },
-  "categoryAccessoriesDesc": "Bancos, racks, elásticos, medicine ball e outros",
-  "@categoryAccessoriesDesc": { "description": "Tooltip for accessories category" },
-  "categoryCardioDesc": "Esteira, bicicleta ergométrica, remo e elíptico",
-  "@categoryCardioDesc": { "description": "Tooltip for cardio category" },
 
   "equipmentBarbell": "Barra Reta",
   "@equipmentBarbell": { "description": "Equipamento: barbell" },
@@ -2294,6 +2178,28 @@
   "@dashboardOverviewTab": { "description": "Sub-tab label for dashboard overview" },
   "dashboardCatalogsTab": "Catálogos",
   "@dashboardCatalogsTab": { "description": "Sub-tab label for dashboard catalogs" },
+  "dashboardOwnedEquipmentTitle": "Meus equipamentos",
+  "@dashboardOwnedEquipmentTitle": {
+    "description": "Dashboard catalog card title linking to profile owned equipment list"
+  },
+  "dashboardOwnedEquipmentDesc": "Gerencie no perfil os equipamentos que você tem disponíveis",
+  "@dashboardOwnedEquipmentDesc": {
+    "description": "Dashboard subtitle when owned equipment list is empty"
+  },
+  "dashboardOwnedEquipmentCount": "{count} itens salvos",
+  "@dashboardOwnedEquipmentCount": {
+    "description": "Dashboard subtitle showing count of owned equipment strings",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "ownedEquipmentAddHint": "Nome do equipamento…",
+  "@ownedEquipmentAddHint": {
+    "description": "Placeholder for adding an owned equipment name chip"
+  },
+  "ownedEquipmentEmpty": "Você ainda não adicionou nenhum equipamento. Que tal começar agora? Isso ajuda o Chiron a personalizar seus treinos para você.",
+  "@ownedEquipmentEmpty": {
+    "description": "Empty state for owned equipment chips on profile"
+  },
 
   "trainingActiveProgramHero": "Programa ativo",
   "@trainingActiveProgramHero": { "description": "Section label for active program hero card" },

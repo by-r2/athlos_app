@@ -26,13 +26,11 @@ void main() {
     });
 
     test('training/profile/core providers resolvem dependencias', () {
-      expect(container.read(equipmentDaoProvider), isNotNull);
       expect(container.read(exerciseDaoProvider), isNotNull);
       expect(container.read(workoutDaoProvider), isNotNull);
       expect(container.read(workoutExecutionDaoProvider), isNotNull);
       expect(container.read(cycleStepDaoProvider), isNotNull);
 
-      expect(container.read(equipmentRepositoryProvider), isNotNull);
       expect(container.read(exerciseRepositoryProvider), isNotNull);
       expect(container.read(workoutRepositoryProvider), isNotNull);
       expect(container.read(workoutExecutionRepositoryProvider), isNotNull);

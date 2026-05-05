@@ -7,10 +7,8 @@ import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_exercise.dart';
-import '../providers/equipment_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/workout_notifier.dart';
-import '../widgets/equipment_warning_dialog.dart';
 import '../widgets/exercise_picker_sheet.dart';
 import '../widgets/workout_exercise_tile.dart';
 
@@ -112,28 +110,6 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     if (exercise == null || !mounted) return;
 
     try {
-      final exerciseEquipmentIds =
-          await ref.read(exerciseEquipmentIdsProvider(exercise.id).future);
-      final userEquipment =
-          await ref.read(userEquipmentIdsProvider.future);
-      final allEquipment =
-          await ref.read(equipmentListProvider.future);
-
-      final missingIds =
-          exerciseEquipmentIds.where((id) => !userEquipment.contains(id)).toList();
-
-      if (missingIds.isNotEmpty && mounted) {
-        final missingEquipment =
-            allEquipment.where((e) => missingIds.contains(e.id)).toList();
-
-        final confirmed = await showEquipmentWarningDialog(
-          context,
-          missingEquipment: missingEquipment,
-        );
-
-        if (confirmed != true) return;
-      }
-
       setState(() {
         _entries.add(WorkoutExerciseEntry(
           exercise: exercise,

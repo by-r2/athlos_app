@@ -5,8 +5,6 @@ import '../../../../training/domain/enums/muscle_group.dart';
 import '../../../../training/domain/enums/muscle_region.dart';
 import '../../../../training/domain/enums/muscle_role.dart';
 import '../../../../training/domain/enums/target_muscle.dart';
-import '../tables/equipments_table.dart';
-import '../tables/exercise_equipments_table.dart';
 import '../tables/exercise_target_muscles_table.dart';
 import '../tables/exercise_variations_table.dart';
 import '../tables/exercises_table.dart';
@@ -16,10 +14,8 @@ part 'exercise_dao.g.dart';
 @DriftAccessor(
   tables: [
     Exercises,
-    ExerciseEquipments,
     ExerciseVariations,
     ExerciseTargetMuscles,
-    Equipments,
   ],
 )
 class ExerciseDao extends DatabaseAccessor<AppDatabase>
@@ -101,39 +97,6 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deleteById(int id) =>
       (delete(exercises)..where((e) => e.id.equals(id))).go();
-
-  // --- Equipment relations ---
-
-  Future<List<int>> getEquipmentIds(int exerciseId) async {
-    final rows = await (select(exerciseEquipments)
-          ..where((e) => e.exerciseId.equals(exerciseId)))
-        .get();
-    return rows.map((r) => r.equipmentId).toList();
-  }
-
-  /// Returns all exercise→equipment mappings as a map.
-  Future<Map<int, List<int>>> getAllEquipmentMappings() async {
-    final rows = await select(exerciseEquipments).get();
-    final map = <int, List<int>>{};
-    for (final row in rows) {
-      map.putIfAbsent(row.exerciseId, () => []).add(row.equipmentId);
-    }
-    return map;
-  }
-
-  Future<void> setEquipments(int exerciseId, List<int> equipmentIds) async {
-    await (delete(exerciseEquipments)
-          ..where((e) => e.exerciseId.equals(exerciseId)))
-        .go();
-    for (final eqId in equipmentIds) {
-      await into(exerciseEquipments).insert(
-        ExerciseEquipmentsCompanion(
-          exerciseId: Value(exerciseId),
-          equipmentId: Value(eqId),
-        ),
-      );
-    }
-  }
 
   // --- Muscle targeting relations ---
 

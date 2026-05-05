@@ -8,7 +8,6 @@ import '../../features/profile/presentation/screens/conflict_center_screen.dart'
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_setup_screen.dart';
 import '../../features/training/presentation/screens/execution_detail_screen.dart';
-import '../../features/training/presentation/screens/equipment_detail_screen.dart';
 import '../../features/training/presentation/screens/exercise_detail_screen.dart';
 import '../../features/training/presentation/screens/exercise_load_chart_screen.dart';
 import '../../features/training/presentation/screens/pr_history_screen.dart';
@@ -110,18 +109,6 @@ GoRouter appRouter(Ref ref) {
           return AthlosRouterPages.fadeThrough(
             state,
             ExerciseDetailScreen(exerciseId: id),
-          );
-        },
-      ),
-
-      // Equipment detail (pushed on top of training shell)
-      GoRoute(
-        path: '${RoutePaths.trainingEquipment}/:equipmentId',
-        pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['equipmentId']!);
-          return AthlosRouterPages.fadeThrough(
-            state,
-            EquipmentDetailScreen(equipmentId: id),
           );
         },
       ),

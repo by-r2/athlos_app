@@ -8,7 +8,6 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
-import 'equipment_screen.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
 import 'program_list_screen.dart';
@@ -71,13 +70,6 @@ ShellRoute trainingShellRoute() {
         pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
           state,
           const TrainingExercisesScreen(),
-        ),
-      ),
-      GoRoute(
-        path: RoutePaths.trainingEquipment,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const EquipmentScreen(),
         ),
       ),
       GoRoute(

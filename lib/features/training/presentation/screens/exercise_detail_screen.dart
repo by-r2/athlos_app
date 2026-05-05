@@ -18,13 +18,9 @@ import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
 import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
-import '../helpers/equipment_l10n.dart';
 import '../helpers/exercise_l10n.dart';
-import '../providers/equipment_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/training_metrics_provider.dart';
-import '../widgets/equipment_search_picker.dart';
-
 const _placeholderExercise = Exercise(
   id: 0,
   name: '',
@@ -177,8 +173,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
               ],
               const Gap(AthlosSpacing.lg),
               _PRSection(exerciseId: exerciseId),
-              const Gap(AthlosSpacing.lg),
-              _EquipmentSection(exerciseId: exerciseId),
               const Gap(AthlosSpacing.lg),
               _VariationsSection(
                 exerciseId: exerciseId,
@@ -349,13 +343,11 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   late ExerciseType _selectedType;
   late bool _isIsometric;
   MovementPattern? _selectedMovementPattern;
-  final Set<int> _selectedEquipmentIds = {};
   final List<({TargetMuscle muscle, MuscleRegion? region})> _primaryMuscles =
       [];
   final List<({TargetMuscle muscle, MuscleRegion? region})>
       _secondaryMuscles = [];
   bool _isSaving = false;
-  bool _isEquipmentLoaded = false;
 
   @override
   void initState() {
@@ -397,14 +389,6 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final currentEqIdsAsync =
-        ref.watch(exerciseEquipmentIdsProvider(widget.exercise.id));
-
-    if (!_isEquipmentLoaded && currentEqIdsAsync.hasValue) {
-      _selectedEquipmentIds.addAll(currentEqIdsAsync.value!);
-      _isEquipmentLoaded = true;
-    }
-
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -616,15 +600,6 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
               setState(() => _selectedMovementPattern = v),
         ),
         const Gap(AthlosSpacing.md),
-        EquipmentSearchPicker(
-          selectedIds: _selectedEquipmentIds,
-          onChanged: (ids) => setState(() {
-            _selectedEquipmentIds
-              ..clear()
-              ..addAll(ids);
-          }),
-        ),
-        const Gap(AthlosSpacing.md),
         TextFormField(
           controller: _descriptionController,
           decoration: InputDecoration(
@@ -782,7 +757,6 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
 
       await ref.read(exerciseListProvider.notifier).updateExercise(
             updated,
-            equipmentIds: _selectedEquipmentIds.toList(),
             muscles: _allMuscles,
           );
 
@@ -802,97 +776,6 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         setState(() => _isSaving = false);
       }
     }
-  }
-}
-
-/// Shows equipment required for the exercise.
-class _EquipmentSection extends ConsumerWidget {
-  final int exerciseId;
-
-  const _EquipmentSection({required this.exerciseId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    final equipmentIdsAsync =
-        ref.watch(exerciseEquipmentIdsProvider(exerciseId));
-    final allEquipmentAsync = ref.watch(equipmentListProvider);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.fitness_center, size: 20, color: colorScheme.primary),
-            const Gap(AthlosSpacing.sm),
-            Text(
-              l10n.exerciseDetailEquipment,
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const Gap(AthlosSpacing.sm),
-        equipmentIdsAsync.when(
-          loading: () => const SizedBox(
-            height: 32,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          ),
-          error: (error, _) => Text('$error'),
-          data: (eqIds) {
-            if (eqIds.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.only(left: AthlosSpacing.lg),
-                child: Text(
-                  l10n.exerciseNoEquipment,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              );
-            }
-
-            return allEquipmentAsync.when(
-              loading: () => const SizedBox(
-                height: 32,
-                child:
-                    Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              ),
-              error: (error, _) => Text('$error'),
-              data: (allEquipment) {
-                final linked = allEquipment
-                    .where((eq) => eqIds.contains(eq.id))
-                    .toList();
-
-                return Padding(
-                  padding: const EdgeInsets.only(left: AthlosSpacing.lg),
-                  child: Wrap(
-                    spacing: AthlosSpacing.sm,
-                    runSpacing: AthlosSpacing.xs,
-                    children: linked
-                        .map((eq) => Chip(
-                              label: Text(
-                                localizedEquipmentName(
-                                  eq.name,
-                                  isVerified: eq.isVerified,
-                                  l10n: l10n,
-                                ),
-                              ),
-                              visualDensity: VisualDensity.compact,
-                            ))
-                        .toList(),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
   }
 }
 

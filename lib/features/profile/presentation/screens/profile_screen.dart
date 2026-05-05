@@ -31,9 +31,9 @@ import '../providers/conflict_center_provider.dart';
 import '../providers/profile_notifier.dart';
 import '../widgets/aesthetic_selector.dart';
 import '../widgets/experience_selector.dart';
+import '../widgets/owned_equipment_list.dart';
 import '../widgets/goal_selector.dart';
 import '../widgets/style_selector.dart';
-import '../../../training/presentation/widgets/equipment_management_body.dart';
 
 double? _tryParseDecimal(String value) {
   final normalized = value.trim().replaceAll(',', '.');
@@ -151,13 +151,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     enabled: profileAsync.isLoading,
                     child: _buildTrainingPreferencesCategory(resolved, l10n),
                   ),
-                  EquipmentManagementBody(
-                    onEquipmentTap: (equipment) {
-                      context.push(
-                        RoutePaths.trainingEquipmentDetail(equipment.id),
-                      );
-                    },
-                  ),
+                  const OwnedEquipmentList(),
                   _buildDataCategory(l10n),
                 ],
               ),

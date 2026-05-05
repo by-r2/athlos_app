@@ -12,7 +12,6 @@ import '../../../training/domain/entities/cycle_step.dart';
 import '../../../training/domain/entities/workout.dart' as domain_workout;
 import '../../../training/domain/entities/workout_exercise.dart' as domain_we;
 import '../../../training/domain/repositories/cycle_repository.dart';
-import '../../../training/domain/repositories/equipment_repository.dart';
 import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/entities/progression_rule.dart';
 import '../../../training/domain/enums/progression_condition.dart';
@@ -66,7 +65,6 @@ class ChironRepositoryImpl implements ChironRepository {
   ChironRepositoryImpl({
     required String apiKey,
     required UserProfileRepository profileRepo,
-    required EquipmentRepository equipmentRepo,
     required WorkoutRepository workoutRepo,
     required ExerciseRepository exerciseRepo,
     required CycleRepository cycleRepo,
@@ -76,7 +74,6 @@ class ChironRepositoryImpl implements ChironRepository {
     required WorkoutExecutionRepository executionRepo,
     required PromptBuilder promptBuilder,
   }) : _profileRepo = profileRepo,
-       _equipmentRepo = equipmentRepo,
        _workoutRepo = workoutRepo,
        _exerciseRepo = exerciseRepo,
        _cycleRepo = cycleRepo,
@@ -89,7 +86,6 @@ class ChironRepositoryImpl implements ChironRepository {
 
   final UserProfileRepository _profileRepo;
   final GeminiRestClient _restClient;
-  final EquipmentRepository _equipmentRepo;
   final WorkoutRepository _workoutRepo;
   final ExerciseRepository _exerciseRepo;
   final CycleRepository _cycleRepo;
@@ -128,7 +124,7 @@ PERSONA & STYLE
 RULES
 - Profile fields missing (gender, experienceLevel, trainingFrequency, trainsAtGym, availableWorkoutMinutes)? Ask one at a time, naturally, and save with the tool.
 - Injuries: use setInjuries with the COMPLETE updated text (read existing first). Bio: use updateBio to append new info only.
-- Gym user ("Trains at gym: Yes") → assume standard equipment, no questions. Home user → if no equipment registered, ask what they have and register each one. If registered, use only those + bodyweight. Suggest missing equipment: "tu tem ou consegue improvisar um(a) X?"
+- Gym user ("Trains at gym: Yes") → assume standard equipment, no questions. Home user → if profile "Owned equipment" list is empty, ask what they have and call registerEquipment once per item. Otherwise use that list + bodyweight. Suggest missing items: "tu tem ou consegue improvisar um(a) X?"
 - createWorkout/archiveWorkout do NOT update the cycle. You MUST call setCycle afterward with all active workout IDs, then getTrainingState to verify.
 
 TRAINING — HOW TO BEHAVE
@@ -1144,21 +1140,58 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
   Future<Map<String, Object?>> _handleRegisterEquipment(
     String equipmentName,
   ) async {
-    final canonicalName = chironCanonicalEquipmentName(equipmentName);
-    final result = await _equipmentRepo.addByName(canonicalName);
+    final profile = await _getProfile();
+    if (profile == null) return {'success': false, 'error': 'No profile'};
+
+    final normalized = chironCanonicalEquipmentName(equipmentName);
+    if (normalized.isEmpty) {
+      return {'success': false, 'error': 'equipmentName is empty'};
+    }
+
+    final current = [...profile.ownedEquipmentNames];
+    final exists = current.any(
+      (e) => e.trim().toLowerCase() == normalized.trim().toLowerCase(),
+    );
+    if (exists) {
+      return {
+        'success': true,
+        'equipment': normalized,
+        'message': 'Already listed on profile',
+      };
+    }
+
+    current.add(normalized);
+    final result = await _profileRepo.update(
+      profile.copyWith(ownedEquipmentNames: current),
+    );
     return result.isSuccess
-        ? {'success': true, 'equipment': canonicalName}
-        : {'success': false, 'error': 'Failed to register equipment'};
+        ? {'success': true, 'equipment': normalized}
+        : {'success': false, 'error': 'Failed to update profile'};
   }
 
   Future<Map<String, Object?>> _handleRemoveEquipment(
     String equipmentName,
   ) async {
-    final canonicalName = chironCanonicalEquipmentName(equipmentName);
-    final result = await _equipmentRepo.removeByName(canonicalName);
+    final profile = await _getProfile();
+    if (profile == null) return {'success': false, 'error': 'No profile'};
+
+    final normalized = chironCanonicalEquipmentName(equipmentName);
+    final next = profile.ownedEquipmentNames
+        .where(
+          (e) => e.trim().toLowerCase() != normalized.trim().toLowerCase(),
+        )
+        .toList(growable: false);
+
+    if (next.length == profile.ownedEquipmentNames.length) {
+      return {'success': false, 'error': 'Not found in profile owned list'};
+    }
+
+    final result = await _profileRepo.update(
+      profile.copyWith(ownedEquipmentNames: next),
+    );
     return result.isSuccess
-        ? {'success': true, 'removed': canonicalName}
-        : {'success': false, 'error': 'Failed to remove equipment'};
+        ? {'success': true, 'removed': normalized}
+        : {'success': false, 'error': 'Failed to update profile'};
   }
 
   Future<Map<String, Object?>> _handleUpdateTrainsAtGym(bool value) async {

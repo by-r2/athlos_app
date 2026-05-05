@@ -4,14 +4,13 @@ import '../../../../core/database/app_database.dart';
 
 /// Seeds the database with realistic test data for development.
 ///
-/// Selects user equipment, builds workouts with
+/// Sets [UserProfile.ownedEquipmentNames], builds workouts with
 /// exercises (including supersets), and generates execution history
 /// (including drop sets). Only called in debug mode.
 Future<void> seedDevData(AppDatabase db) async {
   final exerciseIds = await _resolveExerciseIds(db);
-  final equipmentIds = await _resolveEquipmentIds(db);
 
-  await _seedUserEquipments(db, equipmentIds);
+  await _seedDevProfileEquipment(db);
   await _seedWorkoutsWithExercises(db, exerciseIds);
   final programId = await _seedProgram(db, exerciseIds);
   await _seedExecutionHistory(db, exerciseIds, programId);
@@ -23,18 +22,12 @@ Future<Map<String, int>> _resolveExerciseIds(AppDatabase db) async {
   return {for (final r in rows) r.name: r.id};
 }
 
-Future<Map<String, int>> _resolveEquipmentIds(AppDatabase db) async {
-  final rows = await db.select(db.equipments).get();
-  return {for (final r in rows) r.name: r.id};
-}
-
 // ---------------------------------------------------------------------------
-// User Equipment (what the user has available)
+// Profile — owned equipment (free-text names, same keys as legacy catalog)
 // ---------------------------------------------------------------------------
 
-Future<void> _seedUserEquipments(
-    AppDatabase db, Map<String, int> equipmentIds) async {
-  const owned = [
+Future<void> _seedDevProfileEquipment(AppDatabase db) async {
+  const owned = <String>[
     'barbell',
     'dumbbell',
     'ezBar',
@@ -55,17 +48,21 @@ Future<void> _seedUserEquipments(
     'jumpRope',
   ];
 
-  await db.batch((batch) {
-    for (final name in owned) {
-      final id = equipmentIds[name];
-      if (id != null) {
-        batch.insert(
-          db.userEquipments,
-          UserEquipmentsCompanion(equipmentId: Value(id)),
+  final existing = await db.select(db.userProfiles).getSingleOrNull();
+  if (existing != null) {
+    await (db.update(db.userProfiles)..where((p) => p.id.equals(existing.id)))
+        .write(
+      UserProfilesCompanion(
+        ownedEquipmentNames: Value(owned),
+      ),
+    );
+  } else {
+    await db.into(db.userProfiles).insert(
+          UserProfilesCompanion.insert(
+            ownedEquipmentNames: Value(owned),
+          ),
         );
-      }
-    }
-  });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,9 +80,9 @@ Future<void> _seedWorkoutsWithExercises(
         ),
       );
   await _insertWorkoutExercises(db, pushId, exerciseIds, [
-    _WE('flatBarbellBenchPress', order: 0, sets: 4, minReps: 6, maxReps: 8, rest: 90),
-    _WE('inclineBarbellBenchPress', order: 1, sets: 3, minReps: 8, maxReps: 12, rest: 75),
-    _WE('dumbbellFly', order: 2, sets: 3, minReps: 10, maxReps: 15, rest: 60),
+    _WE('benchPress', order: 0, sets: 4, minReps: 6, maxReps: 8, rest: 90),
+    _WE('inclineBenchPress', order: 1, sets: 3, minReps: 8, maxReps: 12, rest: 75),
+    _WE('chestFly', order: 2, sets: 3, minReps: 10, maxReps: 15, rest: 60),
     _WE('overheadPress', order: 3, sets: 4, minReps: 6, maxReps: 8, rest: 90),
     _WE('lateralRaise', order: 4, sets: 3, minReps: 12, maxReps: 15, rest: 45, groupId: 1),
     _WE('facePull', order: 5, sets: 3, minReps: 12, maxReps: 15, rest: 60, groupId: 1),
@@ -102,10 +99,10 @@ Future<void> _seedWorkoutsWithExercises(
       );
   await _insertWorkoutExercises(db, pullId, exerciseIds, [
     _WE('pullUp', order: 0, sets: 4, minReps: 6, maxReps: 10, rest: 90),
-    _WE('barbellRow', order: 1, sets: 4, minReps: 6, maxReps: 8, rest: 90),
+    _WE('bentOverRow', order: 1, sets: 4, minReps: 6, maxReps: 8, rest: 90),
     _WE('latPulldown', order: 2, sets: 3, minReps: 8, maxReps: 12, rest: 75),
-    _WE('seatedCableRow', order: 3, sets: 3, minReps: 10, maxReps: 12, rest: 60),
-    _WE('barbellCurl', order: 4, sets: 3, minReps: 8, maxReps: 12, rest: 45, groupId: 1),
+    _WE('seatedRow', order: 3, sets: 3, minReps: 10, maxReps: 12, rest: 60),
+    _WE('bicepsCurl', order: 4, sets: 3, minReps: 8, maxReps: 12, rest: 45, groupId: 1),
     _WE('hammerCurl', order: 5, sets: 3, minReps: 10, maxReps: 12, rest: 60, groupId: 1),
   ]);
 
@@ -118,7 +115,7 @@ Future<void> _seedWorkoutsWithExercises(
         ),
       );
   await _insertWorkoutExercises(db, legId, exerciseIds, [
-    _WE('barbellSquat', order: 0, sets: 4, minReps: 5, maxReps: 5, rest: 120, isAmrap: true),
+    _WE('backSquat', order: 0, sets: 4, minReps: 5, maxReps: 5, rest: 120, isAmrap: true),
     _WE('legPress', order: 1, sets: 3, minReps: 8, maxReps: 12, rest: 90),
     _WE('romanianDeadlift', order: 2, sets: 3, minReps: 8, maxReps: 10, rest: 90),
     _WE('bulgarianSplitSquat', order: 3, sets: 3, minReps: 8, maxReps: 12, rest: 75),
@@ -200,15 +197,15 @@ Future<void> _seedExecutionHistory(
           notes: const Value('Good session, PR on bench press'),
         ),
       );
-  await _insertCompletedSets(db, exec1, exerciseIds['flatBarbellBenchPress']!,
+  await _insertCompletedSets(db, exec1, exerciseIds['benchPress']!,
       planned: 8,
       weights: [80, 80, 82.5, 82.5],
       reps: [8, 8, 7, 6],
       rpes: [7, 8, 9, 10]);
   await _insertCompletedSets(
-      db, exec1, exerciseIds['inclineBarbellBenchPress']!,
+      db, exec1, exerciseIds['inclineBenchPress']!,
       planned: 10, weights: [50, 50, 50], reps: [10, 10, 9], rpes: [7, 8, 9]);
-  await _insertCompletedSets(db, exec1, exerciseIds['dumbbellFly']!,
+  await _insertCompletedSets(db, exec1, exerciseIds['chestFly']!,
       planned: 12, weights: [14, 14, 14], reps: [12, 12, 11]);
   await _insertCompletedSets(db, exec1, exerciseIds['overheadPress']!,
       planned: 8, weights: [40, 40, 42.5, 42.5], reps: [8, 8, 7, 6]);
@@ -245,13 +242,13 @@ Future<void> _seedExecutionHistory(
       );
   await _insertCompletedSets(db, exec2, exerciseIds['pullUp']!,
       planned: 8, weights: [null, null, null, null], reps: [10, 9, 8, 7]);
-  await _insertCompletedSets(db, exec2, exerciseIds['barbellRow']!,
+  await _insertCompletedSets(db, exec2, exerciseIds['bentOverRow']!,
       planned: 8, weights: [60, 60, 62.5, 62.5], reps: [8, 8, 7, 7]);
   await _insertCompletedSets(db, exec2, exerciseIds['latPulldown']!,
       planned: 10, weights: [50, 50, 50], reps: [10, 10, 9]);
-  await _insertCompletedSets(db, exec2, exerciseIds['seatedCableRow']!,
+  await _insertCompletedSets(db, exec2, exerciseIds['seatedRow']!,
       planned: 12, weights: [40, 40, 40], reps: [12, 12, 11]);
-  await _insertCompletedSets(db, exec2, exerciseIds['barbellCurl']!,
+  await _insertCompletedSets(db, exec2, exerciseIds['bicepsCurl']!,
       planned: 10, weights: [25, 25, 25], reps: [10, 10, 8]);
   await _insertCompletedSets(db, exec2, exerciseIds['hammerCurl']!,
       planned: 12, weights: [12, 12, 12], reps: [12, 11, 10]);
@@ -266,7 +263,7 @@ Future<void> _seedExecutionHistory(
           notes: const Value('Legs were shaky after squats'),
         ),
       );
-  await _insertCompletedSets(db, exec3, exerciseIds['barbellSquat']!,
+  await _insertCompletedSets(db, exec3, exerciseIds['backSquat']!,
       planned: 8, weights: [100, 100, 105, 105], reps: [8, 8, 6, 5]);
   await _insertCompletedSets(db, exec3, exerciseIds['legPress']!,
       planned: 12, weights: [180, 180, 180], reps: [12, 12, 10]);
@@ -383,7 +380,6 @@ Future<void> _insertSetsWithDropSet(
         );
   }
 
-  // Drop set
   final dropSetId = await db.into(db.executionSets).insert(
         ExecutionSetsCompanion.insert(
           executionId: executionId,
@@ -397,7 +393,6 @@ Future<void> _insertSetsWithDropSet(
         ),
       );
 
-  // Segment 1: primary
   await db.into(db.executionSetSegments).insert(
         ExecutionSetSegmentsCompanion.insert(
           executionSetId: dropSetId,
@@ -407,7 +402,6 @@ Future<void> _insertSetsWithDropSet(
         ),
       );
 
-  // Segment 2+: drops
   for (var i = 0; i < dropSegments.length; i++) {
     await db.into(db.executionSetSegments).insert(
           ExecutionSetSegmentsCompanion.insert(
@@ -462,51 +456,51 @@ Future<int> _seedProgram(
   final pplIds = activeWorkouts.take(3).map((r) => r.read<int>('id')).toList();
 
   final programId = await db.into(db.programs).insert(
-    ProgramsCompanion.insert(
-      name: 'PPL Hipertrofia',
-      focus: 'hypertrophy',
-      durationMode: 'sessions',
-      durationValue: 24,
-      defaultRestSeconds: const Value(90),
-      isActive: const Value(true),
-      deloadFrequency: const Value(4),
-      deloadStrategy: const Value('reduceVolume'),
-      deloadVolumeMultiplier: const Value(0.6),
-      deloadIntensityMultiplier: const Value(0.5),
-    ),
-  );
+        ProgramsCompanion.insert(
+          name: 'PPL Hipertrofia',
+          focus: 'hypertrophy',
+          durationMode: 'sessions',
+          durationValue: 24,
+          defaultRestSeconds: const Value(90),
+          isActive: const Value(true),
+          deloadFrequency: const Value(4),
+          deloadStrategy: const Value('reduceVolume'),
+          deloadVolumeMultiplier: const Value(0.6),
+          deloadIntensityMultiplier: const Value(0.5),
+        ),
+      );
 
   for (var i = 0; i < pplIds.length; i++) {
     await db.into(db.cycleSteps).insert(
-      CycleStepsCompanion.insert(
-        programId: programId,
-        orderIndex: i,
-        workoutId: pplIds[i],
-      ),
-    );
+          CycleStepsCompanion.insert(
+            programId: programId,
+            orderIndex: i,
+            workoutId: pplIds[i],
+          ),
+        );
   }
 
   // Progression rules for key compound lifts.
   final progressionExercises = {
-    'flatBarbellBenchPress': 2.5,
-    'barbellRow': 2.5,
-    'conventionalDeadlift': 5.0,
-    'barbellBackSquat': 5.0,
+    'benchPress': 2.5,
+    'bentOverRow': 2.5,
+    'deadlift': 5.0,
+    'backSquat': 5.0,
     'overheadPress': 1.25,
   };
   for (final entry in progressionExercises.entries) {
     final exId = exerciseIds[entry.key];
     if (exId == null) continue;
     await db.into(db.progressionRules).insert(
-      ProgressionRulesCompanion.insert(
-        programId: programId,
-        exerciseId: exId,
-        type: 'incrementWeight',
-        value: entry.value,
-        frequency: 'everySession',
-        condition: const Value('completesAllSets'),
-      ),
-    );
+          ProgressionRulesCompanion.insert(
+            programId: programId,
+            exerciseId: exId,
+            type: 'incrementWeight',
+            value: entry.value,
+            frequency: 'everySession',
+            condition: const Value('completesAllSets'),
+          ),
+        );
   }
 
   return programId;

@@ -30,7 +30,6 @@ class ExerciseList extends _$ExerciseList {
     MovementPattern? movementPattern,
     String? description,
     bool isIsometric = false,
-    List<int> equipmentIds = const [],
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
         muscles =
         const [],
@@ -47,7 +46,6 @@ class ExerciseList extends _$ExerciseList {
     );
     final result = await repo.create(
       exercise,
-      equipmentIds: equipmentIds,
       muscles: muscles,
     );
     result.getOrThrow();
@@ -57,14 +55,12 @@ class ExerciseList extends _$ExerciseList {
   /// Updates a user-defined exercise.
   Future<void> updateExercise(
     Exercise exercise, {
-    List<int>? equipmentIds,
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>?
     muscles,
   }) async {
     final repo = ref.read(exerciseRepositoryProvider);
     final result = await repo.update(
       exercise,
-      equipmentIds: equipmentIds,
       muscles: muscles,
     );
     result.getOrThrow();
@@ -99,14 +95,6 @@ Future<List<Exercise>> exerciseVariations(Ref ref, int exerciseId) async {
   return result.getOrThrow();
 }
 
-/// Loads equipment IDs linked to a specific exercise.
-@riverpod
-Future<List<int>> exerciseEquipmentIds(Ref ref, int exerciseId) async {
-  final repo = ref.watch(exerciseRepositoryProvider);
-  final result = await repo.getEquipmentIds(exerciseId);
-  return result.getOrThrow();
-}
-
 /// Loads muscle foci for a specific exercise.
 @riverpod
 Future<List<ExerciseMuscleFocus>> exerciseMuscleFoci(
@@ -118,10 +106,3 @@ Future<List<ExerciseMuscleFocus>> exerciseMuscleFoci(
   return result.getOrThrow();
 }
 
-/// Maps exerciseId → list of required equipment IDs for all exercises.
-@riverpod
-Future<Map<int, List<int>>> exerciseEquipmentMap(Ref ref) async {
-  final repo = ref.watch(exerciseRepositoryProvider);
-  final result = await repo.getEquipmentMap();
-  return result.getOrThrow();
-}

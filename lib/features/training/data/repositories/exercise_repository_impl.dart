@@ -102,27 +102,6 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<List<int>>> getEquipmentIds(int exerciseId) async {
-    try {
-      final ids = await _dao.getEquipmentIds(exerciseId);
-      return Success(ids);
-    } on Exception catch (e) {
-      return Failure(DatabaseException('Failed to load equipment ids: $e'));
-    }
-  }
-
-  @override
-  Future<Result<Map<int, List<int>>>> getEquipmentMap() async {
-    try {
-      final map = await _dao.getAllEquipmentMappings();
-      return Success(map);
-    } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load equipment mappings: $e'));
-    }
-  }
-
-  @override
   Future<Result<List<domain.ExerciseMuscleFocus>>> getMuscleFoci(
       int exerciseId) async {
     try {
@@ -135,7 +114,6 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   @override
   Future<Result<int>> create(
     domain.Exercise exercise, {
-    List<int> equipmentIds = const [],
     List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>
         muscles = const [],
   }) async {
@@ -152,9 +130,6 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           isIsometric: Value(exercise.isIsometric),
         ),
       );
-      if (equipmentIds.isNotEmpty) {
-        await _dao.setEquipments(id, equipmentIds);
-      }
       if (muscles.isNotEmpty) {
         await _dao.setMuscleFoci(id, muscles);
       }
@@ -167,7 +142,6 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   @override
   Future<Result<void>> update(
     domain.Exercise exercise, {
-    List<int>? equipmentIds,
     List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>?
         muscles,
   }) async {
@@ -184,9 +158,6 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           isIsometric: Value(exercise.isIsometric),
         ),
       );
-      if (equipmentIds != null) {
-        await _dao.setEquipments(exercise.id, equipmentIds);
-      }
       if (muscles != null) {
         await _dao.setMuscleFoci(exercise.id, muscles);
       }

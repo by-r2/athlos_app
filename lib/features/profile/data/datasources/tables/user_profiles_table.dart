@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 
 import '../../../domain/enums/body_aesthetic.dart';
 import '../../../domain/enums/experience_level.dart';
@@ -6,6 +7,24 @@ import '../../../domain/enums/gender.dart';
 import '../../../domain/enums/selected_module.dart';
 import '../../../domain/enums/training_goal.dart';
 import '../../../domain/enums/training_style.dart';
+
+class StringListJsonConverter extends TypeConverter<List<String>, String> {
+  const StringListJsonConverter();
+
+  @override
+  List<String> fromSql(String fromDb) {
+    final decoded = jsonDecode(fromDb);
+    if (decoded is! List) return const [];
+    return decoded
+        .whereType<Object?>()
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  String toSql(List<String> value) => jsonEncode(value);
+}
 
 class UserProfiles extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -41,6 +60,10 @@ class UserProfiles extends Table {
 
   /// Free-text background/history, enriched by Chiron.
   TextColumn get bio => text().nullable()();
+
+  /// Free-text list of equipment names owned by the user.
+  TextColumn get ownedEquipmentNames =>
+      text().nullable().map(const StringListJsonConverter())();
 
   /// Last module the user was in.
   TextColumn get lastActiveModule =>

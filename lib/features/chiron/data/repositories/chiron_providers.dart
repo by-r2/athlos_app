@@ -13,7 +13,6 @@ part 'chiron_providers.g.dart';
 PromptBuilder promptBuilder(Ref ref) => PromptBuilder(
       profileRepo: ref.watch(userProfileRepositoryProvider),
       bodyMetricRepo: ref.watch(bodyMetricRepositoryProvider),
-      equipmentRepo: ref.watch(equipmentRepositoryProvider),
       workoutRepo: ref.watch(workoutRepositoryProvider),
       executionRepo: ref.watch(workoutExecutionRepositoryProvider),
       exerciseRepo: ref.watch(exerciseRepositoryProvider),
@@ -23,7 +22,6 @@ PromptBuilder promptBuilder(Ref ref) => PromptBuilder(
 ChironRepository chironRepository(Ref ref) => ChironRepositoryImpl(
       apiKey: geminiApiKey,
       profileRepo: ref.watch(userProfileRepositoryProvider),
-      equipmentRepo: ref.watch(equipmentRepositoryProvider),
       workoutRepo: ref.watch(workoutRepositoryProvider),
       exerciseRepo: ref.watch(exerciseRepositoryProvider),
       cycleRepo: ref.watch(cycleRepositoryProvider),

@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../database/app_database.dart';
+import '../../database/exercise_migration_maps.dart';
 import '../../localization/domain_label_resolver.dart';
 import '../../domain/entities/local_backup_models.dart';
 import '../../domain/repositories/local_backup_repository.dart';
@@ -31,6 +32,7 @@ const _profileComparableKeys = <String>{
   'trains_at_gym',
   'injuries',
   'bio',
+  'owned_equipment_names',
 };
 
 const _tableUserProfiles = 'user_profiles';
@@ -80,21 +82,12 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final progressionRules =
           await _fetchTableRows(_tableProgressionRules);
       final bodyMetrics = await _fetchTableRows(_tableBodyMetrics);
-      final userEquipments = await _fetchTableRows(_tableUserEquipments);
 
-      final allEquipments = await _fetchTableRows(_tableEquipments);
       final allExercises = await _fetchTableRows(_tableExercises);
-      final equipmentById = {
-        for (final row in allEquipments) _asInt(row['id'])!: row,
-      };
       final exerciseById = {
         for (final row in allExercises) _asInt(row['id'])!: row,
       };
 
-      final customEquipments = allEquipments
-          .where((row) => !_asBool(row['is_verified']))
-          .map(_toJsonMap)
-          .toList();
       final customExercises = allExercises
           .where((row) => !_asBool(row['is_verified']))
           .map(_toJsonMap)
@@ -104,24 +97,12 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           .whereType<int>()
           .toSet();
 
-      final exerciseEquipments = await _fetchRowsForCustomExercises(
-        _tableExerciseEquipments,
-        customExerciseIds,
-      );
       final targetMuscles = await _fetchRowsForCustomExercises(
         _tableExerciseTargetMuscles,
         customExerciseIds,
       );
       final variations = await _fetchCustomVariations(customExerciseIds);
 
-      final referencedEquipmentIds = <int>{
-        ...userEquipments
-            .map((row) => _asInt(row['equipment_id']))
-            .whereType<int>(),
-        ...exerciseEquipments
-            .map((row) => _asInt(row['equipment_id']))
-            .whereType<int>(),
-      };
       final referencedExerciseIds = <int>{
         ...workoutExercises
             .map((row) => _asInt(row['exercise_id']))
@@ -139,13 +120,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
             .whereType<int>(),
       };
 
-      final catalogEquipmentRefs = referencedEquipmentIds
-          .map((id) => equipmentById[id])
-          .whereType<Map<String, dynamic>>()
-          .where((row) => _asBool(row['is_verified']))
-          .map(_toEquipmentCatalogRef)
-          .whereType<Map<String, dynamic>>()
-          .toList();
       final catalogExerciseRefs = referencedExerciseIds
           .map((id) => exerciseById[id])
           .whereType<Map<String, dynamic>>()
@@ -161,9 +135,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         'exportedAt': DateTime.now().toIso8601String(),
         'tables': <String, dynamic>{
           _tableUserProfiles: profiles.map(_toJsonMap).toList(),
-          _tableEquipments: customEquipments,
+          _tableEquipments: <Map<String, dynamic>>[],
           _tableExercises: customExercises,
-          _tableExerciseEquipments: exerciseEquipments.map(_toJsonMap).toList(),
+          _tableExerciseEquipments: <Map<String, dynamic>>[],
           _tableExerciseTargetMuscles: targetMuscles.map(_toJsonMap).toList(),
           _tableExerciseVariations: variations.map(_toJsonMap).toList(),
           _tableWorkouts: workouts.map(_toJsonMap).toList(),
@@ -178,10 +152,10 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           _tableProgressionRules:
               progressionRules.map(_toJsonMap).toList(),
           _tableBodyMetrics: bodyMetrics.map(_toJsonMap).toList(),
-          _tableUserEquipments: userEquipments.map(_toJsonMap).toList(),
+          _tableUserEquipments: <Map<String, dynamic>>[],
         },
         _tableCatalogReferences: <String, dynamic>{
-          _catalogEquipments: catalogEquipmentRefs,
+          _catalogEquipments: <Map<String, dynamic>>[],
           _catalogExercises: catalogExerciseRefs,
         },
       };
@@ -206,7 +180,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   @override
   Future<Result<BackupImportPreview>> previewImport(String jsonContent) async {
     try {
-      final payload = _parsePayload(jsonContent);
+      final payload =
+          _applyLegacyExerciseImportTransforms(_parsePayload(jsonContent));
       final conflicts = await _scanConflicts(payload.tables);
       final pendingReviews = await _scanPendingReviews(payload);
 
@@ -230,7 +205,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   ) async {
     try {
       _importDefaultProgramId = null;
-      final payload = _parsePayload(request.jsonContent);
+      final payload =
+          _applyLegacyExerciseImportTransforms(_parsePayload(request.jsonContent));
 
       var createdCount = 0;
       var updatedCount = 0;
@@ -310,6 +286,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           }
         }
 
+        await _mergeLegacyImportedEquipment(payload);
+
         final canonicalResult = await _resolveCanonicalReferences(
           payload: payload,
           request: request,
@@ -324,21 +302,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
             canonicalResult.unresolvedCount,
           );
         }
-
-        final customEquipmentResult = await _importCustomCatalogRows(
-          rows: payload.tables[_tableEquipments] ?? const [],
-          tableName: _tableEquipments,
-          conflictPrefix: 'equipment',
-          pendingPrefix: 'fuzzy_equipment',
-          nameField: 'name',
-          entityType: BackupConflictType.equipment,
-          idMap: equipmentIdMap,
-          request: request,
-        );
-        createdCount += customEquipmentResult.createdCount;
-        updatedCount += customEquipmentResult.updatedCount;
-        skippedCount += customEquipmentResult.skippedCount;
-        failedCount += customEquipmentResult.failedCount;
 
         final customExerciseResult = await _importCustomCatalogRows(
           rows: payload.tables[_tableExercises] ?? const [],
@@ -419,43 +382,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
               importWorkoutDetails[oldId] = true;
               createdCount++;
           }
-        }
-
-        final userEquipmentRows =
-            payload.tables[_tableUserEquipments] ?? const [];
-        for (final row in userEquipmentRows) {
-          final oldEquipmentId = _asInt(row['equipment_id']);
-          if (oldEquipmentId == null) continue;
-          final newEquipmentId =
-              equipmentIdMap[oldEquipmentId] ??
-              await _findVerifiedEquipmentIdByLocalId(oldEquipmentId);
-          if (newEquipmentId == null) {
-            failedCount++;
-            bumpReason(failedReasons, 'user_equipment_missing_mapping');
-            continue;
-          }
-          await _insertRow(_tableUserEquipments, {
-            'equipment_id': newEquipmentId,
-          }, orIgnore: true);
-        }
-
-        final exerciseEquipmentRows =
-            payload.tables[_tableExerciseEquipments] ?? const [];
-        for (final row in exerciseEquipmentRows) {
-          final oldExerciseId = _asInt(row['exercise_id']);
-          final oldEquipmentId = _asInt(row['equipment_id']);
-          if (oldExerciseId == null || oldEquipmentId == null) continue;
-          final newExerciseId = exerciseIdMap[oldExerciseId];
-          final newEquipmentId = equipmentIdMap[oldEquipmentId];
-          if (newExerciseId == null || newEquipmentId == null) {
-            failedCount++;
-            bumpReason(failedReasons, 'exercise_equipment_missing_mapping');
-            continue;
-          }
-          await _insertRow(_tableExerciseEquipments, {
-            'exercise_id': newExerciseId,
-            'equipment_id': newEquipmentId,
-          }, orIgnore: true);
         }
 
         final targetRows =
@@ -822,13 +748,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final pending = <BackupPendingReview>[];
       pending.addAll(
         await _scanRuntimeDuplicatesForTable(
-          tableName: _tableEquipments,
-          entityType: BackupConflictType.equipment,
-          reviewPrefix: 'runtime_equipment',
-        ),
-      );
-      pending.addAll(
-        await _scanRuntimeDuplicatesForTable(
           tableName: _tableExercises,
           entityType: BackupConflictType.exercise,
           reviewPrefix: 'runtime_exercise',
@@ -992,9 +911,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   }
 
   Set<String> _editableColumns(String tableName) {
-    if (tableName == _tableEquipments) {
-      return const {'name', 'description', 'category'};
-    }
     if (tableName == _tableExercises) {
       return const {
         'name',
@@ -1012,23 +928,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required int winnerId,
     required int loserId,
   }) async {
-    if (tableName == _tableEquipments) {
-      await _db.customStatement(
-        'INSERT OR IGNORE INTO "$_tableUserEquipments" (equipment_id) '
-        'SELECT $winnerId WHERE EXISTS '
-        '(SELECT 1 FROM "$_tableUserEquipments" WHERE equipment_id = $loserId)',
-      );
-      await _db.customStatement(
-        'INSERT OR IGNORE INTO "$_tableExerciseEquipments" (exercise_id, equipment_id) '
-        'SELECT exercise_id, $winnerId FROM "$_tableExerciseEquipments" '
-        'WHERE equipment_id = $loserId',
-      );
-    } else if (tableName == _tableExercises) {
-      await _db.customStatement(
-        'INSERT OR IGNORE INTO "$_tableExerciseEquipments" (exercise_id, equipment_id) '
-        'SELECT $winnerId, equipment_id FROM "$_tableExerciseEquipments" '
-        'WHERE exercise_id = $loserId',
-      );
+    if (tableName == _tableExercises) {
       await _db.customStatement(
         'INSERT OR IGNORE INTO "$_tableExerciseTargetMuscles" '
         '(exercise_id, target_muscle, muscle_region, role) '
@@ -1071,28 +971,10 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     final exerciseIdMap = <int, int>{};
     var unresolvedCount = 0;
 
-    final equipmentRefs =
-        payload.catalogReferences[_catalogEquipments] ?? const [];
     final exerciseRefs =
         payload.catalogReferences[_catalogExercises] ?? const [];
 
-    final verifiedEquipments = await _fetchVerifiedRows(_tableEquipments);
     final verifiedExercises = await _fetchVerifiedRows(_tableExercises);
-
-    for (final ref in equipmentRefs) {
-      final resolved = await _resolveCatalogReference(
-        ref: ref,
-        tableName: _tableEquipments,
-        entityType: BackupConflictType.equipment,
-        verifiedRows: verifiedEquipments,
-        request: request,
-      );
-      if (resolved == null) {
-        unresolvedCount++;
-        continue;
-      }
-      equipmentIdMap[ref.localId] = resolved;
-    }
 
     for (final ref in exerciseRefs) {
       final resolved = await _resolveCatalogReference(
@@ -1131,10 +1013,29 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       if (byRemote.isNotEmpty) return _asInt(byRemote['id']);
     }
 
-    final suggestions = _topFuzzyCandidates(ref.name, verifiedRows, limit: 1);
+    final List<Map<String, dynamic>> suggestions;
+    if (tableName == _tableExercises) {
+      final trimmed = ref.name.trim();
+      final byDirect = _exerciseRowIdByExactName(verifiedRows, trimmed);
+      if (byDirect != null) return byDirect;
+      final byMigrated = _exerciseRowIdByExactName(
+        verifiedRows,
+        resolveImportedExerciseCatalogName(ref.name),
+      );
+      if (byMigrated != null) return byMigrated;
+      suggestions = _topFuzzyBackedUpExerciseNameCandidates(
+        ref.name,
+        verifiedRows,
+        limit: 1,
+      );
+    } else {
+      suggestions = _topFuzzyCandidates(ref.name, verifiedRows, limit: 1);
+    }
 
-    if (suggestions.isNotEmpty &&
-        (suggestions.first['score'] as double) >= _strongMatchThreshold) {
+    final bestScore =
+        suggestions.isEmpty ? -1.0 : suggestions.first['score'] as double;
+
+    if (suggestions.isNotEmpty && bestScore >= _strongMatchThreshold) {
       return _asInt(suggestions.first['id']);
     }
 
@@ -1173,6 +1074,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     var failedCount = 0;
 
     final existingRows = await _fetchTableRows(tableName);
+    final localVerifiedCatalog = tableName == _tableExercises
+        ? await _fetchVerifiedRows(tableName)
+        : const <Map<String, dynamic>>[];
     final byNormalized = <String, Map<String, dynamic>>{};
     for (final existing in existingRows) {
       final existingName = existing[nameField] as String?;
@@ -1182,6 +1086,26 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
     for (final row in rows) {
       final oldId = _asInt(row['id']);
+
+      if (tableName == _tableExercises && _asBool(row['is_verified'])) {
+        if (oldId == null) {
+          failedCount++;
+          continue;
+        }
+        final linked = idMap[oldId] ??
+            _linkVerifiedImportedExerciseToLocalCatalog(
+              importedRow: row,
+              localVerifiedCatalog: localVerifiedCatalog,
+            );
+        if (linked != null) {
+          idMap[oldId] = linked;
+          skippedCount++;
+        } else {
+          failedCount++;
+        }
+        continue;
+      }
+
       final name = (row[nameField] as String?)?.trim();
       if (oldId == null || name == null || name.isEmpty) {
         failedCount++;
@@ -1499,6 +1423,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         return 'Lesoes';
       case 'bio':
         return 'Bio';
+      case 'owned_equipment_names':
+        return 'Equipamento proprio';
       default:
         return key;
     }
@@ -1574,46 +1500,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     _BackupParsedPayload payload,
   ) async {
     final pending = <BackupPendingReview>[];
-    final verifiedEquipments = await _fetchVerifiedRows(_tableEquipments);
     final verifiedExercises = await _fetchVerifiedRows(_tableExercises);
-
-    final equipmentRefs =
-        payload.catalogReferences[_catalogEquipments] ?? const [];
-    for (final ref in equipmentRefs) {
-      if (ref.catalogRemoteId.isNotEmpty) {
-        final byRemote = verifiedEquipments.any(
-          (row) =>
-              row['catalog_remote_id']?.toString() == ref.catalogRemoteId,
-        );
-        if (byRemote) continue;
-      }
-
-      final suggestion = _topFuzzyCandidates(
-        ref.name,
-        verifiedEquipments,
-        limit: 1,
-      );
-      if (suggestion.isNotEmpty &&
-          (suggestion.first['score'] as double) >= _strongMatchThreshold) {
-        continue;
-      }
-      pending.add(
-        BackupPendingReview(
-          reviewId: 'missing_equipment_${ref.localId}',
-          type: BackupPendingReviewType.missingCanonicalReference,
-          decisionScope: BackupConflictDecisionScope.userLocal,
-          detectedFrom: BackupConflictDetectedFrom.importPreview,
-          entityType: BackupConflictType.equipment,
-          importedLabel: ref.name,
-          suggestedLabel: suggestion.isNotEmpty
-              ? suggestion.first['name'] as String?
-              : null,
-          similarityScore: suggestion.isNotEmpty
-              ? suggestion.first['score'] as double
-              : null,
-        ),
-      );
-    }
 
     final exerciseRefs =
         payload.catalogReferences[_catalogExercises] ?? const [];
@@ -1626,13 +1513,22 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         if (byRemote) continue;
       }
 
-      final suggestion = _topFuzzyCandidates(
+      if (_verifiedExercisesContainBackedUpLabel(
+        verifiedExercises,
+        ref.name,
+      )) {
+        continue;
+      }
+
+      final suggestion = _topFuzzyBackedUpExerciseNameCandidates(
         ref.name,
         verifiedExercises,
         limit: 1,
       );
-      if (suggestion.isNotEmpty &&
-          (suggestion.first['score'] as double) >= _strongMatchThreshold) {
+      final score = suggestion.isEmpty
+          ? -1.0
+          : suggestion.first['score'] as double;
+      if (suggestion.isNotEmpty && score >= _strongMatchThreshold) {
         continue;
       }
       pending.add(
@@ -1653,14 +1549,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       );
     }
 
-    pending.addAll(
-      await _scanCatalogImportReviews(
-        tableName: _tableEquipments,
-        importedRows: payload.tables[_tableEquipments] ?? const [],
-        entityType: BackupConflictType.equipment,
-        fuzzyPrefix: 'fuzzy_equipment',
-      ),
-    );
     pending.addAll(
       await _scanCatalogImportReviews(
         tableName: _tableExercises,
@@ -1691,6 +1579,10 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final name = (row['name'] as String?)?.trim();
       if (oldId == null || name == null || name.isEmpty) continue;
 
+      if (tableName == _tableExercises && _asBool(row['is_verified'])) {
+        continue;
+      }
+
       final match = _findBestCatalogMatch(
         tableName: tableName,
         importedRow: row,
@@ -1698,9 +1590,13 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         existingRows: localRows,
       );
       if (match == null) {
-        final suggestion = _topFuzzyCandidates(name, localRows, limit: 1);
+        final suggestion = tableName == _tableExercises
+            ? _topFuzzyBackedUpExerciseNameCandidates(name, localRows, limit: 1)
+            : _topFuzzyCandidates(name, localRows, limit: 1);
+        final best = suggestion.isEmpty
+            ? -1.0
+            : suggestion.first['score'] as double;
         if (suggestion.isEmpty) continue;
-        final best = suggestion.first['score'] as double;
         if (best < _fuzzyThreshold) continue;
         pending.add(
           BackupPendingReview(
@@ -1942,12 +1838,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required String tableName,
     required String candidate,
   }) {
-    if (tableName == _tableEquipments) {
-      return _domainLabelResolver.toCanonicalName(
-        kind: DomainLabelKind.equipment,
-        candidate: candidate,
-      );
-    }
     if (tableName == _tableExercises) {
       return _domainLabelResolver.toCanonicalName(
         kind: DomainLabelKind.exercise,
@@ -2024,9 +1914,11 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
   String? _runtimeConflictTable(BackupConflictType entityType) {
     return switch (entityType) {
-      BackupConflictType.equipment => _tableEquipments,
       BackupConflictType.exercise => _tableExercises,
-      BackupConflictType.profile || BackupConflictType.workout => null,
+      BackupConflictType.equipment ||
+      BackupConflictType.profile ||
+      BackupConflictType.workout =>
+        null,
     };
   }
 
@@ -2177,10 +2069,100 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     }
 
     return _BackupParsedPayload(
+      databaseSchemaVersion: schemaVersion,
       tables: tables,
       catalogReferences: catalogRefs,
       totalRecords: totalRecords,
     );
+  }
+
+  _BackupParsedPayload _applyLegacyExerciseImportTransforms(
+    _BackupParsedPayload payload,
+  ) {
+    if (payload.databaseSchemaVersion >
+        kLastBackupSchemaWithLegacyExerciseNaming) {
+      return payload;
+    }
+
+    final sourceExercises = payload.tables[_tableExercises] ?? const [];
+    final migratedExercises = sourceExercises
+        .map(_copyExerciseRowApplyingLegacyNamingMigration)
+        .toList();
+    final nextTables = Map<String, List<Map<String, dynamic>>>.from(
+      payload.tables,
+    )..[_tableExercises] = migratedExercises;
+
+    final migratedRefs =
+        (payload.catalogReferences[_catalogExercises] ?? const [])
+            .map(_migrateExerciseCatalogReferenceIdentity)
+            .toList();
+
+    return _BackupParsedPayload(
+      databaseSchemaVersion: payload.databaseSchemaVersion,
+      tables: nextTables,
+      catalogReferences: {
+        ...payload.catalogReferences,
+        _catalogExercises: migratedRefs,
+      },
+      totalRecords: payload.totalRecords,
+    );
+  }
+
+  Map<String, dynamic> _copyExerciseRowApplyingLegacyNamingMigration(
+    Map<String, dynamic> row,
+  ) {
+    final copy = Map<String, dynamic>.from(row);
+    final raw = copy['name']?.toString();
+    if (raw != null && raw.trim().isNotEmpty) {
+      copy['name'] = resolveImportedExerciseCatalogName(raw);
+    }
+    return copy;
+  }
+
+  BackupCatalogReference _migrateExerciseCatalogReferenceIdentity(
+    BackupCatalogReference ref,
+  ) {
+    final newName = resolveImportedExerciseCatalogName(ref.name);
+    final fb = Map<String, dynamic>.from(ref.fallbackData);
+    final fn = fb['name']?.toString();
+    if (fn != null && fn.trim().isNotEmpty) {
+      fb['name'] = resolveImportedExerciseCatalogName(fn);
+    }
+    return BackupCatalogReference(
+      localId: ref.localId,
+      catalogRemoteId: ref.catalogRemoteId,
+      name: newName,
+      fallbackData: fb,
+    );
+  }
+
+  /// Canonical exercises (`is_verified` in backup JSON) link to seeded rows only.
+  /// Only `is_verified == false` rows may INSERT into the exercise catalog.
+  int? _linkVerifiedImportedExerciseToLocalCatalog({
+    required Map<String, dynamic> importedRow,
+    required List<Map<String, dynamic>> localVerifiedCatalog,
+  }) {
+    final remote = importedRow['catalog_remote_id']?.toString() ?? '';
+    if (remote.isNotEmpty) {
+      final hit = localVerifiedCatalog.firstWhere(
+        (r) => r['catalog_remote_id']?.toString() == remote,
+        orElse: () => const {},
+      );
+      if (hit.isNotEmpty) return _asInt(hit['id']);
+    }
+    final name = (importedRow['name'] as String?)?.trim();
+    if (name != null && name.isNotEmpty) {
+      final byExact = _exerciseRowIdByExactName(localVerifiedCatalog, name);
+      if (byExact != null) return byExact;
+
+      final fuzzy =
+          _topFuzzyBackedUpExerciseNameCandidates(name, localVerifiedCatalog);
+      if (fuzzy.isNotEmpty &&
+          (fuzzy.first['score'] as double) >= _strongMatchThreshold) {
+        return _asInt(fuzzy.first['id']);
+      }
+    }
+    return null;
   }
 
   List<Map<String, dynamic>> _readRowsList(dynamic node) {
@@ -2245,6 +2227,91 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
   }
 
+  List<String> _decodeOwnedEquipmentNames(dynamic raw) {
+    if (raw == null) return [];
+    if (raw is List) {
+      return raw
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .map((e) => e.toString().trim())
+              .where((s) => s.isNotEmpty)
+              .toList();
+        }
+      } on FormatException {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  Future<void> _mergeLegacyImportedEquipment(_BackupParsedPayload payload) async {
+    final userRowsRaw = payload.tables[_tableUserEquipments];
+    final userRows = userRowsRaw == null
+        ? const <Map<String, dynamic>>[]
+        : (userRowsRaw as List)
+            .whereType<Map<String, dynamic>>()
+            .toList();
+    if (userRows.isEmpty) return;
+
+    final existingProfiles = await _fetchTableRows(_tableUserProfiles);
+    if (existingProfiles.isEmpty) return;
+
+    final row = Map<String, dynamic>.from(existingProfiles.first);
+    final profileId = _asInt(row['id']);
+    if (profileId == null) return;
+
+    final equipRowsRaw = payload.tables[_tableEquipments];
+    final equipRows = equipRowsRaw == null
+        ? const <Map<String, dynamic>>[]
+        : (equipRowsRaw as List)
+            .whereType<Map<String, dynamic>>()
+            .toList();
+
+    final idToName = <int, String>{};
+    for (final r in equipRows) {
+      final id = _asInt(r['id']);
+      final name = r['name']?.toString().trim();
+      if (id != null && name != null && name.isNotEmpty) idToName[id] = name;
+    }
+    for (final ref in payload.catalogReferences[_catalogEquipments] ?? const []) {
+      idToName.putIfAbsent(ref.localId, () => ref.name);
+    }
+
+    final owned = List<String>.from(_decodeOwnedEquipmentNames(row['owned_equipment_names']));
+    final seen = owned.map((e) => e.toLowerCase()).toSet();
+
+    for (final ur in userRows) {
+      final eid = _asInt(ur['equipment_id']);
+      if (eid == null) continue;
+      final rawName = idToName[eid];
+      if (rawName == null || rawName.isEmpty) continue;
+      final normalized = _domainLabelResolver.toCanonicalName(
+        kind: DomainLabelKind.equipment,
+        candidate: rawName,
+      );
+      if (normalized.isEmpty) continue;
+      final key = normalized.toLowerCase();
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      owned.add(normalized);
+    }
+
+    row['owned_equipment_names'] = jsonEncode(owned);
+    await _updateRowById(
+      _tableUserProfiles,
+      profileId,
+      row,
+      excludeKeys: const {'id', 'created_at', 'updated_at', 'weight'},
+    );
+  }
+
   Future<List<Map<String, dynamic>>> _fetchVerifiedRows(
     String tableName,
   ) async {
@@ -2257,17 +2324,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   Future<List<Map<String, dynamic>>> _fetchTableRows(String tableName) async {
     final rows = await _db.customSelect('SELECT * FROM $tableName').get();
     return rows.map((row) => Map<String, dynamic>.from(row.data)).toList();
-  }
-
-  Future<int?> _findVerifiedEquipmentIdByLocalId(int localId) async {
-    final rows = await _db
-        .customSelect(
-          'SELECT id FROM $_tableEquipments WHERE id = ? AND is_verified = 1 LIMIT 1',
-          variables: [Variable<int>(localId)],
-        )
-        .get();
-    if (rows.isEmpty) return null;
-    return _asInt(rows.first.data['id']);
   }
 
   Future<int?> _findVerifiedExerciseIdByLocalId(int localId) async {
@@ -2297,23 +2353,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
   Map<String, dynamic> _toJsonMap(Map<String, dynamic> row) {
     return row.map((key, value) => MapEntry(key, _toJsonValue(value)));
-  }
-
-  Map<String, dynamic>? _toEquipmentCatalogRef(Map<String, dynamic> row) {
-    final id = _asInt(row['id']);
-    final name = row['name'] as String?;
-    if (id == null || name == null) return null;
-    return {
-      'localId': id,
-      'catalogRemoteId': row['catalog_remote_id']?.toString() ?? '',
-      'name': name,
-      'fallbackData': {
-        'name': name,
-        'description': row['description'],
-        'category': row['category'],
-        'is_verified': 0,
-      },
-    };
   }
 
   Map<String, dynamic>? _toExerciseCatalogRef(Map<String, dynamic> row) {
@@ -2413,6 +2452,28 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required String importedName,
     required List<Map<String, dynamic>> existingRows,
   }) {
+    if (tableName == _tableExercises) {
+      final resolvedImported =
+          resolveImportedExerciseCatalogName(importedName).trim();
+      for (final existingRow in existingRows) {
+        final existingName = (existingRow['name'] as String?)?.trim();
+        if (existingName == null || existingName.isEmpty) continue;
+        if (existingName != resolvedImported) continue;
+        if (!_isSemanticallyCompatible(
+          tableName: tableName,
+          importedRow: importedRow,
+          existingRow: existingRow,
+        )) {
+          continue;
+        }
+        return _CatalogMatch(
+          row: existingRow,
+          score: 1,
+          isStrong: true,
+        );
+      }
+    }
+
     final importedNormalized = _normalizeName(importedName);
     _CatalogMatch? best;
     for (final existingRow in existingRows) {
@@ -2452,12 +2513,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required Map<String, dynamic> importedRow,
     required Map<String, dynamic> existingRow,
   }) {
-    if (tableName == _tableEquipments) {
-      final importedCategory = importedRow['category']?.toString();
-      final existingCategory = existingRow['category']?.toString();
-      if (importedCategory == null || existingCategory == null) return true;
-      return importedCategory == existingCategory;
-    }
     if (tableName == _tableExercises) {
       final keys = ['muscle_group', 'type', 'movement_pattern'];
       for (final key in keys) {
@@ -2526,22 +2581,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       return;
     }
 
-    if (tableName == _tableEquipments) {
-      await _db.customStatement(
-        'DELETE FROM $_tableUserEquipments WHERE equipment_id = $loserId AND EXISTS (SELECT 1 FROM $_tableUserEquipments WHERE equipment_id = $winnerId)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableUserEquipments SET equipment_id = ? WHERE equipment_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customStatement(
-        'DELETE FROM $_tableExerciseEquipments WHERE equipment_id = $loserId AND EXISTS (SELECT 1 FROM $_tableExerciseEquipments ee2 WHERE ee2.exercise_id = $_tableExerciseEquipments.exercise_id AND ee2.equipment_id = $winnerId)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExerciseEquipments SET equipment_id = ? WHERE equipment_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-    } else if (tableName == _tableExercises) {
+    if (tableName == _tableExercises) {
       await _db.customStatement(
         'DELETE FROM $_tableWorkoutExercises WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM $_tableWorkoutExercises we2 WHERE we2.workout_id = $_tableWorkoutExercises.workout_id AND we2.exercise_id = $winnerId)',
       );
@@ -2551,13 +2591,6 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       );
       await _db.customUpdate(
         'UPDATE $_tableExecutionSets SET exercise_id = ? WHERE exercise_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customStatement(
-        'DELETE FROM $_tableExerciseEquipments WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM $_tableExerciseEquipments ee2 WHERE ee2.exercise_id = $winnerId AND ee2.equipment_id = $_tableExerciseEquipments.equipment_id)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExerciseEquipments SET exercise_id = ? WHERE exercise_id = ?',
         variables: [Variable<int>(winnerId), Variable<int>(loserId)],
       );
       await _db.customStatement(
@@ -2603,6 +2636,49 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       'payload_json': jsonEncode(payload),
       'status': 'pending',
     }, orIgnore: true);
+  }
+
+  /// `exercises.id` when [exerciseRows] contain a verified row whose `name` equals [exerciseName].
+  int? _exerciseRowIdByExactName(
+    List<Map<String, dynamic>> exerciseRows,
+    String exerciseName,
+  ) {
+    final row = exerciseRows.firstWhere(
+      (r) => (r['name'] as String?) == exerciseName,
+      orElse: () => const {},
+    );
+    if (row.isEmpty) return null;
+    return _asInt(row['id']);
+  }
+
+  /// Whether local verified catalog already represents this backup exercise label,
+  /// using v30 rename + merge aliases ([resolveImportedExerciseCatalogName]).
+  bool _verifiedExercisesContainBackedUpLabel(
+    List<Map<String, dynamic>> verifiedRows,
+    String backupExerciseLabel,
+  ) {
+    final trimmed = backupExerciseLabel.trim();
+    final migrated = resolveImportedExerciseCatalogName(backupExerciseLabel);
+    return _exerciseRowIdByExactName(verifiedRows, trimmed) != null ||
+        _exerciseRowIdByExactName(verifiedRows, migrated) != null;
+  }
+
+  /// Best fuzzy candidates comparing both the legacy backup string and its
+  /// migration-resolved canonical key (same ordering as SQLite migration v30).
+  List<Map<String, dynamic>> _topFuzzyBackedUpExerciseNameCandidates(
+    String backupExerciseLabel,
+    List<Map<String, dynamic>> exerciseRows, {
+    int limit = 1,
+  }) {
+    final migrated = resolveImportedExerciseCatalogName(backupExerciseLabel);
+    var best = _topFuzzyCandidates(migrated, exerciseRows, limit: limit);
+    final migratedScore = best.isEmpty ? -1.0 : best.first['score'] as double;
+    final legacy =
+        _topFuzzyCandidates(backupExerciseLabel, exerciseRows, limit: limit);
+    if (legacy.isEmpty) return best;
+    final legacyScore = legacy.first['score'] as double;
+    if (legacyScore > migratedScore) return legacy;
+    return best;
   }
 
   List<Map<String, dynamic>> _topFuzzyCandidates(
@@ -2744,11 +2820,13 @@ class _RuntimeDuplicateCandidate {
 }
 
 class _BackupParsedPayload {
+  final int databaseSchemaVersion;
   final Map<String, List<Map<String, dynamic>>> tables;
   final Map<String, List<BackupCatalogReference>> catalogReferences;
   final int totalRecords;
 
   const _BackupParsedPayload({
+    required this.databaseSchemaVersion,
     required this.tables,
     required this.catalogReferences,
     required this.totalRecords,

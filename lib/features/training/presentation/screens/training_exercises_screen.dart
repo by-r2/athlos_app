@@ -17,7 +17,6 @@ import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
-import '../widgets/equipment_search_picker.dart';
 import '../widgets/exercise_tile.dart';
 import '../widgets/muscle_group_filter.dart';
 
@@ -255,7 +254,7 @@ class _TrainingExercisesScreenState
 ///
 /// Visible (required): name, muscle group, type.
 /// Collapsible "Advanced details": primary/secondary muscles, regions,
-/// movement pattern, equipment, description.
+/// movement pattern, description.
 class _AddExerciseSheet extends ConsumerStatefulWidget {
   final String initialName;
 
@@ -273,7 +272,6 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   ExerciseType _selectedType = ExerciseType.strength;
   bool _isIsometric = false;
   MovementPattern? _selectedMovementPattern;
-  final Set<int> _selectedEquipmentIds = {};
   final List<({TargetMuscle muscle, MuscleRegion? region})> _primaryMuscles =
       [];
   final List<({TargetMuscle muscle, MuscleRegion? region})> _secondaryMuscles =
@@ -522,15 +520,6 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           onChanged: (v) => setState(() => _selectedMovementPattern = v),
         ),
         const Gap(AthlosSpacing.md),
-        EquipmentSearchPicker(
-          selectedIds: _selectedEquipmentIds,
-          onChanged: (ids) => setState(() {
-            _selectedEquipmentIds
-              ..clear()
-              ..addAll(ids);
-          }),
-        ),
-        const Gap(AthlosSpacing.md),
         TextFormField(
           controller: _descriptionController,
           decoration: InputDecoration(
@@ -718,7 +707,6 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
             movementPattern: _selectedMovementPattern,
             description: description.isEmpty ? null : description,
             isIsometric: _isIsometric,
-            equipmentIds: _selectedEquipmentIds.toList(),
             muscles: _allMuscles,
           );
 

@@ -33,10 +33,8 @@ class CatalogSyncService {
       if (remoteVersion != null) {
         final localVersion = _prefs.getInt(_catalogVersionKey) ?? 0;
         if (remoteVersion > localVersion) {
-          await _syncEquipments();
           await _syncExercises();
           await _syncTargetMuscles();
-          await _syncExerciseEquipments();
           await _prefs.setInt(_catalogVersionKey, remoteVersion);
           debugPrint('[CatalogSync] Synced to version $remoteVersion');
         }
@@ -150,8 +148,8 @@ class CatalogSyncService {
       if (action == 'merge_verified' &&
           winnerRemoteId != null &&
           loserRemoteId != null &&
-          (entityType == 'equipment' || entityType == 'exercise')) {
-        final tableName = entityType == 'equipment' ? 'equipments' : 'exercises';
+          entityType == 'exercise') {
+        const tableName = 'exercises';
         final winnerId = await _findVerifiedIdByRemoteId(tableName, winnerRemoteId);
         final loserId = await _findVerifiedIdByRemoteId(tableName, loserRemoteId);
         if (winnerId != null && loserId != null && winnerId != loserId) {
@@ -184,22 +182,6 @@ class CatalogSyncService {
     required int winnerId,
     required int loserId,
   }) async {
-    if (entityType == 'equipment') {
-      await _db.customStatement(
-        'DELETE FROM user_equipments WHERE equipment_id = $loserId AND EXISTS (SELECT 1 FROM user_equipments WHERE equipment_id = $winnerId)',
-      );
-      await _db.customStatement(
-        'UPDATE user_equipments SET equipment_id = $winnerId WHERE equipment_id = $loserId',
-      );
-      await _db.customStatement(
-        'DELETE FROM exercise_equipments WHERE equipment_id = $loserId AND EXISTS (SELECT 1 FROM exercise_equipments ee2 WHERE ee2.exercise_id = exercise_equipments.exercise_id AND ee2.equipment_id = $winnerId)',
-      );
-      await _db.customStatement(
-        'UPDATE exercise_equipments SET equipment_id = $winnerId WHERE equipment_id = $loserId',
-      );
-      return;
-    }
-
     await _db.customStatement(
       'DELETE FROM workout_exercises WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM workout_exercises we2 WHERE we2.workout_id = workout_exercises.workout_id AND we2.exercise_id = $winnerId)',
     );
@@ -208,12 +190,6 @@ class CatalogSyncService {
     );
     await _db.customStatement(
       'UPDATE execution_sets SET exercise_id = $winnerId WHERE exercise_id = $loserId',
-    );
-    await _db.customStatement(
-      'DELETE FROM exercise_equipments WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM exercise_equipments ee2 WHERE ee2.exercise_id = $winnerId AND ee2.equipment_id = exercise_equipments.equipment_id)',
-    );
-    await _db.customStatement(
-      'UPDATE exercise_equipments SET exercise_id = $winnerId WHERE exercise_id = $loserId',
     );
     await _db.customStatement(
       'DELETE FROM exercise_variations WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM exercise_variations ev2 WHERE ev2.exercise_id = $winnerId AND ev2.variation_id = exercise_variations.variation_id)',
@@ -226,6 +202,12 @@ class CatalogSyncService {
     );
     await _db.customStatement(
       'UPDATE exercise_variations SET variation_id = $winnerId WHERE variation_id = $loserId',
+    );
+    await _db.customStatement(
+      'DELETE FROM exercise_target_muscles WHERE exercise_id = $loserId '
+      'AND EXISTS (SELECT 1 FROM exercise_target_muscles k '
+      'WHERE k.exercise_id = $winnerId '
+      'AND k.target_muscle = exercise_target_muscles.target_muscle)',
     );
     await _db.customStatement(
       'UPDATE exercise_target_muscles SET exercise_id = $winnerId WHERE exercise_id = $loserId',
@@ -254,39 +236,6 @@ class CatalogSyncService {
         .limit(1);
     if (data.isEmpty) return null;
     return data.first['version'] as int;
-  }
-
-  Future<void> _syncEquipments() async {
-    final rows = await _supabase.from('equipments').select();
-    final localEquipments = await _db.select(_db.equipments).get();
-    final byRemoteId = {
-      for (final item in localEquipments)
-        if (item.catalogRemoteId != null) item.catalogRemoteId!: item,
-    };
-    final byNormalizedName = {
-      for (final item in localEquipments) _normalizeName(item.name): item,
-    };
-
-    for (final row in rows) {
-      final remoteId = row['id'].toString();
-      final name = row['name'] as String;
-      final existingByRemote = byRemoteId[remoteId];
-      final existingByName = byNormalizedName[_normalizeName(name)];
-      final existing = existingByRemote ?? existingByName;
-
-      final category = row['category'] as String;
-      if (existing == null) {
-        await _db.customStatement(
-          "INSERT INTO equipments (catalog_remote_id, name, category, is_verified) "
-          "VALUES ('$remoteId', '${_esc(name)}', '$category', 1)",
-        );
-      } else if (existing.isVerified) {
-        await _db.customStatement(
-          "UPDATE equipments SET catalog_remote_id = '$remoteId', name = '${_esc(name)}', category = '$category', is_verified = 1 "
-          "WHERE id = ${existing.id}",
-        );
-      }
-    }
   }
 
   Future<void> _syncExercises() async {
@@ -352,30 +301,6 @@ class CatalogSyncService {
         "INSERT OR IGNORE INTO exercise_target_muscles "
         "(exercise_id, target_muscle, muscle_region, role) "
         "VALUES ($localId, '$targetMuscle', $regionSql, '$role')",
-      );
-    }
-  }
-
-  Future<void> _syncExerciseEquipments() async {
-    final rows = await _supabase.from('exercise_equipments').select(
-        'exercise_id, equipment_id, exercises!inner(name), equipments!inner(name)');
-
-    final localExercises = await _db.select(_db.exercises).get();
-    final exNameToId = {for (final e in localExercises) e.name: e.id};
-
-    final localEquipments = await _db.select(_db.equipments).get();
-    final eqNameToId = {for (final e in localEquipments) e.name: e.id};
-
-    for (final row in rows) {
-      final exName = row['exercises']['name'] as String;
-      final eqName = row['equipments']['name'] as String;
-      final localExId = exNameToId[exName];
-      final localEqId = eqNameToId[eqName];
-      if (localExId == null || localEqId == null) continue;
-
-      await _db.customStatement(
-        "INSERT OR IGNORE INTO exercise_equipments "
-        "(exercise_id, equipment_id) VALUES ($localExId, $localEqId)",
       );
     }
   }

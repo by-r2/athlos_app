@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'exercise_canonical_merge.dart';
+import 'exercise_migration_maps.dart';
 import 'tables/catalog_governance_applied_rules_table.dart';
 import 'tables/catalog_governance_events_table.dart';
 import 'tables/local_duplicate_feedback_table.dart';
@@ -17,28 +21,22 @@ import '../../features/profile/domain/enums/selected_module.dart';
 import '../../features/profile/domain/enums/training_goal.dart';
 import '../../features/profile/domain/enums/training_style.dart';
 import '../../features/training/data/datasources/dev_seeder.dart';
-import '../../features/training/data/datasources/equipment_seeder.dart';
 import '../../features/training/data/datasources/exercise_seeder.dart';
 import '../../features/training/domain/enums/exercise_type.dart';
 import '../../features/training/domain/enums/movement_pattern.dart';
 import '../../features/training/domain/enums/muscle_role.dart';
 import '../../features/training/data/datasources/daos/cycle_step_dao.dart';
-import '../../features/training/data/datasources/daos/equipment_dao.dart';
 import '../../features/training/data/datasources/daos/exercise_dao.dart';
 import '../../features/training/data/datasources/daos/program_dao.dart';
 import '../../features/training/data/datasources/daos/progression_rule_dao.dart';
 import '../../features/training/data/datasources/daos/workout_dao.dart';
 import '../../features/training/data/datasources/daos/workout_execution_dao.dart';
 import '../../features/training/data/datasources/tables/cycle_steps_table.dart';
-import '../../features/training/data/datasources/tables/equipments_table.dart';
 import '../../features/training/data/datasources/tables/execution_set_segments_table.dart';
 import '../../features/training/data/datasources/tables/execution_sets_table.dart';
-import '../../features/training/data/datasources/tables/exercise_equipments_table.dart';
 import '../../features/training/data/datasources/tables/exercise_target_muscles_table.dart';
 import '../../features/training/data/datasources/tables/exercise_variations_table.dart';
 import '../../features/training/data/datasources/tables/exercises_table.dart';
-import '../../features/training/data/datasources/tables/user_equipments_table.dart';
-import '../../features/training/domain/enums/equipment_category.dart';
 import '../../features/training/domain/enums/muscle_group.dart';
 import '../../features/training/domain/enums/muscle_region.dart';
 import '../../features/training/domain/enums/target_muscle.dart';
@@ -54,10 +52,7 @@ const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
 
 @DriftDatabase(
   tables: [
-    // Training
-    Equipments,
     Exercises,
-    ExerciseEquipments,
     ExerciseTargetMuscles,
     ExerciseVariations,
     Workouts,
@@ -68,16 +63,13 @@ const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
     Programs,
     ProgressionRules,
     CycleSteps,
-    UserEquipments,
     CatalogGovernanceEvents,
     CatalogGovernanceAppliedRules,
     LocalDuplicateFeedback,
-    // Profile
     UserProfiles,
     BodyMetrics,
   ],
   daos: [
-    EquipmentDao,
     ExerciseDao,
     ProgramDao,
     ProgressionRuleDao,
@@ -102,47 +94,37 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      await seedEquipments(this);
       await seedExercises(this);
       if (_shouldSeedDevData) await seedDevData(this);
     },
     onUpgrade: (m, from, to) async {
-      if (_shouldSeedDevData && from >= 3 && from <= 28) {
+      if (_shouldSeedDevData && from >= 3 && from <= 29) {
         for (final table in allTables) {
           await m.deleteTable(table.actualTableName);
         }
         await m.createAll();
-        await seedEquipments(this);
         await seedExercises(this);
         await seedDevData(this);
         return;
       }
 
       if (from < 2) {
-        // Rename restSeconds → rest
         await customStatement(
           'ALTER TABLE workout_exercises RENAME COLUMN rest_seconds TO rest',
         );
-
-        // New column: exercises.type (default 'strength')
         await customStatement(
           "ALTER TABLE exercises ADD COLUMN type TEXT NOT NULL DEFAULT '${ExerciseType.strength.name}'",
         );
-
-        // New column: workout_exercises.duration (nullable int)
         await customStatement(
           'ALTER TABLE workout_exercises ADD COLUMN duration INTEGER',
         );
 
-        // Make workout_exercises.reps nullable via table recreation.
-        // SQLite doesn't support ALTER COLUMN to drop NOT NULL, so we
-        // recreate the table preserving data.
         await customStatement('''
               CREATE TABLE workout_exercises_tmp (
                 workout_id INTEGER NOT NULL REFERENCES workouts(id),
@@ -167,8 +149,6 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE workout_exercises_tmp RENAME TO workout_exercises',
         );
 
-        // Make execution_sets.planned_reps and reps nullable, add
-        // duration and distance columns via table recreation.
         await customStatement('''
               CREATE TABLE execution_sets_tmp (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -198,8 +178,6 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE execution_sets_tmp RENAME TO execution_sets',
         );
 
-        // Seed new equipment and exercises
-        await seedEquipmentsV2(this);
         await seedExercisesV2(this);
       }
 
@@ -210,7 +188,6 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'ALTER TABLE exercises ADD COLUMN movement_pattern TEXT',
         );
-        await seedEquipmentsV3(this);
         await seedExercisesV3(this);
       }
 
@@ -237,8 +214,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 6) {
-        // Create the old cycle_steps schema (with step_type) via raw SQL
-        // so this migration stays stable regardless of the current Drift schema.
         await customStatement('''
           CREATE TABLE cycle_steps (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -267,7 +242,6 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'ALTER TABLE workout_exercises ADD COLUMN notes TEXT',
         );
-        await seedEquipmentsV4(this);
         await seedExercisesV4(this);
       }
 
@@ -279,15 +253,11 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 10) {
         await customStatement(
-          'ALTER TABLE equipments ADD COLUMN catalog_remote_id TEXT',
-        );
-        await customStatement(
           'ALTER TABLE exercises ADD COLUMN catalog_remote_id TEXT',
         );
       }
 
       if (from < 11) {
-        await seedEquipmentsV5(this);
         await seedExercisesV5(this);
       }
 
@@ -301,8 +271,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 14) {
-        // Phase 1: simplify cycle — remove rest steps, drop stepType column,
-        // make workoutId non-nullable, compact ordering.
         await customStatement(
           "DELETE FROM cycle_steps WHERE step_type = 'rest' OR workout_id IS NULL",
         );
@@ -325,8 +293,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 15) {
-        // Phase 2: rep ranges + AMRAP — replace reps with minReps/maxReps,
-        // add isAmrap. Existing fixed reps → min == max.
         await customStatement(
           'ALTER TABLE workout_exercises RENAME COLUMN reps TO min_reps',
         );
@@ -342,21 +308,18 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 16) {
-        // Phase 6a: RPE — optional perceived exertion per set.
         await customStatement(
           'ALTER TABLE execution_sets ADD COLUMN rpe INTEGER',
         );
       }
 
       if (from < 17) {
-        // Phase 7: warmup sets — excluded from volume and progression.
         await customStatement(
           'ALTER TABLE execution_sets ADD COLUMN is_warmup INTEGER NOT NULL DEFAULT 0',
         );
       }
 
       if (from < 18) {
-        // Phase 3: Training Program (mesocycle).
         await customStatement('''
           CREATE TABLE programs (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -379,7 +342,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 19) {
-        // Phase 4: Deload strategy columns on programs.
         await customStatement(
           'ALTER TABLE programs ADD COLUMN is_in_deload INTEGER NOT NULL DEFAULT 0',
         );
@@ -398,7 +360,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 20) {
-        // Phase 5: Progression rules per exercise within a program.
         await customStatement('''
           CREATE TABLE progression_rules (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -414,7 +375,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 21) {
-        // Phase 6d: Bodyweight exercise flag.
         await customStatement(
           'ALTER TABLE exercises ADD COLUMN is_bodyweight INTEGER NOT NULL DEFAULT 0',
         );
@@ -430,7 +390,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 22) {
-        // Phase 9: Body weight timeline.
         await customStatement('''
           CREATE TABLE body_metrics (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -442,7 +401,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 23) {
-        // L/R tracking for unilateral exercises.
         await customStatement(
           'ALTER TABLE execution_sets ADD COLUMN left_reps INTEGER',
         );
@@ -458,7 +416,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 24) {
-        // Migrate profile.weight into body_metrics, then drop the column.
         await customStatement('''
           INSERT INTO body_metrics (weight, recorded_at)
           SELECT weight, CAST(strftime('%s','now') AS INTEGER)
@@ -472,11 +429,6 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 25) {
-        // Mandatory program model: eliminate free cycle, make programId
-        // non-nullable on cycle_steps and workout_executions, add
-        // exercise_config_snapshot for robust history.
-
-        // 1. Ensure at least one program exists.
         final anyProgram = await customSelect(
           'SELECT id FROM programs LIMIT 1',
         ).getSingleOrNull();
@@ -499,20 +451,16 @@ class AppDatabase extends _$AppDatabase {
           defaultProgramId = newRow.read<int>('id');
         }
 
-        // 2. Migrate free cycle steps into the default program, then delete
-        //    remaining orphans.
         await customStatement(
           'UPDATE cycle_steps SET program_id = $defaultProgramId '
           'WHERE program_id IS NULL',
         );
 
-        // 3. Migrate orphaned workout executions.
         await customStatement(
           'UPDATE workout_executions SET program_id = $defaultProgramId '
           'WHERE program_id IS NULL',
         );
 
-        // 4. Recreate cycle_steps with program_id NOT NULL.
         await customStatement('''
           CREATE TABLE cycle_steps_tmp (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -530,8 +478,6 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE cycle_steps_tmp RENAME TO cycle_steps',
         );
 
-        // 5. Recreate workout_executions with program_id NOT NULL +
-        //    exercise_config_snapshot column.
         await customStatement('''
           CREATE TABLE workout_executions_tmp (
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -554,7 +500,6 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE workout_executions_tmp RENAME TO workout_executions',
         );
 
-        // 6. Ensure the default program is active.
         final hasActive = await customSelect(
           'SELECT id FROM programs WHERE is_active = 1 LIMIT 1',
         ).getSingleOrNull();
@@ -582,8 +527,6 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           "UPDATE exercises SET is_isometric = 1 WHERE name = 'plank'",
         );
-        // Convert legacy reps → duration for historical sets of isometric exercises.
-        // Users stored seconds in the reps field as a workaround.
         await customStatement('''
           UPDATE execution_sets
           SET duration = reps, reps = NULL
@@ -612,6 +555,51 @@ class AppDatabase extends _$AppDatabase {
         );
       }
 
+      if (from < 30) {
+        // Move owned equipment from `user_equipments` (FK to legacy `equipments`)
+        // into a free-text JSON list on `user_profiles`. Drop catalog tables.
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN owned_equipment_names TEXT',
+        );
+
+        final ownedRows = await customSelect(
+          'SELECT e.name AS name '
+          'FROM user_equipments u '
+          'INNER JOIN equipments e ON e.id = u.equipment_id',
+        ).get();
+        final ownedNames = <String>[];
+        for (final row in ownedRows) {
+          final name = row.read<String?>('name')?.trim();
+          if (name != null && name.isNotEmpty && !ownedNames.contains(name)) {
+            ownedNames.add(name);
+          }
+        }
+        if (ownedNames.isNotEmpty) {
+          final encoded = jsonEncode(ownedNames);
+          await customUpdate(
+            'UPDATE user_profiles SET owned_equipment_names = ?',
+            variables: [Variable<String>(encoded)],
+          );
+        }
+
+        await customStatement('DROP TABLE IF EXISTS exercise_equipments');
+        await customStatement('DROP TABLE IF EXISTS user_equipments');
+        await customStatement('DROP TABLE IF EXISTS equipments');
+
+        for (final entry in kExerciseRenamePreV30ToCanonical.entries) {
+          await customUpdate(
+            'UPDATE exercises SET name = ? WHERE name = ?',
+            variables: [
+              Variable<String>(entry.value),
+              Variable<String>(entry.key),
+            ],
+          );
+        }
+
+        // Same migration: collapse rows that differ only by bar / preacher station /
+        // rope vs bar on cable pushdown (`kExerciseMergeLosersIntoKeeper`).
+        await applyExerciseCanonicalMerges(this);
+      }
     },
   );
 }

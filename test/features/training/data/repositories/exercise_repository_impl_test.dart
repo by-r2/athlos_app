@@ -28,7 +28,7 @@ void main() {
       await db.close();
     });
 
-    test('create/getById com equipamentos e muscle foci', () async {
+    test('create/getById com muscle foci', () async {
       final id = (await repository.create(
         const domain.Exercise(
           id: 0,
@@ -38,7 +38,6 @@ void main() {
           movementPattern: MovementPattern.push,
           isVerified: false,
         ),
-        equipmentIds: const [1],
         muscles: const [
           (
             muscle: TargetMuscle.pectoralisMajor,
@@ -54,9 +53,6 @@ void main() {
       expect(loaded!.name, 'Supino Teste');
       expect(loaded.muscles, isNotEmpty);
       expect(loaded.muscles.first.muscle, TargetMuscle.pectoralisMajor);
-
-      final equipmentIds = (await repository.getEquipmentIds(id)).getOrThrow();
-      expect(equipmentIds, contains(1));
     });
 
     test('findByName case-insensitive e getByMuscleGroup', () async {
@@ -79,14 +75,13 @@ void main() {
       expect(byGroup.any((e) => e.id == id), isTrue);
     });
 
-    test('variations add/remove e getEquipmentMap', () async {
+    test('variations add/remove', () async {
       final id1 = (await repository.create(
         const domain.Exercise(
           id: 0,
           name: 'Agachamento Teste',
           muscleGroup: MuscleGroup.quadriceps,
         ),
-        equipmentIds: const [1],
       ))
           .getOrThrow();
       final id2 = (await repository.create(
@@ -101,10 +96,6 @@ void main() {
       expect((await repository.addVariation(id1, id2)).isSuccess, isTrue);
       final variations = (await repository.getVariations(id1)).getOrThrow();
       expect(variations.any((e) => e.id == id2), isTrue);
-
-      final map = (await repository.getEquipmentMap()).getOrThrow();
-      expect(map[id1], isNotNull);
-      expect(map[id1], contains(1));
 
       expect((await repository.removeVariation(id1, id2)).isSuccess, isTrue);
       final variationsAfter = (await repository.getVariations(id1)).getOrThrow();
