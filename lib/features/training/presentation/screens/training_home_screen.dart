@@ -296,22 +296,29 @@ class _StartNextWorkoutFab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final hasActiveProgram = ref.watch(activeProgramProvider).value != null;
+
+    if (!hasActiveProgram) {
+      return FloatingActionButton(
+        heroTag: 'dashboard_fab',
+        onPressed: () => context.push(RoutePaths.trainingProgramNew),
+        tooltip: l10n.noProgramActiveCreateAction,
+        child: const Icon(Icons.add),
+      );
+    }
+
     final hasCycleSteps =
         (ref.watch(effectiveCycleStepsProvider).value ?? const []).isNotEmpty;
 
     if (nextWorkout == null) {
+      if (hasCycleSteps) {
+        return const SizedBox.shrink();
+      }
       return FloatingActionButton(
         heroTag: 'dashboard_fab',
         onPressed: () {
-          if (hasActiveProgram && !hasCycleSteps) {
-            context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery());
-            return;
-          }
-          context.push(RoutePaths.trainingWorkoutNew);
+          context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery());
         },
-        tooltip: hasActiveProgram && !hasCycleSteps
-            ? l10n.trainingCycleAddWorkout
-            : l10n.trainingWorkoutActionCreateManual,
+        tooltip: l10n.trainingCycleAddWorkout,
         child: const Icon(Icons.add),
       );
     }

@@ -56,6 +56,17 @@ class _StartNextWorkoutFab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final hasActiveProgram = ref.watch(activeProgramProvider).value != null;
+
+    if (!hasActiveProgram) {
+      return FloatingActionButton(
+        heroTag: 'workouts_fab',
+        onPressed: () => context.push(RoutePaths.trainingProgramNew),
+        tooltip: l10n.noProgramActiveCreateAction,
+        child: const Icon(Icons.add),
+      );
+    }
+
     if (nextWorkout == null) {
       final steps =
           ref.watch(effectiveCycleStepsProvider).value ?? const <TrainingCycleStep>[];
