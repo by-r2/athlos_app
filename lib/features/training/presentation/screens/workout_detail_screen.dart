@@ -7,9 +7,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_exercise.dart';
@@ -463,7 +464,7 @@ class _ExerciseDetailTile extends ConsumerWidget {
           ),
           title: Row(
             children: [
-              Expanded(child: Text(displayName)),
+              Expanded(child: AthlosTruncatedText(displayName)),
               if (exercise.isUnilateral)
                 Padding(
                   padding: const EdgeInsets.only(left: AthlosSpacing.xs),

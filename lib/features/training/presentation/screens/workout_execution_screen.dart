@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_button_insets.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -550,7 +551,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.executionTitle(workoutName)),
+        title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
@@ -802,7 +803,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () => setState(() => _viewMode = _ViewMode.overview),
         ),
-        title: Text(name),
+        title: AthlosTruncatedText(name),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(24),
           child: Padding(
@@ -1626,7 +1627,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         icon: const Icon(Icons.arrow_back),
         onPressed: onBack ?? _exitCardioTimer,
       ),
-      title: Text(name),
+      title: AthlosTruncatedText(name),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(24),
         child: Padding(
@@ -2058,7 +2059,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             setState(() => _viewMode = _ViewMode.overview);
           },
     ),
-    title: Text(name),
+    title: AthlosTruncatedText(name),
     actions: [
       Padding(
         padding: const EdgeInsets.only(right: AthlosSpacing.md),
@@ -3033,7 +3034,7 @@ class _OverviewExerciseCard extends StatelessWidget {
                         ),
                       ),
                     Expanded(
-                      child: Text(
+                      child: AthlosTruncatedText(
                         exerciseName,
                         style: textTheme.titleSmall?.copyWith(
                           decoration: isAllDone
@@ -3043,8 +3044,6 @@ class _OverviewExerciseCard extends StatelessWidget {
                               ? colorScheme.onSurfaceVariant
                               : null,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

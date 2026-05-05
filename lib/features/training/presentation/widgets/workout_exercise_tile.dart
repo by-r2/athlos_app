@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../helpers/exercise_l10n.dart';
@@ -178,11 +179,9 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                             ),
                           ),
                         Expanded(
-                          child: Text(
+                          child: AthlosTruncatedText(
                             displayName,
                             style: textTheme.titleSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
