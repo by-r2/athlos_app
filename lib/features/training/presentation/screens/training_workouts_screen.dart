@@ -48,14 +48,28 @@ class TrainingWorkoutsScreen extends ConsumerWidget {
 
 // ── Start Next Workout FAB ────────────────────────────────────────────
 
-class _StartNextWorkoutFab extends StatelessWidget {
+class _StartNextWorkoutFab extends ConsumerWidget {
   final dynamic nextWorkout;
 
   const _StartNextWorkoutFab({this.nextWorkout});
 
   @override
-  Widget build(BuildContext context) {
-    if (nextWorkout == null) return const SizedBox.shrink();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    if (nextWorkout == null) {
+      final steps =
+          ref.watch(effectiveCycleStepsProvider).value ?? const <TrainingCycleStep>[];
+      if (steps.isNotEmpty) {
+        return const SizedBox.shrink();
+      }
+      return FloatingActionButton(
+        heroTag: 'workouts_fab',
+        onPressed: () =>
+            context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery()),
+        tooltip: l10n.trainingCycleAddWorkout,
+        child: const Icon(Icons.add),
+      );
+    }
 
     return FloatingActionButton(
       heroTag: 'workouts_fab',
@@ -124,6 +138,21 @@ class _ActiveProgramCycleViewState
       _workoutIds = ids;
     });
     _saveOrder();
+  }
+
+  void _openCyclePickerFromRouteIfNeeded(BuildContext context) {
+    final qp = GoRouterState.of(context).uri.queryParameters;
+    if (qp[RoutePaths.queryOpenProgramCyclePicker] != '1') return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      context.go(RoutePaths.trainingWorkouts);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final workouts = ref.read(workoutListProvider).value ?? [];
+        if (!context.mounted) return;
+        _showAddWorkoutPicker(context, workouts, _workoutIds ?? []);
+      });
+    });
   }
 
   void _showAddWorkoutPicker(
@@ -241,6 +270,7 @@ class _ActiveProgramCycleViewState
     final l10n = AppLocalizations.of(context)!;
 
     if (ids.isEmpty && !stepsAsync.isLoading) {
+      _openCyclePickerFromRouteIfNeeded(context);
       return Column(
         children: [
           if (program != null) _ProgramHeader(program: program),

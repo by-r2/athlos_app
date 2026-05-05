@@ -18,6 +18,13 @@ abstract final class RoutePaths {
   static const training = '/training';
   static const trainingHome = '/training/home';
   static const trainingWorkouts = '/training/workouts';
+
+  /// When present as `openProgramCyclePicker=1`, the Treinos tab opens the
+  /// picker to link workouts into the active program cycle.
+  static const queryOpenProgramCyclePicker = 'openProgramCyclePicker';
+
+  static String trainingWorkoutsOpenCyclePickerQuery() =>
+      '$trainingWorkouts?$queryOpenProgramCyclePicker=1';
   static const trainingExercises = '/training/exercises';
   static const trainingHistory = '/training/history';
   static const trainingEquipment = '/training/equipment';

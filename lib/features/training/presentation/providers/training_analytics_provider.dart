@@ -194,6 +194,11 @@ Future<Workout?> nextCycleWorkout(Ref ref) async {
 /// Workout to start when the user taps "Iniciar próximo treino".
 @riverpod
 Future<Workout?> nextWorkoutToStart(Ref ref) async {
+  final activeProgramId = ref.watch(activeProgramIdProvider);
+  if (activeProgramId != null) {
+    final effectiveSteps = await ref.watch(effectiveCycleStepsProvider.future);
+    if (effectiveSteps.isEmpty) return null;
+  }
   final nextCycle = await ref.watch(nextCycleWorkoutProvider.future);
   if (nextCycle != null) return nextCycle;
   return ref.watch(nextWorkoutProvider);

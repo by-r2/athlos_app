@@ -287,20 +287,31 @@ class _CompactProgramBanner extends ConsumerWidget {
 
 // ── Start Next Workout FAB ────────────────────────────────────────────
 
-class _StartNextWorkoutFab extends StatelessWidget {
+class _StartNextWorkoutFab extends ConsumerWidget {
   final dynamic nextWorkout;
 
   const _StartNextWorkoutFab({this.nextWorkout});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final hasActiveProgram = ref.watch(activeProgramProvider).value != null;
+    final hasCycleSteps =
+        (ref.watch(effectiveCycleStepsProvider).value ?? const []).isNotEmpty;
 
     if (nextWorkout == null) {
       return FloatingActionButton(
         heroTag: 'dashboard_fab',
-        onPressed: () => context.push(RoutePaths.trainingWorkoutNew),
-        tooltip: l10n.trainingWorkoutActionCreateManual,
+        onPressed: () {
+          if (hasActiveProgram && !hasCycleSteps) {
+            context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery());
+            return;
+          }
+          context.push(RoutePaths.trainingWorkoutNew);
+        },
+        tooltip: hasActiveProgram && !hasCycleSteps
+            ? l10n.trainingCycleAddWorkout
+            : l10n.trainingWorkoutActionCreateManual,
         child: const Icon(Icons.add),
       );
     }
