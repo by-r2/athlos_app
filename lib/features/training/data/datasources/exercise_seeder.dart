@@ -19,7 +19,7 @@ _MF _s(TargetMuscle m, [MuscleRegion? r]) =>
 /// Seeds the database with verified exercises on first creation.
 ///
 /// Each exercise uses an English key as [name] (localized via ARB in the UI).
-/// Equipment and variation relations are resolved by name against seeded data.
+/// Variation edges are applied after all exercises are inserted.
 Future<void> seedExercises(AppDatabase db) async {
   final exerciseIds = <String, int>{};
 
@@ -77,7 +77,6 @@ class _SeedExercise {
   final ExerciseType type;
   final MovementPattern? movementPattern;
   final List<_MF> muscles;
-  final List<String> equipmentKeys;
   final bool isBodyweight;
   final bool isIsometric;
 
@@ -87,7 +86,6 @@ class _SeedExercise {
     this.type = ExerciseType.strength,
     this.movementPattern,
     this.muscles = const [],
-    this.equipmentKeys = const [],
     this.isBodyweight = false,
     this.isIsometric = false,
   });
@@ -107,22 +105,19 @@ final _seedItems = [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
         _s(TargetMuscle.anteriorDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['barbell', 'flatBench']),
+      ]),
   _SeedExercise('inclineBenchPress', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
       muscles: [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
         _s(TargetMuscle.anteriorDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['barbell', 'adjustableBench']),
+      ]),
   _SeedExercise('chestFly', MuscleGroup.chest,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-      ],
-      equipmentKeys: ['dumbbell', 'flatBench']),
+      ]),
   _SeedExercise('pushUp', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
       isBodyweight: true,
@@ -135,23 +130,20 @@ final _seedItems = [
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('chestPress', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
       muscles: [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['chestPressMachine']),
+      ]),
   _SeedExercise('inclineDumbbellPress', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
       muscles: [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
         _s(TargetMuscle.anteriorDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell', 'adjustableBench']),
+      ]),
   _SeedExercise('declinePushUp', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
       isBodyweight: true,
@@ -183,8 +175,7 @@ final _seedItems = [
         _p(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.rhomboids),
-      ],
-      equipmentKeys: ['pullUpBar']),
+      ]),
   _SeedExercise('bentOverRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
@@ -192,15 +183,13 @@ final _seedItems = [
         _p(TargetMuscle.rhomboids),
         _s(TargetMuscle.rearDeltoid),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('latPulldown', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
         _p(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['latPulldownMachine']),
+      ]),
   _SeedExercise('seatedRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
@@ -208,16 +197,14 @@ final _seedItems = [
         _p(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.rearDeltoid),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('singleArmRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
         _p(TargetMuscle.latissimusDorsi),
         _p(TargetMuscle.rhomboids),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell', 'flatBench']),
+      ]),
   _SeedExercise('chinUp', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       isBodyweight: true,
@@ -225,8 +212,7 @@ final _seedItems = [
         _p(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.rhomboids),
-      ],
-      equipmentKeys: ['pullUpBar']),
+      ]),
   _SeedExercise('invertedRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       isBodyweight: true,
@@ -240,8 +226,7 @@ final _seedItems = [
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.trapezius),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
 
   // ── Shoulders ──
   _SeedExercise('overheadPress', MuscleGroup.shoulders,
@@ -250,35 +235,30 @@ final _seedItems = [
         _p(TargetMuscle.anteriorDeltoid),
         _p(TargetMuscle.lateralDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('lateralRaise', MuscleGroup.shoulders,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.lateralDeltoid),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('facePull', MuscleGroup.shoulders,
       movementPattern: MovementPattern.pull,
       muscles: [
         _p(TargetMuscle.rearDeltoid),
         _s(TargetMuscle.rhomboids),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('arnoldPress', MuscleGroup.shoulders,
       movementPattern: MovementPattern.push,
       muscles: [
         _p(TargetMuscle.anteriorDeltoid),
         _p(TargetMuscle.lateralDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('rearDeltFly', MuscleGroup.shoulders,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.rearDeltoid),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('pikePushUp', MuscleGroup.shoulders,
       movementPattern: MovementPattern.push,
       isBodyweight: true,
@@ -294,89 +274,72 @@ final _seedItems = [
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['barbell', 'ezBar']),
+      ]),
   _SeedExercise('alternatingCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('inclineCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell', 'adjustableBench']),
+      ]),
   _SeedExercise('concentrationCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('waiterCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['weightPlates']),
+      ]),
   _SeedExercise('dragCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('spiderCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell', 'adjustableBench']),
+      ]),
   _SeedExercise('cableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('behindBackCableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('bayesianCableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('hammerCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.brachialis),
         _p(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('preacherCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-      ],
-      equipmentKeys: [
-        'ezBar',
-        'preacherBench',
-        'dumbbell',
-        'bicepsCurlMachine',
       ]),
   _SeedExercise('preacherHammerCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
@@ -384,8 +347,7 @@ final _seedItems = [
         _p(TargetMuscle.brachialis),
         _p(TargetMuscle.brachioradialis),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell', 'preacherBench']),
+      ]),
   _SeedExercise('reverseZottmanCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
@@ -393,28 +355,24 @@ final _seedItems = [
         _p(TargetMuscle.brachialis),
         _s(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.wristExtensors),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
 
   // ── Triceps ──
   _SeedExercise('tricepsPushdown', MuscleGroup.triceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.tricepsBrachii, MuscleRegion.lateralHead),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('skullCrusher', MuscleGroup.triceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead),
-      ],
-      equipmentKeys: ['ezBar', 'flatBench']),
+      ]),
   _SeedExercise('overheadTricepsExtension', MuscleGroup.triceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('diamondPushUp', MuscleGroup.triceps,
       movementPattern: MovementPattern.push,
       isBodyweight: true,
@@ -429,8 +387,7 @@ final _seedItems = [
         _p(TargetMuscle.tricepsBrachii),
         _s(TargetMuscle.pectoralisMajor),
         _s(TargetMuscle.anteriorDeltoid),
-      ],
-      equipmentKeys: ['dipStation']),
+      ]),
 
   // ── Quadriceps ──
   _SeedExercise('backSquat', MuscleGroup.quadriceps,
@@ -441,48 +398,42 @@ final _seedItems = [
         _p(TargetMuscle.vastusMedialis),
         _s(TargetMuscle.gluteusMaximus),
         _s(TargetMuscle.bicepsFemoris),
-      ],
-      equipmentKeys: ['barbell', 'squatRack']),
+      ]),
   _SeedExercise('legPress', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.squat,
       muscles: [
         _p(TargetMuscle.rectusFemoris),
         _p(TargetMuscle.vastusLateralis),
         _s(TargetMuscle.gluteusMaximus),
-      ],
-      equipmentKeys: ['legPressMachine']),
+      ]),
   _SeedExercise('lunge', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.lunge,
       muscles: [
         _p(TargetMuscle.rectusFemoris),
         _p(TargetMuscle.vastusLateralis),
         _s(TargetMuscle.gluteusMaximus),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('bulgarianSplitSquat', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.lunge,
       muscles: [
         _p(TargetMuscle.rectusFemoris),
         _p(TargetMuscle.vastusLateralis),
         _s(TargetMuscle.gluteusMaximus),
-      ],
-      equipmentKeys: ['dumbbell', 'flatBench']),
+      ]),
   _SeedExercise('legExtension', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.rectusFemoris),
         _p(TargetMuscle.vastusLateralis),
         _p(TargetMuscle.vastusMedialis),
-      ],
-      equipmentKeys: ['legExtensionMachine']),
+      ]),
   _SeedExercise('hackSquat', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.squat,
       muscles: [
         _p(TargetMuscle.rectusFemoris),
         _p(TargetMuscle.vastusLateralis),
         _s(TargetMuscle.gluteusMaximus),
-      ],
-      equipmentKeys: ['hackSquatMachine']),
+      ]),
 
   // ── Hamstrings ──
   _SeedExercise('romanianDeadlift', MuscleGroup.hamstrings,
@@ -492,8 +443,7 @@ final _seedItems = [
         _p(TargetMuscle.semitendinosus),
         _s(TargetMuscle.gluteusMaximus),
         _s(TargetMuscle.erectorSpinae),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('nordicCurl', MuscleGroup.hamstrings,
       movementPattern: MovementPattern.isolation,
       muscles: [
@@ -505,15 +455,13 @@ final _seedItems = [
       muscles: [
         _p(TargetMuscle.bicepsFemoris),
         _p(TargetMuscle.semitendinosus),
-      ],
-      equipmentKeys: ['legCurlMachine']),
+      ]),
   _SeedExercise('seatedLegCurl', MuscleGroup.hamstrings,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsFemoris),
         _p(TargetMuscle.semitendinosus),
-      ],
-      equipmentKeys: ['seatedLegCurlMachine']),
+      ]),
 
   // ── Glutes ──
   _SeedExercise('hipThrust', MuscleGroup.glutes,
@@ -521,8 +469,7 @@ final _seedItems = [
       muscles: [
         _p(TargetMuscle.gluteusMaximus),
         _s(TargetMuscle.bicepsFemoris),
-      ],
-      equipmentKeys: ['barbell', 'flatBench']),
+      ]),
   _SeedExercise('gluteBridge', MuscleGroup.glutes, isBodyweight: true,
       movementPattern: MovementPattern.hinge,
       muscles: [
@@ -533,8 +480,7 @@ final _seedItems = [
       muscles: [
         _p(TargetMuscle.gluteusMaximus),
         _s(TargetMuscle.gluteusMedius),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
 
   // ── Adductors ──
   _SeedExercise('hipAdduction', MuscleGroup.adductors,
@@ -543,24 +489,21 @@ final _seedItems = [
         _p(TargetMuscle.adductorMagnus),
         _p(TargetMuscle.adductorLongus),
         _p(TargetMuscle.adductorBrevis),
-      ],
-      equipmentKeys: ['adductorMachine']),
+      ]),
   _SeedExercise('hipAbduction', MuscleGroup.glutes,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.gluteusMedius),
         _p(TargetMuscle.gluteusMinimus),
         _p(TargetMuscle.tensorFasciaeLatae),
-      ],
-      equipmentKeys: ['abductorMachine']),
+      ]),
 
   // ── Calves ──
   _SeedExercise('standingCalfRaise', MuscleGroup.calves,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.gastrocnemius),
-      ],
-      equipmentKeys: ['smithMachine']),
+      ]),
   _SeedExercise('seatedCalfRaise', MuscleGroup.calves,
       movementPattern: MovementPattern.isolation,
       muscles: [
@@ -611,35 +554,30 @@ final _seedItems = [
     _p(TargetMuscle.wristFlexors),
     _s(TargetMuscle.trapezius),
     _s(TargetMuscle.rhomboids),
-  ],
-  equipmentKeys: ['pullUpBar']),
+  ]),
   _SeedExercise('hangingLegRaise', MuscleGroup.abs, isBodyweight: true,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
         _s(TargetMuscle.hipFlexors),
-      ],
-      equipmentKeys: ['pullUpBar']),
+      ]),
   _SeedExercise('abWheelRollout', MuscleGroup.abs,
       muscles: [
         _p(TargetMuscle.rectusAbdominis),
         _s(TargetMuscle.obliques),
-      ],
-      equipmentKeys: ['abWheel']),
+      ]),
 
   // ── Forearms ──
   _SeedExercise('wristCurl', MuscleGroup.forearms,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.wristFlexors),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('reverseWristCurl', MuscleGroup.forearms,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.wristExtensors),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
 
   // ── Full Body ──
   _SeedExercise('deadlift', MuscleGroup.fullBody,
@@ -650,8 +588,7 @@ final _seedItems = [
         _p(TargetMuscle.erectorSpinae),
         _s(TargetMuscle.trapezius),
         _s(TargetMuscle.rectusFemoris),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('burpee', MuscleGroup.fullBody, muscles: [
     _p(TargetMuscle.rectusFemoris),
     _s(TargetMuscle.pectoralisMajor),
@@ -660,15 +597,15 @@ final _seedItems = [
 
   // ── Cardio ──
   _SeedExercise('treadmillRun', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['treadmill']),
+      type: ExerciseType.cardio),
   _SeedExercise('stationaryBike', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['stationaryBike']),
+      type: ExerciseType.cardio),
   _SeedExercise('rowingMachine', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['rowingMachine']),
+      type: ExerciseType.cardio),
   _SeedExercise('elliptical', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['elliptical']),
+      type: ExerciseType.cardio),
   _SeedExercise('jumpRope', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['jumpRope']),
+      type: ExerciseType.cardio),
   _SeedExercise('jumpingJacks', MuscleGroup.cardio,
       type: ExerciseType.cardio),
 
@@ -694,15 +631,15 @@ Future<void> seedExercisesV2(AppDatabase db) async {
 
 const _cardioSeedItems = [
   _SeedExercise('treadmillRun', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['treadmill']),
+      type: ExerciseType.cardio),
   _SeedExercise('stationaryBike', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['stationaryBike']),
+      type: ExerciseType.cardio),
   _SeedExercise('rowingMachine', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['rowingMachine']),
+      type: ExerciseType.cardio),
   _SeedExercise('elliptical', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['elliptical']),
+      type: ExerciseType.cardio),
   _SeedExercise('jumpRope', MuscleGroup.cardio,
-      type: ExerciseType.cardio, equipmentKeys: ['jumpRope']),
+      type: ExerciseType.cardio),
   _SeedExercise('jumpingJacks', MuscleGroup.cardio,
       type: ExerciseType.cardio),
 ];
@@ -850,67 +787,58 @@ final _v4SeedItems = [
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell', 'adjustableBench']),
+      ]),
   _SeedExercise('concentrationCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
   _SeedExercise('waiterCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['weightPlates']),
+      ]),
   _SeedExercise('dragCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('spiderCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['dumbbell', 'adjustableBench']),
+      ]),
   _SeedExercise('cableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('behindBackCableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('bayesianCableCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
         _s(TargetMuscle.brachialis),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   _SeedExercise('preacherHammerCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.brachialis),
         _p(TargetMuscle.brachioradialis),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['dumbbell', 'preacherBench']),
+      ]),
   _SeedExercise('reverseZottmanCurl', MuscleGroup.biceps,
       movementPattern: MovementPattern.isolation,
       muscles: [
@@ -918,8 +846,7 @@ final _v4SeedItems = [
         _p(TargetMuscle.brachialis),
         _s(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.wristExtensors),
-      ],
-      equipmentKeys: ['dumbbell']),
+      ]),
 ];
 
 const _v4Variations = [
@@ -974,16 +901,14 @@ final _v3SeedItems = [
         _p(TargetMuscle.adductorMagnus),
         _p(TargetMuscle.adductorLongus),
         _p(TargetMuscle.adductorBrevis),
-      ],
-      equipmentKeys: ['adductorMachine']),
+      ]),
   _SeedExercise('hipAbduction', MuscleGroup.glutes,
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.gluteusMedius),
         _p(TargetMuscle.gluteusMinimus),
         _p(TargetMuscle.tensorFasciaeLatae),
-      ],
-      equipmentKeys: ['abductorMachine']),
+      ]),
 ];
 
 const _movementPatternBackfill = {
@@ -1145,24 +1070,21 @@ final _v6SeedItems = [
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
         _s(TargetMuscle.rhomboids),
-      ],
-      equipmentKeys: ['pullUpBar']),
+      ]),
   _SeedExercise('closeGripPulldown', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
         _p(TargetMuscle.latissimusDorsi),
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.rhomboids),
-      ],
-      equipmentKeys: ['latPulldownMachine']),
+      ]),
   _SeedExercise('neutralGripPulldown', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
         _p(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.brachialis),
         _s(TargetMuscle.brachioradialis),
-      ],
-      equipmentKeys: ['latPulldownMachine']),
+      ]),
   // ── Back — horizontal pull (underhand row) ──
   _SeedExercise('underhandRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
@@ -1171,8 +1093,7 @@ final _v6SeedItems = [
         _p(TargetMuscle.bicepsBrachii),
         _s(TargetMuscle.rhomboids),
         _s(TargetMuscle.rearDeltoid),
-      ],
-      equipmentKeys: ['barbell']),
+      ]),
   _SeedExercise('wideGripSeatedRow', MuscleGroup.back,
       movementPattern: MovementPattern.pull,
       muscles: [
@@ -1180,8 +1101,7 @@ final _v6SeedItems = [
         _p(TargetMuscle.rearDeltoid),
         _s(TargetMuscle.latissimusDorsi),
         _s(TargetMuscle.bicepsBrachii),
-      ],
-      equipmentKeys: ['cableMachine']),
+      ]),
   // ── Chest — decline barbell bench press ──
   _SeedExercise('declineBenchPress', MuscleGroup.chest,
       movementPattern: MovementPattern.push,
@@ -1189,8 +1109,7 @@ final _v6SeedItems = [
         _p(TargetMuscle.pectoralisMajor, MuscleRegion.lower),
         _s(TargetMuscle.anteriorDeltoid),
         _s(TargetMuscle.tricepsBrachii),
-      ],
-      equipmentKeys: ['barbell', 'adjustableBench']),
+      ]),
 ];
 
 const _v6Variations = [
@@ -1421,8 +1340,7 @@ final _v7SeedItems = [
     _p(TargetMuscle.wristFlexors),
     _s(TargetMuscle.trapezius),
     _s(TargetMuscle.rhomboids),
-  ],
-  equipmentKeys: ['pullUpBar']),
+  ]),
 ];
 
 const _v7Variations = [
