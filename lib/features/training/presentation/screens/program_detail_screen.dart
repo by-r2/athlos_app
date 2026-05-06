@@ -40,43 +40,62 @@ class ProgramDetailScreen extends ConsumerWidget {
 
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AthlosSpacing.md,
-              AthlosSpacing.md,
-              AthlosSpacing.md,
-              AthlosSpacing.md,
-            ),
-            children: [
-              _ProgramHeader(program: program),
-              const Gap(AthlosSpacing.lg),
-              _ProgressionSection(programId: programId),
-              const Gap(AthlosSpacing.lg),
-              _DeloadSection(program: program),
-              const Gap(AthlosSpacing.lg),
-              _ActionsSection(program: program),
-            ],
-          ),
-        ),
-        Padding(
+    // Scrollable body: footer is inside the scroll so it moves off-screen when
+    // content is long; SliverFillRemaining pins it to the bottom when short.
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
           padding: const EdgeInsets.fromLTRB(
             AthlosSpacing.md,
-            AthlosSpacing.xs,
             AthlosSpacing.md,
-            AthlosSpacing.xs,
+            AthlosSpacing.md,
+            AthlosSpacing.md,
           ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                onPressed: () => context.push(RoutePaths.trainingPrograms),
-                icon: const Icon(Icons.inventory_2_outlined),
-                label: Text(l10n.trainingViewArchivedPrograms),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ProgramHeader(program: program),
+                const Gap(AthlosSpacing.lg),
+                _ProgressionSection(programId: programId),
+                const Gap(AthlosSpacing.lg),
+                _DeloadSection(program: program),
+                const Gap(AthlosSpacing.lg),
+                _ActionsSection(program: program),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            0,
+            AthlosSpacing.md,
+            AthlosSpacing.md,
+          ),
+          sliver: SliverFillRemaining(
+            hasScrollBody: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    0,
+                    AthlosSpacing.xs,
+                    0,
+                    AthlosSpacing.xs,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          context.push(RoutePaths.trainingPrograms),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: Text(l10n.trainingViewArchivedPrograms),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -120,8 +139,7 @@ class _ProgramHeader extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome,
-                    color: colorScheme.primary, size: 20),
+                Icon(Icons.auto_awesome, color: colorScheme.primary, size: 20),
                 const Gap(AthlosSpacing.sm),
                 Expanded(
                   child: Text(program.name, style: textTheme.titleMedium),
@@ -147,8 +165,7 @@ class _ProgramHeader extends ConsumerWidget {
             if (program.isInDeload) ...[
               const Gap(AthlosSpacing.sm),
               Chip(
-                avatar:
-                    Icon(Icons.spa, size: 16, color: colorScheme.tertiary),
+                avatar: Icon(Icons.spa, size: 16, color: colorScheme.tertiary),
                 label: Text(l10n.deloadActiveChip),
                 backgroundColor: colorScheme.tertiaryContainer,
                 labelStyle: textTheme.labelSmall?.copyWith(
@@ -272,22 +289,23 @@ class _ProgressionSectionState extends ConsumerState<_ProgressionSection> {
         ...rules.asMap().entries.map((entry) {
           final idx = entry.key;
           final rule = entry.value;
-          final exerciseName = exercises
+          final exerciseName =
+              exercises
                   .where((e) => e.id == rule.exerciseId)
-                  .map((e) => localizedExerciseName(
-                        e.name,
-                        isVerified: e.isVerified,
-                        l10n: l10n,
-                      ))
+                  .map(
+                    (e) => localizedExerciseName(
+                      e.name,
+                      isVerified: e.isVerified,
+                      l10n: l10n,
+                    ),
+                  )
                   .firstOrNull ??
               '#${rule.exerciseId}';
           final typeLabel = switch (rule.type) {
             ProgressionType.incrementWeight =>
               l10n.progressionTypeIncrementWeight,
-            ProgressionType.incrementReps =>
-              l10n.progressionTypeIncrementReps,
-            ProgressionType.incrementSets =>
-              l10n.progressionTypeIncrementSets,
+            ProgressionType.incrementReps => l10n.progressionTypeIncrementReps,
+            ProgressionType.incrementSets => l10n.progressionTypeIncrementSets,
           };
           final unit = switch (rule.type) {
             ProgressionType.incrementWeight => 'kg',
@@ -353,17 +371,13 @@ class _DeloadSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    switch (config.strategy) {
-                      DeloadStrategy.reduceVolume =>
-                        l10n.deloadStrategyReduceVolume,
-                      DeloadStrategy.reduceIntensity =>
-                        l10n.deloadStrategyReduceIntensity,
-                      DeloadStrategy.reduceBoth =>
-                        l10n.deloadStrategyReduceBoth,
-                    },
-                    style: textTheme.bodyMedium,
-                  ),
+                  Text(switch (config.strategy) {
+                    DeloadStrategy.reduceVolume =>
+                      l10n.deloadStrategyReduceVolume,
+                    DeloadStrategy.reduceIntensity =>
+                      l10n.deloadStrategyReduceIntensity,
+                    DeloadStrategy.reduceBoth => l10n.deloadStrategyReduceBoth,
+                  }, style: textTheme.bodyMedium),
                   if (config.frequency != null)
                     Text(
                       '${l10n.deloadFrequencyLabel}: ${config.frequency}',
@@ -411,16 +425,17 @@ class _ActionsSection extends ConsumerWidget {
         if (!program.isInDeload && program.deloadConfig != null)
           OutlinedButton.icon(
             onPressed: () async {
-                await ref
-                    .read(programActionsProvider.notifier)
-                    .enterDeload(program.id);
-                ref.invalidate(programListProvider);
-                ref.invalidate(activeProgramProvider);
-              },
+              await ref
+                  .read(programActionsProvider.notifier)
+                  .enterDeload(program.id);
+              ref.invalidate(programListProvider);
+              ref.invalidate(activeProgramProvider);
+            },
             icon: const Icon(Icons.spa),
             label: Text(l10n.deloadAccept),
           ),
-        if (program.isInDeload || (!program.isInDeload && program.deloadConfig != null))
+        if (program.isInDeload ||
+            (!program.isInDeload && program.deloadConfig != null))
           const Gap(AthlosSpacing.sm),
         if (program.isActive && !program.isInDeload)
           OutlinedButton.icon(
@@ -448,9 +463,7 @@ class _ActionsSection extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deloadEndConfirmMessage),
-          ],
+          children: [Text(l10n.deloadEndConfirmMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -488,9 +501,7 @@ class _ActionsSection extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.programDeleteMessage),
-          ],
+          children: [Text(l10n.programDeleteMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -542,9 +553,7 @@ class _ActionsSection extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.programCompletedMessage(program.name)),
-          ],
+          children: [Text(l10n.programCompletedMessage(program.name))],
         ),
         actions: [
           AthlosStackedDialogActions(
