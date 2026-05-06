@@ -1073,9 +1073,9 @@
   "@exerciseDiamondPushUp": { "description": "Exercise name" },
   "exerciseBarbellSquat": "Agachamento com Barra",
   "@exerciseBarbellSquat": { "description": "Exercise name" },
-  "exerciseFrontSquat": "Agachamento frontal",
+  "exerciseFrontSquat": "Agachamento Frontal",
   "@exerciseFrontSquat": { "description": "Exercise name" },
-  "exerciseGobletSquat": "Agachamento goblet",
+  "exerciseGobletSquat": "Agachamento Goblet",
   "@exerciseGobletSquat": { "description": "Exercise name" },
   "exerciseLegPress": "Leg Press",
   "@exerciseLegPress": { "description": "Exercise name" },
@@ -1155,6 +1155,22 @@
   "@exerciseJumpingJacks": { "description": "Exercise name" },
   "exerciseMountainClimber": "Escalador",
   "@exerciseMountainClimber": { "description": "Exercise name" },
+  "exerciseStairClimbing": "Escada",
+  "@exerciseStairClimbing": {
+    "description": "Cardio: staircase / stepmill / building stairs (context in notes)"
+  },
+  "exerciseVerticalClimber": "Vertical Climber",
+  "@exerciseVerticalClimber": {
+    "description": "Cardio: standing vertical climber machine (e.g. Versa-type)"
+  },
+  "exerciseJacobsLadder": "Jacob's Ladder",
+  "@exerciseJacobsLadder": {
+    "description": "Cardio: Jacobs Ladder self-paced climbing machine"
+  },
+  "exerciseRussianTwist": "Russian Twist",
+  "@exerciseRussianTwist": {
+    "description": "Russian Twist torso rotation, often weighted"
+  },
 
   "targetMusclesLabel": "Músculos alvo",
   "@targetMusclesLabel": { "description": "Label for target muscles section" },
@@ -2452,15 +2468,15 @@
   "danglingExecutionDiscard": "Descartar",
   "@danglingExecutionDiscard": { "description": "Button to discard unfinished workout" },
 
-  "exerciseSidePlank": "Prancha lateral",
+  "exerciseSidePlank": "Prancha Lateral",
   "@exerciseSidePlank": { "description": "Side plank exercise name" },
-  "exerciseHollowHold": "Hollow hold",
+  "exerciseHollowHold": "Hollow Hold",
   "@exerciseHollowHold": { "description": "Hollow hold exercise name" },
-  "exerciseLSit": "L-sit",
+  "exerciseLSit": "L-Sit",
   "@exerciseLSit": { "description": "L-sit exercise name" },
-  "exerciseWallSit": "Wall sit",
+  "exerciseWallSit": "Wall Sit",
   "@exerciseWallSit": { "description": "Wall sit exercise name" },
-  "exerciseDeadHang": "Dead hang",
+  "exerciseDeadHang": "Dead Hang",
   "@exerciseDeadHang": { "description": "Dead hang exercise name" },
 
   "isometricLabel": "Isométrico",

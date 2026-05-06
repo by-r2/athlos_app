@@ -24,7 +24,9 @@ Future<void> seedExercises(AppDatabase db) async {
   final exerciseIds = <String, int>{};
 
   for (final item in _seedItems) {
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -39,7 +41,9 @@ Future<void> seedExercises(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -48,20 +52,23 @@ Future<void> seedExercises(AppDatabase db) async {
             ),
           );
     }
-
   }
 
   for (final link in _variations) {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -99,546 +106,728 @@ class _Variation {
 
 final _seedItems = [
   // ── Chest ──
-  _SeedExercise('benchPress', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('inclineBenchPress', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('chestFly', MuscleGroup.chest,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-      ]),
-  _SeedExercise('pushUp', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('cableCrossover', MuscleGroup.chest,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-      ]),
-  _SeedExercise('chestPress', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('inclineDumbbellPress', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('declinePushUp', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('inclinePushUp', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.lower),
-      ]),
-  _SeedExercise('kneePushUp', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
+  _SeedExercise(
+    'benchPress',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'inclineBenchPress',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'chestFly',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.pectoralisMajor, MuscleRegion.mid)],
+  ),
+  _SeedExercise(
+    'pushUp',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'cableCrossover',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.pectoralisMajor, MuscleRegion.mid)],
+  ),
+  _SeedExercise(
+    'chestPress',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'inclineDumbbellPress',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'declinePushUp',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'inclinePushUp',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [_p(TargetMuscle.pectoralisMajor, MuscleRegion.lower)],
+  ),
+  _SeedExercise(
+    'kneePushUp',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
 
   // ── Back ──
-  _SeedExercise('pullUp', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.rhomboids),
-      ]),
-  _SeedExercise('bentOverRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _p(TargetMuscle.rhomboids),
-        _s(TargetMuscle.rearDeltoid),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('latPulldown', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('seatedRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.rhomboids),
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.rearDeltoid),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('singleArmRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _p(TargetMuscle.rhomboids),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('chinUp', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.rhomboids),
-      ]),
-  _SeedExercise('invertedRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.rhomboids),
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.rearDeltoid),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('shrug', MuscleGroup.back,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.trapezius),
-      ]),
-  _SeedExercise('superman', MuscleGroup.back,
-      movementPattern: MovementPattern.isolation,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.erectorSpinae),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
+  _SeedExercise(
+    'pullUp',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
+  _SeedExercise(
+    'bentOverRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.rhomboids),
+      _s(TargetMuscle.rearDeltoid),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'latPulldown',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [_p(TargetMuscle.latissimusDorsi), _s(TargetMuscle.bicepsBrachii)],
+  ),
+  _SeedExercise(
+    'seatedRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.rhomboids),
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.rearDeltoid),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'singleArmRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.rhomboids),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'chinUp',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
+  _SeedExercise(
+    'invertedRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.rhomboids),
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.rearDeltoid),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'shrug',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.trapezius)],
+  ),
+  _SeedExercise(
+    'superman',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.isolation,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.erectorSpinae),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
 
   // ── Shoulders ──
-  _SeedExercise('overheadPress', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.anteriorDeltoid),
-        _p(TargetMuscle.lateralDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('lateralRaise', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.lateralDeltoid),
-      ]),
-  _SeedExercise('frontRaise', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.anteriorDeltoid),
-      ]),
-  _SeedExercise('facePull', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.rearDeltoid),
-        _s(TargetMuscle.rhomboids),
-      ]),
-  _SeedExercise('arnoldPress', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.anteriorDeltoid),
-        _p(TargetMuscle.lateralDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
-  _SeedExercise('rearDeltFly', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.rearDeltoid),
-      ]),
-  _SeedExercise('pikePushUp', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.anteriorDeltoid),
-        _p(TargetMuscle.lateralDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
+  _SeedExercise(
+    'overheadPress',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.anteriorDeltoid),
+      _p(TargetMuscle.lateralDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'lateralRaise',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.lateralDeltoid)],
+  ),
+  _SeedExercise(
+    'frontRaise',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.anteriorDeltoid)],
+  ),
+  _SeedExercise(
+    'facePull',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.pull,
+    muscles: [_p(TargetMuscle.rearDeltoid), _s(TargetMuscle.rhomboids)],
+  ),
+  _SeedExercise(
+    'arnoldPress',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.anteriorDeltoid),
+      _p(TargetMuscle.lateralDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'rearDeltFly',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.rearDeltoid)],
+  ),
+  _SeedExercise(
+    'pikePushUp',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.anteriorDeltoid),
+      _p(TargetMuscle.lateralDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
 
   // ── Biceps ──
-  _SeedExercise('bicepsCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('alternatingCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('inclineCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('concentrationCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('waiterCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('dragCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-      ]),
-  _SeedExercise('spiderCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('cableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-      ]),
-  _SeedExercise('behindBackCableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('bayesianCableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('hammerCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.brachialis),
-        _p(TargetMuscle.brachioradialis),
-      ]),
-  _SeedExercise('preacherCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-      ]),
-  _SeedExercise('preacherHammerCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.brachialis),
-        _p(TargetMuscle.brachioradialis),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('reverseZottmanCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.brachioradialis),
-        _p(TargetMuscle.brachialis),
-        _s(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.wristExtensors),
-      ]),
+  _SeedExercise(
+    'bicepsCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'alternatingCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.bicepsBrachii)],
+  ),
+  _SeedExercise(
+    'inclineCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'concentrationCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'waiterCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'dragCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+    ],
+  ),
+  _SeedExercise(
+    'spiderCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'cableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+    ],
+  ),
+  _SeedExercise(
+    'behindBackCableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'bayesianCableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'hammerCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.brachialis), _p(TargetMuscle.brachioradialis)],
+  ),
+  _SeedExercise(
+    'preacherCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead)],
+  ),
+  _SeedExercise(
+    'preacherHammerCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.brachialis),
+      _p(TargetMuscle.brachioradialis),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'reverseZottmanCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.brachioradialis),
+      _p(TargetMuscle.brachialis),
+      _s(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.wristExtensors),
+    ],
+  ),
 
   // ── Triceps ──
-  _SeedExercise('tricepsPushdown', MuscleGroup.triceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.tricepsBrachii, MuscleRegion.lateralHead),
-      ]),
-  _SeedExercise('skullCrusher', MuscleGroup.triceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead),
-      ]),
-  _SeedExercise('overheadTricepsExtension', MuscleGroup.triceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead),
-      ]),
-  _SeedExercise('diamondPushUp', MuscleGroup.triceps,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.tricepsBrachii),
-        _s(TargetMuscle.pectoralisMajor),
-      ]),
-  _SeedExercise('dip', MuscleGroup.triceps,
-      movementPattern: MovementPattern.push,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.tricepsBrachii),
-        _s(TargetMuscle.pectoralisMajor),
-        _s(TargetMuscle.anteriorDeltoid),
-      ]),
+  _SeedExercise(
+    'tricepsPushdown',
+    MuscleGroup.triceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.tricepsBrachii, MuscleRegion.lateralHead)],
+  ),
+  _SeedExercise(
+    'skullCrusher',
+    MuscleGroup.triceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead)],
+  ),
+  _SeedExercise(
+    'overheadTricepsExtension',
+    MuscleGroup.triceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.tricepsBrachii, MuscleRegion.longHead)],
+  ),
+  _SeedExercise(
+    'diamondPushUp',
+    MuscleGroup.triceps,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.tricepsBrachii),
+      _s(TargetMuscle.pectoralisMajor),
+    ],
+  ),
+  _SeedExercise(
+    'dip',
+    MuscleGroup.triceps,
+    movementPattern: MovementPattern.push,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.tricepsBrachii),
+      _s(TargetMuscle.pectoralisMajor),
+      _s(TargetMuscle.anteriorDeltoid),
+    ],
+  ),
 
   // ── Quadriceps ──
-  _SeedExercise('backSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('frontSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('gobletSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('legPress', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _s(TargetMuscle.gluteusMaximus),
-      ]),
-  _SeedExercise('lunge', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.lunge,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _s(TargetMuscle.gluteusMaximus),
-      ]),
-  _SeedExercise('bulgarianSplitSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.lunge,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _s(TargetMuscle.gluteusMaximus),
-      ]),
-  _SeedExercise('legExtension', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-      ]),
-  _SeedExercise('hackSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _s(TargetMuscle.gluteusMaximus),
-      ]),
+  _SeedExercise(
+    'backSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'frontSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'gobletSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'legPress',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'lunge',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.lunge,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'bulgarianSplitSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.lunge,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'legExtension',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+    ],
+  ),
+  _SeedExercise(
+    'hackSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
 
   // ── Hamstrings ──
-  _SeedExercise('romanianDeadlift', MuscleGroup.hamstrings,
-      movementPattern: MovementPattern.hinge,
-      muscles: [
-        _p(TargetMuscle.bicepsFemoris),
-        _p(TargetMuscle.semitendinosus),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.erectorSpinae),
-      ]),
-  _SeedExercise('nordicCurl', MuscleGroup.hamstrings,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsFemoris),
-        _p(TargetMuscle.semitendinosus),
-      ]),
-  _SeedExercise('legCurl', MuscleGroup.hamstrings,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsFemoris),
-        _p(TargetMuscle.semitendinosus),
-      ]),
-  _SeedExercise('seatedLegCurl', MuscleGroup.hamstrings,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsFemoris),
-        _p(TargetMuscle.semitendinosus),
-      ]),
+  _SeedExercise(
+    'romanianDeadlift',
+    MuscleGroup.hamstrings,
+    movementPattern: MovementPattern.hinge,
+    muscles: [
+      _p(TargetMuscle.bicepsFemoris),
+      _p(TargetMuscle.semitendinosus),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.erectorSpinae),
+    ],
+  ),
+  _SeedExercise(
+    'nordicCurl',
+    MuscleGroup.hamstrings,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.bicepsFemoris), _p(TargetMuscle.semitendinosus)],
+  ),
+  _SeedExercise(
+    'legCurl',
+    MuscleGroup.hamstrings,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.bicepsFemoris), _p(TargetMuscle.semitendinosus)],
+  ),
+  _SeedExercise(
+    'seatedLegCurl',
+    MuscleGroup.hamstrings,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.bicepsFemoris), _p(TargetMuscle.semitendinosus)],
+  ),
 
   // ── Glutes ──
-  _SeedExercise('hipThrust', MuscleGroup.glutes,
-      movementPattern: MovementPattern.hinge,
-      muscles: [
-        _p(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('gluteBridge', MuscleGroup.glutes, isBodyweight: true,
-      movementPattern: MovementPattern.hinge,
-      muscles: [
-        _p(TargetMuscle.gluteusMaximus),
-      ]),
-  _SeedExercise('gluteKickback', MuscleGroup.glutes,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.gluteusMedius),
-      ]),
+  _SeedExercise(
+    'hipThrust',
+    MuscleGroup.glutes,
+    movementPattern: MovementPattern.hinge,
+    muscles: [_p(TargetMuscle.gluteusMaximus), _s(TargetMuscle.bicepsFemoris)],
+  ),
+  _SeedExercise(
+    'gluteBridge',
+    MuscleGroup.glutes,
+    isBodyweight: true,
+    movementPattern: MovementPattern.hinge,
+    muscles: [_p(TargetMuscle.gluteusMaximus)],
+  ),
+  _SeedExercise(
+    'gluteKickback',
+    MuscleGroup.glutes,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.gluteusMaximus), _s(TargetMuscle.gluteusMedius)],
+  ),
 
   // ── Adductors ──
-  _SeedExercise('hipAdduction', MuscleGroup.adductors,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.adductorMagnus),
-        _p(TargetMuscle.adductorLongus),
-        _p(TargetMuscle.adductorBrevis),
-      ]),
-  _SeedExercise('hipAbduction', MuscleGroup.glutes,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.gluteusMedius),
-        _p(TargetMuscle.gluteusMinimus),
-        _p(TargetMuscle.tensorFasciaeLatae),
-      ]),
+  _SeedExercise(
+    'hipAdduction',
+    MuscleGroup.adductors,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.adductorMagnus),
+      _p(TargetMuscle.adductorLongus),
+      _p(TargetMuscle.adductorBrevis),
+    ],
+  ),
+  _SeedExercise(
+    'hipAbduction',
+    MuscleGroup.glutes,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.gluteusMedius),
+      _p(TargetMuscle.gluteusMinimus),
+      _p(TargetMuscle.tensorFasciaeLatae),
+    ],
+  ),
 
   // ── Calves ──
-  _SeedExercise('standingCalfRaise', MuscleGroup.calves,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.gastrocnemius),
-      ]),
-  _SeedExercise('seatedCalfRaise', MuscleGroup.calves,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.soleus),
-      ]),
+  _SeedExercise(
+    'standingCalfRaise',
+    MuscleGroup.calves,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.gastrocnemius)],
+  ),
+  _SeedExercise(
+    'seatedCalfRaise',
+    MuscleGroup.calves,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.soleus)],
+  ),
 
   // ── Abs ──
-  _SeedExercise('crunch', MuscleGroup.abs, isBodyweight: true,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.rectusAbdominis, MuscleRegion.upper),
-      ]),
-  _SeedExercise('plank', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusAbdominis),
-    _p(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.obliques),
-  ]),
-  _SeedExercise('sidePlank', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.obliques),
-    _s(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.gluteusMedius),
-  ]),
-  _SeedExercise('hollowHold', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusAbdominis),
-    _p(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.hipFlexors),
-  ]),
-  _SeedExercise('lSit', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusAbdominis),
-    _p(TargetMuscle.hipFlexors),
-    _s(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.tricepsBrachii),
-  ]),
-  _SeedExercise('wallSit', MuscleGroup.quadriceps,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusFemoris),
-    _p(TargetMuscle.vastusLateralis),
-    _p(TargetMuscle.vastusMedialis),
-    _s(TargetMuscle.gluteusMaximus),
-  ]),
-  _SeedExercise('deadHang', MuscleGroup.back,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.latissimusDorsi),
-    _p(TargetMuscle.wristFlexors),
-    _s(TargetMuscle.trapezius),
-    _s(TargetMuscle.rhomboids),
-  ]),
-  _SeedExercise('hangingLegRaise', MuscleGroup.abs, isBodyweight: true,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
-        _s(TargetMuscle.hipFlexors),
-      ]),
-  _SeedExercise('abWheelRollout', MuscleGroup.abs,
-      muscles: [
-        _p(TargetMuscle.rectusAbdominis),
-        _s(TargetMuscle.obliques),
-      ]),
+  _SeedExercise(
+    'crunch',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.rectusAbdominis, MuscleRegion.upper)],
+  ),
+  _SeedExercise(
+    'plank',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis),
+      _p(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.obliques),
+    ],
+  ),
+  _SeedExercise(
+    'sidePlank',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.obliques),
+      _s(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.gluteusMedius),
+    ],
+  ),
+  _SeedExercise(
+    'hollowHold',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis),
+      _p(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.hipFlexors),
+    ],
+  ),
+  _SeedExercise(
+    'lSit',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis),
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'wallSit',
+    MuscleGroup.quadriceps,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'deadHang',
+    MuscleGroup.back,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.wristFlexors),
+      _s(TargetMuscle.trapezius),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
+  _SeedExercise(
+    'hangingLegRaise',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
+      _s(TargetMuscle.hipFlexors),
+    ],
+  ),
+  _SeedExercise(
+    'abWheelRollout',
+    MuscleGroup.abs,
+    muscles: [_p(TargetMuscle.rectusAbdominis), _s(TargetMuscle.obliques)],
+  ),
 
   // ── Forearms ──
-  _SeedExercise('wristCurl', MuscleGroup.forearms,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.wristFlexors),
-      ]),
-  _SeedExercise('reverseWristCurl', MuscleGroup.forearms,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.wristExtensors),
-      ]),
+  _SeedExercise(
+    'wristCurl',
+    MuscleGroup.forearms,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.wristFlexors)],
+  ),
+  _SeedExercise(
+    'reverseWristCurl',
+    MuscleGroup.forearms,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.wristExtensors)],
+  ),
 
   // ── Full Body ──
-  _SeedExercise('deadlift', MuscleGroup.fullBody,
-      movementPattern: MovementPattern.hinge,
-      muscles: [
-        _p(TargetMuscle.bicepsFemoris),
-        _p(TargetMuscle.gluteusMaximus),
-        _p(TargetMuscle.erectorSpinae),
-        _s(TargetMuscle.trapezius),
-        _s(TargetMuscle.rectusFemoris),
-      ]),
-  _SeedExercise('burpee', MuscleGroup.fullBody, muscles: [
-    _p(TargetMuscle.rectusFemoris),
-    _s(TargetMuscle.pectoralisMajor),
-    _s(TargetMuscle.anteriorDeltoid),
-  ]),
+  _SeedExercise(
+    'deadlift',
+    MuscleGroup.fullBody,
+    movementPattern: MovementPattern.hinge,
+    muscles: [
+      _p(TargetMuscle.bicepsFemoris),
+      _p(TargetMuscle.gluteusMaximus),
+      _p(TargetMuscle.erectorSpinae),
+      _s(TargetMuscle.trapezius),
+      _s(TargetMuscle.rectusFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'burpee',
+    MuscleGroup.fullBody,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _s(TargetMuscle.pectoralisMajor),
+      _s(TargetMuscle.anteriorDeltoid),
+    ],
+  ),
 
   // ── Cardio ──
-  _SeedExercise('treadmillRun', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('stationaryBike', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('rowingMachine', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('elliptical', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('jumpRope', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('jumpingJacks', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
+  _SeedExercise('treadmillRun', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise(
+    'stationaryBike',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+  ),
+  _SeedExercise('rowingMachine', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('elliptical', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('jumpRope', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('jumpingJacks', MuscleGroup.cardio, type: ExerciseType.cardio),
   _SeedExercise(
     'mountainClimber',
     MuscleGroup.cardio,
@@ -650,6 +839,47 @@ final _seedItems = [
       _s(TargetMuscle.anteriorDeltoid),
     ],
   ),
+  _SeedExercise(
+    'stairClimbing',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.gastrocnemius),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'verticalClimber',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.rectusAbdominis),
+    ],
+  ),
+  _SeedExercise(
+    'jacobsLadder',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.rectusFemoris),
+      _s(TargetMuscle.gastrocnemius),
+    ],
+  ),
+  _SeedExercise(
+    'russianTwist',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.obliques),
+      _s(TargetMuscle.rectusAbdominis),
+      _s(TargetMuscle.transverseAbdominis),
+    ],
+  ),
 
   // ── V6 additions ──
   ..._v6SeedItems,
@@ -659,7 +889,9 @@ final _seedItems = [
 /// Called from migration onUpgrade when upgrading from v1.
 Future<void> seedExercisesV2(AppDatabase db) async {
   for (final item in _cardioSeedItems) {
-    await db.into(db.exercises).insert(
+    await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -672,25 +904,25 @@ Future<void> seedExercisesV2(AppDatabase db) async {
 }
 
 const _cardioSeedItems = [
-  _SeedExercise('treadmillRun', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('stationaryBike', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('rowingMachine', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('elliptical', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('jumpRope', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
-  _SeedExercise('jumpingJacks', MuscleGroup.cardio,
-      type: ExerciseType.cardio),
+  _SeedExercise('treadmillRun', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise(
+    'stationaryBike',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+  ),
+  _SeedExercise('rowingMachine', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('elliptical', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('jumpRope', MuscleGroup.cardio, type: ExerciseType.cardio),
+  _SeedExercise('jumpingJacks', MuscleGroup.cardio, type: ExerciseType.cardio),
 ];
 
 /// Seeds adductor/abductor exercises added in schema version 3.
 /// Also updates movement_pattern for existing exercises.
 Future<void> seedExercisesV3(AppDatabase db) async {
   for (final item in _v3SeedItems) {
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -702,7 +934,9 @@ Future<void> seedExercisesV3(AppDatabase db) async {
         );
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -745,7 +979,9 @@ Future<void> seedExercisesV4(AppDatabase db) async {
   }
 
   for (final item in _v4SeedItems) {
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -758,7 +994,9 @@ Future<void> seedExercisesV4(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -774,14 +1012,18 @@ Future<void> seedExercisesV4(AppDatabase db) async {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -794,7 +1036,9 @@ Future<void> seedExercisesV4(AppDatabase db) async {
 
 /// Seeds the hamstrings variation added in schema version 11.
 Future<void> seedExercisesV5(AppDatabase db) async {
-  final exerciseId = await db.into(db.exercises).insert(
+  final exerciseId = await db
+      .into(db.exercises)
+      .insert(
         ExercisesCompanion.insert(
           name: 'seatedLegCurl',
           muscleGroup: MuscleGroup.hamstrings,
@@ -805,7 +1049,9 @@ Future<void> seedExercisesV5(AppDatabase db) async {
         ),
       );
 
-  await db.into(db.exerciseTargetMuscles).insert(
+  await db
+      .into(db.exerciseTargetMuscles)
+      .insert(
         ExerciseTargetMusclesCompanion(
           exerciseId: Value(exerciseId),
           targetMuscle: const Value(TargetMuscle.bicepsFemoris),
@@ -813,7 +1059,9 @@ Future<void> seedExercisesV5(AppDatabase db) async {
           role: const Value(MuscleRole.primary),
         ),
       );
-  await db.into(db.exerciseTargetMuscles).insert(
+  await db
+      .into(db.exerciseTargetMuscles)
+      .insert(
         ExerciseTargetMusclesCompanion(
           exerciseId: Value(exerciseId),
           targetMuscle: const Value(TargetMuscle.semitendinosus),
@@ -824,71 +1072,101 @@ Future<void> seedExercisesV5(AppDatabase db) async {
 }
 
 final _v4SeedItems = [
-  _SeedExercise('inclineCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('concentrationCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('waiterCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('dragCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-      ]),
-  _SeedExercise('spiderCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('cableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-      ]),
-  _SeedExercise('behindBackCableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('bayesianCableCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
-        _s(TargetMuscle.brachialis),
-      ]),
-  _SeedExercise('preacherHammerCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.brachialis),
-        _p(TargetMuscle.brachioradialis),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
-  _SeedExercise('reverseZottmanCurl', MuscleGroup.biceps,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.brachioradialis),
-        _p(TargetMuscle.brachialis),
-        _s(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.wristExtensors),
-      ]),
+  _SeedExercise(
+    'inclineCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'concentrationCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'waiterCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'dragCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+    ],
+  ),
+  _SeedExercise(
+    'spiderCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.shortHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'cableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+    ],
+  ),
+  _SeedExercise(
+    'behindBackCableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'bayesianCableCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.bicepsBrachii, MuscleRegion.longHead),
+      _s(TargetMuscle.brachialis),
+    ],
+  ),
+  _SeedExercise(
+    'preacherHammerCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.brachialis),
+      _p(TargetMuscle.brachioradialis),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'reverseZottmanCurl',
+    MuscleGroup.biceps,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.brachioradialis),
+      _p(TargetMuscle.brachialis),
+      _s(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.wristExtensors),
+    ],
+  ),
 ];
 
 const _v4Variations = [
@@ -934,23 +1212,35 @@ const _v4Variations = [
   _Variation('crunch', 'abWheelRollout'),
   _Variation('hangingLegRaise', 'abWheelRollout'),
   _Variation('plank', 'abWheelRollout'),
+  _Variation('treadmillRun', 'stairClimbing'),
+  _Variation('elliptical', 'stairClimbing'),
+  _Variation('stairClimbing', 'verticalClimber'),
+  _Variation('verticalClimber', 'jacobsLadder'),
+  _Variation('stairClimbing', 'jacobsLadder'),
+  _Variation('crunch', 'russianTwist'),
 ];
 
 final _v3SeedItems = [
-  _SeedExercise('hipAdduction', MuscleGroup.adductors,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.adductorMagnus),
-        _p(TargetMuscle.adductorLongus),
-        _p(TargetMuscle.adductorBrevis),
-      ]),
-  _SeedExercise('hipAbduction', MuscleGroup.glutes,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.gluteusMedius),
-        _p(TargetMuscle.gluteusMinimus),
-        _p(TargetMuscle.tensorFasciaeLatae),
-      ]),
+  _SeedExercise(
+    'hipAdduction',
+    MuscleGroup.adductors,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.adductorMagnus),
+      _p(TargetMuscle.adductorLongus),
+      _p(TargetMuscle.adductorBrevis),
+    ],
+  ),
+  _SeedExercise(
+    'hipAbduction',
+    MuscleGroup.glutes,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.gluteusMedius),
+      _p(TargetMuscle.gluteusMinimus),
+      _p(TargetMuscle.tensorFasciaeLatae),
+    ],
+  ),
 ];
 
 const _movementPatternBackfill = {
@@ -1006,6 +1296,7 @@ const _movementPatternBackfill = {
   'standingCalfRaise': MovementPattern.isolation,
   'seatedCalfRaise': MovementPattern.isolation,
   'crunch': MovementPattern.isolation,
+  'russianTwist': MovementPattern.isolation,
   'hangingLegRaise': MovementPattern.isolation,
   'wristCurl': MovementPattern.isolation,
   'reverseWristCurl': MovementPattern.isolation,
@@ -1046,6 +1337,7 @@ const _secondaryRoleBackfill = {
   'gluteKickback': [TargetMuscle.gluteusMedius],
   'hangingLegRaise': [TargetMuscle.hipFlexors],
   'abWheelRollout': [TargetMuscle.obliques],
+  'russianTwist': [TargetMuscle.rectusAbdominis],
   'deadlift': [TargetMuscle.trapezius, TargetMuscle.rectusFemoris],
   'burpee': [TargetMuscle.pectoralisMajor, TargetMuscle.anteriorDeltoid],
   'plank': [TargetMuscle.obliques],
@@ -1061,7 +1353,9 @@ Future<void> seedExercisesV6(AppDatabase db) async {
   }
 
   for (final item in _v6SeedItems) {
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -1075,7 +1369,9 @@ Future<void> seedExercisesV6(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -1090,14 +1386,18 @@ Future<void> seedExercisesV6(AppDatabase db) async {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -1110,54 +1410,72 @@ Future<void> seedExercisesV6(AppDatabase db) async {
 
 final _v6SeedItems = [
   // ── Back — vertical pull (distinct grip variants, same station type) ──
-  _SeedExercise('neutralGripPullUp', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-        _s(TargetMuscle.rhomboids),
-      ]),
-  _SeedExercise('closeGripPulldown', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.rhomboids),
-      ]),
-  _SeedExercise('neutralGripPulldown', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.brachialis),
-        _s(TargetMuscle.brachioradialis),
-      ]),
+  _SeedExercise(
+    'neutralGripPullUp',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
+  _SeedExercise(
+    'closeGripPulldown',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
+  _SeedExercise(
+    'neutralGripPulldown',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.brachialis),
+      _s(TargetMuscle.brachioradialis),
+    ],
+  ),
   // ── Back — horizontal pull (underhand row) ──
-  _SeedExercise('underhandRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.latissimusDorsi),
-        _p(TargetMuscle.bicepsBrachii),
-        _s(TargetMuscle.rhomboids),
-        _s(TargetMuscle.rearDeltoid),
-      ]),
-  _SeedExercise('wideGripSeatedRow', MuscleGroup.back,
-      movementPattern: MovementPattern.pull,
-      muscles: [
-        _p(TargetMuscle.rhomboids),
-        _p(TargetMuscle.rearDeltoid),
-        _s(TargetMuscle.latissimusDorsi),
-        _s(TargetMuscle.bicepsBrachii),
-      ]),
+  _SeedExercise(
+    'underhandRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.bicepsBrachii),
+      _s(TargetMuscle.rhomboids),
+      _s(TargetMuscle.rearDeltoid),
+    ],
+  ),
+  _SeedExercise(
+    'wideGripSeatedRow',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.pull,
+    muscles: [
+      _p(TargetMuscle.rhomboids),
+      _p(TargetMuscle.rearDeltoid),
+      _s(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.bicepsBrachii),
+    ],
+  ),
   // ── Chest — decline barbell bench press ──
-  _SeedExercise('declineBenchPress', MuscleGroup.chest,
-      movementPattern: MovementPattern.push,
-      muscles: [
-        _p(TargetMuscle.pectoralisMajor, MuscleRegion.lower),
-        _s(TargetMuscle.anteriorDeltoid),
-        _s(TargetMuscle.tricepsBrachii),
-      ]),
+  _SeedExercise(
+    'declineBenchPress',
+    MuscleGroup.chest,
+    movementPattern: MovementPattern.push,
+    muscles: [
+      _p(TargetMuscle.pectoralisMajor, MuscleRegion.lower),
+      _s(TargetMuscle.anteriorDeltoid),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
 ];
 
 const _v6Variations = [
@@ -1320,7 +1638,9 @@ Future<void> seedExercisesV7(AppDatabase db) async {
   for (final item in _v7SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -1335,7 +1655,9 @@ Future<void> seedExercisesV7(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -1350,14 +1672,18 @@ Future<void> seedExercisesV7(AppDatabase db) async {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -1369,39 +1695,64 @@ Future<void> seedExercisesV7(AppDatabase db) async {
 }
 
 final _v7SeedItems = [
-  _SeedExercise('sidePlank', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.obliques),
-    _s(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.gluteusMedius),
-  ]),
-  _SeedExercise('hollowHold', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusAbdominis),
-    _p(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.hipFlexors),
-  ]),
-  _SeedExercise('lSit', MuscleGroup.abs,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusAbdominis),
-    _p(TargetMuscle.hipFlexors),
-    _s(TargetMuscle.transverseAbdominis),
-    _s(TargetMuscle.tricepsBrachii),
-  ]),
-  _SeedExercise('wallSit', MuscleGroup.quadriceps,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.rectusFemoris),
-    _p(TargetMuscle.vastusLateralis),
-    _p(TargetMuscle.vastusMedialis),
-    _s(TargetMuscle.gluteusMaximus),
-  ]),
-  _SeedExercise('deadHang', MuscleGroup.back,
-      isBodyweight: true, isIsometric: true, muscles: [
-    _p(TargetMuscle.latissimusDorsi),
-    _p(TargetMuscle.wristFlexors),
-    _s(TargetMuscle.trapezius),
-    _s(TargetMuscle.rhomboids),
-  ]),
+  _SeedExercise(
+    'sidePlank',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.obliques),
+      _s(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.gluteusMedius),
+    ],
+  ),
+  _SeedExercise(
+    'hollowHold',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis),
+      _p(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.hipFlexors),
+    ],
+  ),
+  _SeedExercise(
+    'lSit',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis),
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.tricepsBrachii),
+    ],
+  ),
+  _SeedExercise(
+    'wallSit',
+    MuscleGroup.quadriceps,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'deadHang',
+    MuscleGroup.back,
+    isBodyweight: true,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.latissimusDorsi),
+      _p(TargetMuscle.wristFlexors),
+      _s(TargetMuscle.trapezius),
+      _s(TargetMuscle.rhomboids),
+    ],
+  ),
 ];
 
 const _v7Variations = [
@@ -1425,7 +1776,9 @@ Future<void> seedExercisesV8(AppDatabase db) async {
   for (final item in _v8SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -1440,7 +1793,9 @@ Future<void> seedExercisesV8(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -1455,14 +1810,18 @@ Future<void> seedExercisesV8(AppDatabase db) async {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -1474,24 +1833,30 @@ Future<void> seedExercisesV8(AppDatabase db) async {
 }
 
 final _v8SeedItems = [
-  _SeedExercise('frontSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('gobletSquat', MuscleGroup.quadriceps,
-      movementPattern: MovementPattern.squat,
-      muscles: [
-        _p(TargetMuscle.rectusFemoris),
-        _p(TargetMuscle.vastusLateralis),
-        _p(TargetMuscle.vastusMedialis),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
+  _SeedExercise(
+    'frontSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'gobletSquat',
+    MuscleGroup.quadriceps,
+    movementPattern: MovementPattern.squat,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.vastusLateralis),
+      _p(TargetMuscle.vastusMedialis),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
 ];
 
 const _v8Variations = [
@@ -1516,7 +1881,9 @@ Future<void> seedExercisesV9(AppDatabase db) async {
   for (final item in _v9SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db.into(db.exercises).insert(
+    final id = await db
+        .into(db.exercises)
+        .insert(
           ExercisesCompanion.insert(
             name: item.name,
             muscleGroup: item.muscleGroup,
@@ -1531,7 +1898,9 @@ Future<void> seedExercisesV9(AppDatabase db) async {
     exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
-      await db.into(db.exerciseTargetMuscles).insert(
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -1546,14 +1915,18 @@ Future<void> seedExercisesV9(AppDatabase db) async {
     final fromId = exerciseIds[link.from];
     final toId = exerciseIds[link.to];
     if (fromId != null && toId != null) {
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(fromId),
               variationId: Value(toId),
             ),
             mode: InsertMode.insertOrIgnore,
           );
-      await db.into(db.exerciseVariations).insert(
+      await db
+          .into(db.exerciseVariations)
+          .insert(
             ExerciseVariationsCompanion(
               exerciseId: Value(toId),
               variationId: Value(fromId),
@@ -1565,19 +1938,23 @@ Future<void> seedExercisesV9(AppDatabase db) async {
 }
 
 final _v9SeedItems = [
-  _SeedExercise('superman', MuscleGroup.back,
-      movementPattern: MovementPattern.isolation,
-      isBodyweight: true,
-      muscles: [
-        _p(TargetMuscle.erectorSpinae),
-        _s(TargetMuscle.gluteusMaximus),
-        _s(TargetMuscle.bicepsFemoris),
-      ]),
-  _SeedExercise('frontRaise', MuscleGroup.shoulders,
-      movementPattern: MovementPattern.isolation,
-      muscles: [
-        _p(TargetMuscle.anteriorDeltoid),
-      ]),
+  _SeedExercise(
+    'superman',
+    MuscleGroup.back,
+    movementPattern: MovementPattern.isolation,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.erectorSpinae),
+      _s(TargetMuscle.gluteusMaximus),
+      _s(TargetMuscle.bicepsFemoris),
+    ],
+  ),
+  _SeedExercise(
+    'frontRaise',
+    MuscleGroup.shoulders,
+    movementPattern: MovementPattern.isolation,
+    muscles: [_p(TargetMuscle.anteriorDeltoid)],
+  ),
   _SeedExercise(
     'mountainClimber',
     MuscleGroup.cardio,
@@ -1596,4 +1973,125 @@ const _v9Variations = [
   _Variation('jumpingJacks', 'mountainClimber'),
   _Variation('burpee', 'mountainClimber'),
   _Variation('plank', 'mountainClimber'),
+];
+
+/// Seeds stair climbing, vertical climber, Jacobs Ladder, Russian twist (schema 33).
+Future<void> seedExercisesV33(AppDatabase db) async {
+  final exerciseIds = <String, int>{};
+
+  final existingRows = await db.select(db.exercises).get();
+  for (final row in existingRows) {
+    exerciseIds[row.name] = row.id;
+  }
+
+  for (final item in _v33SeedItems) {
+    if (exerciseIds.containsKey(item.name)) continue;
+
+    final id = await db
+        .into(db.exercises)
+        .insert(
+          ExercisesCompanion.insert(
+            name: item.name,
+            muscleGroup: item.muscleGroup,
+            type: Value(item.type),
+            movementPattern: Value(item.movementPattern),
+            isVerified: const Value(true),
+            isBodyweight: Value(item.isBodyweight),
+            isIsometric: Value(item.isIsometric),
+            description: const Value.absent(),
+          ),
+        );
+    exerciseIds[item.name] = id;
+
+    for (final focus in item.muscles) {
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
+            ExerciseTargetMusclesCompanion(
+              exerciseId: Value(id),
+              targetMuscle: Value(focus.muscle),
+              muscleRegion: Value(focus.region),
+              role: Value(focus.role),
+            ),
+          );
+    }
+  }
+
+  for (final link in _v33Variations) {
+    final fromId = exerciseIds[link.from];
+    final toId = exerciseIds[link.to];
+    if (fromId != null && toId != null) {
+      await db
+          .into(db.exerciseVariations)
+          .insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(fromId),
+              variationId: Value(toId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      await db
+          .into(db.exerciseVariations)
+          .insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(toId),
+              variationId: Value(fromId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+}
+
+final _v33SeedItems = [
+  _SeedExercise(
+    'stairClimbing',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.rectusFemoris),
+      _p(TargetMuscle.gastrocnemius),
+      _s(TargetMuscle.gluteusMaximus),
+    ],
+  ),
+  _SeedExercise(
+    'verticalClimber',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.latissimusDorsi),
+      _s(TargetMuscle.rectusAbdominis),
+    ],
+  ),
+  _SeedExercise(
+    'jacobsLadder',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.rectusFemoris),
+      _s(TargetMuscle.gastrocnemius),
+    ],
+  ),
+  _SeedExercise(
+    'russianTwist',
+    MuscleGroup.abs,
+    isBodyweight: true,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.obliques),
+      _s(TargetMuscle.rectusAbdominis),
+      _s(TargetMuscle.transverseAbdominis),
+    ],
+  ),
+];
+
+const _v33Variations = [
+  _Variation('treadmillRun', 'stairClimbing'),
+  _Variation('elliptical', 'stairClimbing'),
+  _Variation('stairClimbing', 'verticalClimber'),
+  _Variation('verticalClimber', 'jacobsLadder'),
+  _Variation('stairClimbing', 'jacobsLadder'),
+  _Variation('crunch', 'russianTwist'),
 ];

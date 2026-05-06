@@ -71,6 +71,10 @@ Map<String, String> exerciseCanonicalToDisplayMap(AppLocalizations l10n) => {
   'jumpRope': l10n.exerciseJumpRope,
   'jumpingJacks': l10n.exerciseJumpingJacks,
   'mountainClimber': l10n.exerciseMountainClimber,
+  'stairClimbing': l10n.exerciseStairClimbing,
+  'verticalClimber': l10n.exerciseVerticalClimber,
+  'jacobsLadder': l10n.exerciseJacobsLadder,
+  'russianTwist': l10n.exerciseRussianTwist,
   'hipAdduction': l10n.exerciseAdductorMachine,
   'hipAbduction': l10n.exerciseAbductorMachine,
   // Legacy keys (merged into keepers in migration v30); same label as keeper for imports.

@@ -32,6 +32,7 @@ const Map<String, String> kExerciseMergeLosersIntoKeeper = {
 /// locales in that index.
 const Map<String, String> kExerciseLocalizedLabelToCanonical = {
   'elevacao frontal': 'frontRaise',
+  'escada': 'stairClimbing',
 };
 
 /// Old canonical `exercises.name` (pre–schema v30) → current names.
@@ -66,8 +67,10 @@ String resolveImportedExerciseCatalogName(String name) {
   final trimmed = name.trim();
   if (trimmed.isEmpty) return name;
 
-  final localized = kExerciseLocalizedLabelToCanonical[
-      ExerciseLabelNormalizer.normalize(trimmed)];
+  final localized =
+      kExerciseLocalizedLabelToCanonical[ExerciseLabelNormalizer.normalize(
+        trimmed,
+      )];
   if (localized != null) {
     return localized;
   }

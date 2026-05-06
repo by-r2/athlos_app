@@ -43,5 +43,9 @@ void main() {
         'frontRaise',
       );
     });
+
+    test('maps escada PT label alias to stairClimbing', () {
+      expect(resolveImportedExerciseCatalogName('Escada'), 'stairClimbing');
+    });
   });
 }

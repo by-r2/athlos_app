@@ -94,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 33;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -423,9 +423,7 @@ class AppDatabase extends _$AppDatabase {
           WHERE weight IS NOT NULL
             AND NOT EXISTS (SELECT 1 FROM body_metrics)
         ''');
-        await customStatement(
-          'ALTER TABLE user_profiles DROP COLUMN weight',
-        );
+        await customStatement('ALTER TABLE user_profiles DROP COLUMN weight');
       }
 
       if (from < 25) {
@@ -437,8 +435,8 @@ class AppDatabase extends _$AppDatabase {
           final activeProgram = await customSelect(
             'SELECT id FROM programs WHERE is_active = 1 LIMIT 1',
           ).getSingleOrNull();
-          defaultProgramId = activeProgram?.read<int>('id') ??
-              anyProgram.read<int>('id');
+          defaultProgramId =
+              activeProgram?.read<int>('id') ?? anyProgram.read<int>('id');
         } else {
           await customStatement('''
             INSERT INTO programs (name, focus, duration_mode, duration_value, is_active, created_at)
@@ -607,6 +605,10 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 32) {
         await seedExercisesV9(this);
+      }
+
+      if (from < 33) {
+        await seedExercisesV33(this);
       }
     },
   );
