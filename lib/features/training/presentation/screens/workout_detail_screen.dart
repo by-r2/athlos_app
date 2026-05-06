@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
@@ -235,11 +236,9 @@ class WorkoutDetailScreen extends ConsumerWidget {
                     AthlosSpacing.md,
                     AthlosSpacing.md,
                   ),
-                  child: Text(
-                    displayWorkout.description!,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  child: AthlosMarkdownNotesCard(
+                    title: l10n.workoutNotesTitle,
+                    markdown: displayWorkout.description!,
                   ),
                 ),
               _WorkoutLastVsPreviousSection(workoutId: workoutId),

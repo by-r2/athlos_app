@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
-import '../../../../core/theme/athlos_custom_colors.dart';
-import '../../../../core/theme/athlos_radius.dart';
-import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_button_insets.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
+import '../../../../core/theme/athlos_custom_colors.dart';
+import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
-import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/training_program.dart';
@@ -481,7 +481,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final groupId = currentExercise.groupId;
 
     if (groupId != null) {
-      final groupIndices = _getSupersetGroupIndices(exec, _focusedExerciseIndex);
+      final groupIndices = _getSupersetGroupIndices(
+        exec,
+        _focusedExerciseIndex,
+      );
       final groupNext = <(int exerciseIndex, int setNumber)>[];
 
       for (final index in groupIndices) {
@@ -572,7 +575,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
     final workoutAsync = ref.watch(workoutByIdProvider(widget.workoutId));
     final workoutName = workoutAsync.value?.name ?? '';
-    final warmupInstructions = workoutAsync.value?.description?.trim();
+    final workoutNotes = workoutAsync.value?.description?.trim();
     final completed = exec.completedSetCount;
     final total = _totalSetCount;
     final next = _findNextPendingSet(exec);
@@ -617,7 +620,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ],
               ),
             ),
-          if (warmupInstructions != null && warmupInstructions.isNotEmpty)
+          if (workoutNotes != null && workoutNotes.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AthlosSpacing.md,
@@ -625,31 +628,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 AthlosSpacing.md,
                 AthlosSpacing.xs,
               ),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AthlosSpacing.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.warmupSuggestionTitle,
-                        style: textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: AthlosSpacing.xs),
-                      MarkdownBody(
-                        data: warmupInstructions,
-                        styleSheet: MarkdownStyleSheet(
-                          p: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          listBullet: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: AthlosMarkdownNotesCard(
+                title: l10n.workoutNotesTitle,
+                markdown: workoutNotes,
               ),
             ),
 
@@ -758,21 +739,22 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                           child: TextButton.icon(
                             onPressed:
                                 exec.hasCompletedSets && !exec.isFinishing
-                                    ? () => _showFinishWorkoutIncompleteDialog(
-                                          context,
-                                        )
-                                    : null,
-                            style: TextButton.styleFrom(
-                              padding: AthlosButtonInsets.screen,
-                              minimumSize: const Size(
-                                AthlosButtonSizes.minWidth,
-                                AthlosButtonSizes.screenMinHeight,
-                              ),
-                              tapTargetSize: MaterialTapTargetSize.padded,
-                            ).merge(
-                              Theme.of(context).textButtonTheme.style ??
-                                  const ButtonStyle(),
-                            ),
+                                ? () => _showFinishWorkoutIncompleteDialog(
+                                    context,
+                                  )
+                                : null,
+                            style:
+                                TextButton.styleFrom(
+                                  padding: AthlosButtonInsets.screen,
+                                  minimumSize: const Size(
+                                    AthlosButtonSizes.minWidth,
+                                    AthlosButtonSizes.screenMinHeight,
+                                  ),
+                                  tapTargetSize: MaterialTapTargetSize.padded,
+                                ).merge(
+                                  Theme.of(context).textButtonTheme.style ??
+                                      const ButtonStyle(),
+                                ),
                             icon: exec.isFinishing
                                 ? SizedBox(
                                     width: 18,
@@ -808,10 +790,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed:
-                            exec.hasCompletedSets && !exec.isFinishing
-                                ? () => _onFinish(context)
-                                : null,
+                        onPressed: exec.hasCompletedSets && !exec.isFinishing
+                            ? () => _onFinish(context)
+                            : null,
                         icon: exec.isFinishing
                             ? SizedBox(
                                 width: 18,
@@ -1553,8 +1534,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final completedReps =
-        sets.where((s) => s.isCompleted && s.reps != null).map((s) => s.reps!).toList();
+    final completedReps = sets
+        .where((s) => s.isCompleted && s.reps != null)
+        .map((s) => s.reps!)
+        .toList();
 
     final feedback = loadFeedback(
       cs: colorScheme,
@@ -2775,9 +2758,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deloadPromptMessage(config.frequency ?? 0)),
-          ],
+          children: [Text(l10n.deloadPromptMessage(config.frequency ?? 0))],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -2823,9 +2804,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.programCompletedMessage(program.name)),
-          ],
+          children: [Text(l10n.programCompletedMessage(program.name))],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -2865,9 +2844,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.cancelExecutionMessage),
-          ],
+          children: [Text(l10n.cancelExecutionMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -2888,7 +2865,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              AppLocalizations.of(context)!.genericError),
+                            AppLocalizations.of(context)!.genericError,
+                          ),
                         ),
                       );
                     }
@@ -2918,9 +2896,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.finishWorkoutIncompleteMessage),
-          ],
+          children: [Text(l10n.finishWorkoutIncompleteMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -2962,9 +2938,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.skipRestTimerMessage),
-          ],
+          children: [Text(l10n.skipRestTimerMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -3326,7 +3300,9 @@ class _NumberInput extends StatelessWidget {
           children: [
             TextField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               autofocus: true,
               decoration: InputDecoration(
                 suffixText: suffix,

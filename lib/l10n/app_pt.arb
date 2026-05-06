@@ -2166,6 +2166,14 @@
   },
 
   "warmupSuggestionTitle": "Aquecimento sugerido",
+  "workoutNotesTitle": "Notas",
+  "@workoutNotesTitle": {
+    "description": "Título padrão para notas livres do treino com markdown"
+  },
+  "tapToOpen": "Toque para abrir",
+  "@tapToOpen": {
+    "description": "Texto auxiliar para abrir conteúdo detalhado em dialog"
+  },
   "warmupSets": "{count} séries de aquecimento",
   "@warmupSets": {
     "placeholders": {
