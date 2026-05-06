@@ -94,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 30;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -599,6 +599,10 @@ class AppDatabase extends _$AppDatabase {
         // Same migration: collapse rows that differ only by bar / preacher station /
         // rope vs bar on cable pushdown (`kExerciseMergeLosersIntoKeeper`).
         await applyExerciseCanonicalMerges(this);
+      }
+
+      if (from < 31) {
+        await seedExercisesV8(this);
       }
     },
   );

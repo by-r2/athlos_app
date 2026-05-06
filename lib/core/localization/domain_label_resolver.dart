@@ -166,6 +166,8 @@ Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
   'diamondPushUp': l10n.exerciseDiamondPushUp,
   'dip': l10n.exerciseDip,
   'backSquat': l10n.exerciseBarbellSquat,
+  'frontSquat': l10n.exerciseFrontSquat,
+  'gobletSquat': l10n.exerciseGobletSquat,
   'legPress': l10n.exerciseLegPress,
   'lunge': l10n.exerciseLunge,
   'legExtension': l10n.exerciseLegExtension,

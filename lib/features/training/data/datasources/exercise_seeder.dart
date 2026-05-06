@@ -399,6 +399,24 @@ final _seedItems = [
         _s(TargetMuscle.gluteusMaximus),
         _s(TargetMuscle.bicepsFemoris),
       ]),
+  _SeedExercise('frontSquat', MuscleGroup.quadriceps,
+      movementPattern: MovementPattern.squat,
+      muscles: [
+        _p(TargetMuscle.rectusFemoris),
+        _p(TargetMuscle.vastusLateralis),
+        _p(TargetMuscle.vastusMedialis),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
+  _SeedExercise('gobletSquat', MuscleGroup.quadriceps,
+      movementPattern: MovementPattern.squat,
+      muscles: [
+        _p(TargetMuscle.rectusFemoris),
+        _p(TargetMuscle.vastusLateralis),
+        _p(TargetMuscle.vastusMedialis),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
   _SeedExercise('legPress', MuscleGroup.quadriceps,
       movementPattern: MovementPattern.squat,
       muscles: [
@@ -946,6 +964,8 @@ const _movementPatternBackfill = {
   'diamondPushUp': MovementPattern.push,
   'dip': MovementPattern.push,
   'backSquat': MovementPattern.squat,
+  'frontSquat': MovementPattern.squat,
+  'gobletSquat': MovementPattern.squat,
   'legPress': MovementPattern.squat,
   'lunge': MovementPattern.lunge,
   'bulgarianSplitSquat': MovementPattern.lunge,
@@ -989,6 +1009,8 @@ const _secondaryRoleBackfill = {
   'diamondPushUp': [TargetMuscle.pectoralisMajor],
   'dip': [TargetMuscle.pectoralisMajor, TargetMuscle.anteriorDeltoid],
   'backSquat': [TargetMuscle.gluteusMaximus, TargetMuscle.bicepsFemoris],
+  'frontSquat': [TargetMuscle.gluteusMaximus, TargetMuscle.bicepsFemoris],
+  'gobletSquat': [TargetMuscle.gluteusMaximus, TargetMuscle.bicepsFemoris],
   'legPress': [TargetMuscle.gluteusMaximus],
   'lunge': [TargetMuscle.gluteusMaximus],
   'bulgarianSplitSquat': [TargetMuscle.gluteusMaximus],
@@ -1217,6 +1239,13 @@ const _variations = [
   // ── Quadriceps — squat pattern ──
   _Variation('backSquat', 'legPress'),
   _Variation('backSquat', 'hackSquat'),
+  _Variation('backSquat', 'frontSquat'),
+  _Variation('backSquat', 'gobletSquat'),
+  _Variation('frontSquat', 'gobletSquat'),
+  _Variation('frontSquat', 'legPress'),
+  _Variation('frontSquat', 'hackSquat'),
+  _Variation('gobletSquat', 'legPress'),
+  _Variation('gobletSquat', 'hackSquat'),
   _Variation('legPress', 'hackSquat'),
   // ── Quadriceps — lunge pattern ──
   _Variation('lunge', 'bulgarianSplitSquat'),
@@ -1350,4 +1379,95 @@ const _v7Variations = [
   _Variation('hollowHold', 'lSit'),
   _Variation('deadHang', 'pullUp'),
   _Variation('deadHang', 'chinUp'),
+];
+
+/// Seeds [frontSquat] and [gobletSquat] (schema version 31).
+Future<void> seedExercisesV8(AppDatabase db) async {
+  final exerciseIds = <String, int>{};
+
+  final existingRows = await db.select(db.exercises).get();
+  for (final row in existingRows) {
+    exerciseIds[row.name] = row.id;
+  }
+
+  for (final item in _v8SeedItems) {
+    if (exerciseIds.containsKey(item.name)) continue;
+
+    final id = await db.into(db.exercises).insert(
+          ExercisesCompanion.insert(
+            name: item.name,
+            muscleGroup: item.muscleGroup,
+            type: Value(item.type),
+            movementPattern: Value(item.movementPattern),
+            isVerified: const Value(true),
+            isBodyweight: Value(item.isBodyweight),
+            isIsometric: Value(item.isIsometric),
+            description: const Value.absent(),
+          ),
+        );
+    exerciseIds[item.name] = id;
+
+    for (final focus in item.muscles) {
+      await db.into(db.exerciseTargetMuscles).insert(
+            ExerciseTargetMusclesCompanion(
+              exerciseId: Value(id),
+              targetMuscle: Value(focus.muscle),
+              muscleRegion: Value(focus.region),
+              role: Value(focus.role),
+            ),
+          );
+    }
+  }
+
+  for (final link in _v8Variations) {
+    final fromId = exerciseIds[link.from];
+    final toId = exerciseIds[link.to];
+    if (fromId != null && toId != null) {
+      await db.into(db.exerciseVariations).insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(fromId),
+              variationId: Value(toId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      await db.into(db.exerciseVariations).insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(toId),
+              variationId: Value(fromId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+}
+
+final _v8SeedItems = [
+  _SeedExercise('frontSquat', MuscleGroup.quadriceps,
+      movementPattern: MovementPattern.squat,
+      muscles: [
+        _p(TargetMuscle.rectusFemoris),
+        _p(TargetMuscle.vastusLateralis),
+        _p(TargetMuscle.vastusMedialis),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
+  _SeedExercise('gobletSquat', MuscleGroup.quadriceps,
+      movementPattern: MovementPattern.squat,
+      muscles: [
+        _p(TargetMuscle.rectusFemoris),
+        _p(TargetMuscle.vastusLateralis),
+        _p(TargetMuscle.vastusMedialis),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
+];
+
+const _v8Variations = [
+  _Variation('backSquat', 'frontSquat'),
+  _Variation('backSquat', 'gobletSquat'),
+  _Variation('frontSquat', 'gobletSquat'),
+  _Variation('frontSquat', 'legPress'),
+  _Variation('frontSquat', 'hackSquat'),
+  _Variation('gobletSquat', 'legPress'),
+  _Variation('gobletSquat', 'hackSquat'),
 ];
