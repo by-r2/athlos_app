@@ -14,6 +14,7 @@ import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_execution.dart';
+import '../helpers/duration_format.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
 
@@ -239,7 +240,7 @@ class _ExecutionCard extends ConsumerWidget {
 
     final workoutName = workout?.name ?? l10n.unknownWorkout;
     final dateStr = _formatDate(execution.startedAt, context);
-    final durationStr = _formatDuration(execution.duration, l10n);
+    final durationStr = formatWorkoutTotalDuration(execution.duration, l10n);
 
     return Card(
       margin: const EdgeInsets.symmetric(
@@ -391,17 +392,4 @@ class _ExecutionCard extends ConsumerWidget {
     return '$dateStr, $timeStr';
   }
 
-  String? _formatDuration(Duration? duration, AppLocalizations l10n) {
-    if (duration == null) return null;
-    final totalMinutes = duration.inMinutes;
-    if (totalMinutes < 1) return null;
-
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-
-    if (hours > 0) {
-      return l10n.durationFormat(hours, minutes);
-    }
-    return l10n.durationMinutes(minutes);
-  }
 }

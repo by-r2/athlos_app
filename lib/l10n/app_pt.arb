@@ -1338,6 +1338,27 @@
       "minutes": { "type": "int" }
     }
   },
+  "durationPartHours": "{hours}h",
+  "@durationPartHours": {
+    "description": "Hours segment for workout total duration",
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "durationPartMinutes": "{minutes}min",
+  "@durationPartMinutes": {
+    "description": "Minutes segment for workout total duration",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "durationPartSeconds": "{seconds}s",
+  "@durationPartSeconds": {
+    "description": "Seconds segment for workout total duration",
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
 
   "executionTitle": "Executando {name}",
   "@executionTitle": {

@@ -194,14 +194,8 @@ class _ExecutionDetailBody extends StatelessWidget {
     final locale = Localizations.localeOf(context).toString();
     final dateStr =
         DateFormat.yMMMd(locale).add_Hm().format(execution.startedAt);
-    final duration = execution.duration;
-    String? durationStr;
-    if (duration != null && duration.inMinutes >= 1) {
-      final h = duration.inMinutes ~/ 60;
-      final m = duration.inMinutes % 60;
-      durationStr =
-          h > 0 ? l10n.durationFormat(h, m) : l10n.durationMinutes(m);
-    }
+    final durationStr =
+        formatWorkoutTotalDuration(execution.duration, l10n);
 
     return CustomScrollView(
       slivers: [
