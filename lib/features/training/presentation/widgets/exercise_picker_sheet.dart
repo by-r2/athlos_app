@@ -81,10 +81,7 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
         ),
         Padding(
           padding: const EdgeInsets.all(AthlosSpacing.md),
-          child: Text(
-            l10n.selectExercise,
-            style: textTheme.titleMedium,
-          ),
+          child: Text(l10n.selectExercise, style: textTheme.titleMedium),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
@@ -95,7 +92,7 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
               prefixIcon: const Icon(Icons.search),
               isDense: true,
             ),
-            onChanged: (v) => setState(() => _query = v.toLowerCase()),
+            onChanged: (v) => setState(() => _query = v),
           ),
         ),
         const SizedBox(height: AthlosSpacing.sm),
@@ -103,25 +100,21 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
           height: 40,
           child: ListView(
             scrollDirection: Axis.horizontal,
-            padding:
-                const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
             children: [
               FilterChip(
                 label: Text(l10n.filterAll),
                 selected: _selectedGroup == null,
-                onSelected: (_) =>
-                    setState(() => _selectedGroup = null),
+                onSelected: (_) => setState(() => _selectedGroup = null),
               ),
               const SizedBox(width: AthlosSpacing.xs),
               ...MuscleGroup.values.map(
                 (g) => Padding(
-                  padding:
-                      const EdgeInsets.only(right: AthlosSpacing.xs),
+                  padding: const EdgeInsets.only(right: AthlosSpacing.xs),
                   child: FilterChip(
                     label: Text(localizedMuscleGroupName(g, l10n)),
                     selected: _selectedGroup == g,
-                    onSelected: (_) =>
-                        setState(() => _selectedGroup = g),
+                    onSelected: (_) => setState(() => _selectedGroup = g),
                   ),
                 ),
               ),
@@ -134,21 +127,22 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
             if (exercisesAsync.hasError) {
               return Center(child: Text('${exercisesAsync.error}'));
             }
-            final exercises =
-                exercisesAsync.value ?? _placeholderExercises;
+            final exercises = exercisesAsync.value ?? _placeholderExercises;
 
             final filtered = exercises.where((ex) {
-              if (_selectedGroup != null &&
-                  ex.muscleGroup != _selectedGroup) {
+              if (_selectedGroup != null && ex.muscleGroup != _selectedGroup) {
                 return false;
               }
-              if (_query.isNotEmpty) {
-                final name = localizedExerciseName(
+              if (!exerciseCatalogSearchMatches(
+                localizedDisplay: localizedExerciseName(
                   ex.name,
                   isVerified: ex.isVerified,
                   l10n: l10n,
-                ).toLowerCase();
-                if (!name.contains(_query)) return false;
+                ),
+                canonicalKey: ex.name,
+                rawQuery: _query,
+              )) {
+                return false;
               }
               return true;
             }).toList();
@@ -174,16 +168,15 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                           isVerified: ex.isVerified,
                           l10n: l10n,
                         );
-                        final groupName =
-                            localizedMuscleGroupName(ex.muscleGroup, l10n);
+                        final groupName = localizedMuscleGroupName(
+                          ex.muscleGroup,
+                          l10n,
+                        );
 
                         return ListTile(
                           minTileHeight: AthlosComponentSizes.listItemMinHeight,
                           title: Text(displayName),
-                          subtitle: AthlosTruncatedText(
-                            groupName,
-                            maxLines: 2,
-                          ),
+                          subtitle: AthlosTruncatedText(groupName, maxLines: 2),
                           trailing: const Icon(Icons.add_circle_outline),
                           onTap: () => Navigator.of(context).pop(ex),
                         );

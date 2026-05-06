@@ -16,6 +16,10 @@
   "@trainingModule": {
     "description": "Nome do módulo de treino"
   },
+  "trainingExercisesAppBarTitle": "Exercícios",
+  "@trainingExercisesAppBarTitle": {
+    "description": "App bar title on exercise catalog and exercise-related subroutes inside training"
+  },
   "trainingModuleDescription": "Planeje e registre seus treinos",
   "@trainingModuleDescription": {
     "description": "Descrição do módulo de treino no Hub"
@@ -848,6 +852,29 @@
   "@filterAll": { "description": "Filter chip: all items" },
   "addExercise": "Criar exercício",
   "@addExercise": { "description": "Button/title to add custom exercise" },
+  "exerciseDuplicateWithName": "Já existe um exercício chamado \"{name}\".",
+  "@exerciseDuplicateWithName": {
+    "description": "Form validation: duplicate exercise name; name is the existing exercise label",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "exerciseDuplicateGeneric": "Este nome já existe no catálogo. Escolha outro nome.",
+  "@exerciseDuplicateGeneric": {
+    "description": "SnackBar when save fails because name duplicates (e.g. race)"
+  },
+  "exerciseSimilarTitle": "Exercícios semelhantes",
+  "@exerciseSimilarTitle": {
+    "description": "Dialog title when there are similar exercise names"
+  },
+  "exerciseSimilarMessage": "Já existem exercícios com nomes semelhantes. Talvez um deles seja o que você procura:",
+  "@exerciseSimilarMessage": {
+    "description": "Dialog helper message for similar names list"
+  },
+  "exerciseCreateAnyway": "Criar mesmo assim",
+  "@exerciseCreateAnyway": {
+    "description": "Dialog primary action to proceed creating exercise despite similar names"
+  },
   "exerciseNameLabel": "Nome do exercício",
   "@exerciseNameLabel": { "description": "Label for exercise name input" },
   "exerciseMuscleGroupLabel": "Grupo muscular",

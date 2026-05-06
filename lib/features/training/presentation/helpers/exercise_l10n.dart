@@ -21,6 +21,23 @@ String localizedExerciseName(
   );
 }
 
+/// Substring match on exercise search: **case-insensitive** on both the
+/// localized label and the canonical key (e.g. camelCase in the database).
+///
+/// Returns true when [rawQuery] is empty or only whitespace (caller may skip
+/// filtering in that case).
+bool exerciseCatalogSearchMatches({
+  required String localizedDisplay,
+  required String canonicalKey,
+  required String rawQuery,
+}) {
+  final q = rawQuery.trim();
+  if (q.isEmpty) return true;
+  final needle = q.toLowerCase();
+  return localizedDisplay.toLowerCase().contains(needle) ||
+      canonicalKey.toLowerCase().contains(needle);
+}
+
 /// Returns the localized display name for a [MuscleGroup].
 String localizedMuscleGroupName(MuscleGroup group, AppLocalizations l10n) =>
     DomainLabelResolver(l10n).toDisplayName(

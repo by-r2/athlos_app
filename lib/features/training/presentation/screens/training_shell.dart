@@ -148,7 +148,7 @@ class _TrainingShell extends ConsumerWidget {
                 )
               : null,
           automaticallyImplyLeading: false,
-          title: Text(l10n.trainingModule),
+          title: Text(_TrainingShell._appBarTitle(currentPath, l10n)),
           actions: const [AppBarMenu()],
         ),
         body: child,
@@ -224,6 +224,14 @@ class _TrainingShell extends ConsumerWidget {
   }
 
   bool _isSubPage(String path) => !_primaryPaths.contains(path);
+
+  static String _appBarTitle(String path, AppLocalizations l10n) {
+    if (path == RoutePaths.trainingExercises ||
+        path.startsWith('${RoutePaths.trainingExercises}/')) {
+      return l10n.trainingExercisesAppBarTitle;
+    }
+    return l10n.trainingModule;
+  }
 
   String _subPageBackTarget(String path) {
     if (path.startsWith(RoutePaths.trainingPrograms)) {

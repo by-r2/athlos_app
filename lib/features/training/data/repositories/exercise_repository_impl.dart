@@ -118,6 +118,13 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         muscles = const [],
   }) async {
     try {
+      final conflictId = await _dao.findIdByConflictingName(exercise.name);
+      if (conflictId != null) {
+        return Failure(
+          ConflictException('Exercise name already exists in catalog'),
+        );
+      }
+
       final id = await _dao.create(
         ExercisesCompanion.insert(
           name: exercise.name,

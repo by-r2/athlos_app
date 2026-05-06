@@ -4,11 +4,15 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/exercise_name_match.dart';
 import '../../domain/enums/exercise_type.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
@@ -61,6 +65,13 @@ class _TrainingExercisesScreenState
     final exercisesAsync = ref.watch(exerciseListProvider);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddSheet(context),
+        tooltip: l10n.addExercise,
+        heroTag: 'training_exercises_fab',
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Column(
         children: [
           Padding(
@@ -136,17 +147,17 @@ class _TrainingExercisesScreenState
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        if (_searchQuery.trim().isNotEmpty) ...[
-                          const Gap(AthlosSpacing.md),
-                          OutlinedButton.icon(
-                            onPressed: () => _showAddSheet(
-                              context,
-                              initialName: _searchQuery.trim(),
-                            ),
-                            icon: const Icon(Icons.add),
-                            label: Text(l10n.addExercise),
+                        const Gap(AthlosSpacing.lg),
+                        FilledButton.icon(
+                          onPressed: () => _showAddSheet(
+                            context,
+                            initialName: _searchQuery.trim().isNotEmpty
+                                ? _searchQuery.trim()
+                                : '',
                           ),
-                        ],
+                          icon: const Icon(Icons.add),
+                          label: Text(l10n.addExercise),
+                        ),
                       ],
                     ),
                   ),
@@ -196,10 +207,7 @@ class _TrainingExercisesScreenState
     );
   }
 
-  void _showAddSheet(
-    BuildContext context, {
-    String initialName = '',
-  }) {
+  void _showAddSheet(BuildContext context, {String initialName = ''}) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -220,15 +228,18 @@ class _TrainingExercisesScreenState
           .toList();
     }
 
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
+    final searchTrimmed = _searchQuery.trim();
+    if (searchTrimmed.isNotEmpty) {
       filtered = filtered.where((e) {
-        final name = localizedExerciseName(
-          e.name,
-          isVerified: e.isVerified,
-          l10n: l10n,
-        ).toLowerCase();
-        return name.contains(query);
+        return exerciseCatalogSearchMatches(
+          localizedDisplay: localizedExerciseName(
+            e.name,
+            isVerified: e.isVerified,
+            l10n: l10n,
+          ),
+          canonicalKey: e.name,
+          rawQuery: _searchQuery,
+        );
       }).toList();
     }
 
@@ -280,6 +291,9 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   String _secondaryMuscleQuery = '';
   bool _isSaving = false;
 
+  /// When non-null, the sheet shows similar-name review instead of the form.
+  List<Exercise>? _pendingSimilarReview;
+
   @override
   void initState() {
     super.initState();
@@ -311,6 +325,12 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    ref.listen(exerciseListProvider, (previous, next) {
+      if (next.hasValue && mounted) {
+        _formKey.currentState?.validate();
+      }
+    });
+
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -338,127 +358,264 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
+                    AthlosSpacing.sm,
                     AthlosSpacing.md,
                     AthlosSpacing.sm,
                     0,
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.addExercise,
-                          style: textTheme.titleLarge,
+                  child: _pendingSimilarReview != null
+                      ? Row(
+                          children: [
+                            IconButton(
+                              onPressed: () =>
+                                  setState(() => _pendingSimilarReview = null),
+                              icon: const Icon(Icons.arrow_back),
+                              tooltip: l10n.back,
+                            ),
+                            Expanded(
+                              child: Text(
+                                l10n.exerciseSimilarTitle,
+                                style: textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.addExercise,
+                                style: textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
                 ),
                 const Divider(),
                 Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AthlosSpacing.md,
-                    ),
-                    children: [
-                      const Gap(AthlosSpacing.sm),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: l10n.exerciseNameLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        textCapitalization: TextCapitalization.sentences,
-                        autofocus: true,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.fieldRequired;
-                          }
-                          return null;
-                        },
-                      ),
-                      const Gap(AthlosSpacing.md),
-                      DropdownButtonFormField<MuscleGroup>(
-                        initialValue: _selectedGroup,
-                        decoration: InputDecoration(
-                          labelText: l10n.exerciseMuscleGroupLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        items: MuscleGroup.values.map((group) {
-                          return DropdownMenuItem(
-                            value: group,
-                            child: Text(localizedMuscleGroupName(group, l10n)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedGroup = value);
-                          }
-                        },
-                      ),
-                      const Gap(AthlosSpacing.md),
-                      SegmentedButton<ExerciseType>(
-                        segments: [
-                          ButtonSegment(
-                            value: ExerciseType.strength,
-                            label: Text(l10n.exerciseTypeStrength),
+                  child: _pendingSimilarReview != null
+                      ? _buildSimilarReview(
+                          l10n,
+                          textTheme,
+                          colorScheme,
+                          scrollController,
+                          _pendingSimilarReview!,
+                        )
+                      : ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AthlosSpacing.md,
                           ),
-                          ButtonSegment(
-                            value: ExerciseType.cardio,
-                            label: Text(l10n.exerciseTypeCardio),
+                          children: [
+                            const Gap(AthlosSpacing.sm),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: InputDecoration(
+                                labelText: l10n.exerciseNameLabel,
+                                border: const OutlineInputBorder(),
+                              ),
+                              textCapitalization: TextCapitalization.sentences,
+                              autofocus: true,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return l10n.fieldRequired;
+                                }
+                                final exercises = ref
+                                    .watch(exerciseListProvider)
+                                    .value;
+                                if (exercises == null) return null;
+                                final conflict = ExerciseNameMatch.findConflict(
+                                  value,
+                                  exercises,
+                                );
+                                if (conflict != null) {
+                                  final display = localizedExerciseName(
+                                    conflict.name,
+                                    isVerified: conflict.isVerified,
+                                    l10n: l10n,
+                                  );
+                                  return l10n.exerciseDuplicateWithName(
+                                    display,
+                                  );
+                                }
+                                return null;
+                              },
+                            ),
+                            const Gap(AthlosSpacing.md),
+                            DropdownButtonFormField<MuscleGroup>(
+                              initialValue: _selectedGroup,
+                              decoration: InputDecoration(
+                                labelText: l10n.exerciseMuscleGroupLabel,
+                                border: const OutlineInputBorder(),
+                              ),
+                              items: MuscleGroup.values.map((group) {
+                                return DropdownMenuItem(
+                                  value: group,
+                                  child: Text(
+                                    localizedMuscleGroupName(group, l10n),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _selectedGroup = value);
+                                }
+                              },
+                            ),
+                            const Gap(AthlosSpacing.md),
+                            SegmentedButton<ExerciseType>(
+                              segments: [
+                                ButtonSegment(
+                                  value: ExerciseType.strength,
+                                  label: Text(l10n.exerciseTypeStrength),
+                                ),
+                                ButtonSegment(
+                                  value: ExerciseType.cardio,
+                                  label: Text(l10n.exerciseTypeCardio),
+                                ),
+                              ],
+                              selected: {_selectedType},
+                              onSelectionChanged: (v) => setState(() {
+                                _selectedType = v.first;
+                                if (_selectedType == ExerciseType.cardio) {
+                                  _isIsometric = false;
+                                }
+                              }),
+                            ),
+                            if (_selectedType == ExerciseType.strength) ...[
+                              const Gap(AthlosSpacing.sm),
+                              SwitchListTile(
+                                title: Text(l10n.isometricLabel),
+                                subtitle: Text(l10n.isometricHint),
+                                value: _isIsometric,
+                                onChanged: (v) =>
+                                    setState(() => _isIsometric = v),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ],
+                            const Gap(AthlosSpacing.sm),
+                            _buildAdvancedSection(
+                              l10n,
+                              textTheme,
+                              colorScheme,
+                            ),
+                            const Gap(AthlosSpacing.xl),
+                          ],
+                        ),
+                ),
+                if (_pendingSimilarReview != null)
+                  Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: AthlosDialogButtonTheme.wrap(
+                      context,
+                      AthlosStackedDialogActions(
+                        children: [
+                          OutlinedButton(
+                            style: AthlosDialogButtonStyles.stackedGhost(
+                              context,
+                            ),
+                            onPressed: _isSaving
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            child: Text(l10n.cancel),
+                          ),
+                          FilledButton(
+                            style: AthlosDialogButtonStyles.stackedFilled(
+                              context,
+                            ),
+                            onPressed: _isSaving ? null : _onCreateAnyway,
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(l10n.exerciseCreateAnyway),
                           ),
                         ],
-                        selected: {_selectedType},
-                        onSelectionChanged: (v) => setState(() {
-                          _selectedType = v.first;
-                          if (_selectedType == ExerciseType.cardio) {
-                            _isIsometric = false;
-                          }
-                        }),
                       ),
-                      if (_selectedType == ExerciseType.strength) ...[
-                        const Gap(AthlosSpacing.sm),
-                        SwitchListTile(
-                          title: Text(l10n.isometricLabel),
-                          subtitle: Text(l10n.isometricHint),
-                          value: _isIsometric,
-                          onChanged: (v) =>
-                              setState(() => _isIsometric = v),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ],
-                      const Gap(AthlosSpacing.sm),
-                      _buildAdvancedSection(l10n, textTheme, colorScheme),
-                      const Gap(AthlosSpacing.xl),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AthlosSpacing.md),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _onSave,
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(l10n.save),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _onSave,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.save),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSimilarReview(
+    AppLocalizations l10n,
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+    ScrollController scrollController,
+    List<Exercise> similar,
+  ) {
+    return ListView(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
+      children: [
+        const Gap(AthlosSpacing.sm),
+        Text(
+          l10n.exerciseSimilarMessage,
+          style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+        ),
+        const Gap(AthlosSpacing.md),
+        for (var i = 0; i < similar.length; i++) ...[
+          if (i > 0) const Gap(AthlosSpacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.fitness_center,
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const Gap(AthlosSpacing.xs),
+              Expanded(
+                child: Text(
+                  localizedExerciseName(
+                    similar[i].name,
+                    isVerified: similar[i].isVerified,
+                    l10n: l10n,
+                  ),
+                  style: textTheme.bodyLarge,
+                ),
+              ),
+            ],
+          ),
+        ],
+        const Gap(AthlosSpacing.xl),
+      ],
     );
   }
 
@@ -477,7 +634,8 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           muscles: _primaryMuscles,
           excludedMuscles: _secondaryMuscles.map((m) => m.muscle).toSet(),
           query: _primaryMuscleQuery,
-          onQueryChanged: (value) => setState(() => _primaryMuscleQuery = value),
+          onQueryChanged: (value) =>
+              setState(() => _primaryMuscleQuery = value),
           l10n: l10n,
           textTheme: textTheme,
           colorScheme: colorScheme,
@@ -547,16 +705,22 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   }) {
     final selectedSet = muscles.map((m) => m.muscle).toSet();
     final normalizedQuery = query.trim().toLowerCase();
-    final available = TargetMuscle.values.where((m) {
-      if (m.muscleGroup == MuscleGroup.cardio ||
-          m.muscleGroup == MuscleGroup.fullBody) {
-        return false;
-      }
-      if (excludedMuscles.contains(m) || selectedSet.contains(m)) return false;
-      return true;
-    }).toList()
-      ..sort((a, b) => localizedTargetMuscle(a, l10n)
-          .compareTo(localizedTargetMuscle(b, l10n)));
+    final available =
+        TargetMuscle.values.where((m) {
+          if (m.muscleGroup == MuscleGroup.cardio ||
+              m.muscleGroup == MuscleGroup.fullBody) {
+            return false;
+          }
+          if (excludedMuscles.contains(m) || selectedSet.contains(m)) {
+            return false;
+          }
+          return true;
+        }).toList()..sort(
+          (a, b) => localizedTargetMuscle(
+            a,
+            l10n,
+          ).compareTo(localizedTargetMuscle(b, l10n)),
+        );
 
     final filtered = normalizedQuery.isEmpty
         ? const <TargetMuscle>[]
@@ -692,7 +856,28 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
 
   Future<void> _onSave() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final l10n = AppLocalizations.of(context)!;
+    final exercises =
+        ref.read(exerciseListProvider).value ?? const <Exercise>[];
+    final similar = ExerciseNameMatch.findSimilar(
+      _nameController.text,
+      exercises,
+      displayLabel: (e) =>
+          localizedExerciseName(e.name, isVerified: e.isVerified, l10n: l10n),
+    );
+    if (similar.isNotEmpty) {
+      FocusScope.of(context).unfocus();
+      setState(() => _pendingSimilarReview = similar);
+      return;
+    }
+    await _executeCreate();
+  }
 
+  Future<void> _onCreateAnyway() async {
+    await _executeCreate();
+  }
+
+  Future<void> _executeCreate() async {
     setState(() => _isSaving = true);
 
     try {
@@ -712,6 +897,16 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
 
       if (mounted) {
         Navigator.of(context).pop();
+      }
+    } on ConflictException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.exerciseDuplicateGeneric,
+            ),
+          ),
+        );
       }
     } on Exception catch (_) {
       if (mounted) {

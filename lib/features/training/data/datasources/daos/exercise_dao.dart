@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../../../core/database/app_database.dart';
+import '../../../../training/domain/exercise_name_match.dart';
 import '../../../../training/domain/enums/muscle_group.dart';
 import '../../../../training/domain/enums/muscle_region.dart';
 import '../../../../training/domain/enums/muscle_role.dart';
@@ -26,6 +27,17 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
 
   Future<Exercise?> getById(int id) =>
       (select(exercises)..where((e) => e.id.equals(id))).getSingleOrNull();
+
+  /// Same-name guard for inserts: [ExerciseNameMatch.namesCollide] against all rows.
+  Future<int?> findIdByConflictingName(String name) async {
+    final all = await select(exercises).get();
+    for (final row in all) {
+      if (ExerciseNameMatch.namesCollide(name, row.name)) {
+        return row.id;
+      }
+    }
+    return null;
+  }
 
   /// Case-insensitive name lookup. Returns the first matching exercise id, or null.
   Future<int?> findIdByName(String name) async {
