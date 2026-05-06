@@ -1722,6 +1722,26 @@
   "@toggleTheme": {
     "description": "Menu item to toggle light/dark theme"
   },
+  "appMenuNavigationSection": "Navegação",
+  "@appMenuNavigationSection": {
+    "description": "Section title for hub/profile shortcuts in app menu sheet"
+  },
+  "appMenuThemeSection": "Aparência",
+  "@appMenuThemeSection": {
+    "description": "Section title for theme mode (light/dark/system) in app menu sheet"
+  },
+  "themeModeLight": "Claro",
+  "@themeModeLight": {
+    "description": "Theme mode: light"
+  },
+  "themeModeDark": "Escuro",
+  "@themeModeDark": {
+    "description": "Theme mode: dark"
+  },
+  "themeModeSystem": "Sistema",
+  "@themeModeSystem": {
+    "description": "Theme mode: follow system"
+  },
 
   "chironTitle": "Quíron",
   "@chironTitle": {

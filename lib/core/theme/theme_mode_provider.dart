@@ -30,6 +30,11 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
     state = next;
   }
 
+  void setThemeMode(ThemeMode mode) {
+    ref.read(sharedPreferencesProvider).setString(_key, mode.name);
+    state = mode;
+  }
+
   IconData get icon => switch (state) {
         ThemeMode.light => Icons.light_mode,
         ThemeMode.dark => Icons.dark_mode,
