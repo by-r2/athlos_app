@@ -8,6 +8,8 @@
 /// [resolveImportedExerciseCatalogName] in chronological order.
 library;
 
+import '../localization/exercise_label_normalization.dart';
+
 /// JSON backups at this schema version number or lower use legacy exercise `name`
 /// keys (pre–migration v30). [resolveImportedExerciseCatalogName] rewrites those
 /// labels during import.
@@ -20,6 +22,16 @@ const Map<String, String> kExerciseMergeLosersIntoKeeper = {
   'ezBarCurl': 'bicepsCurl',
   'machinePreacherCurl': 'preacherCurl',
   'ropeTricepsPushdown': 'tricepsPushdown',
+};
+
+/// Keys: identity-normalized UI string ([ExerciseLabelNormalizer.normalize]) →
+/// canonical `exercises.name`.
+///
+/// **Sparse map:** only backup-specific aliases that must not depend on loading
+/// [`ExerciseCatalogLabelIndex`]. Runtime synonym resolution also uses ARB-backed
+/// locales in that index.
+const Map<String, String> kExerciseLocalizedLabelToCanonical = {
+  'elevacao frontal': 'frontRaise',
 };
 
 /// Old canonical `exercises.name` (pre–schema v30) → current names.
@@ -53,6 +65,13 @@ const Map<String, String> kExerciseRenamePreV30ToCanonical = <String, String>{
 String resolveImportedExerciseCatalogName(String name) {
   final trimmed = name.trim();
   if (trimmed.isEmpty) return name;
+
+  final localized = kExerciseLocalizedLabelToCanonical[
+      ExerciseLabelNormalizer.normalize(trimmed)];
+  if (localized != null) {
+    return localized;
+  }
+
   var n = kExerciseRenamePreV30ToCanonical[trimmed] ?? trimmed;
   n = kExerciseMergeLosersIntoKeeper[n] ?? n;
   return n;

@@ -181,9 +181,25 @@
   "@profileDataConflictKeepBoth": {
     "description": "Resolution action to keep both records"
   },
-  "profileDataPendingTitle": "Revisão necessária",
+  "profileDataPendingTitle": "Importação · confirme este item",
   "@profileDataPendingTitle": {
     "description": "Title shown for pending import review decision"
+  },
+  "profileDataPendingIntro": "Escolha uma opção abaixo. A sua escolha vale apenas para este item.",
+  "@profileDataPendingIntro": {
+    "description": "Lead-in for pending import review dialog"
+  },
+  "profileDataPendingContextImportPreview": "Apareceu ao pré-visualizar a importação.",
+  "@profileDataPendingContextImportPreview": {
+    "description": "Context line when conflict found during import preview"
+  },
+  "profileDataPendingContextRuntimeScan": "Apareceu ao analisar duplicados nos dados guardados aqui.",
+  "@profileDataPendingContextRuntimeScan": {
+    "description": "Context line when conflict found during runtime duplicate scan"
+  },
+  "profileDataPendingContextCatalogSync": "Detectado durante a sincronização do catálogo.",
+  "@profileDataPendingContextCatalogSync": {
+    "description": "Context line when conflict relates to catalog sync"
   },
   "profileDataPendingType": "Pendência: {type}",
   "@profileDataPendingType": {
@@ -226,66 +242,85 @@
   "@profileDataPendingSourceCatalogSync": {
     "description": "Detection source label for catalog sync"
   },
-  "profileDataPendingImported": "Importado: {value}",
+  "profileDataPendingLabelFromBackup": "Nome no backup",
+  "@profileDataPendingLabelFromBackup": {
+    "description": "Section label for imported backup row"
+  },
+  "profileDataPendingLabelOnDevice": "Já existe aqui",
+  "@profileDataPendingLabelOnDevice": {
+    "description": "Section label for existing device row"
+  },
+  "profileDataPendingLabelSuggestion": "Correspondência sugerida",
+  "@profileDataPendingLabelSuggestion": {
+    "description": "Section label for fuzzy algorithm suggestion"
+  },
+  "profileDataPendingImported": "{value}",
   "@profileDataPendingImported": {
-    "description": "Imported item label in pending review",
+    "description": "Imported item value only (label is separate)",
     "placeholders": {
       "value": { "type": "String" }
     }
   },
-  "profileDataPendingExisting": "Local: {value}",
+  "profileDataPendingExisting": "{value}",
   "@profileDataPendingExisting": {
-    "description": "Existing local item label in pending review",
+    "description": "Existing device item value only",
     "placeholders": {
       "value": { "type": "String" }
     }
   },
-  "profileDataPendingSuggested": "Sugestão: {value} (score {score})",
+  "profileDataPendingSuggested": "{value}\nSemelhança dos nomes: {percent}",
   "@profileDataPendingSuggested": {
-    "description": "Suggested local item with similarity score",
+    "description": "Suggested match with human-readable similarity percent",
     "placeholders": {
       "value": { "type": "String" },
-      "score": { "type": "String" }
+      "percent": { "type": "String" }
     }
   },
-  "profileDataPendingNoSuggestion": "Sem sugestão automática confiável.",
+  "profileDataPendingSuggestedShort": "{value}",
+  "@profileDataPendingSuggestedShort": {
+    "description": "Suggested match without similarity when score missing",
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "profileDataPendingNoSuggestion": "Não há correspondência automática para este caso.",
   "@profileDataPendingNoSuggestion": {
     "description": "Shown when no suggestion is available for pending review"
   },
-  "profileDataPendingLinkSuggested": "Vincular à sugestão",
+  "profileDataPendingLinkSuggested": "Fundir com o sugerido",
   "@profileDataPendingLinkSuggested": {
     "description": "Action to link import item to suggested local item"
   },
-  "profileDataPendingCreateCustom": "Criar como item custom",
+  "profileDataPendingCreateCustom": "Guardar como novo",
   "@profileDataPendingCreateCustom": {
     "description": "Action to create unresolved item as custom"
   },
-  "profileDataPendingSkip": "Ignorar item",
+  "profileDataPendingSkip": "Não importar",
   "@profileDataPendingSkip": {
     "description": "Action to skip unresolved imported item"
   },
-  "profileDataPendingMissingCanonical": "Referência canônica ausente ({entity})",
+  "profileDataPendingMissingCanonical": "Registo de {entity} na cópia de segurança sem ligação clara ao catálogo.",
   "@profileDataPendingMissingCanonical": {
     "description": "Pending type for missing canonical catalog reference",
     "placeholders": {
       "entity": { "type": "String" }
     }
   },
-  "profileDataPendingFuzzy": "Possível duplicação por similaridade ({entity})",
+  "profileDataPendingFuzzy": "Pode haver duplicado em {entity}: os nomes são quase iguais.",
   "@profileDataPendingFuzzy": {
     "description": "Pending type for fuzzy duplicate suggestion",
     "placeholders": {
       "entity": { "type": "String" }
     }
   },
-  "profileDataPendingVerifiedVsCustom": "Item verificado x custom ({entity}) — confirmar equivalência",
+  "profileDataPendingVerifiedVsCustom": "Em {entity}: na cópia de segurança está como personalizado; aqui já existe um oficial com nome parecido.",
   "@profileDataPendingVerifiedVsCustom": {
     "description": "Pending type for verified versus non-verified confirmation",
     "placeholders": {
       "entity": { "type": "String" }
     }
   },
-  "profileDataPendingGovernance": "Conflito crítico de catálogo ({entity}) — requer governança",
+  "profileDataPendingGovernance": "Conflito grave no catálogo ({entity}); decisão da equipe técnica necessária.",
   "@profileDataPendingGovernance": {
     "description": "Pending type for verified vs verified governance conflict",
     "placeholders": {
@@ -850,6 +885,38 @@
 
   "filterAll": "Todos",
   "@filterAll": { "description": "Filter chip: all items" },
+  "exerciseCatalogFiltersButton": "Filtros",
+  "@exerciseCatalogFiltersButton": {
+    "description": "Opens exercise catalog filter bottom sheet"
+  },
+  "exerciseCatalogFiltersTitle": "Filtros",
+  "@exerciseCatalogFiltersTitle": { "description": "Title of exercise catalog filters sheet" },
+  "exerciseCatalogFiltersSubtitle": "Refinar a lista de exercícios",
+  "@exerciseCatalogFiltersSubtitle": { "description": "Short helper under catalog filters sheet title" },
+  "exerciseCatalogFilterSourceIntro": "Escolha se mostra apenas o catálogo oficial ou os seus.",
+  "@exerciseCatalogFilterSourceIntro": {
+    "description": "One-line intro above source radio options"
+  },
+  "exerciseCatalogFiltersApply": "Aplicar",
+  "@exerciseCatalogFiltersApply": { "description": "Apply catalog filters button" },
+  "exerciseCatalogFiltersClear": "Limpar filtros",
+  "@exerciseCatalogFiltersClear": { "description": "Reset catalog filters inside sheet (local until Apply)" },
+  "exerciseCatalogFilterMuscleGroup": "Grupo muscular",
+  "@exerciseCatalogFilterMuscleGroup": { "description": "Section title in catalog filters sheet" },
+  "exerciseCatalogFilterSource": "Origem",
+  "@exerciseCatalogFilterSource": { "description": "Section: verified vs custom exercises" },
+  "exerciseCatalogFilterSourceAll": "Todos",
+  "@exerciseCatalogFilterSourceAll": { "description": "Catalog source filter: official and custom" },
+  "exerciseCatalogFilterSourceAllSubtitle": "Exercícios do catálogo e os seus.",
+  "@exerciseCatalogFilterSourceAllSubtitle": { "description": "Subtitle for source filter \"all\"" },
+  "exerciseCatalogFilterSourceVerified": "Catálogo (verificados)",
+  "@exerciseCatalogFilterSourceVerified": { "description": "Only app-seeded verified exercises" },
+  "exerciseCatalogFilterSourceVerifiedSubtitle": "Exercícios integrados pelo app.",
+  "@exerciseCatalogFilterSourceVerifiedSubtitle": { "description": "Subtitle for verified-only source" },
+  "exerciseCatalogFilterSourceCustom": "Criados por mim",
+  "@exerciseCatalogFilterSourceCustom": { "description": "Only user-created exercises" },
+  "exerciseCatalogFilterSourceCustomSubtitle": "Exercícios que criou ou importou como personalizados.",
+  "@exerciseCatalogFilterSourceCustomSubtitle": { "description": "Subtitle for custom-only source" },
   "addExercise": "Criar exercício",
   "@addExercise": { "description": "Button/title to add custom exercise" },
   "exerciseDuplicateWithName": "Já existe um exercício chamado \"{name}\".",

@@ -9,6 +9,8 @@ import 'package:flutter/foundation.dart';
 import '../../database/app_database.dart';
 import '../../database/exercise_migration_maps.dart';
 import '../../localization/domain_label_resolver.dart';
+import '../../localization/exercise_catalog_label_index.dart';
+import '../../localization/exercise_label_normalization.dart';
 import '../../domain/entities/local_backup_models.dart';
 import '../../domain/repositories/local_backup_repository.dart';
 import '../../errors/app_exception.dart';
@@ -1257,7 +1259,15 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           continue;
         }
       } else {
-        final fuzzy = _topFuzzyCandidates(name, existingRows, limit: 1);
+        final fuzzy = tableName == _tableExercises
+            ? _topFuzzyExerciseCandidates(
+                name,
+                existingRows,
+                limit: 1,
+                restrictVerifiedToCanonical:
+                    _exerciseRestrictVerifiedCanonicalForImportLabel(name),
+              )
+            : _topFuzzyCandidates(name, existingRows, limit: 1);
         if (fuzzy.isNotEmpty && fuzzy.first['score'] >= _fuzzyThreshold) {
           final pendingId = '${pendingPrefix}_$oldId';
           final pendingResolution =
@@ -2452,13 +2462,25 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required String importedName,
     required List<Map<String, dynamic>> existingRows,
   }) {
+    final String? exerciseImportIndexedCanon =
+        tableName == _tableExercises
+        ? exerciseCatalogLabelIndex.tryResolveCanonicalStrict(
+            importedName.trim(),
+          )
+        : null;
+
     if (tableName == _tableExercises) {
       final resolvedImported =
           resolveImportedExerciseCatalogName(importedName).trim();
+      final indexedCanonical = exerciseImportIndexedCanon;
+
       for (final existingRow in existingRows) {
         final existingName = (existingRow['name'] as String?)?.trim();
         if (existingName == null || existingName.isEmpty) continue;
-        if (existingName != resolvedImported) continue;
+        final nameMatchesImported = existingName == resolvedImported ||
+            (indexedCanonical != null &&
+                existingName == indexedCanonical);
+        if (!nameMatchesImported) continue;
         if (!_isSemanticallyCompatible(
           tableName: tableName,
           importedRow: importedRow,
@@ -2486,13 +2508,40 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       )) {
         continue;
       }
+
+      // PT labels like "Cadeira Adutora" vs "Cadeira Abdutora" fuzzy-match with
+      // high Levenshtein score but map to different canonicals (hipAdduction vs
+      // hipAbduction). Never pair those verified rows via string fuzzy alone.
+      if (tableName == _tableExercises &&
+          exerciseImportIndexedCanon != null &&
+          _asBool(existingRow['is_verified'])) {
+        if (existingName != exerciseImportIndexedCanon) continue;
+      }
+
       final existingNormalized = _normalizeName(existingName);
+
       final containsMatch =
           importedNormalized.contains(existingNormalized) ||
           existingNormalized.contains(importedNormalized);
-      final score = containsMatch
-          ? 0.98
-          : _similarity(importedNormalized, existingNormalized);
+
+      final double score;
+      if (tableName == _tableExercises &&
+          _asBool(existingRow['is_verified']) &&
+          exerciseCatalogLabelIndex.isKnownCanonicalKey(existingName)) {
+        final synonymScore =
+            exerciseCatalogLabelIndex.maxFuzzySimilarity(
+              importedName,
+              existingName,
+            );
+        final legacyScore = containsMatch
+            ? 0.98
+            : _similarity(importedNormalized, existingNormalized);
+        score = math.max(synonymScore, legacyScore);
+      } else {
+        score = containsMatch
+            ? 0.98
+            : _similarity(importedNormalized, existingNormalized);
+      }
       if (score < _fuzzyThreshold) continue;
 
       final isStrong = score >= _strongMatchThreshold || containsMatch;
@@ -2665,20 +2714,83 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
   /// Best fuzzy candidates comparing both the legacy backup string and its
   /// migration-resolved canonical key (same ordering as SQLite migration v30).
+  /// When both legacy and migrated labels resolve to catalog canonicals,
+  /// returns the canonical only if they agree (avoids over-filtering renames).
+  String? _exerciseRestrictVerifiedCanonicalForImportLabel(String label) {
+    final migrated = resolveImportedExerciseCatalogName(label).trim();
+    final a = exerciseCatalogLabelIndex.tryResolveCanonicalStrict(label.trim());
+    final b = exerciseCatalogLabelIndex.tryResolveCanonicalStrict(migrated);
+    if (a != null && b != null && a != b) return null;
+    return a ?? b;
+  }
+
   List<Map<String, dynamic>> _topFuzzyBackedUpExerciseNameCandidates(
     String backupExerciseLabel,
     List<Map<String, dynamic>> exerciseRows, {
     int limit = 1,
   }) {
     final migrated = resolveImportedExerciseCatalogName(backupExerciseLabel);
-    var best = _topFuzzyCandidates(migrated, exerciseRows, limit: limit);
+    final restrict = _exerciseRestrictVerifiedCanonicalForImportLabel(
+      backupExerciseLabel,
+    );
+    var best = _topFuzzyExerciseCandidates(
+      migrated,
+      exerciseRows,
+      limit: limit,
+      restrictVerifiedToCanonical: restrict,
+    );
     final migratedScore = best.isEmpty ? -1.0 : best.first['score'] as double;
-    final legacy =
-        _topFuzzyCandidates(backupExerciseLabel, exerciseRows, limit: limit);
+    final legacy = _topFuzzyExerciseCandidates(
+      backupExerciseLabel,
+      exerciseRows,
+      limit: limit,
+      restrictVerifiedToCanonical: restrict,
+    );
     if (legacy.isEmpty) return best;
     final legacyScore = legacy.first['score'] as double;
     if (legacyScore > migratedScore) return legacy;
     return best;
+  }
+
+  List<Map<String, dynamic>> _topFuzzyExerciseCandidates(
+    String inputName,
+    List<Map<String, dynamic>> rows, {
+    int limit = 3,
+    String? restrictVerifiedToCanonical,
+  }) {
+    final scored = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      final rowName = row['name'] as String?;
+      final id = _asInt(row['id']);
+      if (rowName == null || id == null) continue;
+
+      if (restrictVerifiedToCanonical != null &&
+          _asBool(row['is_verified']) &&
+          exerciseCatalogLabelIndex.isKnownCanonicalKey(rowName) &&
+          rowName != restrictVerifiedToCanonical) {
+        continue;
+      }
+
+      final double score;
+      if (_asBool(row['is_verified']) &&
+          exerciseCatalogLabelIndex.isKnownCanonicalKey(rowName)) {
+        score = exerciseCatalogLabelIndex.maxFuzzySimilarity(
+          inputName,
+          rowName,
+        );
+      } else {
+        score = _similarity(
+          ExerciseLabelNormalizer.normalizeComparable(inputName),
+          ExerciseLabelNormalizer.normalizeComparable(rowName),
+        );
+      }
+
+      scored.add({'id': id, 'name': rowName, 'score': score});
+    }
+    scored.sort(
+      (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+    );
+    return scored.take(limit).toList();
   }
 
   List<Map<String, dynamic>> _topFuzzyCandidates(

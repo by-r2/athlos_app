@@ -26,12 +26,6 @@ Future<List<TrainingProgram>> programList(Ref ref) async {
   return result.getOrThrow();
 }
 
-/// Convenience: the active program's ID or null.
-@riverpod
-int? activeProgramId(Ref ref) {
-  return ref.watch(activeProgramProvider).value?.id;
-}
-
 /// Number of finished sessions for a given program.
 @riverpod
 Future<int> programSessionCount(Ref ref, int programId) async {

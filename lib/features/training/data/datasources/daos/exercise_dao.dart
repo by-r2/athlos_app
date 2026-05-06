@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 
 import '../../../../../core/database/app_database.dart';
+import '../../../../../core/localization/exercise_catalog_label_index.dart';
+import '../../../../../core/localization/exercise_label_normalization.dart';
 import '../../../../training/domain/exercise_name_match.dart';
 import '../../../../training/domain/enums/muscle_group.dart';
 import '../../../../training/domain/enums/muscle_region.dart';
@@ -28,11 +30,15 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
   Future<Exercise?> getById(int id) =>
       (select(exercises)..where((e) => e.id.equals(id))).getSingleOrNull();
 
-  /// Same-name guard for inserts: [ExerciseNameMatch.namesCollide] against all rows.
+  /// Same-name guard for inserts: canonical + verified locale synonyms.
   Future<int?> findIdByConflictingName(String name) async {
     final all = await select(exercises).get();
     for (final row in all) {
-      if (ExerciseNameMatch.namesCollide(name, row.name)) {
+      if (ExerciseNameMatch.collidesWithCanonicalRow(
+            name,
+            canonicalName: row.name,
+            isVerified: row.isVerified,
+          )) {
         return row.id;
       }
     }
@@ -44,58 +50,66 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     final normalized = name.trim().toLowerCase();
     if (normalized.isEmpty) return null;
     final all = await select(exercises).get();
+    // Pass 1: exact case-insensitive match on persisted key
     for (final row in all) {
       if (row.name.trim().toLowerCase() == normalized) return row.id;
+    }
+
+    final resolvedCanon = exerciseCatalogLabelIndex.tryResolveCanonicalStrict(
+      name,
+    );
+    if (resolvedCanon != null) {
+      for (final row in all) {
+        if (row.isVerified && row.name == resolvedCanon) return row.id;
+      }
     }
     return null;
   }
 
-  /// Fuzzy name lookup: tries exact (case-insensitive), then normalized
-  /// (diacritics removed), then containment match.
+  /// Fuzzy name lookup: [findIdByName], then diacritic-insensitive containment
+  /// on persisted keys and verified synonyms.
   Future<int?> findIdByNameFuzzy(String name) async {
-    final input = name.trim().toLowerCase();
-    if (input.isEmpty) return null;
-    final inputNorm = _removeDiacritics(input);
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return null;
+
+    final byExactStages = await findIdByName(name);
+    if (byExactStages != null) return byExactStages;
+
+    final inputNorm = ExerciseLabelNormalizer.normalize(trimmed);
+    if (inputNorm.isEmpty) return null;
 
     final all = await select(exercises).get();
 
-    // Pass 1: exact case-insensitive match
+    // Diacritic-insensitive equality on persisted key (custom + verified)
     for (final row in all) {
-      if (row.name.trim().toLowerCase() == input) return row.id;
-    }
-
-    // Pass 2: diacritics-normalized exact match
-    for (final row in all) {
-      final rowNorm = _removeDiacritics(row.name.trim().toLowerCase());
+      final rowNorm = ExerciseLabelNormalizer.normalize(row.name);
       if (rowNorm == inputNorm) return row.id;
     }
 
-    // Pass 3: containment — pick the candidate whose length is closest to input
+    // Containment — pick the candidate whose length is closest to input
     int? bestId;
     var bestDelta = 999;
     for (final row in all) {
-      final rowNorm = _removeDiacritics(row.name.trim().toLowerCase());
-      if (rowNorm.contains(inputNorm) || inputNorm.contains(rowNorm)) {
-        final delta = (rowNorm.length - inputNorm.length).abs();
-        if (delta < bestDelta) {
-          bestId = row.id;
-          bestDelta = delta;
+      for (final target in _rowFuzzyLabelTargets(row.name, row.isVerified)) {
+        final rowNorm = ExerciseLabelNormalizer.normalize(target);
+        if (rowNorm.isEmpty) continue;
+        if (rowNorm.contains(inputNorm) || inputNorm.contains(rowNorm)) {
+          final delta = (rowNorm.length - inputNorm.length).abs();
+          if (delta < bestDelta) {
+            bestId = row.id;
+            bestDelta = delta;
+          }
         }
       }
     }
     return bestId;
   }
 
-  static String _removeDiacritics(String s) {
-    const withDiacritics =
-        'àáâãäåèéêëìíîïòóôõöùúûüýñçÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝÑÇ';
-    const withoutDiacritics =
-        'aaaaaaeeeeiiiioooooouuuuyncAAAAAAEEEEIIIIOOOOOUUUUYNC';
-    var result = s;
-    for (var i = 0; i < withDiacritics.length; i++) {
-      result = result.replaceAll(withDiacritics[i], withoutDiacritics[i]);
+  Iterable<String> _rowFuzzyLabelTargets(String name, bool isVerified) sync* {
+    yield name;
+    if (isVerified && exerciseCatalogLabelIndex.isKnownCanonicalKey(name)) {
+      yield* exerciseCatalogLabelIndex.surfaceForms(name);
     }
-    return result;
   }
 
   Future<List<Exercise>> getByMuscleGroup(MuscleGroup group) =>

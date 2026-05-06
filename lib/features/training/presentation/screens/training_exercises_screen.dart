@@ -21,8 +21,8 @@ import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
+import '../widgets/exercise_catalog_filters.dart';
 import '../widgets/exercise_tile.dart';
-import '../widgets/muscle_group_filter.dart';
 
 final _placeholderExercises = List.generate(
   8,
@@ -48,8 +48,31 @@ class TrainingExercisesScreen extends ConsumerStatefulWidget {
 class _TrainingExercisesScreenState
     extends ConsumerState<TrainingExercisesScreen> {
   MuscleGroup? _selectedGroup;
+  ExerciseCatalogSourceFilter _sourceFilter = ExerciseCatalogSourceFilter.all;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+
+  int get _catalogActiveFilterCount {
+    var count = 0;
+    if (_selectedGroup != null) count++;
+    if (_sourceFilter != ExerciseCatalogSourceFilter.all) count++;
+    return count;
+  }
+
+  Future<void> _openCatalogFilters(AppLocalizations l10n) {
+    return showExerciseCatalogFiltersSheet(
+      context: context,
+      l10n: l10n,
+      initialMuscleGroup: _selectedGroup,
+      initialSource: _sourceFilter,
+      onApply: (muscle, source) {
+        setState(() {
+          _selectedGroup = muscle;
+          _sourceFilter = source;
+        });
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -86,25 +109,74 @@ class _TrainingExercisesScreenState
               decoration: InputDecoration(
                 hintText: l10n.searchExercises,
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
+                suffixIcon: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
                         },
-                      )
-                    : null,
+                      ),
+                    Tooltip(
+                      message: _catalogActiveFilterCount > 0
+                          ? '${l10n.exerciseCatalogFiltersButton} ($_catalogActiveFilterCount)'
+                          : l10n.exerciseCatalogFiltersButton,
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 22,
+                        padding: EdgeInsets.zero,
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () => _openCatalogFilters(l10n),
+                        icon: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.filter_list_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            if (_catalogActiveFilterCount > 0)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: IgnorePointer(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: colorScheme.surface,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const SizedBox.square(dimension: 8),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                suffixIconConstraints: BoxConstraints(
+                  minHeight: kMinInteractiveDimension,
+                  maxHeight: kMinInteractiveDimension,
+                  minWidth:
+                      (_searchQuery.isNotEmpty ? 2 : 1) *
+                      kMinInteractiveDimension,
+                ),
                 isDense: true,
                 border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
               ),
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
-          ),
-          const Gap(AthlosSpacing.sm),
-          MuscleGroupFilter(
-            selected: _selectedGroup,
-            onSelected: (group) => setState(() => _selectedGroup = group),
           ),
           const Gap(AthlosSpacing.xs),
           Expanded(
@@ -228,6 +300,17 @@ class _TrainingExercisesScreenState
           .toList();
     }
 
+    switch (_sourceFilter) {
+      case ExerciseCatalogSourceFilter.all:
+        break;
+      case ExerciseCatalogSourceFilter.verifiedOnly:
+        filtered = filtered.where((e) => e.isVerified).toList();
+        break;
+      case ExerciseCatalogSourceFilter.customOnly:
+        filtered = filtered.where((e) => !e.isVerified).toList();
+        break;
+    }
+
     final searchTrimmed = _searchQuery.trim();
     if (searchTrimmed.isNotEmpty) {
       filtered = filtered.where((e) {
@@ -238,6 +321,7 @@ class _TrainingExercisesScreenState
             l10n: l10n,
           ),
           canonicalKey: e.name,
+          isVerified: e.isVerified,
           rawQuery: _searchQuery,
         );
       }).toList();
@@ -502,11 +586,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                               ),
                             ],
                             const Gap(AthlosSpacing.sm),
-                            _buildAdvancedSection(
-                              l10n,
-                              textTheme,
-                              colorScheme,
-                            ),
+                            _buildAdvancedSection(l10n, textTheme, colorScheme),
                             const Gap(AthlosSpacing.xl),
                           ],
                         ),

@@ -1,4 +1,5 @@
 import '../../../../core/localization/domain_label_resolver.dart';
+import '../../../../core/localization/exercise_catalog_label_index.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
@@ -21,18 +22,25 @@ String localizedExerciseName(
   );
 }
 
-/// Substring match on exercise search: **case-insensitive** on both the
-/// localized label and the canonical key (e.g. camelCase in the database).
+/// Substring match on exercise search: normalized **contains**, including
+/// every loaded locale synonym for verified catalog keys ([exerciseCatalogLabelIndex]).
 ///
 /// Returns true when [rawQuery] is empty or only whitespace (caller may skip
 /// filtering in that case).
 bool exerciseCatalogSearchMatches({
   required String localizedDisplay,
   required String canonicalKey,
+  required bool isVerified,
   required String rawQuery,
 }) {
   final q = rawQuery.trim();
   if (q.isEmpty) return true;
+
+  if (isVerified &&
+      exerciseCatalogLabelIndex.isKnownCanonicalKey(canonicalKey)) {
+    return exerciseCatalogLabelIndex.matchesContainsQuery(q, canonicalKey);
+  }
+
   final needle = q.toLowerCase();
   return localizedDisplay.toLowerCase().contains(needle) ||
       canonicalKey.toLowerCase().contains(needle);

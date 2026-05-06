@@ -32,5 +32,16 @@ void main() {
         'preacherCurl',
       );
     });
+
+    test('maps PT-BR display title to seeded canonical (frontRaise)', () {
+      expect(
+        resolveImportedExerciseCatalogName('Elevação frontal'),
+        'frontRaise',
+      );
+      expect(
+        resolveImportedExerciseCatalogName('Elevação Frontal'),
+        'frontRaise',
+      );
+    });
   });
 }

@@ -140,6 +140,7 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                   l10n: l10n,
                 ),
                 canonicalKey: ex.name,
+                isVerified: ex.isVerified,
                 rawQuery: _query,
               )) {
                 return false;

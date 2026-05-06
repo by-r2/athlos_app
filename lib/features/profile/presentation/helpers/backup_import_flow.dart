@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
 import 'dart:io';
@@ -5,6 +6,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
@@ -12,6 +14,8 @@ import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
+import '../../../../core/theme/athlos_button_insets.dart';
+import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -154,25 +158,7 @@ Future<void> runBackupImportFlow({
     );
     final report = importResult.getOrThrow();
 
-    ref.invalidate(profileProvider);
-    ref.invalidate(activeProgramProvider);
-    ref.invalidate(programListProvider);
-    ref.invalidate(workoutListProvider);
-    ref.invalidate(archivedWorkoutListProvider);
-    ref.invalidate(lastFinishedWorkoutIdProvider);
-    ref.invalidate(workoutExecutionListProvider);
-    ref.invalidate(exerciseListProvider);
-    ref.invalidate(cycleStepsProvider);
-    ref.invalidate(effectiveCycleStepsProvider);
-    ref.invalidate(cycleListItemsProvider);
-    ref.invalidate(nextCycleWorkoutProvider);
-    ref.invalidate(nextWorkoutToStartProvider);
-    ref.invalidate(nextCycleStepIndexProvider);
-    ref.invalidate(executionStreakProvider);
-    ref.invalidate(trainingHomeAnalyticsProvider);
-
-    await ref.read(recalculateTrainingStreaksProvider.notifier).run();
-    ref.invalidate(profileProvider);
+    await _invalidateProvidersAfterBackupImport(ref);
 
     if (!context.mounted) return;
     await showAthlosDialog<void>(
@@ -228,6 +214,39 @@ Future<void> runBackupImportFlow({
       ),
     );
   }
+}
+
+/// Runs after a successful import so [FutureProvider] teardown from mass
+/// [invalidate] does not trip Riverpod debug asserts (e.g. activeProgram).
+Future<void> _invalidateProvidersAfterBackupImport(WidgetRef ref) {
+  final done = Completer<void>();
+  SchedulerBinding.instance.addPostFrameCallback((_) async {
+    try {
+      ref.invalidate(profileProvider);
+      ref.invalidate(activeProgramProvider);
+      ref.invalidate(programListProvider);
+      ref.invalidate(workoutListProvider);
+      ref.invalidate(archivedWorkoutListProvider);
+      ref.invalidate(lastFinishedWorkoutIdProvider);
+      ref.invalidate(workoutExecutionListProvider);
+      ref.invalidate(exerciseListProvider);
+      ref.invalidate(cycleStepsProvider);
+      ref.invalidate(effectiveCycleStepsProvider);
+      ref.invalidate(cycleListItemsProvider);
+      ref.invalidate(nextCycleWorkoutProvider);
+      ref.invalidate(nextWorkoutToStartProvider);
+      ref.invalidate(nextCycleStepIndexProvider);
+      ref.invalidate(executionStreakProvider);
+      ref.invalidate(trainingHomeAnalyticsProvider);
+
+      await ref.read(recalculateTrainingStreaksProvider.notifier).run();
+      ref.invalidate(profileProvider);
+      done.complete();
+    } on Object catch (e, st) {
+      done.completeError(e, st);
+    }
+  });
+  return done.future;
 }
 
 Future<BackupConflictResolution?> _showConflictDialog({
@@ -295,72 +314,127 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
       ? _resolveEntityLabel(review.entityType, review.suggestedLabel!, l10n)
       : null;
 
-  final suggestionText = suggestedDisplay != null
-      ? l10n.profileDataPendingSuggested(
-          suggestedDisplay,
-          review.similarityScore?.toStringAsFixed(2) ?? '-',
-        )
-      : l10n.profileDataPendingNoSuggestion;
+  final similarityPercent =
+      review.similarityScore != null
+      ? '${(review.similarityScore!.clamp(0.0, 1.0) * 100).round()}%'
+      : null;
 
   return showAthlosDialog<BackupPendingReviewResolution>(
     context: context,
     builder: (context) {
+      final theme = Theme.of(context);
+      final scheme = theme.colorScheme;
+      final textTheme = theme.textTheme;
+
+      final suggestionWidgets = suggestedDisplay != null
+          ? <Widget>[
+              Text(
+                l10n.profileDataPendingLabelSuggestion,
+                style: textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const Gap(AthlosSpacing.xs),
+              Text(
+                similarityPercent != null
+                    ? l10n.profileDataPendingSuggested(
+                        suggestedDisplay,
+                        similarityPercent,
+                      )
+                    : l10n.profileDataPendingSuggestedShort(suggestedDisplay),
+                style: textTheme.bodyLarge,
+              ),
+            ]
+          : <Widget>[
+              Text(
+                l10n.profileDataPendingNoSuggestion,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ];
+
+      final allowUserChoice =
+          review.decisionScope != BackupConflictDecisionScope.catalogGovernance;
+
       return AlertDialog(
         title: Text(l10n.profileDataPendingTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    l10n.profileDataPendingType(_pendingTypeLabel(review, l10n))),
-                Text(
-                  l10n.profileDataPendingScope(_pendingScopeLabel(review, l10n)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.profileDataPendingIntro, style: textTheme.bodyMedium),
+              const Gap(AthlosSpacing.sm),
+              Text(
+                _pendingContextSentence(review, l10n),
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
-                Text(
-                  l10n.profileDataPendingDetectedFrom(
-                    _pendingSourceLabel(review, l10n),
-                  ),
+              ),
+              const Gap(AthlosSpacing.sm),
+              Text(
+                _pendingSituationSentence(review, l10n),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
+              ),
+              const Gap(AthlosSpacing.md),
+              _pendingDialogValueBlock(
+                context,
+                caption: l10n.profileDataPendingLabelFromBackup,
+                value: importedDisplay,
+              ),
+              if (existingDisplay != null) ...[
                 const Gap(AthlosSpacing.sm),
-                Text(l10n.profileDataPendingImported(importedDisplay)),
-                if (existingDisplay != null)
-                  Text(l10n.profileDataPendingExisting(existingDisplay)),
-                Text(suggestionText),
+                _pendingDialogValueBlock(
+                  context,
+                  caption: l10n.profileDataPendingLabelOnDevice,
+                  value: existingDisplay,
+                ),
               ],
-            ),
-          ],
+              const Gap(AthlosSpacing.sm),
+              ...suggestionWidgets,
+            ],
+          ),
         ),
         actions: [
           AthlosStackedDialogActions(
             children: [
-              if (review.decisionScope !=
-                      BackupConflictDecisionScope.catalogGovernance &&
-                  review.suggestedLabel != null)
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(context),
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pop(BackupPendingReviewResolution.linkSuggested),
-                  child: Text(l10n.profileDataPendingLinkSuggested),
-                ),
-              if (review.decisionScope !=
-                  BackupConflictDecisionScope.catalogGovernance)
-                TextButton(
-                  style: AthlosDialogButtonStyles.stackedGhost(context),
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pop(BackupPendingReviewResolution.createCustom),
-                  child: Text(l10n.profileDataPendingCreateCustom),
-                ),
               TextButton(
                 style: AthlosDialogButtonStyles.stackedGhost(context),
                 onPressed: () => Navigator.of(context)
                     .pop(BackupPendingReviewResolution.skip),
-                child: Text(l10n.profileDataPendingSkip),
+                child: _pendingDialogActionLabel(l10n.profileDataPendingSkip),
               ),
+              if (allowUserChoice) ...[
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(
+                      double.infinity,
+                      AthlosButtonSizes.dialogMinHeight,
+                    ),
+                    padding: AthlosButtonInsets.screen,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(BackupPendingReviewResolution.createCustom),
+                  child: _pendingDialogActionLabel(
+                    l10n.profileDataPendingCreateCustom,
+                  ),
+                ),
+                if (review.suggestedLabel != null)
+                  FilledButton(
+                    style: AthlosDialogButtonStyles.stackedFilled(context),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop(BackupPendingReviewResolution.linkSuggested),
+                    child: _pendingDialogActionLabel(
+                      l10n.profileDataPendingLinkSuggested,
+                    ),
+                  ),
+              ],
             ],
           ),
         ],
@@ -369,14 +443,61 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
   );
 }
 
-String _pendingTypeLabel(BackupPendingReview review, AppLocalizations l10n) {
+/// Centered, up to two lines — avoids odd left-aligned wraps in full-width
+/// dialog buttons.
+Widget _pendingDialogActionLabel(String text) {
+  return Text(
+    text,
+    textAlign: TextAlign.center,
+    maxLines: 2,
+  );
+}
+
+Widget _pendingDialogValueBlock(
+  BuildContext context, {
+  required String caption,
+  required String value,
+}) {
+  final theme = Theme.of(context);
+  final scheme = theme.colorScheme;
+  final textTheme = theme.textTheme;
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        caption,
+        style: textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+      ),
+      const Gap(AthlosSpacing.xs),
+      Text(value, style: textTheme.bodyLarge),
+    ],
+  );
+}
+
+String _pendingContextSentence(
+  BackupPendingReview review,
+  AppLocalizations l10n,
+) {
+  return switch (review.detectedFrom) {
+    BackupConflictDetectedFrom.importPreview =>
+      l10n.profileDataPendingContextImportPreview,
+    BackupConflictDetectedFrom.runtimeScan =>
+      l10n.profileDataPendingContextRuntimeScan,
+    BackupConflictDetectedFrom.catalogSync =>
+      l10n.profileDataPendingContextCatalogSync,
+  };
+}
+
+String _pendingSituationSentence(
+  BackupPendingReview review,
+  AppLocalizations l10n,
+) {
   final entityLabel = _conflictTypeFromEnum(review.entityType, l10n);
   return switch (review.type) {
     BackupPendingReviewType.missingCanonicalReference =>
       l10n.profileDataPendingMissingCanonical(entityLabel),
-    BackupPendingReviewType.fuzzyMatchCandidate => l10n.profileDataPendingFuzzy(
-      entityLabel,
-    ),
+    BackupPendingReviewType.fuzzyMatchCandidate =>
+      l10n.profileDataPendingFuzzy(entityLabel),
     BackupPendingReviewType.verifiedVsCustomConfirmation =>
       l10n.profileDataPendingVerifiedVsCustom(entityLabel),
     BackupPendingReviewType.governanceConflict =>
@@ -384,25 +505,6 @@ String _pendingTypeLabel(BackupPendingReview review, AppLocalizations l10n) {
   };
 }
 
-String _pendingScopeLabel(BackupPendingReview review, AppLocalizations l10n) {
-  return switch (review.decisionScope) {
-    BackupConflictDecisionScope.userLocal =>
-      l10n.profileDataPendingScopeUserLocal,
-    BackupConflictDecisionScope.catalogGovernance =>
-      l10n.profileDataPendingScopeCatalogGovernance,
-  };
-}
-
-String _pendingSourceLabel(BackupPendingReview review, AppLocalizations l10n) {
-  return switch (review.detectedFrom) {
-    BackupConflictDetectedFrom.importPreview =>
-      l10n.profileDataPendingSourceImportPreview,
-    BackupConflictDetectedFrom.runtimeScan =>
-      l10n.profileDataPendingSourceRuntimeScan,
-    BackupConflictDetectedFrom.catalogSync =>
-      l10n.profileDataPendingSourceCatalogSync,
-  };
-}
 
 String _conflictTypeLabel(
   BackupImportConflict conflict,

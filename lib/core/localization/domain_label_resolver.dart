@@ -1,4 +1,7 @@
 import '../../l10n/app_localizations.dart';
+import 'exercise_canonical_display_map.dart';
+import 'exercise_catalog_label_index.dart';
+import 'exercise_label_normalization.dart';
 
 enum DomainLabelKind {
   equipment,
@@ -45,6 +48,29 @@ class DomainLabelResolver {
     required DomainLabelKind kind,
     required String candidate,
   }) {
+    if (kind == DomainLabelKind.exercise) {
+      final trimmed = candidate.trim();
+      if (trimmed.isEmpty) return trimmed;
+      final byIndex = exerciseCatalogLabelIndex.tryResolveCanonicalStrict(
+        trimmed,
+      );
+      if (byIndex != null) return byIndex;
+
+      final normalized = ExerciseLabelNormalizer.normalize(trimmed);
+      if (normalized.isEmpty) return trimmed;
+
+      final map = exerciseCanonicalToDisplayMap(_l10n);
+      for (final entry in map.entries) {
+        if (ExerciseLabelNormalizer.normalize(entry.key) == normalized) {
+          return entry.key;
+        }
+        if (ExerciseLabelNormalizer.normalize(entry.value) == normalized) {
+          return entry.key;
+        }
+      }
+      return trimmed;
+    }
+
     final normalized = _normalize(candidate);
     if (normalized.isEmpty) return candidate.trim();
 
@@ -59,7 +85,7 @@ class DomainLabelResolver {
 
   Map<String, String> _mapFor(DomainLabelKind kind) => switch (kind) {
     DomainLabelKind.equipment => _equipmentNameMap(_l10n),
-    DomainLabelKind.exercise => _exerciseNameMap(_l10n),
+    DomainLabelKind.exercise => exerciseCanonicalToDisplayMap(_l10n),
     DomainLabelKind.muscleGroup => _muscleGroupMap(_l10n),
     DomainLabelKind.targetMuscle => _targetMuscleMap(_l10n),
     DomainLabelKind.muscleRegion => _muscleRegionMap(_l10n),
@@ -128,105 +154,6 @@ Map<String, String> _equipmentNameMap(AppLocalizations l10n) => {
   'abductorMachine': l10n.equipmentAbductorMachine,
   'bicepsCurlMachine': l10n.equipmentBicepsCurlMachine,
   'preacherBench': l10n.equipmentPreacherBench,
-};
-
-Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
-  'benchPress': l10n.exerciseFlatBarbellBenchPress,
-  'inclineBenchPress': l10n.exerciseInclineBarbellBenchPress,
-  'declineBenchPress': l10n.exerciseDeclineBarbellBenchPress,
-  'chestFly': l10n.exerciseDumbbellFly,
-  'pushUp': l10n.exercisePushUp,
-  'cableCrossover': l10n.exerciseCableCrossover,
-  'chestPress': l10n.exerciseMachineChestPress,
-  'inclineDumbbellPress': l10n.exerciseInclineDumbbellPress,
-  'declinePushUp': l10n.exerciseDeclinePushUp,
-  'inclinePushUp': l10n.exerciseInclinePushUp,
-  'kneePushUp': l10n.exerciseKneePushUp,
-  'pullUp': l10n.exercisePullUp,
-  'bentOverRow': l10n.exerciseBarbellRow,
-  'latPulldown': l10n.exerciseLatPulldown,
-  'seatedRow': l10n.exerciseSeatedCableRow,
-  'singleArmRow': l10n.exerciseDumbbellRow,
-  'chinUp': l10n.exerciseChinUp,
-  'invertedRow': l10n.exerciseInvertedRow,
-  'shrug': l10n.exerciseDumbbellShrug,
-  'overheadPress': l10n.exerciseOverheadPress,
-  'lateralRaise': l10n.exerciseLateralRaise,
-  'frontRaise': l10n.exerciseFrontRaise,
-  'facePull': l10n.exerciseFacePull,
-  'arnoldPress': l10n.exerciseArnoldPress,
-  'rearDeltFly': l10n.exerciseRearDeltFly,
-  'pikePushUp': l10n.exercisePikePushUp,
-  'bicepsCurl': l10n.exerciseBarbellCurl,
-  'alternatingCurl': l10n.exerciseDumbbellCurl,
-  'hammerCurl': l10n.exerciseHammerCurl,
-  'preacherCurl': l10n.exercisePreacherCurl,
-  'tricepsPushdown': l10n.exerciseTricepsPushdown,
-  'skullCrusher': l10n.exerciseSkullCrusher,
-  'overheadTricepsExtension': l10n.exerciseOverheadTricepsExtension,
-  'diamondPushUp': l10n.exerciseDiamondPushUp,
-  'dip': l10n.exerciseDip,
-  'backSquat': l10n.exerciseBarbellSquat,
-  'frontSquat': l10n.exerciseFrontSquat,
-  'gobletSquat': l10n.exerciseGobletSquat,
-  'legPress': l10n.exerciseLegPress,
-  'lunge': l10n.exerciseLunge,
-  'legExtension': l10n.exerciseLegExtension,
-  'hackSquat': l10n.exerciseHackSquat,
-  'bulgarianSplitSquat': l10n.exerciseBulgarianSplitSquat,
-  'romanianDeadlift': l10n.exerciseRomanianDeadlift,
-  'nordicCurl': l10n.exerciseNordicCurl,
-  'legCurl': l10n.exerciseLegCurl,
-  'seatedLegCurl': l10n.exerciseSeatedLegCurl,
-  'hipThrust': l10n.exerciseHipThrust,
-  'gluteBridge': l10n.exerciseGluteBridge,
-  'gluteKickback': l10n.exerciseCableKickback,
-  'standingCalfRaise': l10n.exerciseStandingCalfRaise,
-  'seatedCalfRaise': l10n.exerciseSeatedCalfRaise,
-  'crunch': l10n.exerciseCrunch,
-  'plank': l10n.exercisePlank,
-  'hangingLegRaise': l10n.exerciseHangingLegRaise,
-  'abWheelRollout': l10n.exerciseAbWheelRollout,
-  'wristCurl': l10n.exerciseWristCurl,
-  'reverseWristCurl': l10n.exerciseReverseWristCurl,
-  'deadlift': l10n.exerciseDeadlift,
-  'burpee': l10n.exerciseBurpee,
-  'treadmillRun': l10n.exerciseTreadmillRun,
-  'stationaryBike': l10n.exerciseStationaryBike,
-  'rowingMachine': l10n.exerciseRowingMachine,
-  'elliptical': l10n.exerciseElliptical,
-  'jumpRope': l10n.exerciseJumpRope,
-  'jumpingJacks': l10n.exerciseJumpingJacks,
-  'mountainClimber': l10n.exerciseMountainClimber,
-  'hipAdduction': l10n.exerciseAdductorMachine,
-  'hipAbduction': l10n.exerciseAbductorMachine,
-  // Legacy keys (merged into keepers in migration v30); same label as keeper for imports.
-  'ezBarCurl': l10n.exerciseBarbellCurl,
-  'dumbbellPreacherCurl': l10n.exercisePreacherCurl,
-  'inclineCurl': l10n.exerciseInclineDumbbellCurl,
-  'concentrationCurl': l10n.exerciseConcentrationCurl,
-  'machinePreacherCurl': l10n.exercisePreacherCurl,
-  'waiterCurl': l10n.exerciseWaiterCurl,
-  'dragCurl': l10n.exerciseDragCurl,
-  'spiderCurl': l10n.exerciseSpiderCurl,
-  'cableCurl': l10n.exerciseCableCurl,
-  'behindBackCableCurl': l10n.exerciseBehindBackCableCurl,
-  'bayesianCableCurl': l10n.exerciseBayesianCableCurl,
-  'preacherHammerCurl': l10n.exercisePreacherHammerCurl,
-  'reverseZottmanCurl': l10n.exerciseReverseZottmanCurl,
-  'neutralGripPullUp': l10n.exerciseNeutralGripPullUp,
-  'closeGripPulldown': l10n.exerciseCloseGripPulldown,
-  'neutralGripPulldown': l10n.exerciseNeutralGripPulldown,
-  'underhandRow': l10n.exerciseUnderhandBarbellRow,
-  'wideGripSeatedRow': l10n.exerciseWideGripSeatedRow,
-  // Rope attachment merged into standard cable pushdown (migration v30).
-  'ropeTricepsPushdown': l10n.exerciseTricepsPushdown,
-  'sidePlank': l10n.exerciseSidePlank,
-  'hollowHold': l10n.exerciseHollowHold,
-  'lSit': l10n.exerciseLSit,
-  'wallSit': l10n.exerciseWallSit,
-  'deadHang': l10n.exerciseDeadHang,
-  'superman': l10n.exerciseSuperman,
 };
 
 Map<String, String> _muscleGroupMap(AppLocalizations l10n) => {
