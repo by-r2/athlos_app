@@ -12,6 +12,10 @@ class AthlosTruncatedText extends StatelessWidget {
   final TextAlign? textAlign;
   final bool showTooltipOnlyWhenOverflow;
 
+  /// When false, never wraps in [Tooltip] — use when a parent needs [onLongPress]
+  /// (e.g. list row actions) and would conflict with [TooltipTriggerMode.longPress].
+  final bool showOverflowTooltip;
+
   const AthlosTruncatedText(
     this.text, {
     super.key,
@@ -20,6 +24,7 @@ class AthlosTruncatedText extends StatelessWidget {
     this.overflow = TextOverflow.ellipsis,
     this.textAlign,
     this.showTooltipOnlyWhenOverflow = true,
+    this.showOverflowTooltip = true,
   });
 
   @override
@@ -41,6 +46,8 @@ class AthlosTruncatedText extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (!showOverflowTooltip) return textWidget;
+
         final hasBoundedWidth = constraints.maxWidth.isFinite;
         final bool shouldShowTooltip;
 

@@ -20,6 +20,15 @@ import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
 
+/// First logical line of workout notes (before the first newline). Null if empty.
+String? _workoutNotesFirstLine(String? raw) {
+  if (raw == null) return null;
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  final first = trimmed.split(RegExp(r'\r?\n')).first.trim();
+  return first.isEmpty ? null : first;
+}
+
 /// Training module — Treinos tab.
 ///
 /// Shows the active program's cycle as a clean ordered list of workouts.
@@ -150,6 +159,68 @@ class _ActiveProgramCycleViewState
       _workoutIds = ids;
     });
     _saveOrder();
+  }
+
+  void _showRemoveFromCycleSheet(
+    BuildContext context,
+    int index, {
+    required String workoutName,
+    String? workoutDescription,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        final descPreview = _workoutNotesFirstLine(workoutDescription);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AthlosSpacing.md,
+              AthlosSpacing.sm,
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  workoutName,
+                  style: textTheme.titleMedium,
+                ),
+                if (descPreview != null) ...[
+                  const Gap(AthlosSpacing.sm),
+                  AthlosTruncatedText(
+                    descPreview,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    showOverflowTooltip: false,
+                  ),
+                ],
+                const Gap(AthlosSpacing.md),
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: colorScheme.error),
+                  title: Text(
+                    l10n.trainingCycleRemoveWorkout,
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _removeAt(index);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _openCyclePickerFromRouteIfNeeded(BuildContext context) {
@@ -340,22 +411,54 @@ class _ActiveProgramCycleViewState
 
               final workoutId = ids[index];
               final workout = workoutMap[workoutId];
+              final descLine = _workoutNotesFirstLine(workout?.description);
               final isNext = workoutId == nextWorkoutId;
-              return _CycleWorkoutCard(
+              return Dismissible(
                 key: ValueKey('cycle-$index-$workoutId'),
-                index: index,
-                workoutName: workout?.name ?? 'Treino #$workoutId',
-                workoutDescription: workout?.description,
-                isNext: isNext,
-                onTap: workout != null
-                    ? () => context.push(
-                          '${RoutePaths.trainingWorkouts}/${workout.id}',
-                        )
-                    : null,
-                onStart: () => context.push(
-                  '${RoutePaths.trainingWorkouts}/$workoutId/execute',
+                direction: DismissDirection.endToStart,
+                confirmDismiss: (_) async => true,
+                onDismissed: (_) => _removeAt(index),
+                // Flutter requires [background] whenever [secondaryBackground] is set.
+                background: Container(
+                  margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: AthlosRadius.mdAll,
+                  ),
                 ),
-                onRemove: () => _removeAt(index),
+                secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: AthlosSpacing.lg),
+                  margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.error,
+                    borderRadius: AthlosRadius.mdAll,
+                  ),
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: Theme.of(context).colorScheme.onError,
+                  ),
+                ),
+                child: _CycleWorkoutCard(
+                  index: index,
+                  workoutName: workout?.name ?? 'Treino #$workoutId',
+                  workoutDescription: descLine,
+                  isNext: isNext,
+                  onTap: workout != null
+                      ? () => context.push(
+                            '${RoutePaths.trainingWorkouts}/${workout.id}',
+                          )
+                      : null,
+                  onStart: () => context.push(
+                    '${RoutePaths.trainingWorkouts}/$workoutId/execute',
+                  ),
+                  onLongPress: () => _showRemoveFromCycleSheet(
+                    context,
+                    index,
+                    workoutName: workout?.name ?? 'Treino #$workoutId',
+                    workoutDescription: descLine,
+                  ),
+                ),
               );
             },
           ),
@@ -488,17 +591,16 @@ class _CycleWorkoutCard extends StatelessWidget {
   final bool isNext;
   final VoidCallback? onTap;
   final VoidCallback onStart;
-  final VoidCallback onRemove;
+  final VoidCallback onLongPress;
 
   const _CycleWorkoutCard({
-    super.key,
     required this.index,
     required this.workoutName,
     this.workoutDescription,
     required this.isNext,
     this.onTap,
     required this.onStart,
-    required this.onRemove,
+    required this.onLongPress,
   });
 
   @override
@@ -519,6 +621,7 @@ class _CycleWorkoutCard extends StatelessWidget {
           : null,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: AthlosRadius.mdAll,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -556,6 +659,7 @@ class _CycleWorkoutCard extends StatelessWidget {
                           fontWeight: isNext ? FontWeight.w600 : null,
                         ),
                         maxLines: 1,
+                        showOverflowTooltip: false,
                       ),
                       if (workoutDescription != null &&
                           workoutDescription!.isNotEmpty)
@@ -565,6 +669,7 @@ class _CycleWorkoutCard extends StatelessWidget {
                             color: colorScheme.onSurfaceVariant,
                           ),
                           maxLines: 1,
+                          showOverflowTooltip: false,
                         ),
                     ],
                   ),
@@ -577,12 +682,6 @@ class _CycleWorkoutCard extends StatelessWidget {
                   ),
                   tooltip: l10n.startWorkout,
                   onPressed: onStart,
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-                  tooltip: l10n.remove,
-                  onPressed: onRemove,
-                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),

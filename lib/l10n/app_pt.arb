@@ -835,6 +835,10 @@
   "@trainingCycleAddStep": { "description": "Add workout to cycle" },
   "trainingCycleAddWorkout": "Adicionar treino",
   "@trainingCycleAddWorkout": { "description": "Add workout to cycle" },
+  "trainingCycleRemoveWorkout": "Remover do ciclo",
+  "@trainingCycleRemoveWorkout": {
+    "description": "Remove a workout from the active program cycle (does not delete the workout template)"
+  },
   "trainingCycleEmptyHint": "O ciclo está vazio. A ordem dos treinos usa a ordem da lista na aba Treinos. Adicione treinos para definir a rotação.",
   "@trainingCycleEmptyHint": { "description": "Hint when cycle has no steps" },
   "trainingCycleSave": "Guardar ciclo",
