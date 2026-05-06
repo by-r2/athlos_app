@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -248,12 +249,16 @@ class _ExecutionCard extends ConsumerWidget {
       child: InkWell(
         onTap: () => context.push('${RoutePaths.trainingHistory}/${execution.id}'),
         borderRadius: AthlosRadius.mdAll,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AthlosSpacing.md,
-            vertical: AthlosSpacing.sm,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AthlosComponentSizes.listItemMinHeight,
           ),
-          child: Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AthlosSpacing.md,
+              vertical: AthlosSpacing.sm,
+            ),
+            child: Row(
             children: [
               CircleAvatar(
                 backgroundColor: colorScheme.primaryContainer,
@@ -267,6 +272,7 @@ class _ExecutionCard extends ConsumerWidget {
               const SizedBox(width: AthlosSpacing.md),
               Expanded(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AthlosTruncatedText(
@@ -306,6 +312,7 @@ class _ExecutionCard extends ConsumerWidget {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

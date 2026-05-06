@@ -5,6 +5,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -348,15 +349,20 @@ class _WorkoutCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: AthlosRadius.mdAll,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AthlosSpacing.md,
-            vertical: AthlosSpacing.sm,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AthlosComponentSizes.listItemMinHeight,
           ),
-          child: Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AthlosSpacing.md,
+              vertical: AthlosSpacing.sm,
+            ),
+            child: Row(
             children: [
               Expanded(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AthlosTruncatedText(
@@ -427,6 +433,7 @@ class _WorkoutCard extends StatelessWidget {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),
@@ -455,6 +462,7 @@ class _ArchivedWorkoutTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return ListTile(
+      minTileHeight: AthlosComponentSizes.listItemMinHeight,
       leading:
           Icon(Icons.archive_outlined, color: colorScheme.onSurfaceVariant),
       title: Text(workout.name),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -134,109 +135,114 @@ class _ProgramCard extends ConsumerWidget {
           '${RoutePaths.trainingPrograms}/${program.id}/edit',
         ),
         borderRadius: AthlosRadius.mdAll,
-        child: Padding(
-          padding: const EdgeInsets.all(AthlosSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: AthlosTruncatedText(
-                      program.name,
-                      style: textTheme.titleMedium,
-                      maxLines: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AthlosComponentSizes.listItemMinHeight,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AthlosSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: AthlosTruncatedText(
+                        program.name,
+                        style: textTheme.titleMedium,
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                  if (isActive) ...[
-                    if (program.isInDeload)
+                    if (isActive) ...[
+                      if (program.isInDeload)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AthlosSpacing.sm,
+                            vertical: AthlosSpacing.xxs,
+                          ),
+                          margin:
+                              const EdgeInsets.only(right: AthlosSpacing.xs),
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiaryContainer,
+                            borderRadius: AthlosRadius.mdAll,
+                          ),
+                          child: Text(
+                            l10n.deloadActiveChip,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onTertiaryContainer,
+                            ),
+                          ),
+                        ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AthlosSpacing.sm,
                           vertical: AthlosSpacing.xxs,
                         ),
-                        margin:
-                            const EdgeInsets.only(right: AthlosSpacing.xs),
                         decoration: BoxDecoration(
-                          color: colorScheme.tertiaryContainer,
+                          color: colorScheme.primaryContainer,
                           borderRadius: AthlosRadius.mdAll,
                         ),
                         child: Text(
-                          l10n.deloadActiveChip,
+                          l10n.programActiveBadge,
                           style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onTertiaryContainer,
+                            color: colorScheme.onPrimaryContainer,
                           ),
                         ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AthlosSpacing.sm,
-                        vertical: AthlosSpacing.xxs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        borderRadius: AthlosRadius.mdAll,
-                      ),
-                      child: Text(
-                        l10n.programActiveBadge,
-                        style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: AthlosSpacing.xs),
-              Text(
-                focusLabel,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AthlosSpacing.sm),
-              if (isActive)
-                _ProgramProgressBar(programId: program.id)
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => _confirmDelete(context, ref, program),
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: Text(l10n.programDeleteAction),
-                    ),
-                    const SizedBox(width: AthlosSpacing.xs),
-                    TextButton.icon(
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(programActionsProvider.notifier)
-                              .activateProgram(program.id);
-                          ref.invalidate(programListProvider);
-                          ref.invalidate(activeProgramProvider);
-                          ref.invalidate(cycleStepsProvider);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.programActivated),
-                              ),
-                            );
-                          }
-                        } on Exception catch (_) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.genericError)),
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(l10n.programActivate),
-                    ),
+                    ],
                   ],
                 ),
-            ],
+                const SizedBox(height: AthlosSpacing.xs),
+                Text(
+                  focusLabel,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AthlosSpacing.sm),
+                if (isActive)
+                  _ProgramProgressBar(programId: program.id)
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _confirmDelete(context, ref, program),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: Text(l10n.programDeleteAction),
+                      ),
+                      const SizedBox(width: AthlosSpacing.xs),
+                      TextButton.icon(
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(programActionsProvider.notifier)
+                                .activateProgram(program.id);
+                            ref.invalidate(programListProvider);
+                            ref.invalidate(activeProgramProvider);
+                            ref.invalidate(cycleStepsProvider);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.programActivated),
+                                ),
+                              );
+                            }
+                          } on Exception catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.genericError)),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.play_arrow),
+                        label: Text(l10n.programActivate),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),

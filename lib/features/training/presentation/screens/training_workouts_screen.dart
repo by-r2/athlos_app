@@ -7,6 +7,7 @@ import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
@@ -200,6 +201,7 @@ class _ActiveProgramCycleViewState
                     ...workouts.map((w) {
                       final isInCycle = cycleWorkoutIds.contains(w.id);
                       return ListTile(
+                        minTileHeight: AthlosComponentSizes.listItemMinHeight,
                         leading: Icon(
                           isInCycle
                               ? Icons.check_circle
@@ -224,6 +226,7 @@ class _ActiveProgramCycleViewState
                     }),
                     const Divider(),
                     ListTile(
+                      minTileHeight: AthlosComponentSizes.listItemMinHeight,
                       leading: Icon(Icons.edit_note,
                           color: colorScheme.primary),
                       title: Text(
@@ -236,6 +239,7 @@ class _ActiveProgramCycleViewState
                       },
                     ),
                     ListTile(
+                      minTileHeight: AthlosComponentSizes.listItemMinHeight,
                       leading: Icon(Icons.auto_awesome,
                           color: colorScheme.primary),
                       title: Text(
@@ -516,65 +520,72 @@ class _CycleWorkoutCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: AthlosRadius.mdAll,
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: AthlosSpacing.xs,
-            right: AthlosSpacing.xs,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AthlosComponentSizes.listItemMinHeight,
           ),
-          child: Row(
-            children: [
-              ReorderableDragStartListener(
-                index: index,
-                child: Padding(
-                  padding: const EdgeInsets.all(AthlosSpacing.sm),
-                  child: Icon(
-                    Icons.drag_handle,
-                    color: colorScheme.onSurfaceVariant,
+          child: Padding(
+            padding: const EdgeInsets.only(
+              left: AthlosSpacing.xs,
+              right: AthlosSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.sm),
+                    child: Icon(
+                      Icons.drag_handle,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
-              if (isNext) ...[
-                Icon(Icons.arrow_right, size: 20, color: colorScheme.primary),
-                const Gap(AthlosSpacing.xxs),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AthlosTruncatedText(
-                      workoutName,
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: isNext ? FontWeight.w600 : null,
-                      ),
-                      maxLines: 1,
-                    ),
-                    if (workoutDescription != null &&
-                        workoutDescription!.isNotEmpty)
+                if (isNext) ...[
+                  Icon(Icons.arrow_right, size: 20, color: colorScheme.primary),
+                  const Gap(AthlosSpacing.xxs),
+                ],
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       AthlosTruncatedText(
-                        workoutDescription!,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                        workoutName,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: isNext ? FontWeight.w600 : null,
                         ),
                         maxLines: 1,
                       ),
-                  ],
+                      if (workoutDescription != null &&
+                          workoutDescription!.isNotEmpty)
+                        AthlosTruncatedText(
+                          workoutDescription!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.play_circle_outline,
-                  color: isNext ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                IconButton(
+                  icon: Icon(
+                    Icons.play_circle_outline,
+                    color:
+                        isNext ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  ),
+                  tooltip: l10n.startWorkout,
+                  onPressed: onStart,
                 ),
-                tooltip: l10n.startWorkout,
-                onPressed: onStart,
-              ),
-              IconButton(
-                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
-                tooltip: l10n.remove,
-                onPressed: onRemove,
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
+                IconButton(
+                  icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+                  tooltip: l10n.remove,
+                  onPressed: onRemove,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
           ),
         ),
       ),

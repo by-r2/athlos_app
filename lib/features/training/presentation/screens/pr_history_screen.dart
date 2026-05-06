@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -155,6 +156,7 @@ class _PRTile extends StatelessWidget {
 
     return Card(
       child: ListTile(
+        minTileHeight: AthlosComponentSizes.listItemMinHeight,
         leading: Icon(Icons.emoji_events,
             color: colorScheme.tertiary, size: 28),
         title: Text(name),

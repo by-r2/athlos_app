@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -297,6 +298,7 @@ class _ProgressionSectionState extends ConsumerState<_ProgressionSection> {
             key: ValueKey('prog-$idx-${rule.exerciseId}'),
             margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),
             child: ListTile(
+              minTileHeight: AthlosComponentSizes.listItemMinHeight,
               title: Text(exerciseName),
               subtitle: Text(
                 '$typeLabel: +${rule.value % 1 == 0 ? rule.value.toInt() : rule.value} $unit',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 
@@ -24,6 +25,7 @@ class ExerciseTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return ListTile(
+      minTileHeight: AthlosComponentSizes.listItemMinHeight,
       title: Text(displayName),
       subtitle: targetMusclesLabel != null && targetMusclesLabel!.isNotEmpty
           ? AthlosTruncatedText(

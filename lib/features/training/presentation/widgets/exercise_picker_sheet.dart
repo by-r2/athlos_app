@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -177,6 +178,7 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                             localizedMuscleGroupName(ex.muscleGroup, l10n);
 
                         return ListTile(
+                          minTileHeight: AthlosComponentSizes.listItemMinHeight,
                           title: Text(displayName),
                           subtitle: AthlosTruncatedText(
                             groupName,
