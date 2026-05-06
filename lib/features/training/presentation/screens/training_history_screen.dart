@@ -17,6 +17,7 @@ import '../../domain/entities/workout_execution.dart';
 import '../helpers/duration_format.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
+import '../widgets/training_history_filters.dart';
 
 final _placeholderExecutions = List.generate(
   6,
@@ -45,6 +46,9 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
   int? _selectedWorkoutId;
   String? _lastWorkoutIdParam;
 
+  int get _historyActiveFilterCount =>
+      _selectedWorkoutId != null ? 1 : 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -56,9 +60,45 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
     _selectedWorkoutId = int.tryParse(workoutIdParam ?? '');
   }
 
+  void _syncHistoryRouteWorkoutQuery(int? workoutId) {
+    final router = GoRouter.of(context);
+    if (workoutId == null) {
+      router.go(RoutePaths.trainingHistory);
+    } else {
+      router.go('${RoutePaths.trainingHistory}?workoutId=$workoutId');
+    }
+  }
+
+  Future<void> _openHistoryFilters(
+    AppLocalizations l10n,
+    List<Workout> allWorkouts,
+  ) {
+    return showTrainingHistoryWorkoutFilterSheet(
+      context: context,
+      l10n: l10n,
+      workouts: allWorkouts,
+      initialWorkoutId: _selectedWorkoutId,
+      onApply: (workoutId) {
+        setState(() => _selectedWorkoutId = workoutId);
+        _syncHistoryRouteWorkoutQuery(workoutId);
+      },
+    );
+  }
+
+  List<WorkoutExecution>? _filterExecutions(
+    List<WorkoutExecution>? executions,
+  ) {
+    if (executions == null) return null;
+    if (_selectedWorkoutId == null) return executions;
+    return executions
+        .where((e) => e.workoutId == _selectedWorkoutId)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final executionsAsync = ref.watch(workoutExecutionListProvider);
     final workoutsAsync = ref.watch(workoutListProvider);
     final archivedAsync = ref.watch(archivedWorkoutListProvider);
@@ -75,50 +115,148 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
 
     final isLoading = executionsAsync.isLoading;
     final executions = executionsAsync.value;
-    final filteredExecutions = switch (executions) {
-      null => null,
-      _ when _selectedWorkoutId == null => executions,
-      _ => executions
-          .where((execution) => execution.workoutId == _selectedWorkoutId)
-          .toList(),
-    };
+    final filteredExecutions = _filterExecutions(executions);
 
-    final hasNoItems = !isLoading && (filteredExecutions?.isEmpty ?? true);
+    final reallyNoExecutions =
+        !isLoading && executions != null && executions.isEmpty;
+    final hasNoMatches = !isLoading &&
+        executions != null &&
+        executions.isNotEmpty &&
+        (filteredExecutions?.isEmpty ?? true);
+
     final resolvedExecutions = filteredExecutions ?? _placeholderExecutions;
 
-    return Skeletonizer(
-      enabled: isLoading,
-      child: Column(
-        children: [
-          if (allWorkouts.isNotEmpty)
-            _HistoryWorkoutFilterBar(
-              selectedWorkoutId: _selectedWorkoutId,
-              workouts: allWorkouts,
-              onSelectedWorkout: (workoutId) {
-                setState(() => _selectedWorkoutId = workoutId);
-              },
-              allLabel: l10n.filterAll,
-            ),
-          Expanded(
-            child: hasNoItems
-                ? _HistoryEmptyState(
-                    title: l10n.emptyHistory,
-                    hint: l10n.emptyHistoryHint,
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AthlosSpacing.sm,
-                      vertical: AthlosSpacing.sm,
-                    ),
-                    itemCount: resolvedExecutions.length,
-                    itemBuilder: (context, index) => _ExecutionCard(
-                      key: ValueKey(resolvedExecutions[index].id),
-                      execution: resolvedExecutions[index],
-                      workout: workoutById[resolvedExecutions[index].workoutId],
-                    ),
-                  ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.sm,
+            AthlosSpacing.sm,
+            AthlosSpacing.sm,
+            AthlosSpacing.xs,
           ),
-        ],
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Tooltip(
+              message: _historyActiveFilterCount > 0
+                  ? '${l10n.exerciseCatalogFiltersButton} ($_historyActiveFilterCount)'
+                  : l10n.exerciseCatalogFiltersButton,
+              child: IconButton(
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AthlosRadius.mdAll,
+                  ),
+                ),
+                onPressed: () => _openHistoryFilters(l10n, allWorkouts),
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.filter_list_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    if (_historyActiveFilterCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: colorScheme.surface,
+                                width: 2,
+                              ),
+                            ),
+                            child: const SizedBox.square(dimension: 8),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: reallyNoExecutions
+              ? _HistoryEmptyState(
+                  title: l10n.emptyHistory,
+                  hint: l10n.emptyHistoryHint,
+                )
+              : hasNoMatches
+                  ? _HistoryNoMatchesState(
+                      title: l10n.trainingHistoryNoMatches,
+                      hint: l10n.trainingHistoryNoMatchesHint,
+                    )
+                  : Skeletonizer(
+                      enabled: isLoading,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AthlosSpacing.sm,
+                          vertical: AthlosSpacing.sm,
+                        ),
+                        itemCount: resolvedExecutions.length,
+                        itemBuilder: (context, index) => _ExecutionCard(
+                          key: ValueKey(resolvedExecutions[index].id),
+                          execution: resolvedExecutions[index],
+                          workout: workoutById[
+                              resolvedExecutions[index].workoutId],
+                        ),
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HistoryNoMatchesState extends StatelessWidget {
+  final String title;
+  final String hint;
+
+  const _HistoryNoMatchesState({
+    required this.title,
+    required this.hint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.filter_alt_off_outlined,
+              size: 56,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+            ),
+            const SizedBox(height: AthlosSpacing.md),
+            Text(
+              title,
+              style: textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AthlosSpacing.sm),
+            Text(
+              hint,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -167,56 +305,6 @@ class _HistoryEmptyState extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HistoryWorkoutFilterBar extends StatelessWidget {
-  final int? selectedWorkoutId;
-  final List<Workout> workouts;
-  final ValueChanged<int?> onSelectedWorkout;
-  final String allLabel;
-
-  const _HistoryWorkoutFilterBar({
-    required this.selectedWorkoutId,
-    required this.workouts,
-    required this.onSelectedWorkout,
-    required this.allLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sortedWorkouts = workouts.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
-
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AthlosSpacing.md,
-          vertical: AthlosSpacing.xs,
-        ),
-        scrollDirection: Axis.horizontal,
-        children: [
-          FilterChip(
-            label: Text(allLabel),
-            selected: selectedWorkoutId == null,
-            onSelected: (_) => onSelectedWorkout(null),
-          ),
-          const SizedBox(width: AthlosSpacing.xs),
-          ...sortedWorkouts.map(
-            (workout) => Padding(
-              padding: const EdgeInsets.only(right: AthlosSpacing.xs),
-              child: FilterChip(
-                key: ValueKey(workout.id),
-                label: Text(workout.name),
-                selected: selectedWorkoutId == workout.id,
-                onSelected: (_) => onSelectedWorkout(workout.id),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
