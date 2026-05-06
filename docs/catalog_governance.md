@@ -1,5 +1,7 @@
 # Governanca de Catalogo Athlos
 
+> **Manutencao dos exercicios no codigo-fonte do app** (chave canonica em ingles, seed Drift, migracoes, ARB): ver [catalog_exercises.md](./catalog_exercises.md) (guia tecnico principal). Este ficheiro continua centrado na **matriz de conflitos** e no processo de governanca/import.
+
 ## Objetivo
 
 Padronizar como conflitos de catalogo (exercicios e equipamentos) sao detectados no app, triados pela equipe, resolvidos no Supabase e aplicados nos dispositivos sem exigir release para cada incidente.

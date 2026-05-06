@@ -227,6 +227,14 @@ final _seedItems = [
       muscles: [
         _p(TargetMuscle.trapezius),
       ]),
+  _SeedExercise('superman', MuscleGroup.back,
+      movementPattern: MovementPattern.isolation,
+      isBodyweight: true,
+      muscles: [
+        _p(TargetMuscle.erectorSpinae),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
 
   // ── Shoulders ──
   _SeedExercise('overheadPress', MuscleGroup.shoulders,
@@ -240,6 +248,11 @@ final _seedItems = [
       movementPattern: MovementPattern.isolation,
       muscles: [
         _p(TargetMuscle.lateralDeltoid),
+      ]),
+  _SeedExercise('frontRaise', MuscleGroup.shoulders,
+      movementPattern: MovementPattern.isolation,
+      muscles: [
+        _p(TargetMuscle.anteriorDeltoid),
       ]),
   _SeedExercise('facePull', MuscleGroup.shoulders,
       movementPattern: MovementPattern.pull,
@@ -626,6 +639,17 @@ final _seedItems = [
       type: ExerciseType.cardio),
   _SeedExercise('jumpingJacks', MuscleGroup.cardio,
       type: ExerciseType.cardio),
+  _SeedExercise(
+    'mountainClimber',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.rectusAbdominis),
+      _s(TargetMuscle.anteriorDeltoid),
+    ],
+  ),
 
   // ── V6 additions ──
   ..._v6SeedItems,
@@ -948,8 +972,10 @@ const _movementPatternBackfill = {
   'chinUp': MovementPattern.pull,
   'invertedRow': MovementPattern.pull,
   'shrug': MovementPattern.isolation,
+  'superman': MovementPattern.isolation,
   'overheadPress': MovementPattern.push,
   'lateralRaise': MovementPattern.isolation,
+  'frontRaise': MovementPattern.isolation,
   'facePull': MovementPattern.pull,
   'arnoldPress': MovementPattern.push,
   'rearDeltFly': MovementPattern.isolation,
@@ -1195,6 +1221,8 @@ const _variations = [
   _Variation('arnoldPress', 'pikePushUp'),
   // ── Shoulders — rear delt ──
   _Variation('facePull', 'rearDeltFly'),
+  // ── Shoulders — lateral / frontal isolation ──
+  _Variation('lateralRaise', 'frontRaise'),
   // ── Biceps — general curls (EZ bar folded into barbell curl) ──
   _Variation('bicepsCurl', 'alternatingCurl'),
   _Variation('bicepsCurl', 'dragCurl'),
@@ -1267,6 +1295,10 @@ const _variations = [
   _Variation('plank', 'hollowHold'),
   _Variation('sidePlank', 'hollowHold'),
   _Variation('hollowHold', 'lSit'),
+  // ── Cardio / core conditioning ──
+  _Variation('jumpingJacks', 'mountainClimber'),
+  _Variation('burpee', 'mountainClimber'),
+  _Variation('plank', 'mountainClimber'),
   // ── Back — isometric (dead hang) ──
   _Variation('deadHang', 'pullUp'),
   _Variation('deadHang', 'chinUp'),
@@ -1470,4 +1502,98 @@ const _v8Variations = [
   _Variation('frontSquat', 'hackSquat'),
   _Variation('gobletSquat', 'legPress'),
   _Variation('gobletSquat', 'hackSquat'),
+];
+
+/// Seeds [superman], [frontRaise], and [mountainClimber] (schema version 32).
+Future<void> seedExercisesV9(AppDatabase db) async {
+  final exerciseIds = <String, int>{};
+
+  final existingRows = await db.select(db.exercises).get();
+  for (final row in existingRows) {
+    exerciseIds[row.name] = row.id;
+  }
+
+  for (final item in _v9SeedItems) {
+    if (exerciseIds.containsKey(item.name)) continue;
+
+    final id = await db.into(db.exercises).insert(
+          ExercisesCompanion.insert(
+            name: item.name,
+            muscleGroup: item.muscleGroup,
+            type: Value(item.type),
+            movementPattern: Value(item.movementPattern),
+            isVerified: const Value(true),
+            isBodyweight: Value(item.isBodyweight),
+            isIsometric: Value(item.isIsometric),
+            description: const Value.absent(),
+          ),
+        );
+    exerciseIds[item.name] = id;
+
+    for (final focus in item.muscles) {
+      await db.into(db.exerciseTargetMuscles).insert(
+            ExerciseTargetMusclesCompanion(
+              exerciseId: Value(id),
+              targetMuscle: Value(focus.muscle),
+              muscleRegion: Value(focus.region),
+              role: Value(focus.role),
+            ),
+          );
+    }
+  }
+
+  for (final link in _v9Variations) {
+    final fromId = exerciseIds[link.from];
+    final toId = exerciseIds[link.to];
+    if (fromId != null && toId != null) {
+      await db.into(db.exerciseVariations).insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(fromId),
+              variationId: Value(toId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      await db.into(db.exerciseVariations).insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(toId),
+              variationId: Value(fromId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+}
+
+final _v9SeedItems = [
+  _SeedExercise('superman', MuscleGroup.back,
+      movementPattern: MovementPattern.isolation,
+      isBodyweight: true,
+      muscles: [
+        _p(TargetMuscle.erectorSpinae),
+        _s(TargetMuscle.gluteusMaximus),
+        _s(TargetMuscle.bicepsFemoris),
+      ]),
+  _SeedExercise('frontRaise', MuscleGroup.shoulders,
+      movementPattern: MovementPattern.isolation,
+      muscles: [
+        _p(TargetMuscle.anteriorDeltoid),
+      ]),
+  _SeedExercise(
+    'mountainClimber',
+    MuscleGroup.cardio,
+    type: ExerciseType.cardio,
+    isBodyweight: true,
+    muscles: [
+      _p(TargetMuscle.hipFlexors),
+      _s(TargetMuscle.rectusAbdominis),
+      _s(TargetMuscle.anteriorDeltoid),
+    ],
+  ),
+];
+
+const _v9Variations = [
+  _Variation('lateralRaise', 'frontRaise'),
+  _Variation('jumpingJacks', 'mountainClimber'),
+  _Variation('burpee', 'mountainClimber'),
+  _Variation('plank', 'mountainClimber'),
 ];

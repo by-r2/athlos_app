@@ -2,6 +2,10 @@
 
 This folder groups module-specific documentation.
 
+## Catalog (cross-cutting)
+
+- [Exercise catalog maintenance](../catalog_exercises.md) — single maintainer guide for verified exercises.
+
 ## Training
 
 - [Training Module](./training/README.md)

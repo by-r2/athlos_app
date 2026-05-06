@@ -94,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -603,6 +603,10 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 31) {
         await seedExercisesV8(this);
+      }
+
+      if (from < 32) {
+        await seedExercisesV9(this);
       }
     },
   );

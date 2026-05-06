@@ -19,7 +19,7 @@ The app is designed as a **hub-based** system: a central screen (the Hub) provid
   - **Local x Verified** pair: user can mark "not duplicate" (suppressed) or "confirmed duplicate" (verified item wins; local is remapped and deleted).
   - **Local x Local** pair: user can mark "not duplicate", "keep A", "keep B", or **attribute-by-attribute merge** (user picks each field, associations are unified, loser is remapped and deleted).
 - Global catalog governance (verified x verified conflicts, rule application across devices) is **out of scope for this project** and will be handled in a separate maintenance project.
-- The local database currently runs with schema version **28**.
+- The local database `schemaVersion` is defined in `lib/core/database/app_database.dart` (history: [release.md](./release.md#database-migrations-drift)). Exercise catalog maintenance: [catalog_exercises.md](./catalog_exercises.md).
 - Automated tests are in place for core backup flows (including duplicate resolution: suppression, confirmDuplicate, mergeAttributes), training/profile repositories, use cases, provider wiring, and error/result contracts.
 
 ## Modules
@@ -50,7 +50,7 @@ Each module has its own bottom navigation bar with sections relevant to that mod
 
 ```
 Hub (Olympus)
-├── Training → [Home] [Workouts] [History] [Exercises] [Equipment]
+├── Training → [Home] [Workouts] [History] [Exercises]
 ├── Diet     → [Home] [Meals]    [Foods]     [Log]
 ├── (future modules follow the same pattern)
 └── Profile (via Hub app bar)
@@ -129,14 +129,14 @@ Chiron speaks as the mythological character himself: wise, direct, encouraging, 
 ### Current Capabilities
 
 - **Q&A chat** for exercise and training questions via bottom sheet
-- **Context-aware responses** — user profile, active workouts, execution history, equipment, and exercise catalog are injected into the prompt
+- **Context-aware responses** — user profile (including owned gear where available), active workouts, execution history, and exercise catalog are injected into the prompt
 - **Function calling** — Chiron can take actions on behalf of the user:
   - Create, update, and archive workouts with exercises from the catalog
   - Manage the training cycle (setCycle, getTrainingState)
   - Update profile fields (gender, experience level, training frequency, gym/home, available time, injuries, bio)
-  - Register and remove equipment
+  - Adjust profile-owned gear when supported by tools
 - **Conversational onboarding** — collects missing profile data naturally during conversation (one field at a time)
-- **Equipment management for home users** — asks what equipment is available, registers it, builds workouts using only registered equipment + bodyweight
+- **Gear context for home users** — can reason about available equipment from profile-owned lists and bodyweight-friendly options
 - **Progress analysis** — compares weights/reps across execution history, identifies plateaus and progression, suggests deloads or variations
 - **Evidence-based training advice** — program change recommendations only when data supports it (plateau 3+ weeks, not just time passing)
 - **Model fallback** — primary model (gemini-2.5-flash) with fallback to gemini-2.0-flash on quota exhaustion

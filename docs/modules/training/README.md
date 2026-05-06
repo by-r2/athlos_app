@@ -4,29 +4,19 @@
 
 ## Current Features
 
-### Exercise Registration
+### Exercise registration
 
-Detailed exercise records with:
+Exercise records support type (strength/cardio), muscle group, target muscles and optional **region**, **variations** (`exercise_variations`), and cardio metrics where applicable.
 
-- **Exercise type** — strength or cardio, determining which fields and UX apply
-- **Muscle group** targeted (chest, back, legs, cardio, etc.)
-- **Specific muscles** worked (e.g. biceps, triceps, rear deltoid)
-- **Muscle region** activated — the specific portion of the muscle the exercise emphasizes (e.g. upper chest on incline bench press vs. mid chest on flat bench press)
-- **Equipment** required or alternative options
-- **Variations** or substitute exercises — modeled as a self-relation between exercises, allowing navigation between alternatives
-- **Search-first selectors** for muscle and equipment fields to avoid dense chip walls in create/edit flows
-- **Inline equipment creation** while registering/editing exercises — when search returns no matches, users can create equipment in-context and auto-link it
+**Verified catalog** vs **custom** exercises, naming, seeding, migrations, and why equipment is not FK-linked: **[catalog_exercises.md](../../catalog_exercises.md)** (product summary only here; implementation detail stays in that file).
 
 #### Cardio Exercises
 
 Pre-loaded cardio exercises include treadmill running, stationary bike, rowing machine, elliptical, jump rope, and jumping jacks. Cardio exercises use duration (seconds) and distance (meters) instead of reps and weight.
 
-### Equipment Registration
+### Owned equipment (profile)
 
-- Equipment catalog is the primary view (same catalog-first concept as exercises)
-- Ownership is toggled directly in catalog rows and in equipment detail
-- New equipment registration is contextual: shown when a search has zero results
-- User-owned equipment management lives under the Profile categories (Equipment category)
+Users keep an **owned gear** list on Profile (replacing the old equipment Drift catalog). Scope and migration context: [catalog_exercises.md § Principles](../../catalog_exercises.md#principles).
 
 ### Workout Builder
 
@@ -36,7 +26,7 @@ Pre-loaded cardio exercises include treadmill running, stationary bike, rowing m
   - **Cardio**: sets, duration (goal), rest time
 - **Supersets** — link two or more exercises to be executed in alternation without rest between them; rest is taken after completing one round of all linked exercises
 - **Training cycle** — ordered rotation of active workouts (e.g. A → B → C → A); managed via setCycle
-- **AI assist via Chiron** — create, update, and archive workouts through conversational commands; Chiron uses the exercise catalog and user equipment to build workouts
+- **AI assist via Chiron** — create, update, and archive workouts through conversational commands; Chiron uses the verified exercise catalog and profile context (including owned gear) where relevant
 
 ### Execution Logging
 

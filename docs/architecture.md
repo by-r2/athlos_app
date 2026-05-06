@@ -49,6 +49,8 @@ Material 3 as a solid accessible component base, customized with a Greek mytholo
 
 Strings centralized in ARB files from day one using `flutter_localizations`. The app launches in PT-BR, but adding new languages is just translating the file — no refactoring.
 
+Exercise catalog localization and naming rules: [catalog_exercises.md](./catalog_exercises.md).
+
 ## App Structure
 
 Clean Architecture with an abstracted data layer. Swapping from local SQLite to a remote API means replacing the data source implementation only.
@@ -466,7 +468,6 @@ Hub-based architecture using go_router:
 /training/home          → Training dashboard
 /training/workouts      → Workout list
 /training/exercises     → Exercise catalog
-/training/equipment     → Equipment (owned + catalog)
 /training/history       → Execution history
 /diet                   → Diet shell
 /diet/home              → Diet dashboard
@@ -482,8 +483,8 @@ Development follows a **depth-first** strategy: each module is fully polished be
 ### 1.0.0 — Training (First Public Release)
 
 - Flutter app with local SQLite
-- Training module fully polished — exercises, equipment, workouts, execution (strength + cardio), history, training cycles, supersets, drop sets, execution feedback, rest timer, cardio timer
-- Chiron AI assistant via Gemini free tier — mythological persona, function calling (create/update/archive workouts, manage cycle, update profile, register equipment), conversational onboarding, evidence-based training advice, progress analysis, equipment management for home users, model fallback, markdown rendering, tool feedback chips
+- Training module fully polished — exercises, workouts, execution (strength + cardio), history, training cycles, supersets, drop sets, execution feedback, rest timer, cardio timer; owned gear tracked on profile (no equipment catalog routes)
+- Chiron AI assistant via Gemini free tier — mythological persona, function calling (create/update/archive workouts, manage cycle, update profile), conversational onboarding, evidence-based training advice, progress analysis, profile/gear context where relevant, model fallback, markdown rendering, tool feedback chips
 - Hub, profile, onboarding
 - Manual data export/import for backup (JSON, merge strategy with conflict resolution) in Profile > Dados
 - Conflict Center for runtime duplicate detection and user-driven resolution (local x verified, local x local, attribute-by-attribute merge)
@@ -545,14 +546,13 @@ Supabase continues handling CRUD, auth, sync, and realtime. Go API handles premi
 
 SQLite will be structured with the same entities and relations the remote database will have. This eases future migration.
 
-> **Migration note:** The current schema version is **13**. Key milestones: V2 (cardio columns and rest rename), V3 (muscle role + movement pattern), V4–V9 (profile/training evolution), V10 (`catalog_remote_id` for verified catalog mapping), V11 (new catalog seeds including seated leg curl), V12 (local catalog governance tables), V13 (Supabase governance policies fix). Incremental versioned migrations are in place via `onUpgrade`. See [Release — Database Migrations](./release.md#database-migrations-drift) for details.
+> **Migration note:** `schemaVersion` and the version-by-version narrative live in [release.md — Database migrations](./release.md#database-migrations-drift). Exercise catalog authoring is documented in [catalog_exercises.md](./catalog_exercises.md).
 
 ### Main Entities
 
 **Training Module (1.0.0):**
 
-- **Exercise** — exercise with muscle group, specific muscles, muscle region, and type (strength/cardio)
-- **Equipment** — training equipment
+- **Exercise** — verified catalog rows + user custom exercises; persisted key vs UI copy and post–v30 equipment model: [catalog_exercises.md](./catalog_exercises.md)
 - **Workout** — workout (set of exercises with per-exercise configuration)
 - **WorkoutExercise** — junction with configuration: sets, reps (nullable for cardio), rest, duration (nullable for strength), superset group
 - **WorkoutExecution** — record of a workout execution

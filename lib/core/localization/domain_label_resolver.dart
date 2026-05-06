@@ -152,6 +152,7 @@ Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
   'shrug': l10n.exerciseDumbbellShrug,
   'overheadPress': l10n.exerciseOverheadPress,
   'lateralRaise': l10n.exerciseLateralRaise,
+  'frontRaise': l10n.exerciseFrontRaise,
   'facePull': l10n.exerciseFacePull,
   'arnoldPress': l10n.exerciseArnoldPress,
   'rearDeltFly': l10n.exerciseRearDeltFly,
@@ -196,6 +197,7 @@ Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
   'elliptical': l10n.exerciseElliptical,
   'jumpRope': l10n.exerciseJumpRope,
   'jumpingJacks': l10n.exerciseJumpingJacks,
+  'mountainClimber': l10n.exerciseMountainClimber,
   'hipAdduction': l10n.exerciseAdductorMachine,
   'hipAbduction': l10n.exerciseAbductorMachine,
   // Legacy keys (merged into keepers in migration v30); same label as keeper for imports.
@@ -224,6 +226,7 @@ Map<String, String> _exerciseNameMap(AppLocalizations l10n) => {
   'lSit': l10n.exerciseLSit,
   'wallSit': l10n.exerciseWallSit,
   'deadHang': l10n.exerciseDeadHang,
+  'superman': l10n.exerciseSuperman,
 };
 
 Map<String, String> _muscleGroupMap(AppLocalizations l10n) => {

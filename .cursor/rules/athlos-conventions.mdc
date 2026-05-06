@@ -14,7 +14,8 @@ Read the project docs before coding to understand context and decisions:
 - `docs/requirements.md` — user stories and acceptance criteria by release phase (MoSCoW)
 - `docs/development_flow.md` — step-by-step feature implementation guide
 - `docs/release.md` — versioning, signing, migrations, build, and publish instructions
-- `docs/modules/training.md` — training module features
+- `docs/catalog_exercises.md` — **single** maintainer guide for verified exercises (naming, seed, migrations); link from other docs instead of duplicating workflows
+- `docs/modules/training/README.md` — training module features
 - `docs/modules/training-periodization.md` — planned periodization evolution
 - `docs/modules/diet.md` — diet module features
 

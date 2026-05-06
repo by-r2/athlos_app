@@ -32,7 +32,7 @@ Define **how** data is obtained and stored.
 
 5. **Drift table** — database schema for the entity
    - Location: `features/<module>/data/datasources/tables/`
-   - Table names in plural (`Equipments`, `Exercises`)
+   - Table names in plural (e.g. `Exercises`, `Workouts`)
    - Use `textEnum<T>()` for enum columns
    - Create junction tables for many-to-many relations
 6. **Register table** in `AppDatabase` — add to `@DriftDatabase(tables: [...])`

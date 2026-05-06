@@ -110,11 +110,13 @@ Then create `android/key.properties` with the matching credentials.
 
 ### Schema Versioning
 
-The database schema version is an integer in `app_database.dart`:
+The database schema version is an integer in `app_database.dart` (the snippet here is illustrative — **prefer reading the getter in source**):
 
 ```dart
 @override
-int get schemaVersion => 28;  // increment when schema changes
+int get schemaVersion => 32;
+
+// increment whenever you ship a migration; keep this doc’s version list aligned
 ```
 
 - **Version 1** baseline.
@@ -129,6 +131,10 @@ int get schemaVersion => 28;  // increment when schema changes
 - **Versions 22–24** profile/body metrics evolution (timeline table + weight migration from `user_profiles`).
 - **Versions 25–27** mandatory program model, execution snapshot support, catalog seed expansion, and unilateral execution flag.
 - **Version 28** isometric exercise flag, reps→duration migration for isometric history, and isometric catalog expansion (seedV7).
+- **Version 29** training streak counters on `user_profiles`.
+- **Version 30** removal of local equipment catalog tables (`equipments`, links); `owned_equipment_names` on profile; exercise canonical renames + merges (see [catalog_exercises.md](./catalog_exercises.md)).
+- **Version 31** `seedExercisesV8` — additive squat variants and variation edges (details in `exercise_seeder.dart`).
+- **Version 32** `seedExercisesV9` — additive catalog rows + variation edges (details in `exercise_seeder.dart`).
 
 ### How Migrations Work
 
@@ -153,41 +159,13 @@ int get schemaVersion => 28;  // increment when schema changes
 | Rename column | `await m.alterTable(TableMigration(table, columnTransformer: {...}))` |
 | New seed data for existing table | Insert rows inside the migration step |
 
-### Evolving the Catalog (Exercises & Equipment)
+### Evolving the exercise catalog
 
-Catalog items (exercises, equipment) are seeded on first install via `onCreate`. **Existing users only receive new catalog items through migrations.**
+Verified exercises: `onCreate` runs `seedExercises` (**full** inline catalog). Upgrades rely on guarded `seedExercisesV*` deltas and a higher **`schemaVersion`**.
 
-#### Workflow for adding catalog items after 1.0.0
+All maintainer workflows (new row, rename, merge, ARB/resolver, backup aliases, equipment model) live in **[catalog_exercises.md](./catalog_exercises.md)** — duplicating steps here goes stale.
 
-1. **Add items to the main seeder** — update `equipment_seeder.dart` / `exercise_seeder.dart` with the new items so fresh installs get the full catalog.
-2. **Create a versioned seed function** — e.g. `seedEquipmentsV2(db)` in the same seeder file, containing only the new items.
-3. **Bump `schemaVersion`** and add a migration guard in `onUpgrade`:
-
-```dart
-// app_database.dart
-@override
-int get schemaVersion => 12;  // or next version when adding a new migration
-
-onUpgrade: (m, from, to) async {
-  // ... dev wipe block ...
-
-  if (from < 14) {
-    await seedEquipmentsV14(this);
-    await seedExercisesV14(this);
-  }
-  // if (from < 14) { ... }
-},
-```
-
-4. **Add ARB translations** for the new items.
-5. **Publish** — new users get everything from `onCreate`; existing users get the delta from `onUpgrade`.
-
-#### Key rules
-
-- The main seeder files always contain the **full catalog** (all versions combined).
-- Each `seedXxxVN()` function contains **only the delta** for that version.
-- Never modify a published versioned seed — if an item needs correction, add a new version with an UPDATE or DELETE+INSERT.
-- Schema changes (new tables, columns) and catalog additions can share the same version bump.
+Conflict / governance matrix for imports remains in **[catalog_governance.md](./catalog_governance.md)**.
 
 ## App Icons
 
@@ -251,7 +229,7 @@ Signing:
 - [x] Keystore backed up securely
 
 Database:
-- [x] Schema version set to 28 (includes isometric exercise support and catalog expansion)
+- [x] `schemaVersion` in `app_database.dart` bumped whenever migrations or catalog deltas ship; changelog in this doc’s migration section above
 - [x] Incremental migration strategy in place
 - [x] Destructive dev fallback guarded with kDebugMode (runs only in debug, never in release)
 
