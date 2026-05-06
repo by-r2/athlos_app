@@ -230,6 +230,17 @@ class _TrainingShell extends ConsumerWidget {
         path.startsWith('${RoutePaths.trainingExercises}/')) {
       return l10n.trainingExercisesAppBarTitle;
     }
+    if (path == RoutePaths.trainingHome) {
+      return l10n.tabDashboard;
+    }
+    if (path.startsWith(RoutePaths.trainingHistory)) {
+      return l10n.tabHistory;
+    }
+    if (path.startsWith(RoutePaths.trainingWorkouts) ||
+        path.startsWith(RoutePaths.trainingPrograms) ||
+        path == RoutePaths.trainingWorkoutCatalog) {
+      return l10n.tabTraining;
+    }
     return l10n.trainingModule;
   }
 

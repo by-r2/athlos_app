@@ -27,6 +27,10 @@ abstract final class RoutePaths {
       '$trainingWorkouts?$queryOpenProgramCyclePicker=1';
   static const trainingExercises = '/training/exercises';
   static const trainingHistory = '/training/history';
+
+  /// Full-screen summary after completing a workout (shareable card).
+  static String trainingExecutionShareSummary(int executionId) =>
+      '$trainingHistory/$executionId/share';
   static const trainingWorkoutCatalog = '/training/workout-catalog';
   static const trainingWorkoutNew = '/training/workouts/new';
   static const trainingPrograms = '/training/programs';

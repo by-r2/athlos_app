@@ -2513,5 +2513,41 @@
   "isometricSaveSet": "Salvar série",
   "@isometricSaveSet": { "description": "Save isometric set button" },
   "isometricGetReady": "Prepare-se",
-  "@isometricGetReady": { "description": "Get ready message before countdown" }
+  "@isometricGetReady": { "description": "Get ready message before countdown" },
+
+  "workoutShareSummaryTitle": "Treino concluído",
+  "@workoutShareSummaryTitle": {
+    "description": "App bar title on the post-workout share summary screen"
+  },
+  "workoutShareSummaryClose": "Fechar",
+  "@workoutShareSummaryClose": {
+    "description": "Dismiss the post-workout share summary screen"
+  },
+  "workoutShareSummaryShareAction": "Compartilhar",
+  "@workoutShareSummaryShareAction": {
+    "description": "Share workout summary image via the system sheet"
+  },
+  "workoutShareSummaryShareText": "Acabei de treinar: {workoutName}",
+  "@workoutShareSummaryShareText": {
+    "description": "Optional caption when sharing the workout summary image",
+    "placeholders": {
+      "workoutName": { "type": "String" }
+    }
+  },
+  "workoutShareSummaryShareError": "Não foi possível compartilhar a imagem agora. Tente de novo.",
+  "@workoutShareSummaryShareError": {
+    "description": "Snack bar when exporting or sharing the summary image fails"
+  },
+  "executionDetailTabSummary": "Resumo",
+  "@executionDetailTabSummary": {
+    "description": "Training history execution detail tab: share-style summary"
+  },
+  "executionDetailTabDetails": "Detalhes",
+  "@executionDetailTabDetails": {
+    "description": "Training history execution detail tab: full set breakdown"
+  },
+  "workoutShareSummaryCardHint": "Resumo da sessão",
+  "@workoutShareSummaryCardHint": {
+    "description": "Small label above stats on the shareable workout card"
+  }
 }

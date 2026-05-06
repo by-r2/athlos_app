@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -17,10 +18,12 @@ import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
+import '../helpers/workout_share_image.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/training_metrics_provider.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
+import '../widgets/workout_execution_share_summary.dart';
 
 final _placeholderExecution = WorkoutExecution(
   id: 0,
@@ -43,13 +46,22 @@ final _placeholderSets = List.generate(
   ),
 );
 
-class ExecutionDetailScreen extends ConsumerWidget {
+class ExecutionDetailScreen extends ConsumerStatefulWidget {
   final int executionId;
 
   const ExecutionDetailScreen({super.key, required this.executionId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExecutionDetailScreen> createState() =>
+      _ExecutionDetailScreenState();
+}
+
+class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
+  final GlobalKey _shareCaptureKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final executionId = widget.executionId;
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -64,14 +76,14 @@ class ExecutionDetailScreen extends ConsumerWidget {
 
     if (executionsAsync.hasError) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
     }
 
     if (!executionsAsync.isLoading && execution == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
     }
@@ -94,7 +106,7 @@ class ExecutionDetailScreen extends ConsumerWidget {
 
     if (setsAsync.hasError) {
       return Scaffold(
-        appBar: AppBar(title: Text(workoutName)),
+        appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
     }
@@ -126,23 +138,120 @@ class ExecutionDetailScreen extends ConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(workoutName),
-      ),
-      body: Skeletonizer(
-        enabled: setsAsync.isLoading,
-        child: _ExecutionDetailBody(
-          execution: execution ?? _placeholderExecution,
-          sets: sets,
-          exercisesAsync: exercisesAsync,
-          unilateralMap: unilateralMap,
-          prSetIdsPerExercise: prSetIdsPerExercise,
-          colorScheme: colorScheme,
-          textTheme: textTheme,
-          l10n: l10n,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.tabHistory),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(
+              AthlosSpacing.sm + 24 + AthlosSpacing.xs + kTextTabBarHeight,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AthlosSpacing.md,
+                    AthlosSpacing.xs,
+                    AthlosSpacing.md,
+                    AthlosSpacing.xs,
+                  ),
+                  child: AthlosTruncatedText(
+                    workoutName,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                  ),
+                ),
+                TabBar(
+                  tabs: [
+                    Tab(text: l10n.executionDetailTabSummary),
+                    Tab(text: l10n.executionDetailTabDetails),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        body: Skeletonizer(
+          enabled: setsAsync.isLoading,
+          child: TabBarView(
+            children: [
+              _ExecutionShareSummaryTab(
+                captureKey: _shareCaptureKey,
+                execution: execution ?? _placeholderExecution,
+                sets: sets,
+                workoutName: workoutName,
+              ),
+              _ExecutionDetailBody(
+                execution: execution ?? _placeholderExecution,
+                sets: sets,
+                exercisesAsync: exercisesAsync,
+                unilateralMap: unilateralMap,
+                prSetIdsPerExercise: prSetIdsPerExercise,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                l10n: l10n,
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ExecutionShareSummaryTab extends StatefulWidget {
+  final GlobalKey captureKey;
+  final WorkoutExecution execution;
+  final List<ExecutionSet> sets;
+  final String workoutName;
+
+  const _ExecutionShareSummaryTab({
+    required this.captureKey,
+    required this.execution,
+    required this.sets,
+    required this.workoutName,
+  });
+
+  @override
+  State<_ExecutionShareSummaryTab> createState() =>
+      _ExecutionShareSummaryTabState();
+}
+
+class _ExecutionShareSummaryTabState extends State<_ExecutionShareSummaryTab> {
+  Future<void> _onShare() async {
+    await shareRepaintBoundaryAsPng(
+      context: context,
+      boundaryKey: widget.captureKey,
+      shareText: AppLocalizations.of(context)!
+          .workoutShareSummaryShareText(widget.workoutName),
+      fileName: 'athlos_workout_${widget.execution.id}.png',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView(
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      children: [
+        WorkoutExecutionShareSummary(
+          captureKey: widget.captureKey,
+          execution: widget.execution,
+          sets: widget.sets,
+          workoutName: widget.workoutName,
+        ),
+        const Gap(AthlosSpacing.md),
+        FilledButton(
+          onPressed: _onShare,
+          child: Text(l10n.workoutShareSummaryShareAction),
+        ),
+      ],
     );
   }
 }
@@ -479,8 +588,10 @@ class _ExerciseBreakdown extends StatelessWidget {
                   textTheme: textTheme,
                   l10n: l10n,
                 )),
-
-            ?_feedbackChip(context),
+            Builder(
+              builder: (ctx) =>
+                  _feedbackChip(ctx) ?? const SizedBox.shrink(),
+            ),
           ],
         ),
       ),

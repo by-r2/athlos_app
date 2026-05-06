@@ -43,6 +43,7 @@ dependencies:
   flutter_markdown_plus: ^1.0.7
   fl_chart: ^1.2.0
   animations: ^2.2.0
+  flutter_svg: ^2.0.17
 
 dev_dependencies:
   flutter_test:
@@ -61,3 +62,6 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  assets:
+    - assets/athlos-icon-gradient.svg
+    - assets/athlos-icon-flat.svg

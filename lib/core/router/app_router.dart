@@ -16,6 +16,7 @@ import '../../features/training/presentation/screens/volume_trend_chart_screen.d
 import '../../features/training/presentation/screens/workout_detail_screen.dart';
 import '../../features/training/presentation/screens/workout_execution_screen.dart';
 import '../../features/training/presentation/screens/workout_form_screen.dart';
+import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
 import 'athlos_router_pages.dart';
@@ -148,6 +149,18 @@ GoRouter appRouter(Ref ref) {
           return AthlosRouterPages.fadeThrough(
             state,
             WorkoutExecutionScreen(workoutId: id),
+          );
+        },
+      ),
+
+      // Post-workout share summary (must match before generic history detail)
+      GoRoute(
+        path: '${RoutePaths.trainingHistory}/:executionId/share',
+        pageBuilder: (context, state) {
+          final id = int.parse(state.pathParameters['executionId']!);
+          return AthlosRouterPages.fadeThrough(
+            state,
+            WorkoutShareSummaryScreen(executionId: id),
           );
         },
       ),

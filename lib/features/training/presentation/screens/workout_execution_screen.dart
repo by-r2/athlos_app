@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
 import '../../../../core/theme/athlos_button_insets.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
@@ -27,6 +28,7 @@ import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_notifier.dart';
+import '../providers/workout_share_summary_gate.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
 enum _ViewMode {
@@ -2703,6 +2705,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   }
 
   Future<void> _onFinish(BuildContext context) async {
+    final router = GoRouter.of(context);
+    final executionIdToShare = ref.read(activeExecutionProvider)?.executionId;
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
       ref.read(restTimerProvider.notifier).reset();
@@ -2732,7 +2736,16 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           }
         }
 
-        if (context.mounted) context.pop();
+        if (context.mounted) {
+          router.pop();
+          final openSummary = executionIdToShare != null &&
+              ref.read(shouldAutoShowWorkoutShareSummaryProvider);
+          if (openSummary) {
+            router.push(
+              RoutePaths.trainingExecutionShareSummary(executionIdToShare),
+            );
+          }
+        }
       }
     } on Exception catch (_) {
       if (context.mounted) {
