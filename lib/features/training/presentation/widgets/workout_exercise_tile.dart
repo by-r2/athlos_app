@@ -57,7 +57,6 @@ class WorkoutExerciseTile extends StatefulWidget {
   final ValueChanged<WorkoutExerciseEntry> onChanged;
   final bool isLinkedToNext;
   final bool isLinkedToPrevious;
-  final VoidCallback? onToggleLinkNext;
   final int? groupColorIndex;
   final int index;
   final bool isExpanded;
@@ -73,7 +72,6 @@ class WorkoutExerciseTile extends StatefulWidget {
     required this.onToggleExpand,
     this.isLinkedToNext = false,
     this.isLinkedToPrevious = false,
-    this.onToggleLinkNext,
     this.groupColorIndex,
   });
 
@@ -512,66 +510,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
       ),
     );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        cardWidget,
-        if (widget.isExpanded && widget.onToggleLinkNext != null)
-          _SupersetLinkButton(
-            isLinked: widget.isLinkedToNext,
-            onTap: widget.onToggleLinkNext!,
-            linkedColor: widget.isLinkedToNext ? groupColor : null,
-          ),
-      ],
-    );
-  }
-}
-
-class _SupersetLinkButton extends StatelessWidget {
-  final bool isLinked;
-  final VoidCallback onTap;
-  final Color? linkedColor;
-
-  const _SupersetLinkButton({
-    required this.isLinked,
-    required this.onTap,
-    this.linkedColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final activeColor = linkedColor ?? colorScheme.primary;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AthlosRadius.lgAll,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isLinked ? Icons.link : Icons.link_off,
-                size: 14,
-                color: isLinked ? activeColor : colorScheme.outline,
-              ),
-              const SizedBox(width: AthlosSpacing.xs),
-              Text(
-                isLinked ? l10n.unlinkSuperset : l10n.linkSuperset,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: isLinked ? activeColor : colorScheme.outline,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return cardWidget;
   }
 }
 

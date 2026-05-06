@@ -477,7 +477,34 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
   void _goToNextSetFromTimer(ActiveExecutionState exec) {
     ref.read(restTimerProvider.notifier).reset();
-    final exId = exec.exercises[_focusedExerciseIndex].exerciseId;
+    final currentExercise = exec.exercises[_focusedExerciseIndex];
+    final groupId = currentExercise.groupId;
+
+    if (groupId != null) {
+      final groupIndices = _getSupersetGroupIndices(exec, _focusedExerciseIndex);
+      final groupNext = <(int exerciseIndex, int setNumber)>[];
+
+      for (final index in groupIndices) {
+        final exId = exec.exercises[index].exerciseId;
+        final sets = exec.exerciseSets[exId] ?? [];
+        final firstPending = sets.where((s) => !s.isCompleted).firstOrNull;
+        if (firstPending != null) {
+          groupNext.add((index, firstPending.setNumber));
+        }
+      }
+
+      if (groupNext.isNotEmpty) {
+        groupNext.sort((a, b) {
+          final bySet = a.$2.compareTo(b.$2);
+          if (bySet != 0) return bySet;
+          return a.$1.compareTo(b.$1);
+        });
+        _goToFocused(exec, groupNext.first.$1, groupNext.first.$2);
+        return;
+      }
+    }
+
+    final exId = currentExercise.exerciseId;
     final sets = exec.exerciseSets[exId] ?? [];
     final nextInExercise = sets
         .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
@@ -485,13 +512,14 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     if (nextInExercise.isNotEmpty) {
       _goToFocused(exec, _focusedExerciseIndex, nextInExercise.first.setNumber);
+      return;
+    }
+
+    final globalNext = _findNextPendingSet(exec);
+    if (globalNext != null) {
+      _goToFocused(exec, globalNext.$1, globalNext.$2);
     } else {
-      final globalNext = _findNextPendingSet(exec);
-      if (globalNext != null) {
-        _goToFocused(exec, globalNext.$1, globalNext.$2);
-      } else {
-        setState(() => _viewMode = _ViewMode.overview);
-      }
+      setState(() => _viewMode = _ViewMode.overview);
     }
   }
 
@@ -2677,6 +2705,16 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final updatedExec = ref.read(activeExecutionProvider);
     if (updatedExec == null) return;
+
+    final nextInGroup = _nextInSupersetGroup(
+      updatedExec,
+      _focusedExerciseIndex,
+      _focusedSetNumber,
+    );
+    if (nextInGroup != null) {
+      _goToFocused(updatedExec, nextInGroup, _focusedSetNumber);
+      return;
+    }
 
     _navigateAfterSet(updatedExec, rest);
   }

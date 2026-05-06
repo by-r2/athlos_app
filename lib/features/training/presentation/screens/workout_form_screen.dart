@@ -99,8 +99,14 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
         }
       } else {
         final gid = current.groupId ?? next.groupId ?? _nextGroupId++;
+        final groupRest = current.rest;
         current.groupId = gid;
         next.groupId = gid;
+        for (final e in _entries) {
+          if (e.groupId == gid) {
+            e.rest = groupRest;
+          }
+        }
       }
     });
   }
@@ -389,26 +395,111 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                                 ? _groupColorIndexMap[entry.groupId]
                                 : null;
 
-                        return WorkoutExerciseTile(
-                          key: ValueKey(
-                              '${entry.exercise.id}_$index'),
-                          entry: entry,
-                          index: index,
-                          isExpanded: _expandedExerciseIndex == index,
-                          isLinkedToNext: isLinkedToNext,
-                          isLinkedToPrevious: isLinkedToPrevious,
-                          groupColorIndex: groupColorIndex,
-                          onToggleExpand: () => _toggleExpandedExercise(index),
-                          onToggleLinkNext: isLast
-                              ? null
-                              : () => _toggleSupersetLink(index),
-                          onRemove: () => _removeExercise(index),
-                          onChanged: (_) => setState(() {}),
+                        final groupColor = groupColorIndex != null
+                            ? supersetColorFor(groupColorIndex, colorScheme)
+                            : null;
+
+                        return Column(
+                          key: ValueKey('${entry.exercise.id}_$index'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            WorkoutExerciseTile(
+                              entry: entry,
+                              index: index,
+                              isExpanded: _expandedExerciseIndex == index,
+                              isLinkedToNext: isLinkedToNext,
+                              isLinkedToPrevious: isLinkedToPrevious,
+                              groupColorIndex: groupColorIndex,
+                              onToggleExpand: () =>
+                                  _toggleExpandedExercise(index),
+                              onRemove: () => _removeExercise(index),
+                              onChanged: (_) => setState(() {
+                                final gid = entry.groupId;
+                                if (gid == null) return;
+                                final rest = entry.rest;
+                                for (final e in _entries) {
+                                  if (e.groupId == gid) {
+                                    e.rest = rest;
+                                  }
+                                }
+                              }),
+                            ),
+                            if (!isLast)
+                              _SupersetBetweenTilesButton(
+                                isLinked: isLinkedToNext,
+                                onTap: () => _toggleSupersetLink(index),
+                                linkedColor: groupColor,
+                              ),
+                          ],
                         );
                       },
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SupersetBetweenTilesButton extends StatelessWidget {
+  final bool isLinked;
+  final VoidCallback onTap;
+  final Color? linkedColor;
+
+  const _SupersetBetweenTilesButton({
+    required this.isLinked,
+    required this.onTap,
+    this.linkedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final activeColor = linkedColor ?? colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
+      child: Center(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AthlosSpacing.sm,
+              vertical: AthlosSpacing.xxs,
+            ),
+            decoration: BoxDecoration(
+              color: isLinked
+                  ? activeColor.withValues(alpha: 0.15)
+                  : colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isLinked
+                    ? activeColor.withValues(alpha: 0.45)
+                    : colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isLinked ? Icons.link : Icons.link_off,
+                  size: 12,
+                  color: isLinked ? activeColor : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AthlosSpacing.xs),
+                Text(
+                  isLinked ? l10n.unlinkSuperset : l10n.linkSuperset,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color:
+                            isLinked ? activeColor : colorScheme.onSurfaceVariant,
+                        fontWeight: isLinked ? FontWeight.w600 : null,
+                      ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
