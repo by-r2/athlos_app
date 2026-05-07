@@ -817,6 +817,31 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
   }
 
+  /// Prescription rep target under the reps inputs (e.g. `8-12`, fixed `10`, `12+` AMRAP).
+  List<Widget> _executionRepsTargetBelowInputs(
+    BuildContext context,
+    WorkoutExercise exercise,
+  ) {
+    final label = exercise.repsDisplay;
+    if (label.isEmpty) return const [];
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+        child: Center(
+          child: Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
   // ---------------------------------------------------------------------------
   // View 2: Focused
   // ---------------------------------------------------------------------------
@@ -1019,6 +1044,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ),
               ),
 
+              ..._executionRepsTargetBelowInputs(context, exercise),
+
               const SizedBox(height: AthlosSpacing.md),
             ] else ...[
               // Unilateral: shared weight, per-side reps
@@ -1103,6 +1130,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                   ),
                 ],
               ),
+
+              ..._executionRepsTargetBelowInputs(context, exercise),
 
               const SizedBox(height: AthlosSpacing.md),
 
