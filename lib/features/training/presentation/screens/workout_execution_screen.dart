@@ -676,78 +676,209 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
   }
 
-  /// Drop-set rows + “add segment” for bilateral and unilateral strength.
+  /// Full drop-set editor in a sheet so the main execution view stays minimal
+  /// (pattern similar to dedicated “set type” / advanced options in gym log apps).
+  Future<void> _showDropSetsBottomSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final cs = Theme.of(context).colorScheme;
+            final tt = Theme.of(context).textTheme;
+            final primaryReps = _isUnilateral ? _leftReps : _currentReps;
+            final primaryWeight = _isUnilateral ? _leftWeight : _currentWeight;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AthlosSpacing.md,
+                    AthlosSpacing.sm,
+                    AthlosSpacing.md,
+                    AthlosSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.executionDropSetsSheetTitle,
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: AthlosSpacing.xs),
+                      Text(
+                        l10n.executionDropSetsSheetHint,
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: AthlosSpacing.md),
+                      if (_dropSegments.isNotEmpty) ...[
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: cs.surfaceContainerHighest
+                                .withValues(alpha: 0.6),
+                            borderRadius: AthlosRadius.mdAll,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AthlosSpacing.xs,
+                            ),
+                            child: Column(
+                              children: [
+                                for (var idx = 0;
+                                    idx < _dropSegments.length;
+                                    idx++)
+                                  _DropSegmentRow(
+                                    index: idx,
+                                    segment: _dropSegments[idx],
+                                    colorScheme: cs,
+                                    textTheme: tt,
+                                    l10n: l10n,
+                                    onWeightChanged: (w) {
+                                      setState(
+                                        () => _dropSegments[idx] =
+                                            _dropSegments[idx].copyWith(
+                                          weight: w,
+                                        ),
+                                      );
+                                      setModalState(() {});
+                                    },
+                                    onRepsChanged: (r) {
+                                      setState(
+                                        () => _dropSegments[idx] =
+                                            _dropSegments[idx].copyWith(
+                                          reps: r,
+                                        ),
+                                      );
+                                      setModalState(() {});
+                                    },
+                                    onRemove: () {
+                                      setState(
+                                        () => _dropSegments.removeAt(idx),
+                                      );
+                                      setModalState(() {});
+                                    },
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AthlosSpacing.sm),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _dropSegments.add(
+                              _DropSegmentInput(
+                                reps: (primaryReps * 0.5)
+                                    .ceil()
+                                    .clamp(1, 999999),
+                                weight: primaryWeight * 0.8,
+                              ),
+                            );
+                          });
+                          setModalState(() {});
+                        },
+                        icon: Icon(
+                          Icons.add,
+                          size: 18,
+                          color: cs.tertiary,
+                        ),
+                        label: Text(l10n.addDropSet),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: cs.tertiary,
+                          side: BorderSide(
+                            color: cs.tertiary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Single compact row on the execution screen; editing happens in a sheet.
   List<Widget> _strengthDropSetWidgets({
     required ColorScheme colorScheme,
     required TextTheme textTheme,
     required AppLocalizations l10n,
     required SetEntry currentSetEntry,
   }) {
-    final primaryReps = _isUnilateral ? _leftReps : _currentReps;
-    final primaryWeight = _isUnilateral ? _leftWeight : _currentWeight;
+    if (currentSetEntry.isCompleted) return [];
 
     return [
-      if (_dropSegments.isNotEmpty)
-        Container(
-          margin: const EdgeInsets.only(top: AthlosSpacing.xs),
-          padding: const EdgeInsets.all(AthlosSpacing.sm),
-          decoration: BoxDecoration(
-            color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
-            borderRadius: AthlosRadius.mdAll,
-            border: Border.all(
-              color: colorScheme.tertiary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Column(
-            children: [
-              for (var idx = 0; idx < _dropSegments.length; idx++)
-                _DropSegmentRow(
-                  index: idx,
-                  segment: _dropSegments[idx],
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                  l10n: l10n,
-                  onWeightChanged: (w) => setState(
-                    () => _dropSegments[idx] =
-                        _dropSegments[idx].copyWith(weight: w),
+      Padding(
+        padding: const EdgeInsets.only(top: AthlosSpacing.sm),
+        child: Material(
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: AthlosRadius.mdAll,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _showDropSetsBottomSheet(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AthlosSpacing.md,
+                vertical: AthlosSpacing.smd,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.layers_outlined,
+                    size: 22,
+                    color: colorScheme.tertiary,
                   ),
-                  onRepsChanged: (r) => setState(
-                    () => _dropSegments[idx] =
-                        _dropSegments[idx].copyWith(reps: r),
+                  const SizedBox(width: AthlosSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.executionDropSetsTileTitle,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: AthlosSpacing.xxs),
+                        Text(
+                          _dropSegments.isEmpty
+                              ? l10n.executionDropSetsSubtitleEmpty
+                              : l10n.executionDropSetsSubtitleCount(
+                                  _dropSegments.length,
+                                ),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  onRemove: () => setState(() => _dropSegments.removeAt(idx)),
-                ),
-            ],
-          ),
-        ),
-      if (!currentSetEntry.isCompleted)
-        Padding(
-          padding: const EdgeInsets.only(top: AthlosSpacing.xs),
-          child: OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _dropSegments.add(
-                  _DropSegmentInput(
-                    reps: (primaryReps * 0.5).ceil().clamp(1, 999999),
-                    weight: primaryWeight * 0.8,
+                  Icon(
+                    Icons.chevron_right,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                );
-              });
-            },
-            icon: Icon(
-              Icons.arrow_downward,
-              size: 16,
-              color: colorScheme.tertiary,
-            ),
-            label: Text(l10n.addDropSet),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.tertiary,
-              side: BorderSide(
-                color: colorScheme.tertiary.withValues(alpha: 0.5),
+                ],
               ),
             ),
           ),
         ),
+      ),
     ];
   }
 

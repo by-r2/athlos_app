@@ -1647,6 +1647,21 @@
   "@unlinkSuperset": { "description": "Tooltip to unlink exercise from superset" },
   "addDropSet": "Adicionar drop",
   "@addDropSet": { "description": "Button to add a drop set segment" },
+  "executionDropSetsTileTitle": "Drop sets",
+  "@executionDropSetsTileTitle": { "description": "Compact row opening drop-set editor on workout execution" },
+  "executionDropSetsSubtitleEmpty": "Opcional · toque para editar",
+  "@executionDropSetsSubtitleEmpty": { "description": "Subtitle when no drop segments yet" },
+  "executionDropSetsSubtitleCount": "{count, plural, =1{1 segmento} other{{count} segmentos}}",
+  "@executionDropSetsSubtitleCount": {
+    "description": "Subtitle showing number of drop segments",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "executionDropSetsSheetTitle": "Editar drop sets",
+  "@executionDropSetsSheetTitle": { "description": "Bottom sheet title for drop segment editor" },
+  "executionDropSetsSheetHint": "Depois da primeira parte da série, registe peso e reps de cada segmento.",
+  "@executionDropSetsSheetHint": { "description": "Short hint under drop-set sheet title" },
   "dropSetSegment": "Drop {order}",
   "@dropSetSegment": {
     "description": "Label for a drop set segment",
