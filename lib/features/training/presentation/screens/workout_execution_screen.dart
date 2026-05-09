@@ -676,6 +676,81 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
   }
 
+  /// Drop-set rows + “add segment” for bilateral and unilateral strength.
+  List<Widget> _strengthDropSetWidgets({
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+    required AppLocalizations l10n,
+    required SetEntry currentSetEntry,
+  }) {
+    final primaryReps = _isUnilateral ? _leftReps : _currentReps;
+    final primaryWeight = _isUnilateral ? _leftWeight : _currentWeight;
+
+    return [
+      if (_dropSegments.isNotEmpty)
+        Container(
+          margin: const EdgeInsets.only(top: AthlosSpacing.xs),
+          padding: const EdgeInsets.all(AthlosSpacing.sm),
+          decoration: BoxDecoration(
+            color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
+            borderRadius: AthlosRadius.mdAll,
+            border: Border.all(
+              color: colorScheme.tertiary.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              for (var idx = 0; idx < _dropSegments.length; idx++)
+                _DropSegmentRow(
+                  index: idx,
+                  segment: _dropSegments[idx],
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                  l10n: l10n,
+                  onWeightChanged: (w) => setState(
+                    () => _dropSegments[idx] =
+                        _dropSegments[idx].copyWith(weight: w),
+                  ),
+                  onRepsChanged: (r) => setState(
+                    () => _dropSegments[idx] =
+                        _dropSegments[idx].copyWith(reps: r),
+                  ),
+                  onRemove: () => setState(() => _dropSegments.removeAt(idx)),
+                ),
+            ],
+          ),
+        ),
+      if (!currentSetEntry.isCompleted)
+        Padding(
+          padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+          child: OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _dropSegments.add(
+                  _DropSegmentInput(
+                    reps: (primaryReps * 0.5).ceil().clamp(1, 999999),
+                    weight: primaryWeight * 0.8,
+                  ),
+                );
+              });
+            },
+            icon: Icon(
+              Icons.arrow_downward,
+              size: 16,
+              color: colorScheme.tertiary,
+            ),
+            label: Text(l10n.addDropSet),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.tertiary,
+              side: BorderSide(
+                color: colorScheme.tertiary.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+
   Widget _buildOverviewNextSetButton(
     BuildContext context,
     ActiveExecutionState exec,
@@ -1284,6 +1359,13 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ..._executionRepsTargetBelowInputs(context, exercise),
 
               const SizedBox(height: AthlosSpacing.md),
+
+              ..._strengthDropSetWidgets(
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                l10n: l10n,
+                currentSetEntry: currentSetEntry,
+              ),
             ] else ...[
               // Unilateral: shared weight, per-side reps
               if ((resolvedLoadMode == LoadMode.bodyweight ||
@@ -1395,71 +1477,12 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
               const SizedBox(height: AthlosSpacing.md),
 
-              // Drop set segments
-              if (_dropSegments.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: AthlosSpacing.xs),
-                  padding: const EdgeInsets.all(AthlosSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: colorScheme.tertiaryContainer.withValues(alpha: 0.2),
-                    borderRadius: AthlosRadius.mdAll,
-                    border: Border.all(
-                      color: colorScheme.tertiary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      for (var idx = 0; idx < _dropSegments.length; idx++)
-                        _DropSegmentRow(
-                          index: idx,
-                          segment: _dropSegments[idx],
-                          colorScheme: colorScheme,
-                          textTheme: textTheme,
-                          l10n: l10n,
-                          onWeightChanged: (w) => setState(
-                            () => _dropSegments[idx] = _dropSegments[idx]
-                                .copyWith(weight: w),
-                          ),
-                          onRepsChanged: (r) => setState(
-                            () => _dropSegments[idx] = _dropSegments[idx]
-                                .copyWith(reps: r),
-                          ),
-                          onRemove: () =>
-                              setState(() => _dropSegments.removeAt(idx)),
-                        ),
-                    ],
-                  ),
-                ),
-
-              // Add drop set button
-              if (!currentSetEntry.isCompleted)
-                Padding(
-                  padding: const EdgeInsets.only(top: AthlosSpacing.xs),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _dropSegments.add(
-                          _DropSegmentInput(
-                            reps: (_currentReps * 0.5).ceil(),
-                            weight: _currentWeight * 0.8,
-                          ),
-                        );
-                      });
-                    },
-                    icon: Icon(
-                      Icons.arrow_downward,
-                      size: 16,
-                      color: colorScheme.tertiary,
-                    ),
-                    label: Text(l10n.addDropSet),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colorScheme.tertiary,
-                      side: BorderSide(
-                        color: colorScheme.tertiary.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ),
+              ..._strengthDropSetWidgets(
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                l10n: l10n,
+                currentSetEntry: currentSetEntry,
+              ),
             ],
 
             const Spacer(),
