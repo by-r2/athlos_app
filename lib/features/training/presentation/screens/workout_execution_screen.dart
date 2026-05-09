@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
-import '../../../../core/theme/athlos_button_insets.dart';
-import '../../../../core/theme/athlos_button_sizes.dart';
+import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -45,6 +45,16 @@ enum _ViewMode {
 }
 
 enum _TimedSubState { ready, countdown, running, finishing }
+
+enum _SetOptionsPane { hub, loadMode, dropSets }
+
+String _setOptionsPaneTitle(_SetOptionsPane pane, AppLocalizations l10n) {
+  return switch (pane) {
+    _SetOptionsPane.hub => '',
+    _SetOptionsPane.loadMode => l10n.executionSetLoadModeSheetTitle,
+    _SetOptionsPane.dropSets => l10n.executionDropSetsSheetTitle,
+  };
+}
 
 /// Formats a completed set as "Wkg x R", duration, or drop set chain.
 String _formatSetSummary(SetEntry set) {
@@ -350,93 +360,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
   }
 
-  Future<void> _openSetLoadModePicker({
-    required int exerciseId,
-    required WorkoutExercise workoutExercise,
-    required SetEntry setEntry,
-  }) async {
-    final exerciseEntity = _exerciseEntity(exerciseId);
-    if (exerciseEntity == null || !exerciseEntity.supportsLoadModeOverride) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context)!;
-    final inheritedMode = resolveLoadMode(
-      workoutExercise: workoutExercise,
-      exercise: exerciseEntity,
-    );
-
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        final tt = Theme.of(ctx).textTheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
-                    AthlosSpacing.xs,
-                    AthlosSpacing.md,
-                    AthlosSpacing.sm,
-                  ),
-                  child: Text(
-                    l10n.executionSetLoadModeSheetTitle,
-                    style:
-                        tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                ListTile(
-                  title: Text(l10n.executionSetLoadModeInherit),
-                  subtitle: Text(_loadModeChipLabel(inheritedMode)),
-                  onTap: () {
-                    ref
-                        .read(activeExecutionProvider.notifier)
-                        .updateSetLoadModeOverride(
-                          exerciseId,
-                          setEntry.setNumber,
-                          null,
-                        );
-                    Navigator.of(ctx).pop();
-                  },
-                ),
-                for (final mode in LoadMode.values)
-                  ListTile(
-                    title: Text(_loadModeChipLabel(mode)),
-                    onTap: () {
-                      ref
-                          .read(activeExecutionProvider.notifier)
-                          .updateSetLoadModeOverride(
-                            exerciseId,
-                            setEntry.setNumber,
-                            mode == inheritedMode ? null : mode,
-                          );
-                      Navigator.of(ctx).pop();
-                    },
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   String _weightSuffixForMode(LoadMode mode) => switch (mode) {
-        LoadMode.weighted => 'kg',
-        LoadMode.bodyweight => '+kg',
-        LoadMode.assisted => '-kg',
-      };
+    LoadMode.weighted => 'kg',
+    LoadMode.bodyweight => '+kg',
+    LoadMode.assisted => '-kg',
+  };
 
   String _loadModeChipLabel(LoadMode mode) => switch (mode) {
-        LoadMode.bodyweight => 'BW',
-        LoadMode.weighted => 'Máquina',
-        LoadMode.assisted => 'Assistido',
-      };
+    LoadMode.bodyweight => 'BW',
+    LoadMode.weighted => 'Máquina',
+    LoadMode.assisted => 'Assistido',
+  };
 
   int get _totalSetCount {
     final exec = ref.read(activeExecutionProvider);
@@ -676,10 +610,62 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
   }
 
-  /// Full drop-set editor in a sheet so the main execution view stays minimal
-  /// (pattern similar to dedicated “set type” / advanced options in gym log apps).
-  Future<void> _showDropSetsBottomSheet() async {
+  void _showExerciseNotesDialog(String markdownNotes) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showAthlosDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.executionSetOptionsNotesHeading),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: SingleChildScrollView(
+            child: MarkdownBody(
+              data: markdownNotes,
+              styleSheet: MarkdownStyleSheet(
+                p: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                listBullet: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.okButton),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Load mode and drop sets for this set (notes: chip → dialog).
+  Future<void> _showSetOptionsBottomSheet({
+    required WorkoutExercise exercise,
+    required SetEntry currentSetEntry,
+    required Exercise? exerciseEntity,
+    required bool showLoadModeSection,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final inheritedMode = exerciseEntity != null
+        ? resolveLoadMode(workoutExercise: exercise, exercise: exerciseEntity)
+        : null;
+    final resolvedForHub = _resolvedLoadModeFor(exercise, currentSetEntry);
+    final showLoadTile =
+        showLoadModeSection && exerciseEntity != null && inheritedMode != null;
+
+    var pane = _SetOptionsPane.hub;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -693,117 +679,240 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             final primaryReps = _isUnilateral ? _leftReps : _currentReps;
             final primaryWeight = _isUnilateral ? _leftWeight : _currentWeight;
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
-              ),
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
-                    AthlosSpacing.sm,
-                    AthlosSpacing.md,
-                    AthlosSpacing.lg,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.executionDropSetsSheetTitle,
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: AthlosSpacing.xs),
-                      Text(
-                        l10n.executionDropSetsSheetHint,
-                        style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: AthlosSpacing.md),
-                      if (_dropSegments.isNotEmpty) ...[
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest
-                                .withValues(alpha: 0.6),
-                            borderRadius: AthlosRadius.mdAll,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AthlosSpacing.xs,
-                            ),
-                            child: Column(
-                              children: [
-                                for (var idx = 0;
-                                    idx < _dropSegments.length;
-                                    idx++)
-                                  _DropSegmentRow(
-                                    index: idx,
-                                    segment: _dropSegments[idx],
-                                    colorScheme: cs,
-                                    textTheme: tt,
-                                    l10n: l10n,
-                                    onWeightChanged: (w) {
-                                      setState(
-                                        () => _dropSegments[idx] =
-                                            _dropSegments[idx].copyWith(
-                                          weight: w,
-                                        ),
-                                      );
-                                      setModalState(() {});
-                                    },
-                                    onRepsChanged: (r) {
-                                      setState(
-                                        () => _dropSegments[idx] =
-                                            _dropSegments[idx].copyWith(
-                                          reps: r,
-                                        ),
-                                      );
-                                      setModalState(() {});
-                                    },
-                                    onRemove: () {
-                                      setState(
-                                        () => _dropSegments.removeAt(idx),
-                                      );
-                                      setModalState(() {});
-                                    },
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AthlosSpacing.sm),
-                      ],
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _dropSegments.add(
-                              _DropSegmentInput(
-                                reps: (primaryReps * 0.5)
-                                    .ceil()
-                                    .clamp(1, 999999),
-                                weight: primaryWeight * 0.8,
+            void bump() {
+              if (mounted) setState(() {});
+              setModalState(() {});
+            }
+
+            return PopScope(
+              canPop: pane == _SetOptionsPane.hub,
+              onPopInvokedWithResult: (didPop, result) {
+                if (!didPop && pane != _SetOptionsPane.hub) {
+                  setModalState(() => pane = _SetOptionsPane.hub);
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AthlosSpacing.md,
+                      AthlosSpacing.sm,
+                      AthlosSpacing.md,
+                      AthlosSpacing.lg,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (pane != _SetOptionsPane.hub) ...[
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                tooltip: MaterialLocalizations.of(
+                                  context,
+                                ).backButtonTooltip,
+                                onPressed: () => setModalState(
+                                  () => pane = _SetOptionsPane.hub,
+                                ),
                               ),
-                            );
-                          });
-                          setModalState(() {});
-                        },
-                        icon: Icon(
-                          Icons.add,
-                          size: 18,
-                          color: cs.tertiary,
-                        ),
-                        label: Text(l10n.addDropSet),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: cs.tertiary,
-                          side: BorderSide(
-                            color: cs.tertiary.withValues(alpha: 0.5),
+                              Expanded(
+                                child: Text(
+                                  _setOptionsPaneTitle(pane, l10n),
+                                  style: tt.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(height: AthlosSpacing.sm),
+                        ] else ...[
+                          Text(
+                            l10n.executionSetOptionsSheetTitle,
+                            style: tt.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.xs),
+                          Text(
+                            l10n.executionSetOptionsSheetIntro,
+                            style: tt.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.md),
+                        ],
+                        if (pane == _SetOptionsPane.hub) ...[
+                          if (showLoadTile)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
+                                Icons.scale_outlined,
+                                color: cs.primary,
+                              ),
+                              title: Text(l10n.executionSetLoadModeSheetTitle),
+                              subtitle: Text(
+                                _loadModeChipLabel(resolvedForHub),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right,
+                                color: cs.onSurfaceVariant,
+                              ),
+                              onTap: () => setModalState(
+                                () => pane = _SetOptionsPane.loadMode,
+                              ),
+                            ),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              Icons.layers_outlined,
+                              color: cs.tertiary,
+                            ),
+                            title: Text(l10n.executionDropSetsTileTitle),
+                            subtitle: Text(
+                              _dropSegments.isEmpty
+                                  ? l10n.executionDropSetsSubtitleEmpty
+                                  : l10n.executionDropSetsSubtitleCount(
+                                      _dropSegments.length,
+                                    ),
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            onTap: () => setModalState(
+                              () => pane = _SetOptionsPane.dropSets,
+                            ),
+                          ),
+                        ],
+                        if (pane == _SetOptionsPane.loadMode &&
+                            showLoadTile) ...[
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(l10n.executionSetLoadModeInherit),
+                            subtitle: Text(_loadModeChipLabel(inheritedMode)),
+                            onTap: () {
+                              ref
+                                  .read(activeExecutionProvider.notifier)
+                                  .updateSetLoadModeOverride(
+                                    exercise.exerciseId,
+                                    currentSetEntry.setNumber,
+                                    null,
+                                  );
+                              bump();
+                            },
+                          ),
+                          for (final mode in LoadMode.values)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(_loadModeChipLabel(mode)),
+                              onTap: () {
+                                ref
+                                    .read(activeExecutionProvider.notifier)
+                                    .updateSetLoadModeOverride(
+                                      exercise.exerciseId,
+                                      currentSetEntry.setNumber,
+                                      mode == inheritedMode ? null : mode,
+                                    );
+                                bump();
+                              },
+                            ),
+                        ],
+                        if (pane == _SetOptionsPane.dropSets) ...[
+                          Text(
+                            l10n.executionDropSetsSheetHint,
+                            style: tt.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.sm),
+                          if (_dropSegments.isNotEmpty)
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(
+                                  alpha: 0.6,
+                                ),
+                                borderRadius: AthlosRadius.mdAll,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AthlosSpacing.xs,
+                                ),
+                                child: Column(
+                                  children: [
+                                    for (
+                                      var idx = 0;
+                                      idx < _dropSegments.length;
+                                      idx++
+                                    )
+                                      _DropSegmentRow(
+                                        index: idx,
+                                        segment: _dropSegments[idx],
+                                        colorScheme: cs,
+                                        textTheme: tt,
+                                        l10n: l10n,
+                                        onWeightChanged: (w) {
+                                          setState(
+                                            () => _dropSegments[idx] =
+                                                _dropSegments[idx].copyWith(
+                                                  weight: w,
+                                                ),
+                                          );
+                                          setModalState(() {});
+                                        },
+                                        onRepsChanged: (r) {
+                                          setState(
+                                            () => _dropSegments[idx] =
+                                                _dropSegments[idx].copyWith(
+                                                  reps: r,
+                                                ),
+                                          );
+                                          setModalState(() {});
+                                        },
+                                        onRemove: () {
+                                          setState(
+                                            () => _dropSegments.removeAt(idx),
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (_dropSegments.isNotEmpty)
+                            const SizedBox(height: AthlosSpacing.sm),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _dropSegments.add(
+                                  _DropSegmentInput(
+                                    reps: (primaryReps * 0.5).ceil().clamp(
+                                      1,
+                                      999999,
+                                    ),
+                                    weight: primaryWeight * 0.8,
+                                  ),
+                                );
+                              });
+                              setModalState(() {});
+                            },
+                            icon: Icon(Icons.add, size: 18, color: cs.tertiary),
+                            label: Text(l10n.addDropSet),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: cs.tertiary,
+                              side: BorderSide(
+                                color: cs.tertiary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -812,74 +921,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         );
       },
     );
-  }
-
-  /// Single compact row on the execution screen; editing happens in a sheet.
-  List<Widget> _strengthDropSetWidgets({
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-    required AppLocalizations l10n,
-    required SetEntry currentSetEntry,
-  }) {
-    if (currentSetEntry.isCompleted) return [];
-
-    return [
-      Padding(
-        padding: const EdgeInsets.only(top: AthlosSpacing.sm),
-        child: Material(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          borderRadius: AthlosRadius.mdAll,
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => _showDropSetsBottomSheet(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AthlosSpacing.md,
-                vertical: AthlosSpacing.smd,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.layers_outlined,
-                    size: 22,
-                    color: colorScheme.tertiary,
-                  ),
-                  const SizedBox(width: AthlosSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.executionDropSetsTileTitle,
-                          style: textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: AthlosSpacing.xxs),
-                        Text(
-                          _dropSegments.isEmpty
-                              ? l10n.executionDropSetsSubtitleEmpty
-                              : l10n.executionDropSetsSubtitleCount(
-                                  _dropSegments.length,
-                                ),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ];
   }
 
   Widget _buildOverviewNextSetButton(
@@ -1123,18 +1164,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                                     context,
                                   )
                                 : null,
-                            style:
-                                TextButton.styleFrom(
-                                  padding: AthlosButtonInsets.screen,
-                                  minimumSize: const Size(
-                                    AthlosButtonSizes.minWidth,
-                                    AthlosButtonSizes.screenMinHeight,
-                                  ),
-                                  tapTargetSize: MaterialTapTargetSize.padded,
-                                ).merge(
-                                  Theme.of(context).textButtonTheme.style ??
-                                      const ButtonStyle(),
-                                ),
+                            style: AthlosScreenButtonStyles.fullWidthText(
+                              context,
+                            ),
                             icon: exec.isFinishing
                                 ? SizedBox(
                                     width: 18,
@@ -1231,10 +1263,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       orElse: () => sets.first,
     );
     final exerciseEntity = _exerciseEntity(exercise.exerciseId);
+    final notesTrimmed = exercise.notes?.trim();
     final resolvedLoadMode = _resolvedLoadModeFor(exercise, currentSetEntry);
     final weightSuffix = _weightSuffixForMode(resolvedLoadMode);
-    final showLoadModeChip = exerciseEntity != null &&
-        exerciseEntity.supportsLoadModeOverride;
     final bodyWeight = ref.watch(latestBodyWeightProvider).value;
     final effectiveLoadHint = exerciseEntity == null
         ? null
@@ -1340,74 +1371,23 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                   ],
                 ],
               ),
-            if (showLoadModeChip)
+            if (notesTrimmed != null && notesTrimmed.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: AthlosSpacing.xs),
-                child: Material(
-                  color: colorScheme.tertiaryContainer,
-                  borderRadius: AthlosRadius.fullAll,
-                  child: InkWell(
-                    onTap: () => _openSetLoadModePicker(
-                      exerciseId: exercise.exerciseId,
-                      workoutExercise: exercise,
-                      setEntry: currentSetEntry,
-                    ),
-                    borderRadius: AthlosRadius.fullAll,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AthlosSpacing.sm,
-                        vertical: AthlosSpacing.xxs,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _loadModeChipLabel(resolvedLoadMode),
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onTertiaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (currentSetEntry.loadModeOverride != null) ...[
-                            const SizedBox(width: AthlosSpacing.xxs),
-                            Icon(
-                              Icons.edit_note,
-                              size: 14,
-                              color: colorScheme.onTertiaryContainer,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
+                padding: EdgeInsets.only(
+                  top: (group.isNotEmpty || exercise.isUnilateral)
+                      ? AthlosSpacing.sm
+                      : AthlosSpacing.md,
                 ),
-              ),
-            if (exercise.notes != null && exercise.notes!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: AthlosSpacing.sm),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
+                child: Center(
+                  child: ActionChip(
+                    avatar: Icon(
                       Icons.note_alt_outlined,
-                      size: 14,
-                      color: colorScheme.onSurfaceVariant,
+                      size: 18,
+                      color: colorScheme.secondary,
                     ),
-                    const SizedBox(width: AthlosSpacing.xs),
-                    Flexible(
-                      child: AthlosTruncatedText(
-                        exercise.notes!,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontStyle: FontStyle.italic,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                      ),
-                    ),
-                  ],
+                    label: Text(l10n.executionSetOptionsNotesHeading),
+                    onPressed: () => _showExerciseNotesDialog(notesTrimmed),
+                  ),
                 ),
               ),
             const Spacer(),
@@ -1488,15 +1468,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
 
               ..._executionRepsTargetBelowInputs(context, exercise),
-
-              const SizedBox(height: AthlosSpacing.md),
-
-              ..._strengthDropSetWidgets(
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-                l10n: l10n,
-                currentSetEntry: currentSetEntry,
-              ),
             ] else ...[
               // Unilateral: shared weight, per-side reps
               if ((resolvedLoadMode == LoadMode.bodyweight ||
@@ -1605,15 +1576,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
 
               ..._executionRepsTargetBelowInputs(context, exercise),
-
-              const SizedBox(height: AthlosSpacing.md),
-
-              ..._strengthDropSetWidgets(
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-                l10n: l10n,
-                currentSetEntry: currentSetEntry,
-              ),
             ],
 
             const Spacer(),
@@ -1645,6 +1607,32 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ],
               ),
             ),
+
+            if (!_isFocusedCardio(exec) && !currentSetEntry.isCompleted)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    style: AthlosScreenButtonStyles.fullWidthTextMuted(context),
+                    icon: const Icon(Icons.tune_outlined, size: 20),
+                    label: Text(
+                      l10n.executionSetOptionsSheetTitle,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    onPressed: () => _showSetOptionsBottomSheet(
+                      exercise: exercise,
+                      currentSetEntry: currentSetEntry,
+                      exerciseEntity: exerciseEntity,
+                      showLoadModeSection:
+                          exerciseEntity != null &&
+                          exerciseEntity.supportsLoadModeOverride,
+                    ),
+                  ),
+                ),
+              ),
 
             // Complete button
             if (!currentSetEntry.isCompleted)
@@ -2815,8 +2803,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
             _NumberInput(
               value: _currentWeight,
-              suffix:
-                  _weightSuffixForMode(_resolvedLoadModeFor(exercise, timedSetEntry)),
+              suffix: _weightSuffixForMode(
+                _resolvedLoadModeFor(exercise, timedSetEntry),
+              ),
               step: 2.5,
               onChanged: (v) => setState(() => _currentWeight = v),
               textTheme: textTheme,
@@ -3127,7 +3116,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
         if (context.mounted) {
           router.pop();
-          final openSummary = executionIdToShare != null &&
+          final openSummary =
+              executionIdToShare != null &&
               ref.read(shouldAutoShowWorkoutShareSummaryProvider);
           if (openSummary) {
             router.push(
@@ -3921,20 +3911,20 @@ class _DropSegmentRowState extends State<_DropSegmentRow> {
   }
 }
 
-/// Compact horizontal RPE selector (6–10 chips). Tap to select, tap again
-/// to deselect. Null = not recorded.
+/// RPE selector (1–10). Tap to select, tap again to deselect. Null = not recorded.
 class _RpeSelector extends StatelessWidget {
   final int? value;
   final ValueChanged<int?> onChanged;
 
   const _RpeSelector({required this.value, required this.onChanged});
 
-  static const _values = [6, 7, 8, 9, 10];
+  static const List<int> _values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   Color _chipColor(int rpe, ColorScheme cs, AthlosCustomColors custom) {
     if (rpe >= 10) return cs.error;
     if (rpe >= 9) return custom.warning;
-    return cs.primary;
+    if (rpe >= 7) return cs.primary;
+    return cs.tertiary;
   }
 
   @override
@@ -3944,7 +3934,9 @@ class _RpeSelector extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Tooltip(
           message: l10n.rpeTooltip,
@@ -3954,17 +3946,21 @@ class _RpeSelector extends StatelessWidget {
             style: textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
           ),
         ),
-        const SizedBox(width: AthlosSpacing.sm),
-        for (final rpe in _values) ...[
-          _RpeChip(
-            label: '$rpe',
-            isSelected: value == rpe,
-            color: _chipColor(rpe, cs, custom),
-            colorScheme: cs,
-            onTap: () => onChanged(value == rpe ? null : rpe),
-          ),
-          if (rpe != _values.last) const SizedBox(width: AthlosSpacing.xs),
-        ],
+        const SizedBox(height: AthlosSpacing.xs),
+        Wrap(
+          spacing: AthlosSpacing.xs,
+          runSpacing: AthlosSpacing.xs,
+          children: [
+            for (final rpe in _values)
+              _RpeChip(
+                label: '$rpe',
+                isSelected: value == rpe,
+                color: _chipColor(rpe, cs, custom),
+                colorScheme: cs,
+                onTap: () => onChanged(value == rpe ? null : rpe),
+              ),
+          ],
+        ),
       ],
     );
   }
