@@ -2065,7 +2065,8 @@
     }
   },
   "setupChatGreetNoName": "Sem problemas! Vamos continuar.",
-  "setupChatAskBody": "Me conta um pouco sobre você — peso, altura e idade. Pode pular o que preferir.",
+  "setupChatAskBody": "Informe peso (kg), gordura corporal opcional (%), altura (cm) e idade (anos). Peso e gordura entram no seu histórico de métricas; altura e idade ficam no perfil.",
+  "setupChatBodyFatNeedsWeight": "Para registar gordura corporal, indique também o peso (kg).",
   "setupChatAskGender": "Qual seu gênero? Isso ajuda a personalizar a montagem dos treinos (ex.: prioridade de pernas para mulheres).",
   "setupChatPreferNotToSay": "Prefiro não dizer",
   "genderMale": "Homem",
