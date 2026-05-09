@@ -676,6 +676,69 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
   }
 
+  Widget _buildOverviewNextSetButton(
+    BuildContext context,
+    ActiveExecutionState exec,
+    (int exerciseIndex, int setNumber) next,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final onPrimary = colorScheme.onPrimary;
+    final label = l10n.nextSetButton(
+      _exerciseName(exec.exercises[next.$1].exerciseId),
+      next.$2,
+    );
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AthlosSpacing.md,
+            vertical: AthlosSpacing.smd,
+          ),
+        ),
+        onPressed: () => _goToFocused(exec, next.$1, next.$2),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const iconSize = 24.0;
+            const gap = AthlosSpacing.sm;
+            final leading = iconSize + gap;
+            final maxTextWidth = (constraints.maxWidth - leading)
+                .clamp(0.0, double.infinity)
+                .toDouble();
+
+            final labelStyle = textTheme.titleSmall?.copyWith(
+              color: onPrimary,
+              fontWeight: FontWeight.w600,
+            );
+
+            return Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.play_arrow, color: onPrimary, size: iconSize),
+                  const SizedBox(width: gap),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxTextWidth),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // View 1: Overview
   // ---------------------------------------------------------------------------
@@ -879,22 +942,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                             label: Text(l10n.finishWorkout),
                           ),
                         ),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: () =>
-                                _goToFocused(exec, next.$1, next.$2),
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(
-                              l10n.nextSetButton(
-                                _exerciseName(
-                                  exec.exercises[next.$1].exerciseId,
-                                ),
-                                next.$2,
-                              ),
-                            ),
-                          ),
-                        ),
+                        _buildOverviewNextSetButton(context, exec, next),
                       ],
                     ),
                   ] else

@@ -1572,7 +1572,7 @@
       "total": { "type": "int" }
     }
   },
-  "nextSetButton": "Próxima: {exercise} S.{set}",
+  "nextSetButton": "Próxima: S{set} · {exercise}",
   "@nextSetButton": {
     "description": "Button to jump to next pending set",
     "placeholders": {
