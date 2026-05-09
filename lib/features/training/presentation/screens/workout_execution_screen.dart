@@ -372,6 +372,60 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     LoadMode.assisted => 'Assistido',
   };
 
+  String? _effectiveLoadTooltipMessage({
+    required LoadMode mode,
+    required double? bodyWeight,
+    required Exercise? exerciseEntity,
+    required double plateOrAssistKg,
+    required double? effectiveTotal,
+  }) {
+    if (bodyWeight == null ||
+        exerciseEntity == null ||
+        effectiveTotal == null) {
+      return null;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    final bk = bodyWeight.toStringAsFixed(1);
+    final fac = (exerciseEntity.bodyweightLoadFactor ?? 1.0)
+        .toStringAsFixed(2);
+    final plate = plateOrAssistKg.toStringAsFixed(1);
+    final tot = effectiveTotal.toStringAsFixed(1);
+    return switch (mode) {
+      LoadMode.bodyweight =>
+        l10n.executionBodyweightLoadTooltip(bk, fac, plate, tot),
+      LoadMode.assisted =>
+        l10n.executionAssistedLoadTooltip(bk, fac, plate, tot),
+      LoadMode.weighted => null,
+    };
+  }
+
+  Widget? _effectiveLoadTooltipIcon({
+    required LoadMode mode,
+    required Exercise? exerciseEntity,
+    required double? bodyWeight,
+    required double? effectiveTotal,
+    required double plateOrAssistKg,
+    required ColorScheme colorScheme,
+  }) {
+    final msg = _effectiveLoadTooltipMessage(
+      mode: mode,
+      bodyWeight: bodyWeight,
+      exerciseEntity: exerciseEntity,
+      plateOrAssistKg: plateOrAssistKg,
+      effectiveTotal: effectiveTotal,
+    );
+    if (msg == null) return null;
+    return Tooltip(
+      message: msg,
+      triggerMode: TooltipTriggerMode.tap,
+      child: Icon(
+        Icons.info_outline,
+        size: 16,
+        color: colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
   int get _totalSetCount {
     final exec = ref.read(activeExecutionProvider);
     if (exec == null) return 0;
@@ -1267,11 +1321,15 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final resolvedLoadMode = _resolvedLoadModeFor(exercise, currentSetEntry);
     final weightSuffix = _weightSuffixForMode(resolvedLoadMode);
     final bodyWeight = ref.watch(latestBodyWeightProvider).value;
+    final weightForEffectiveLoad =
+        _isUnilateral ? _leftWeight : _currentWeight;
     final effectiveLoadHint = exerciseEntity == null
         ? null
         : effectiveLoad(
             mode: resolvedLoadMode,
-            setWeight: _currentWeight > 0 ? _currentWeight : null,
+            setWeight: weightForEffectiveLoad > 0
+                ? weightForEffectiveLoad
+                : null,
             bodyWeight: bodyWeight,
             loadFactor: exerciseEntity.bodyweightLoadFactor,
           );
@@ -1416,32 +1474,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
             ] else if (!_isUnilateral) ...[
               // Bilateral: standard weight + reps inputs
-              if ((resolvedLoadMode == LoadMode.bodyweight ||
-                      resolvedLoadMode == LoadMode.assisted) &&
-                  effectiveLoadHint != null &&
-                  bodyWeight != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Tooltip(
-                        message:
-                            '${bodyWeight.toStringAsFixed(1)} kg × ${(exerciseEntity?.bodyweightLoadFactor ?? 1).toStringAsFixed(2)}'
-                            ' = ${effectiveLoadHint.toStringAsFixed(1)} kg',
-                        triggerMode: TooltipTriggerMode.tap,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               _NumberInput(
                 value: _currentWeight,
                 suffix: weightSuffix,
+                suffixTrailing: _effectiveLoadTooltipIcon(
+                  mode: resolvedLoadMode,
+                  exerciseEntity: exerciseEntity,
+                  bodyWeight: bodyWeight,
+                  effectiveTotal: effectiveLoadHint,
+                  plateOrAssistKg: weightForEffectiveLoad,
+                  colorScheme: colorScheme,
+                ),
                 step: 2.5,
                 onChanged: (v) => setState(() => _currentWeight = v),
                 textTheme: textTheme,
@@ -1470,32 +1513,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ..._executionRepsTargetBelowInputs(context, exercise),
             ] else ...[
               // Unilateral: shared weight, per-side reps
-              if ((resolvedLoadMode == LoadMode.bodyweight ||
-                      resolvedLoadMode == LoadMode.assisted) &&
-                  effectiveLoadHint != null &&
-                  bodyWeight != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Tooltip(
-                        message:
-                            '${bodyWeight.toStringAsFixed(1)} kg × ${(exerciseEntity?.bodyweightLoadFactor ?? 1).toStringAsFixed(2)}'
-                            ' = ${effectiveLoadHint.toStringAsFixed(1)} kg',
-                        triggerMode: TooltipTriggerMode.tap,
-                        child: Icon(
-                          Icons.info_outline,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               _NumberInput(
                 value: _leftWeight,
                 suffix: weightSuffix,
+                suffixTrailing: _effectiveLoadTooltipIcon(
+                  mode: resolvedLoadMode,
+                  exerciseEntity: exerciseEntity,
+                  bodyWeight: bodyWeight,
+                  effectiveTotal: effectiveLoadHint,
+                  plateOrAssistKg: weightForEffectiveLoad,
+                  colorScheme: colorScheme,
+                ),
                 step: 2.5,
                 onChanged: (v) => setState(() {
                   _leftWeight = v;
@@ -3592,6 +3620,8 @@ class _OverviewExerciseCard extends StatelessWidget {
 class _NumberInput extends StatelessWidget {
   final double value;
   final String suffix;
+  /// Optional widget beside [suffix] (e.g. BW load explanation tooltip).
+  final Widget? suffixTrailing;
   final double step;
   final ValueChanged<double> onChanged;
   final TextTheme textTheme;
@@ -3602,6 +3632,7 @@ class _NumberInput extends StatelessWidget {
   const _NumberInput({
     required this.value,
     required this.suffix,
+    this.suffixTrailing,
     required this.step,
     required this.onChanged,
     required this.textTheme,
@@ -3653,12 +3684,23 @@ class _NumberInput extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  suffix,
-                  style: suffixStyle?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      suffix,
+                      style: suffixStyle?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (suffixTrailing != null) ...[
+                      const SizedBox(width: AthlosSpacing.xs),
+                      suffixTrailing!,
+                    ],
+                  ],
                 ),
               ],
             ),

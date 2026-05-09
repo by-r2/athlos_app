@@ -2589,5 +2589,25 @@
   "executionSetLoadModeInherit": "Herdar do treino",
   "@executionSetLoadModeInherit": {
     "description": "Clears per-set load mode override; uses workout + catalog cascade"
+  },
+  "executionBodyweightLoadTooltip": "({bodyKg} kg × {factor}) + {addedKg} kg adicional = {totalKg} kg efetivos",
+  "@executionBodyweightLoadTooltip": {
+    "description": "Effective load for BW mode: body×factor + extra weight from stepper",
+    "placeholders": {
+      "bodyKg": { "type": "String" },
+      "factor": { "type": "String" },
+      "addedKg": { "type": "String" },
+      "totalKg": { "type": "String" }
+    }
+  },
+  "executionAssistedLoadTooltip": "({bodyKg} kg × {factor}) − {assistKg} kg assistência = {totalKg} kg efetivos",
+  "@executionAssistedLoadTooltip": {
+    "description": "Effective load for assisted mode: body×factor minus assistance",
+    "placeholders": {
+      "bodyKg": { "type": "String" },
+      "factor": { "type": "String" },
+      "assistKg": { "type": "String" },
+      "totalKg": { "type": "String" }
+    }
   }
 }
