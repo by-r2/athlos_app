@@ -9,7 +9,9 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/execution_set.dart';
+import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/workout_share_metrics.dart';
@@ -20,6 +22,10 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
   final String workoutName;
+  final Map<int, Exercise>? exerciseById;
+  final Map<int, WorkoutExercise>? workoutExerciseByExerciseId;
+  final double? profileBodyWeightOnExecutionDate;
+  final double? latestBodyWeight;
 
   const WorkoutExecutionShareSummary({
     super.key,
@@ -27,6 +33,10 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
     required this.execution,
     required this.sets,
     required this.workoutName,
+    this.exerciseById,
+    this.workoutExerciseByExerciseId,
+    this.profileBodyWeightOnExecutionDate,
+    this.latestBodyWeight,
   });
 
   @override
@@ -36,7 +46,13 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
-    final metrics = computeWorkoutShareMetrics(sets);
+    final metrics = computeWorkoutShareMetrics(
+      sets,
+      exerciseById: exerciseById,
+      workoutExerciseByExerciseId: workoutExerciseByExerciseId,
+      profileBodyWeightOnExecutionDate: profileBodyWeightOnExecutionDate,
+      latestBodyWeight: latestBodyWeight,
+    );
     final locale = Localizations.localeOf(context).toString();
     final dateStr =
         DateFormat.yMMMd(locale).add_Hm().format(execution.startedAt);

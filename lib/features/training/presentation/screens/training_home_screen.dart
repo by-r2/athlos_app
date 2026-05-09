@@ -668,7 +668,7 @@ class _WeeklyVolumeCard extends ConsumerWidget {
                           : e.key;
                       return _VolumeRow(
                         label: label,
-                        sets: e.value,
+                        volumeKg: e.value,
                         targetMin: target.min,
                         targetMax: target.max,
                         colorScheme: colorScheme,
@@ -688,7 +688,7 @@ class _WeeklyVolumeCard extends ConsumerWidget {
 
 class _VolumeRow extends StatelessWidget {
   final String label;
-  final int sets;
+  final int volumeKg;
   final int targetMin;
   final int targetMax;
   final ColorScheme colorScheme;
@@ -696,7 +696,7 @@ class _VolumeRow extends StatelessWidget {
 
   const _VolumeRow({
     required this.label,
-    required this.sets,
+    required this.volumeKg,
     required this.targetMin,
     required this.targetMax,
     required this.colorScheme,
@@ -708,10 +708,10 @@ class _VolumeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fraction = (sets / targetMax).clamp(0.0, 1.0);
-    final statusColor = sets < targetMin
+    final fraction = (volumeKg / targetMax).clamp(0.0, 1.0);
+    final statusColor = volumeKg < targetMin
         ? colorScheme.error
-        : sets > targetMax
+        : volumeKg > targetMax
         ? _volumeOver
         : _volumeGood;
 
@@ -741,9 +741,9 @@ class _VolumeRow extends StatelessWidget {
           ),
           const Gap(AthlosSpacing.sm),
           SizedBox(
-            width: 28,
+            width: 56,
             child: Text(
-              '$sets',
+              '${volumeKg}kg',
               style: textTheme.labelMedium?.copyWith(
                 color: statusColor,
                 fontWeight: FontWeight.bold,

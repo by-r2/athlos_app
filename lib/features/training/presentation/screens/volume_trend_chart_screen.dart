@@ -15,7 +15,7 @@ import '../../domain/enums/muscle_group.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/training_metrics_provider.dart';
 
-/// Bar chart showing weekly volume (working sets) per muscle group over time.
+/// Bar chart showing weekly volume (kg tonnage) per muscle group over time.
 class VolumeTrendChartScreen extends ConsumerStatefulWidget {
   const VolumeTrendChartScreen({super.key});
 
@@ -263,7 +263,7 @@ class _VolumeTrendChartScreenState
             getTooltipItem: (group, groupIdx, rod, rodIdx) {
               final p = points[group.x];
               return BarTooltipItem(
-                '${dateFormat.format(p.weekStart)}\n${p.sets} sets',
+                '${dateFormat.format(p.weekStart)}\n${p.sets} kg',
                 TextStyle(
                   color: colorScheme.onInverseSurface,
                   fontWeight: FontWeight.bold,

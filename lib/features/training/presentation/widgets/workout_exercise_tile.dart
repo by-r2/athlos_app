@@ -6,6 +6,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/enums/load_mode.dart';
 import '../helpers/exercise_l10n.dart';
 
 /// Returns a theme color for a superset group, alternating between
@@ -24,6 +25,7 @@ class WorkoutExerciseEntry {
   int? duration;
   int? groupId;
   bool isUnilateral;
+  LoadMode? loadModeOverride;
   String? notes;
 
   WorkoutExerciseEntry({
@@ -36,6 +38,7 @@ class WorkoutExerciseEntry {
     this.duration,
     this.groupId,
     this.isUnilateral = false,
+    this.loadModeOverride,
     this.notes,
   });
 
@@ -332,6 +335,40 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                if (entry.exercise.supportsLoadModeOverride)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SegmentedButton<LoadMode>(
+                        segments: const [
+                          ButtonSegment(
+                            value: LoadMode.bodyweight,
+                            label: Text('BW'),
+                          ),
+                          ButtonSegment(
+                            value: LoadMode.weighted,
+                            label: Text('Máquina'),
+                          ),
+                          ButtonSegment(
+                            value: LoadMode.assisted,
+                            label: Text('Assistido'),
+                          ),
+                        ],
+                        selected: {
+                          entry.loadModeOverride ?? entry.exercise.defaultLoadMode,
+                        },
+                        onSelectionChanged: (selection) {
+                          final selected = selection.first;
+                          entry.loadModeOverride =
+                              selected == entry.exercise.defaultLoadMode
+                                  ? null
+                                  : selected;
+                          widget.onChanged(entry);
+                        },
+                      ),
                     ),
                   ),
                 if (!entry.usesDuration)

@@ -114,7 +114,7 @@ The database schema version is an integer in `app_database.dart` (the snippet he
 
 ```dart
 @override
-int get schemaVersion => 33;
+int get schemaVersion => 35;
 
 // increment whenever you ship a migration; keep this doc’s version list aligned
 ```
@@ -136,6 +136,8 @@ int get schemaVersion => 33;
 - **Version 31** `seedExercisesV8` — additive squat variants and variation edges (details in `exercise_seeder.dart`).
 - **Version 32** `seedExercisesV9` — additive catalog rows + variation edges (details in `exercise_seeder.dart`).
 - **Version 33** `seedExercisesV33` — additive cardio/abs rows (`stairClimbing`, `verticalClimber`, `jacobsLadder`, `russianTwist`) + variation edges; pair with matching `supabase/migrations/*.sql` and `catalog_version` when Postgres sync is used (details in `exercise_seeder.dart`, [catalog_exercises.md](./catalog_exercises.md)).
+- **Version 34** bodyweight volume model v2: `exercises.default_load_mode`, `exercises.bodyweight_load_factor`, `workout_exercises.load_mode_override`, migration from legacy `is_bodyweight`, seed factors via `seedExercisesV34`.
+- **Version 35** execution snapshot and cleanup: `execution_sets.body_weight_snapshot`, `execution_sets.load_mode_override`, removal of `execution_sets.notes` and `workout_executions.notes` (recreate-and-copy migrations).
 
 ### How Migrations Work
 

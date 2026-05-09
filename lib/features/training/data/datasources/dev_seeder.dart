@@ -194,7 +194,6 @@ Future<void> _seedExecutionHistory(
           startedAt: Value(now.subtract(const Duration(days: 3, hours: 1))),
           finishedAt:
               Value(now.subtract(const Duration(days: 3, minutes: 10))),
-          notes: const Value('Good session, PR on bench press'),
         ),
       );
   await _insertCompletedSets(db, exec1, exerciseIds['benchPress']!,
@@ -260,7 +259,6 @@ Future<void> _seedExecutionHistory(
           programId: programId,
           startedAt: Value(now.subtract(const Duration(hours: 2))),
           finishedAt: Value(now.subtract(const Duration(minutes: 30))),
-          notes: const Value('Legs were shaky after squats'),
         ),
       );
   await _insertCompletedSets(db, exec3, exerciseIds['backSquat']!,
@@ -285,7 +283,6 @@ Future<void> _seedExecutionHistory(
           startedAt: Value(now.subtract(const Duration(days: 2, hours: 1))),
           finishedAt:
               Value(now.subtract(const Duration(days: 2, minutes: 15))),
-          notes: const Value('Good cardio session'),
         ),
       );
   await _insertCompletedCardioSets(

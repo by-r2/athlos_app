@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../domain/enums/load_mode.dart';
 import 'exercises_table.dart';
 import 'workout_executions_table.dart';
 
@@ -38,8 +39,13 @@ class ExecutionSets extends Table {
   /// Rate of Perceived Exertion (1–10). Null when not recorded.
   IntColumn get rpe => integer().nullable()();
 
-  /// Per-set user notes (e.g. "felt easy", "pain in shoulder").
-  TextColumn get notes => text().nullable()();
+  /// Body weight snapshot in kg at the moment the set was logged. Used to
+  /// keep bodyweight volume historical calculations stable over time.
+  RealColumn get bodyWeightSnapshot => real().nullable()();
+
+  /// Rare per-set load mode override. Null means inherit from
+  /// `WorkoutExercise.loadModeOverride` and then from catalog default.
+  TextColumn get loadModeOverride => textEnum<LoadMode>().nullable()();
 
   /// Reps performed with the left side (unilateral exercises only).
   IntColumn get leftReps => integer().nullable()();

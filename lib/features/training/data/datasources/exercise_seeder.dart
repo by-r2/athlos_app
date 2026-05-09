@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
@@ -9,6 +10,30 @@ import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 
 typedef _MF = ({TargetMuscle muscle, MuscleRegion? region, MuscleRole role});
+
+/// Bodyweight load factors keyed by canonical exercise name.
+///
+/// Coefficients come from Ebben et al. (2011, JSCR — "Two-Plate Push-Up
+/// Performance: Anthropometric and Power Predictors") and the de Leva
+/// segmental data popularized by ExRx. They represent the fraction of body
+/// mass effectively lifted in the concentric phase. Isometrics are absent on
+/// purpose: their volume is duration-based and doesn't multiply against reps.
+///
+/// Exercises without an entry use `null` (no factor). In bodyweight mode the
+/// volume helpers fall back to a factor of `1.0`, which is a conservative
+/// over-estimate but never under-counts.
+const Map<String, double> _kBodyweightLoadFactors = {
+  'pullUp': 1.00,
+  'chinUp': 1.00,
+  'dip': 1.00,
+  'pushUp': 0.64,
+  'diamondPushUp': 0.64,
+  'pikePushUp': 0.64,
+  'kneePushUp': 0.49,
+  'declinePushUp': 0.70,
+  'inclinePushUp': 0.55,
+  'invertedRow': 0.50,
+};
 
 _MF _p(TargetMuscle m, [MuscleRegion? r]) =>
     (muscle: m, region: r, role: MuscleRole.primary);
@@ -33,7 +58,8 @@ Future<void> seedExercises(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             isIsometric: Value(item.isIsometric),
             description: const Value.absent(),
           ),
@@ -84,7 +110,7 @@ class _SeedExercise {
   final ExerciseType type;
   final MovementPattern? movementPattern;
   final List<_MF> muscles;
-  final bool isBodyweight;
+  final LoadMode defaultLoadMode;
   final bool isIsometric;
 
   const _SeedExercise(
@@ -93,7 +119,7 @@ class _SeedExercise {
     this.type = ExerciseType.strength,
     this.movementPattern,
     this.muscles = const [],
-    this.isBodyweight = false,
+    this.defaultLoadMode = LoadMode.weighted,
     this.isIsometric = false,
   });
 }
@@ -136,7 +162,7 @@ final _seedItems = [
     'pushUp',
     MuscleGroup.chest,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
       _s(TargetMuscle.anteriorDeltoid),
@@ -172,7 +198,7 @@ final _seedItems = [
     'declinePushUp',
     MuscleGroup.chest,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.pectoralisMajor, MuscleRegion.upper),
       _s(TargetMuscle.anteriorDeltoid),
@@ -183,14 +209,14 @@ final _seedItems = [
     'inclinePushUp',
     MuscleGroup.chest,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [_p(TargetMuscle.pectoralisMajor, MuscleRegion.lower)],
   ),
   _SeedExercise(
     'kneePushUp',
     MuscleGroup.chest,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.pectoralisMajor, MuscleRegion.mid),
       _s(TargetMuscle.anteriorDeltoid),
@@ -203,7 +229,7 @@ final _seedItems = [
     'pullUp',
     MuscleGroup.back,
     movementPattern: MovementPattern.pull,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.latissimusDorsi),
       _s(TargetMuscle.bicepsBrachii),
@@ -252,7 +278,7 @@ final _seedItems = [
     'chinUp',
     MuscleGroup.back,
     movementPattern: MovementPattern.pull,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.latissimusDorsi),
       _s(TargetMuscle.bicepsBrachii),
@@ -263,7 +289,7 @@ final _seedItems = [
     'invertedRow',
     MuscleGroup.back,
     movementPattern: MovementPattern.pull,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.rhomboids),
       _p(TargetMuscle.latissimusDorsi),
@@ -281,7 +307,7 @@ final _seedItems = [
     'superman',
     MuscleGroup.back,
     movementPattern: MovementPattern.isolation,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.erectorSpinae),
       _s(TargetMuscle.gluteusMaximus),
@@ -338,7 +364,7 @@ final _seedItems = [
     'pikePushUp',
     MuscleGroup.shoulders,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.anteriorDeltoid),
       _p(TargetMuscle.lateralDeltoid),
@@ -493,7 +519,7 @@ final _seedItems = [
     'diamondPushUp',
     MuscleGroup.triceps,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.tricepsBrachii),
       _s(TargetMuscle.pectoralisMajor),
@@ -503,7 +529,7 @@ final _seedItems = [
     'dip',
     MuscleGroup.triceps,
     movementPattern: MovementPattern.push,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.tricepsBrachii),
       _s(TargetMuscle.pectoralisMajor),
@@ -640,7 +666,7 @@ final _seedItems = [
   _SeedExercise(
     'gluteBridge',
     MuscleGroup.glutes,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     movementPattern: MovementPattern.hinge,
     muscles: [_p(TargetMuscle.gluteusMaximus)],
   ),
@@ -691,14 +717,14 @@ final _seedItems = [
   _SeedExercise(
     'crunch',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     movementPattern: MovementPattern.isolation,
     muscles: [_p(TargetMuscle.rectusAbdominis, MuscleRegion.upper)],
   ),
   _SeedExercise(
     'plank',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusAbdominis),
@@ -709,7 +735,7 @@ final _seedItems = [
   _SeedExercise(
     'sidePlank',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.obliques),
@@ -720,7 +746,7 @@ final _seedItems = [
   _SeedExercise(
     'hollowHold',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusAbdominis),
@@ -731,7 +757,7 @@ final _seedItems = [
   _SeedExercise(
     'lSit',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusAbdominis),
@@ -743,7 +769,7 @@ final _seedItems = [
   _SeedExercise(
     'wallSit',
     MuscleGroup.quadriceps,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusFemoris),
@@ -755,7 +781,7 @@ final _seedItems = [
   _SeedExercise(
     'deadHang',
     MuscleGroup.back,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.latissimusDorsi),
@@ -767,7 +793,7 @@ final _seedItems = [
   _SeedExercise(
     'hangingLegRaise',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     movementPattern: MovementPattern.isolation,
     muscles: [
       _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
@@ -832,7 +858,7 @@ final _seedItems = [
     'mountainClimber',
     MuscleGroup.cardio,
     type: ExerciseType.cardio,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.hipFlexors),
       _s(TargetMuscle.rectusAbdominis),
@@ -872,7 +898,7 @@ final _seedItems = [
   _SeedExercise(
     'russianTwist',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     movementPattern: MovementPattern.isolation,
     muscles: [
       _p(TargetMuscle.obliques),
@@ -1362,7 +1388,8 @@ Future<void> seedExercisesV6(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             description: const Value.absent(),
           ),
         );
@@ -1414,7 +1441,7 @@ final _v6SeedItems = [
     'neutralGripPullUp',
     MuscleGroup.back,
     movementPattern: MovementPattern.pull,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.latissimusDorsi),
       _s(TargetMuscle.brachialis),
@@ -1647,7 +1674,8 @@ Future<void> seedExercisesV7(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             isIsometric: Value(item.isIsometric),
             description: const Value.absent(),
           ),
@@ -1698,7 +1726,7 @@ final _v7SeedItems = [
   _SeedExercise(
     'sidePlank',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.obliques),
@@ -1709,7 +1737,7 @@ final _v7SeedItems = [
   _SeedExercise(
     'hollowHold',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusAbdominis),
@@ -1720,7 +1748,7 @@ final _v7SeedItems = [
   _SeedExercise(
     'lSit',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusAbdominis),
@@ -1732,7 +1760,7 @@ final _v7SeedItems = [
   _SeedExercise(
     'wallSit',
     MuscleGroup.quadriceps,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.rectusFemoris),
@@ -1744,7 +1772,7 @@ final _v7SeedItems = [
   _SeedExercise(
     'deadHang',
     MuscleGroup.back,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     isIsometric: true,
     muscles: [
       _p(TargetMuscle.latissimusDorsi),
@@ -1785,7 +1813,8 @@ Future<void> seedExercisesV8(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             isIsometric: Value(item.isIsometric),
             description: const Value.absent(),
           ),
@@ -1890,7 +1919,8 @@ Future<void> seedExercisesV9(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             isIsometric: Value(item.isIsometric),
             description: const Value.absent(),
           ),
@@ -1942,7 +1972,7 @@ final _v9SeedItems = [
     'superman',
     MuscleGroup.back,
     movementPattern: MovementPattern.isolation,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.erectorSpinae),
       _s(TargetMuscle.gluteusMaximus),
@@ -1959,7 +1989,7 @@ final _v9SeedItems = [
     'mountainClimber',
     MuscleGroup.cardio,
     type: ExerciseType.cardio,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     muscles: [
       _p(TargetMuscle.hipFlexors),
       _s(TargetMuscle.rectusAbdominis),
@@ -1996,7 +2026,8 @@ Future<void> seedExercisesV33(AppDatabase db) async {
             type: Value(item.type),
             movementPattern: Value(item.movementPattern),
             isVerified: const Value(true),
-            isBodyweight: Value(item.isBodyweight),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
             isIsometric: Value(item.isIsometric),
             description: const Value.absent(),
           ),
@@ -2077,7 +2108,7 @@ final _v33SeedItems = [
   _SeedExercise(
     'russianTwist',
     MuscleGroup.abs,
-    isBodyweight: true,
+    defaultLoadMode: LoadMode.bodyweight,
     movementPattern: MovementPattern.isolation,
     muscles: [
       _p(TargetMuscle.obliques),
@@ -2095,3 +2126,21 @@ const _v33Variations = [
   _Variation('stairClimbing', 'jacobsLadder'),
   _Variation('crunch', 'russianTwist'),
 ];
+
+/// v34 — populate `bodyweight_load_factor` for catalog rows whose default mode
+/// can include body weight. Idempotent: re-running the migration only updates
+/// rows that match the canonical name with the literature value.
+///
+/// `default_load_mode` is set elsewhere in the migration (it derives from the
+/// legacy `is_bodyweight` column); this routine focuses on the load factor.
+Future<void> seedExercisesV34(AppDatabase db) async {
+  for (final entry in _kBodyweightLoadFactors.entries) {
+    await db.customUpdate(
+      'UPDATE exercises SET bodyweight_load_factor = ? WHERE name = ?',
+      variables: [
+        Variable<double>(entry.value),
+        Variable<String>(entry.key),
+      ],
+    );
+  }
+}

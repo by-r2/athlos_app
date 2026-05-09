@@ -3,6 +3,7 @@ import 'dart:math';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../profile/domain/entities/body_metric.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/domain/enums/experience_level.dart';
 import '../../../profile/domain/enums/gender.dart';
@@ -20,6 +21,7 @@ import '../../../training/domain/enums/progression_type.dart';
 import '../../../training/domain/entities/training_program.dart';
 import '../../../training/domain/enums/duration_mode.dart';
 import '../../../training/domain/enums/program_focus.dart';
+import '../../../training/domain/entities/execution_set.dart';
 import '../../../training/domain/helpers/training_metrics.dart';
 import '../../../training/domain/repositories/program_repository.dart';
 import '../../../training/domain/repositories/progression_rule_repository.dart';
@@ -1001,30 +1003,73 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         return {'success': false, 'error': 'Exercise not found'};
       }
 
-      double? profileWeight;
-      final bmResult = await _bodyMetricRepo.getLatest();
-      if (bmResult.isSuccess) {
-        profileWeight = bmResult.getOrThrow()?.weight;
+      final metricsResult = await _bodyMetricRepo.getAll();
+      final metrics = metricsResult.isSuccess
+          ? metricsResult.getOrThrow()
+          : <BodyMetric>[];
+      final latestWeight =
+          metrics.isEmpty ? null : metrics.first.weight;
+
+      double? profileWeightAtOrBefore(DateTime instant) {
+        for (final m in metrics) {
+          if (!m.recordedAt.isAfter(instant)) return m.weight;
+        }
+        return null;
       }
 
       final setsResult =
-          await _executionRepo.getAllCompletedSetsForExercise(exerciseId);
+          await _executionRepo.getCompletedSetsWithDateForExercise(
+            exerciseId,
+          );
       if (!setsResult.isSuccess) {
         return {'success': false, 'error': 'Failed to load sets'};
       }
-      final sets = setsResult.getOrThrow();
-      if (sets.isEmpty) {
+      final rows = setsResult.getOrThrow();
+      if (rows.isEmpty) {
         return {'success': true, 'estimated1RM': null, 'message': 'No data'};
+      }
+
+      final execIds =
+          rows.map((r) => r.set.executionId).toSet();
+      final weByExecId = <int, domain_we.WorkoutExercise?>{};
+      for (final execId in execIds) {
+        final execResult = await _executionRepo.getById(execId);
+        final exec =
+            execResult.isSuccess ? execResult.getOrThrow() : null;
+        if (exec == null) {
+          weByExecId[execId] = null;
+          continue;
+        }
+        final wesResult = await _workoutRepo.getExercises(exec.workoutId);
+        if (!wesResult.isSuccess) {
+          weByExecId[execId] = null;
+          continue;
+        }
+        weByExecId[execId] = wesResult
+            .getOrThrow()
+            .where((we) => we.exerciseId == exerciseId)
+            .firstOrNull;
       }
 
       double? best1RM;
       double? bestWeight;
       int? bestReps;
-      for (final s in sets) {
+      for (final row in rows) {
+        final ExecutionSet s = row.set;
+        if (s.isWarmup) continue;
+        final we = weByExecId[s.executionId];
+        final profileAt = profileWeightAtOrBefore(row.date);
+        final resolvedBw =
+            s.bodyWeightSnapshot ?? profileAt ?? latestWeight;
         final load = effectiveLoad(
-          isBodyweight: exercise.isBodyweight,
+          mode: resolveLoadMode(
+            set: s,
+            workoutExercise: we,
+            exercise: exercise,
+          ),
           setWeight: s.weight,
-          profileWeight: profileWeight,
+          bodyWeight: resolvedBw,
+          loadFactor: exercise.bodyweightLoadFactor,
         );
         final e1rm = estimated1RM(weight: load, reps: s.reps);
         if (e1rm != null && (best1RM == null || e1rm > best1RM)) {

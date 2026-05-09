@@ -9,6 +9,9 @@ abstract interface class BodyMetricRepository {
   /// Most recent record, or null.
   Future<Result<BodyMetric?>> getLatest();
 
+  /// Latest record with [recordedAt] on or before [instant], or null.
+  Future<Result<BodyMetric?>> getLatestAtOrBefore(DateTime instant);
+
   Future<Result<int>> create(BodyMetric metric);
   Future<Result<void>> update(BodyMetric metric);
   Future<Result<void>> delete(int id);

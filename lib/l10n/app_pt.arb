@@ -1319,8 +1319,6 @@
   "@rpeTooltip": { "description": "Tooltip explaining what RPE means" },
   "warmupLabel": "Warmup",
   "@warmupLabel": { "description": "Label for warmup set toggle" },
-  "setNotesHint": "Notas do set (ex: dor no ombro, grip mais largo...)",
-  "@setNotesHint": { "description": "Hint text for per-set notes input during execution" },
   "restSecondsLabel": "Desc.",
   "@restSecondsLabel": { "description": "Short label for rest seconds" },
   "removeExercise": "Remover exercício",
@@ -2559,5 +2557,13 @@
   "workoutShareSummaryCardHint": "Resumo da sessão",
   "@workoutShareSummaryCardHint": {
     "description": "Small label above stats on the shareable workout card"
+  },
+  "executionSetLoadModeSheetTitle": "Modo de carga (esta série)",
+  "@executionSetLoadModeSheetTitle": {
+    "description": "Bottom sheet title when overriding BW / weighted / assisted for one set"
+  },
+  "executionSetLoadModeInherit": "Herdar do treino",
+  "@executionSetLoadModeInherit": {
+    "description": "Clears per-set load mode override; uses workout + catalog cascade"
   }
 }

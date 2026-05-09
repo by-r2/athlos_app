@@ -64,6 +64,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           duration: we.duration,
           groupId: we.groupId,
           isUnilateral: we.isUnilateral,
+          loadModeOverride: we.loadModeOverride,
           notes: we.notes,
         ));
         if (we.groupId != null && we.groupId! >= _nextGroupId) {
@@ -164,6 +165,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                 duration: e.value.duration,
                 groupId: e.value.groupId,
                 isUnilateral: e.value.isUnilateral,
+                loadModeOverride: e.value.loadModeOverride,
                 notes: e.value.notes,
               ))
           .toList();

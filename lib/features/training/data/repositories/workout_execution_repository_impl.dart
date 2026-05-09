@@ -4,16 +4,31 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/execution_comparison.dart';
+import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../domain/entities/execution_set.dart' as domain;
 import '../../domain/entities/execution_set_segment.dart' as domain;
 import '../../domain/entities/workout_execution.dart' as domain;
+import '../../domain/enums/load_mode.dart';
+import '../../domain/helpers/training_metrics.dart';
+import '../../domain/repositories/exercise_repository.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
+import '../../domain/repositories/workout_repository.dart';
 import '../datasources/daos/workout_execution_dao.dart';
 
 class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   final WorkoutExecutionDao _dao;
+  final ExerciseRepository? _exerciseRepository;
+  final WorkoutRepository? _workoutRepository;
+  final BodyMetricRepository? _bodyMetricRepository;
 
-  WorkoutExecutionRepositoryImpl(this._dao);
+  WorkoutExecutionRepositoryImpl(
+    this._dao, {
+    ExerciseRepository? exerciseRepository,
+    WorkoutRepository? workoutRepository,
+    BodyMetricRepository? bodyMetricRepository,
+  })  : _exerciseRepository = exerciseRepository,
+        _workoutRepository = workoutRepository,
+        _bodyMetricRepository = bodyMetricRepository;
 
   @override
   Future<Result<List<domain.WorkoutExecution>>> getAll() async {
@@ -72,8 +87,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       final last = _executionToDomain(finished[0]);
       final previous = _executionToDomain(finished[1]);
 
-      final volumeLast = await _volumeForExecution(last.id);
-      final volumePrevious = await _volumeForExecution(previous.id);
+      final volumeLast = await _volumeForExecution(last);
+      final volumePrevious = await _volumeForExecution(previous);
 
       return Success(ExecutionComparison(
         last: last,
@@ -87,16 +102,85 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     }
   }
 
-  Future<double> _volumeForExecution(int executionId) async {
-    final setsResult = await getSets(executionId);
-    final sets = setsResult.getOrThrow();
-    var volume = 0.0;
-    for (final s in sets) {
-      if (s.isCompleted && s.weight != null && s.reps != null) {
-        volume += s.weight! * s.reps!;
-      }
+  Future<double> _volumeForExecution(domain.WorkoutExecution exec) async {
+    final sets = await _setsWithSegments(exec.id);
+    final exerciseRepo = _exerciseRepository;
+    final workoutRepo = _workoutRepository;
+    final bodyMetricRepo = _bodyMetricRepository;
+    if (exerciseRepo == null || workoutRepo == null || bodyMetricRepo == null) {
+      return computeTotalVolume(sets);
     }
-    return volume;
+
+    final exercisesResult = await exerciseRepo.getAll();
+    final workoutWeResult = await workoutRepo.getExercises(exec.workoutId);
+    if (!exercisesResult.isSuccess || !workoutWeResult.isSuccess) {
+      return computeTotalVolume(sets);
+    }
+    final exerciseById = {
+      for (final e in exercisesResult.getOrThrow()) e.id: e,
+    };
+    final workoutExerciseByExerciseId = {
+      for (final we in workoutWeResult.getOrThrow()) we.exerciseId: we,
+    };
+
+    final historical =
+        (await bodyMetricRepo.getLatestAtOrBefore(exec.startedAt))
+            .getOrThrow()
+            ?.weight;
+    final latest =
+        (await bodyMetricRepo.getLatest()).getOrThrow()?.weight;
+
+    return computeTotalVolume(
+      sets,
+      exerciseById: exerciseById,
+      workoutExerciseByExerciseId: workoutExerciseByExerciseId,
+      profileBodyWeightOnExecutionDate: historical,
+      latestBodyWeight: latest,
+    );
+  }
+
+  /// Loads sets for [executionId] and attaches drop-set segments. Mirrors the
+  /// presentation-side `executionSetsWithSegments` provider so server-side
+  /// consumers (volume comparisons, future analytics) see the full picture.
+  Future<List<domain.ExecutionSet>> _setsWithSegments(int executionId) async {
+    final sets = (await getSets(executionId)).getOrThrow();
+    final segments =
+        (await getSegmentsForExecution(executionId)).getOrThrow();
+
+    if (segments.isEmpty) return sets;
+
+    final segmentsBySetId = <int, List<domain.ExecutionSetSegment>>{};
+    for (final seg in segments) {
+      segmentsBySetId.putIfAbsent(seg.executionSetId, () => []).add(seg);
+    }
+
+    return sets.map((s) {
+      final attached = segmentsBySetId[s.id];
+      if (attached == null || attached.isEmpty) return s;
+      return domain.ExecutionSet(
+        id: s.id,
+        executionId: s.executionId,
+        exerciseId: s.exerciseId,
+        setNumber: s.setNumber,
+        plannedReps: s.plannedReps,
+        plannedWeight: s.plannedWeight,
+        reps: s.reps,
+        weight: s.weight,
+        duration: s.duration,
+        distance: s.distance,
+        isCompleted: s.isCompleted,
+        isWarmup: s.isWarmup,
+        rpe: s.rpe,
+        bodyWeightSnapshot: s.bodyWeightSnapshot,
+        loadModeOverride: s.loadModeOverride,
+        leftReps: s.leftReps,
+        leftWeight: s.leftWeight,
+        rightReps: s.rightReps,
+        rightWeight: s.rightWeight,
+        isUnilateral: s.isUnilateral,
+        segments: attached,
+      );
+    }).toList();
   }
 
   @override
@@ -151,9 +235,9 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> finish(int executionId, {String? notes}) async {
+  Future<Result<void>> finish(int executionId) async {
     try {
-      await _dao.finish(executionId, notes: notes);
+      await _dao.finish(executionId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to finish execution: $e'));
@@ -197,7 +281,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isCompleted: Value(set.isCompleted),
           isWarmup: Value(set.isWarmup),
           rpe: Value(set.rpe),
-          notes: Value(set.notes),
+          bodyWeightSnapshot: Value(set.bodyWeightSnapshot),
+          loadModeOverride: Value(set.loadModeOverride),
           leftReps: Value(set.leftReps),
           leftWeight: Value(set.leftWeight),
           rightReps: Value(set.rightReps),
@@ -224,7 +309,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isCompleted: Value(set.isCompleted),
           isWarmup: Value(set.isWarmup),
           rpe: Value(set.rpe),
-          notes: Value(set.notes),
+          bodyWeightSnapshot: Value(set.bodyWeightSnapshot),
+          loadModeOverride: Value(set.loadModeOverride),
           leftReps: Value(set.leftReps),
           leftWeight: Value(set.leftWeight),
           rightReps: Value(set.rightReps),
@@ -333,7 +419,6 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         programId: row.programId as int,
         startedAt: row.startedAt as DateTime,
         finishedAt: row.finishedAt as DateTime?,
-        notes: row.notes as String?,
         exerciseConfigSnapshot: row.exerciseConfigSnapshot as String?,
       );
 
@@ -351,7 +436,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         isCompleted: row.isCompleted as bool,
         isWarmup: row.isWarmup as bool,
         rpe: row.rpe as int?,
-        notes: row.notes as String?,
+        bodyWeightSnapshot: row.bodyWeightSnapshot as double?,
+        loadModeOverride: row.loadModeOverride as LoadMode?,
         leftReps: row.leftReps as int?,
         leftWeight: row.leftWeight as double?,
         rightReps: row.rightReps as int?,

@@ -40,11 +40,10 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   Future<int> create(WorkoutExecutionsCompanion entry) =>
       into(workoutExecutions).insert(entry);
 
-  Future<void> finish(int id, {String? notes}) =>
+  Future<void> finish(int id) =>
       (update(workoutExecutions)..where((e) => e.id.equals(id))).write(
         WorkoutExecutionsCompanion(
           finishedAt: Value(DateTime.now()),
-          notes: Value(notes),
         ),
       );
 

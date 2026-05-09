@@ -2089,18 +2089,27 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   _BackupParsedPayload _applyLegacyExerciseImportTransforms(
     _BackupParsedPayload payload,
   ) {
-    if (payload.databaseSchemaVersion >
-        kLastBackupSchemaWithLegacyExerciseNaming) {
-      return payload;
-    }
-
     final sourceExercises = payload.tables[_tableExercises] ?? const [];
     final migratedExercises = sourceExercises
         .map(_copyExerciseRowApplyingLegacyNamingMigration)
         .toList();
+
+    final workoutExecutions = (payload.tables[_tableWorkoutExecutions] ?? const [])
+        .map((row) => Map<String, dynamic>.from(row)..remove('notes'))
+        .toList();
+    final executionSets = (payload.tables[_tableExecutionSets] ?? const [])
+        .map((row) => Map<String, dynamic>.from(row)
+          ..remove('notes')
+          ..putIfAbsent('body_weight_snapshot', () => null)
+          ..putIfAbsent('load_mode_override', () => null))
+        .toList();
+
     final nextTables = Map<String, List<Map<String, dynamic>>>.from(
       payload.tables,
-    )..[_tableExercises] = migratedExercises;
+    )
+      ..[_tableExercises] = migratedExercises
+      ..[_tableWorkoutExecutions] = workoutExecutions
+      ..[_tableExecutionSets] = executionSets;
 
     final migratedRefs =
         (payload.catalogReferences[_catalogExercises] ?? const [])
@@ -2126,6 +2135,15 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     if (raw != null && raw.trim().isNotEmpty) {
       copy['name'] = resolveImportedExerciseCatalogName(raw);
     }
+    // v34+ schema compatibility: translate legacy boolean `is_bodyweight`
+    // into enum `default_load_mode` and drop the old column so INSERTs don't
+    // fail on unknown field / missing NOT NULL enum.
+    if (!copy.containsKey('default_load_mode')) {
+      final isBodyweight = _asBool(copy['is_bodyweight']);
+      copy['default_load_mode'] = isBodyweight ? 'bodyweight' : 'weighted';
+    }
+    copy.putIfAbsent('bodyweight_load_factor', () => null);
+    copy.remove('is_bodyweight');
     return copy;
   }
 
@@ -2138,6 +2156,12 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     if (fn != null && fn.trim().isNotEmpty) {
       fb['name'] = resolveImportedExerciseCatalogName(fn);
     }
+    if (!fb.containsKey('default_load_mode')) {
+      final isBodyweight = _asBool(fb['is_bodyweight']);
+      fb['default_load_mode'] = isBodyweight ? 'bodyweight' : 'weighted';
+    }
+    fb.putIfAbsent('bodyweight_load_factor', () => null);
+    fb.remove('is_bodyweight');
     return BackupCatalogReference(
       localId: ref.localId,
       catalogRemoteId: ref.catalogRemoteId,
@@ -2380,7 +2404,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         'movement_pattern': row['movement_pattern'],
         'description': row['description'],
         'is_verified': 0,
-        'is_bodyweight': row['is_bodyweight'] ?? 0,
+        'default_load_mode': row['default_load_mode'] ??
+            (_asBool(row['is_bodyweight']) ? 'bodyweight' : 'weighted'),
+        'bodyweight_load_factor': row['bodyweight_load_factor'],
         'is_isometric': row['is_isometric'] ?? 0,
       },
     };

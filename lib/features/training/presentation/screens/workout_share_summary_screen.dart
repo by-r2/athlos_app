@@ -7,9 +7,12 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../domain/entities/execution_set.dart';
+import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../helpers/workout_share_image.dart';
+import '../providers/exercise_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
 import '../widgets/workout_execution_share_summary.dart';
@@ -93,6 +96,29 @@ class _WorkoutShareSummaryScreenState
             l10n.unknownWorkout
         : l10n.unknownWorkout;
 
+    final exercisesAsync = ref.watch(exerciseListProvider);
+    final exerciseById =
+        exercisesAsync.hasValue && (exercisesAsync.value?.isNotEmpty ?? false)
+            ? {
+                for (final e in exercisesAsync.value!) e.id: e,
+              }
+            : null;
+
+    final exerciseConfigAsync = execution != null
+        ? ref.watch(executionExerciseConfigProvider(execution))
+        : null;
+    final workoutExerciseByExerciseId = <int, WorkoutExercise>{};
+    if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
+      for (final we in wes) {
+        workoutExerciseByExerciseId[we.exerciseId] = we;
+      }
+    }
+
+    final historicProfileWeight = execution != null
+        ? ref.watch(profileBodyWeightAtProvider(execution.startedAt)).value
+        : null;
+    final latestBw = ref.watch(latestBodyWeightProvider).value;
+
     final exec = execution ?? _placeholderExecution;
     final sets = setsAsync.value ?? _placeholderSets;
     final isLoading = executionsAsync.isLoading || setsAsync.isLoading;
@@ -116,6 +142,14 @@ class _WorkoutShareSummaryScreenState
                       execution: exec,
                       sets: sets,
                       workoutName: workoutTitle,
+                      exerciseById: exerciseById,
+                      workoutExerciseByExerciseId:
+                          workoutExerciseByExerciseId.isEmpty
+                              ? null
+                              : workoutExerciseByExerciseId,
+                      profileBodyWeightOnExecutionDate:
+                          historicProfileWeight,
+                      latestBodyWeight: latestBw,
                     ),
                   ),
                 ),

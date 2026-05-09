@@ -33,6 +33,9 @@ Users keep an **owned gear** list on Profile (replacing the old equipment Drift 
 - Log a workout execution
 - **Strength exercises:**
   - Record weight used per set (defaults to last recorded weight from history)
+  - Load mode per exercise: `weighted`, `bodyweight`, or `assisted`
+  - Bodyweight load uses `bodyweightLoadFactor` and supports ballast/help in the same weight input (`+kg` / `-kg`)
+  - Body weight is snapshotted per completed set for stable historical tonnage
   - Record reps per set (defaults dynamically to last completed set's reps within the session)
   - **Drop sets** — add additional reduced-weight segments within a single set
   - **Performance feedback** — color-coded reps indicate deviation from plan (neutral within +-1 rep of target, warning at +-2-3, error at +-4+)
@@ -54,6 +57,7 @@ Users keep an **owned gear** list on Profile (replacing the old equipment Drift 
 - Detailed breakdown per exercise showing:
   - **Strength**: sets with weight x reps, color-coded performance indicators, aggregated load feedback
   - **Cardio**: sets with duration and distance
+- Weekly volume cards and trend chart use kg tonnage (warmups excluded), not set count
 - Performance feedback carried through to history (same color coding and suggestions as during execution)
 
 ### User Training Profile

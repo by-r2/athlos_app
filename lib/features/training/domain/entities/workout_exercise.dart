@@ -1,3 +1,5 @@
+import '../enums/load_mode.dart';
+
 /// Configuration of an exercise within a workout (sets, rep range, rest).
 class WorkoutExercise {
   final int workoutId;
@@ -29,6 +31,14 @@ class WorkoutExercise {
   /// Whether this exercise is performed unilaterally (one side at a time).
   final bool isUnilateral;
 
+  /// User-chosen load mode for this exercise within this workout. Overrides
+  /// the catalog default (`Exercise.defaultLoadMode`). Null means "use the
+  /// catalog default".
+  ///
+  /// Only meaningful when `Exercise.supportsLoadModeOverride` is true (i.e.
+  /// the catalog entry has a `bodyweightLoadFactor`).
+  final LoadMode? loadModeOverride;
+
   /// Free-text execution notes (postural cues, technique reminders, etc.).
   final String? notes;
 
@@ -44,6 +54,7 @@ class WorkoutExercise {
     this.duration,
     this.groupId,
     this.isUnilateral = false,
+    this.loadModeOverride,
     this.notes,
   });
 

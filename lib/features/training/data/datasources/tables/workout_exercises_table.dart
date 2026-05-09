@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../domain/enums/load_mode.dart';
 import 'exercises_table.dart';
 import 'workouts_table.dart';
 
@@ -32,6 +33,11 @@ class WorkoutExercises extends Table {
 
   /// Whether this exercise is performed unilaterally (one side at a time).
   BoolColumn get isUnilateral => boolean().withDefault(const Constant(false))();
+
+  /// User-chosen load mode override for this exercise within this workout.
+  /// `null` means "use the catalog's `Exercise.defaultLoadMode`". Only
+  /// meaningful when the catalog row exposes `bodyweightLoadFactor`.
+  TextColumn get loadModeOverride => textEnum<LoadMode>().nullable()();
 
   /// Free-text execution notes for this exercise within the workout.
   TextColumn get notes => text().nullable()();

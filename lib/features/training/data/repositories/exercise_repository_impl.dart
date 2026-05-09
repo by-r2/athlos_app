@@ -5,6 +5,7 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/exercise.dart' as domain;
 import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart' as domain_region;
@@ -133,7 +134,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           movementPattern: Value(exercise.movementPattern),
           description: Value(exercise.description),
           isVerified: Value(exercise.isVerified),
-          isBodyweight: Value(exercise.isBodyweight),
+          defaultLoadMode: Value(exercise.defaultLoadMode),
+          bodyweightLoadFactor: Value(exercise.bodyweightLoadFactor),
           isIsometric: Value(exercise.isIsometric),
         ),
       );
@@ -162,6 +164,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
           movementPattern: Value(exercise.movementPattern),
           description: Value(exercise.description),
           isVerified: Value(exercise.isVerified),
+          defaultLoadMode: Value(exercise.defaultLoadMode),
+          bodyweightLoadFactor: Value(exercise.bodyweightLoadFactor),
           isIsometric: Value(exercise.isIsometric),
         ),
       );
@@ -225,7 +229,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         movementPattern: row.movementPattern as MovementPattern?,
         description: row.description as String?,
         isVerified: row.isVerified as bool,
-        isBodyweight: row.isBodyweight as bool,
+        defaultLoadMode: row.defaultLoadMode as LoadMode,
+        bodyweightLoadFactor: row.bodyweightLoadFactor as double?,
         isIsometric: row.isIsometric as bool,
         muscles: muscles,
       );

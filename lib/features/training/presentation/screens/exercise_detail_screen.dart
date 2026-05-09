@@ -13,6 +13,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
@@ -149,7 +150,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   textTheme: textTheme,
                 ),
               ],
-              if (displayExercise.isBodyweight) ...[
+              if (displayExercise.defaultLoadMode == LoadMode.bodyweight) ...[
                 const Gap(AthlosSpacing.md),
                 _buildInfoSection(
                   context,

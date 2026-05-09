@@ -81,6 +81,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   duration: Value(e.duration),
                   groupId: Value(e.groupId),
                   isUnilateral: Value(e.isUnilateral),
+                  loadModeOverride: Value(e.loadModeOverride),
                   notes: Value(e.notes),
                 ))
             .toList(),
@@ -119,6 +120,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   duration: Value(e.duration),
                   groupId: Value(e.groupId),
                   isUnilateral: Value(e.isUnilateral),
+                  loadModeOverride: Value(e.loadModeOverride),
                   notes: Value(e.notes),
                 ))
             .toList(),
@@ -201,6 +203,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
                   duration: row.duration,
                   groupId: row.groupId,
                   isUnilateral: row.isUnilateral,
+                  loadModeOverride: row.loadModeOverride,
                   notes: row.notes,
                 ))
             .toList(),

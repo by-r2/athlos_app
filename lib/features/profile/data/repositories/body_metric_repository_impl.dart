@@ -35,6 +35,19 @@ class BodyMetricRepositoryImpl implements BodyMetricRepository {
   }
 
   @override
+  Future<Result<domain.BodyMetric?>> getLatestAtOrBefore(
+    DateTime instant,
+  ) async {
+    try {
+      final row = await _dao.getLatestAtOrBefore(instant);
+      return Success(row != null ? _toDomain(row) : null);
+    } on Exception catch (e) {
+      return Failure(
+          DatabaseException('Failed to load body metric at date: $e'));
+    }
+  }
+
+  @override
   Future<Result<int>> create(domain.BodyMetric metric) async {
     try {
       final id = await _dao.create(BodyMetricsCompanion.insert(

@@ -16,9 +16,13 @@ import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../data/repositories/training_providers.dart';
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/training_program.dart';
 import '../../domain/entities/workout_exercise.dart';
+import '../../domain/enums/load_mode.dart';
+import '../../domain/helpers/training_metrics.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
@@ -94,8 +98,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   double _currentDistance = 0;
   int? _selectedRpe;
   bool _isUnilateral = false;
-  String? _setNotes;
-  bool _showNotesField = false;
   List<_DropSegmentInput> _dropSegments = [];
   _TimedSubState _timedSubState = _TimedSubState.ready;
   int _countdownValue = 3;
@@ -327,6 +329,115 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     return localizedMuscleGroupName(entity.muscleGroup, l10n);
   }
 
+  Exercise? _exerciseEntity(int exerciseId) {
+    final allExercises = ref.read(exerciseListProvider).value;
+    return allExercises?.firstWhere(
+      (e) => e.id == exerciseId,
+      orElse: () => throw StateError('Exercise $exerciseId not found'),
+    );
+  }
+
+  LoadMode _resolvedLoadModeFor(
+    WorkoutExercise workoutExercise, [
+    SetEntry? currentSetEntry,
+  ]) {
+    final exercise = _exerciseEntity(workoutExercise.exerciseId);
+    if (exercise == null) return LoadMode.weighted;
+    return resolveLoadMode(
+      activeSetLoadModeOverride: currentSetEntry?.loadModeOverride,
+      workoutExercise: workoutExercise,
+      exercise: exercise,
+    );
+  }
+
+  Future<void> _openSetLoadModePicker({
+    required int exerciseId,
+    required WorkoutExercise workoutExercise,
+    required SetEntry setEntry,
+  }) async {
+    final exerciseEntity = _exerciseEntity(exerciseId);
+    if (exerciseEntity == null || !exerciseEntity.supportsLoadModeOverride) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    final inheritedMode = resolveLoadMode(
+      workoutExercise: workoutExercise,
+      exercise: exerciseEntity,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        final tt = Theme.of(ctx).textTheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AthlosSpacing.md,
+                    AthlosSpacing.xs,
+                    AthlosSpacing.md,
+                    AthlosSpacing.sm,
+                  ),
+                  child: Text(
+                    l10n.executionSetLoadModeSheetTitle,
+                    style:
+                        tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                ListTile(
+                  title: Text(l10n.executionSetLoadModeInherit),
+                  subtitle: Text(_loadModeChipLabel(inheritedMode)),
+                  onTap: () {
+                    ref
+                        .read(activeExecutionProvider.notifier)
+                        .updateSetLoadModeOverride(
+                          exerciseId,
+                          setEntry.setNumber,
+                          null,
+                        );
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+                for (final mode in LoadMode.values)
+                  ListTile(
+                    title: Text(_loadModeChipLabel(mode)),
+                    onTap: () {
+                      ref
+                          .read(activeExecutionProvider.notifier)
+                          .updateSetLoadModeOverride(
+                            exerciseId,
+                            setEntry.setNumber,
+                            mode == inheritedMode ? null : mode,
+                          );
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _weightSuffixForMode(LoadMode mode) => switch (mode) {
+        LoadMode.weighted => 'kg',
+        LoadMode.bodyweight => '+kg',
+        LoadMode.assisted => '-kg',
+      };
+
+  String _loadModeChipLabel(LoadMode mode) => switch (mode) {
+        LoadMode.bodyweight => 'BW',
+        LoadMode.weighted => 'Máquina',
+        LoadMode.assisted => 'Assistido',
+      };
+
   int get _totalSetCount {
     final exec = ref.read(activeExecutionProvider);
     if (exec == null) return 0;
@@ -462,8 +573,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             : entry.reps ?? 0;
       }
       _selectedRpe = entry.rpe;
-      _setNotes = entry.notes;
-      _showNotesField = entry.notes != null && entry.notes!.isNotEmpty;
       _dropSegments = entry.segments
           .skip(1)
           .map((s) => _DropSegmentInput(reps: s.reps, weight: s.weight ?? 0))
@@ -867,6 +976,20 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       (s) => s.setNumber == _focusedSetNumber,
       orElse: () => sets.first,
     );
+    final exerciseEntity = _exerciseEntity(exercise.exerciseId);
+    final resolvedLoadMode = _resolvedLoadModeFor(exercise, currentSetEntry);
+    final weightSuffix = _weightSuffixForMode(resolvedLoadMode);
+    final showLoadModeChip = exerciseEntity != null &&
+        exerciseEntity.supportsLoadModeOverride;
+    final bodyWeight = ref.watch(latestBodyWeightProvider).value;
+    final effectiveLoadHint = exerciseEntity == null
+        ? null
+        : effectiveLoad(
+            mode: resolvedLoadMode,
+            setWeight: _currentWeight > 0 ? _currentWeight : null,
+            bodyWeight: bodyWeight,
+            loadFactor: exerciseEntity.bodyweightLoadFactor,
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -963,6 +1086,49 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                   ],
                 ],
               ),
+            if (showLoadModeChip)
+              Padding(
+                padding: const EdgeInsets.only(top: AthlosSpacing.xs),
+                child: Material(
+                  color: colorScheme.tertiaryContainer,
+                  borderRadius: AthlosRadius.fullAll,
+                  child: InkWell(
+                    onTap: () => _openSetLoadModePicker(
+                      exerciseId: exercise.exerciseId,
+                      workoutExercise: exercise,
+                      setEntry: currentSetEntry,
+                    ),
+                    borderRadius: AthlosRadius.fullAll,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AthlosSpacing.sm,
+                        vertical: AthlosSpacing.xxs,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _loadModeChipLabel(resolvedLoadMode),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onTertiaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (currentSetEntry.loadModeOverride != null) ...[
+                            const SizedBox(width: AthlosSpacing.xxs),
+                            Icon(
+                              Icons.edit_note,
+                              size: 14,
+                              color: colorScheme.onTertiaryContainer,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (exercise.notes != null && exercise.notes!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: AthlosSpacing.sm),
@@ -1016,9 +1182,32 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
             ] else if (!_isUnilateral) ...[
               // Bilateral: standard weight + reps inputs
+              if ((resolvedLoadMode == LoadMode.bodyweight ||
+                      resolvedLoadMode == LoadMode.assisted) &&
+                  effectiveLoadHint != null &&
+                  bodyWeight != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Tooltip(
+                        message:
+                            '${bodyWeight.toStringAsFixed(1)} kg × ${(exerciseEntity?.bodyweightLoadFactor ?? 1).toStringAsFixed(2)}'
+                            ' = ${effectiveLoadHint.toStringAsFixed(1)} kg',
+                        triggerMode: TooltipTriggerMode.tap,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _NumberInput(
                 value: _currentWeight,
-                suffix: l10n.weightKgSuffix,
+                suffix: weightSuffix,
                 step: 2.5,
                 onChanged: (v) => setState(() => _currentWeight = v),
                 textTheme: textTheme,
@@ -1049,9 +1238,32 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               const SizedBox(height: AthlosSpacing.md),
             ] else ...[
               // Unilateral: shared weight, per-side reps
+              if ((resolvedLoadMode == LoadMode.bodyweight ||
+                      resolvedLoadMode == LoadMode.assisted) &&
+                  effectiveLoadHint != null &&
+                  bodyWeight != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Tooltip(
+                        message:
+                            '${bodyWeight.toStringAsFixed(1)} kg × ${(exerciseEntity?.bodyweightLoadFactor ?? 1).toStringAsFixed(2)}'
+                            ' = ${effectiveLoadHint.toStringAsFixed(1)} kg',
+                        triggerMode: TooltipTriggerMode.tap,
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _NumberInput(
                 value: _leftWeight,
-                suffix: l10n.weightKgSuffix,
+                suffix: weightSuffix,
                 step: 2.5,
                 onChanged: (v) => setState(() {
                   _leftWeight = v;
@@ -1216,71 +1428,21 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ),
               ),
 
-            // Notes toggle + RPE selector
+            // RPE selector
             Padding(
               padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _showNotesField = !_showNotesField),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AthlosSpacing.sm,
-                        vertical: AthlosSpacing.xxs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _showNotesField
-                            ? colorScheme.secondaryContainer
-                            : colorScheme.surfaceContainerHighest,
-                        borderRadius: AthlosRadius.fullAll,
-                        border: Border.all(
-                          color: _showNotesField
-                              ? colorScheme.secondary.withValues(alpha: 0.5)
-                              : colorScheme.outline.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.note_alt_outlined,
-                        size: 14,
-                        color: _showNotesField
-                            ? colorScheme.onSecondaryContainer
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  if (!_isFocusedCardio(exec)) ...[
-                    const SizedBox(width: AthlosSpacing.md),
+                  if (!_isFocusedCardio(exec))
                     Expanded(
                       child: _RpeSelector(
                         value: _selectedRpe,
                         onChanged: (v) => setState(() => _selectedRpe = v),
                       ),
                     ),
-                  ],
                 ],
               ),
             ),
-            if (_showNotesField)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AthlosSpacing.md),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: l10n.setNotesHint,
-                    isDense: true,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AthlosSpacing.sm,
-                      vertical: AthlosSpacing.sm,
-                    ),
-                  ),
-                  maxLines: 2,
-                  minLines: 1,
-                  textInputAction: TextInputAction.done,
-                  controller: TextEditingController(text: _setNotes),
-                  onChanged: (v) => _setNotes = v,
-                ),
-              ),
 
             // Complete button
             if (!currentSetEntry.isCompleted)
@@ -2374,6 +2536,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final timedSetEntry = sets.firstWhere(
+      (s) => s.setNumber == _focusedSetNumber,
+      orElse: () => sets.first,
+    );
     final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.duration ?? 0;
 
@@ -2447,7 +2613,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
             _NumberInput(
               value: _currentWeight,
-              suffix: 'kg',
+              suffix:
+                  _weightSuffixForMode(_resolvedLoadModeFor(exercise, timedSetEntry)),
               step: 2.5,
               onChanged: (v) => setState(() => _currentWeight = v),
               textTheme: textTheme,
@@ -2557,9 +2724,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             duration: _currentDuration > 0 ? _currentDuration : null,
             weight: _currentWeight > 0 ? _currentWeight : null,
             rpe: _selectedRpe,
-            notes: _setNotes?.trim().isNotEmpty == true
-                ? _setNotes!.trim()
-                : null,
           );
       rest = r;
     } on Exception catch (_) {
@@ -2635,9 +2799,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 ? (_currentDistance > 0 ? _currentDistance : null)
                 : null,
             rpe: _selectedRpe,
-            notes: _setNotes?.trim().isNotEmpty == true
-                ? _setNotes!.trim()
-                : null,
             segments: segments.isEmpty ? null : segments,
             leftReps: isUni && _leftReps > 0 ? _leftReps : null,
             leftWeight: isUni && _leftWeight > 0 ? _leftWeight : null,
@@ -2700,9 +2861,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             duration: _currentDuration > 0 ? _currentDuration : null,
             distance: _currentDistance > 0 ? _currentDistance : null,
             rpe: _selectedRpe,
-            notes: _setNotes?.trim().isNotEmpty == true
-                ? _setNotes!.trim()
-                : null,
           );
       rest = r;
     } on Exception catch (_) {

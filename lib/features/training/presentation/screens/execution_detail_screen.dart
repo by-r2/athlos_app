@@ -98,9 +98,11 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
         ? ref.watch(executionExerciseConfigProvider(execution))
         : null;
     final unilateralMap = <int, bool>{};
+    final workoutExerciseByExerciseId = <int, WorkoutExercise>{};
     if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
       for (final we in wes) {
         unilateralMap[we.exerciseId] = we.isUnilateral;
+        workoutExerciseByExerciseId[we.exerciseId] = we;
       }
     }
 
@@ -118,17 +120,31 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final exerciseMapLocal = {for (final e in allExercises) e.id: e};
     final profileWeight =
         ref.watch(latestBodyWeightProvider).value;
+    final historicProfileWeight = execution != null
+        ? ref
+            .watch(profileBodyWeightAtProvider(execution.startedAt))
+            .value
+        : null;
     for (final exId in sets.map((s) => s.exerciseId).toSet()) {
       final pr = ref.watch(exercisePRProvider(exId)).value;
       if (pr == null) continue;
       final ex = exerciseMapLocal[exId];
-      final isBw = ex?.isBodyweight ?? false;
+      if (ex == null) continue;
       for (final s in sets.where((s) => s.exerciseId == exId)) {
         if (!s.isCompleted) continue;
+        if (s.isWarmup) continue;
         final load = effectiveLoad(
-            isBodyweight: isBw,
-            setWeight: s.weight,
-            profileWeight: profileWeight);
+          mode: resolveLoadMode(
+            set: s,
+            workoutExercise: workoutExerciseByExerciseId[s.exerciseId],
+            exercise: ex,
+          ),
+          setWeight: s.weight,
+          bodyWeight: s.bodyWeightSnapshot ??
+              historicProfileWeight ??
+              profileWeight,
+          loadFactor: ex.bodyweightLoadFactor,
+        );
         final e1rm = estimated1RM(weight: load, reps: s.reps);
         if (e1rm != null && e1rm >= pr.best1RM) {
           prSetIdsPerExercise
@@ -186,12 +202,25 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
                 execution: execution ?? _placeholderExecution,
                 sets: sets,
                 workoutName: workoutName,
+                exerciseById:
+                    exercisesAsync.hasValue ? exerciseMapLocal : null,
+                workoutExerciseByExerciseId:
+                    workoutExerciseByExerciseId.isEmpty
+                        ? null
+                        : workoutExerciseByExerciseId,
+                profileBodyWeightOnExecutionDate:
+                    historicProfileWeight,
+                latestBodyWeight: profileWeight,
               ),
               _ExecutionDetailBody(
                 execution: execution ?? _placeholderExecution,
                 sets: sets,
                 exercisesAsync: exercisesAsync,
                 unilateralMap: unilateralMap,
+                workoutExerciseByExerciseId: workoutExerciseByExerciseId,
+                profileBodyWeightOnExecutionDate:
+                    historicProfileWeight,
+                latestBodyWeight: profileWeight,
                 prSetIdsPerExercise: prSetIdsPerExercise,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
@@ -210,12 +239,20 @@ class _ExecutionShareSummaryTab extends StatefulWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
   final String workoutName;
+  final Map<int, Exercise>? exerciseById;
+  final Map<int, WorkoutExercise>? workoutExerciseByExerciseId;
+  final double? profileBodyWeightOnExecutionDate;
+  final double? latestBodyWeight;
 
   const _ExecutionShareSummaryTab({
     required this.captureKey,
     required this.execution,
     required this.sets,
     required this.workoutName,
+    this.exerciseById,
+    this.workoutExerciseByExerciseId,
+    this.profileBodyWeightOnExecutionDate,
+    this.latestBodyWeight,
   });
 
   @override
@@ -245,6 +282,11 @@ class _ExecutionShareSummaryTabState extends State<_ExecutionShareSummaryTab> {
           execution: widget.execution,
           sets: widget.sets,
           workoutName: widget.workoutName,
+          exerciseById: widget.exerciseById,
+          workoutExerciseByExerciseId: widget.workoutExerciseByExerciseId,
+          profileBodyWeightOnExecutionDate:
+              widget.profileBodyWeightOnExecutionDate,
+          latestBodyWeight: widget.latestBodyWeight,
         ),
         const Gap(AthlosSpacing.md),
         FilledButton(
@@ -261,6 +303,9 @@ class _ExecutionDetailBody extends StatelessWidget {
   final List<ExecutionSet> sets;
   final AsyncValue<List<Exercise>> exercisesAsync;
   final Map<int, bool> unilateralMap;
+  final Map<int, WorkoutExercise> workoutExerciseByExerciseId;
+  final double? profileBodyWeightOnExecutionDate;
+  final double? latestBodyWeight;
   final Map<int, Set<int>> prSetIdsPerExercise;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
@@ -271,6 +316,9 @@ class _ExecutionDetailBody extends StatelessWidget {
     required this.sets,
     required this.exercisesAsync,
     required this.unilateralMap,
+    required this.workoutExerciseByExerciseId,
+    this.profileBodyWeightOnExecutionDate,
+    this.latestBodyWeight,
     this.prSetIdsPerExercise = const {},
     required this.colorScheme,
     required this.textTheme,
@@ -283,21 +331,22 @@ class _ExecutionDetailBody extends StatelessWidget {
     final exerciseMap = {for (final e in allExercises) e.id: e};
     final exerciseIds = sets.map((s) => s.exerciseId).toSet().toList();
 
-    double totalVolume = 0;
+    final totalVolume = computeTotalVolume(
+      sets,
+      exerciseById: exerciseMap.isEmpty ? null : exerciseMap,
+      workoutExerciseByExerciseId:
+          workoutExerciseByExerciseId.isEmpty
+              ? null
+              : workoutExerciseByExerciseId,
+      profileBodyWeightOnExecutionDate:
+          profileBodyWeightOnExecutionDate,
+      latestBodyWeight: latestBodyWeight,
+    );
     int totalCompletedSets = 0;
     int totalPlannedSets = sets.length;
 
     for (final s in sets) {
-      if (s.isCompleted) {
-        totalCompletedSets++;
-        if (s.segments.isNotEmpty) {
-          for (final seg in s.segments) {
-            totalVolume += seg.reps * (seg.weight ?? 0);
-          }
-        } else {
-          totalVolume += (s.reps ?? 0) * (s.weight ?? 0);
-        }
-      }
+      if (s.isCompleted) totalCompletedSets++;
     }
 
     final locale = Localizations.localeOf(context).toString();
@@ -899,29 +948,6 @@ class _SetRow extends StatelessWidget {
             ),
           ),
 
-        if (setEntry.notes != null && setEntry.notes!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(
-              left: AthlosSpacing.lg + AthlosSpacing.sm,
-              bottom: AthlosSpacing.xs,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.note_alt_outlined,
-                    size: 12, color: colorScheme.onSurfaceVariant),
-                const SizedBox(width: AthlosSpacing.xs),
-                Flexible(
-                  child: Text(
-                    setEntry.notes!,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }

@@ -49,3 +49,12 @@ Future<double?> latestBodyWeight(Ref ref) async {
   return metrics.first.weight;
 }
 
+/// Weight from the body timeline at or before [instant] (for historic load).
+@riverpod
+Future<double?> profileBodyWeightAt(Ref ref, DateTime instant) async {
+  final repo = ref.watch(bodyMetricRepositoryProvider);
+  final result = await repo.getLatestAtOrBefore(instant);
+  if (!result.isSuccess) return null;
+  return result.getOrThrow()?.weight;
+}
+

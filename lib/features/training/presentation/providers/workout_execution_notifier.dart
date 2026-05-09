@@ -75,7 +75,8 @@ Future<List<ExecutionSet>> executionSetsWithSegments(
             isCompleted: s.isCompleted,
             isWarmup: s.isWarmup,
             rpe: s.rpe,
-            notes: s.notes,
+            bodyWeightSnapshot: s.bodyWeightSnapshot,
+            loadModeOverride: s.loadModeOverride,
             segments: segments,
           );
         }

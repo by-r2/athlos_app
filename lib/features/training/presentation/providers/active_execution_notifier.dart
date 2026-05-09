@@ -12,6 +12,7 @@ import '../../domain/entities/progression_rule.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/enums/deload_strategy.dart';
+import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_type.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
@@ -21,6 +22,7 @@ import 'program_notifier.dart';
 import 'workout_execution_notifier.dart';
 import 'workout_notifier.dart';
 
+import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import 'recalculate_training_streaks.dart';
 
@@ -225,6 +227,31 @@ class ActiveExecution extends _$ActiveExecution {
   }
 
   /// Remove a drop segment by index.
+  /// Overrides how load is interpreted for one set (persisted when completed).
+  void updateSetLoadModeOverride(
+    int exerciseId,
+    int setNumber,
+    LoadMode? loadModeOverride,
+  ) {
+    final current = state;
+    if (current == null) return;
+
+    final sets = current.exerciseSets[exerciseId];
+    if (sets == null) return;
+
+    final updated = [
+      for (final s in sets)
+        if (s.setNumber == setNumber)
+          s.copyWith(loadModeOverride: () => loadModeOverride)
+        else
+          s,
+    ];
+
+    state = current.copyWith(
+      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+    );
+  }
+
   void removeDropSegment(int exerciseId, int setNumber, int segmentIndex) {
     final current = state;
     if (current == null) return;
@@ -263,7 +290,6 @@ class ActiveExecution extends _$ActiveExecution {
     int? duration,
     double? distance,
     int? rpe,
-    String? notes,
     List<SegmentEntry>? segments,
     int? leftReps,
     double? leftWeight,
@@ -279,6 +305,7 @@ class ActiveExecution extends _$ActiveExecution {
 
     final entry = sets.firstWhere((s) => s.setNumber == setNumber);
     final effectiveSegments = segments ?? entry.segments;
+    final bodyWeightSnapshot = await ref.read(latestBodyWeightProvider.future);
 
     final executionSet = ExecutionSet(
       id: entry.id ?? 0,
@@ -294,7 +321,8 @@ class ActiveExecution extends _$ActiveExecution {
       isCompleted: true,
       isWarmup: false,
       rpe: rpe,
-      notes: notes,
+      bodyWeightSnapshot: bodyWeightSnapshot,
+      loadModeOverride: entry.loadModeOverride,
       leftReps: leftReps,
       leftWeight: leftWeight,
       rightReps: rightReps,
@@ -330,7 +358,6 @@ class ActiveExecution extends _$ActiveExecution {
             isCompleted: true,
             isWarmup: false,
             rpe: () => rpe,
-            notes: () => notes,
             leftReps: () => leftReps,
             leftWeight: () => leftWeight,
             rightReps: () => rightReps,
@@ -437,7 +464,7 @@ class ActiveExecution extends _$ActiveExecution {
             isCompleted: existing.isCompleted,
             isWarmup: existing.isWarmup,
             rpe: existing.rpe,
-            notes: existing.notes,
+            loadModeOverride: existing.loadModeOverride,
             leftReps: existing.leftReps,
             leftWeight: existing.leftWeight,
             rightReps: existing.rightReps,
