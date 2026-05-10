@@ -9,6 +9,7 @@ import '../../domain/entities/deload_config.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/progression_rule.dart';
+import '../../domain/helpers/load_progression_rules.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/enums/deload_strategy.dart';
@@ -24,6 +25,7 @@ import 'workout_notifier.dart';
 
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
+import '../helpers/rep_performance.dart';
 import 'recalculate_training_streaks.dart';
 
 part 'active_execution_notifier.g.dart';
@@ -281,7 +283,7 @@ class ActiveExecution extends _$ActiveExecution {
   /// Returns the rest time (seconds) for the exercise so the caller can start
   /// the timer.
   /// Returns (restSeconds, suggestedNextWeight) — suggestedNextWeight is non-null
-  /// when all working sets hit maxReps and no progression rule is defined.
+  /// only when **every planned work set** (excluding warm-ups) hit at least `maxReps`.
   Future<(int, double?)> completeSet(
     int exerciseId,
     int setNumber, {
@@ -379,21 +381,24 @@ class ActiveExecution extends _$ActiveExecution {
 
     double? suggestedWeight;
     final maxReps = exercise.maxReps;
-    if (maxReps != null && maxReps > 0) {
-      final latestSets = state!.exerciseSets[exerciseId] ?? [];
-      final workingSets = latestSets.where((s) => s.isCompleted);
-      final allComplete = workingSets.every((s) => s.isCompleted);
-      final allHitMax =
-          workingSets.every((s) => s.reps != null && s.reps! >= maxReps);
-      if (allComplete && allHitMax && workingSets.isNotEmpty) {
-        final currentWeight = workingSets
-            .map((s) => s.weight ?? 0.0)
-            .reduce((a, b) => a > b ? a : b);
-        if (currentWeight > 0) {
-          suggestedWeight =
-              (currentWeight * 1.025 * 4).roundToDouble() / 4;
-        }
-      }
+    final latestExerciseSets = state!.exerciseSets[exerciseId] ?? [];
+    if (maxReps != null &&
+        maxReps > 0 &&
+        workSetsQualifyForSuggestedWeightIncrease(
+          latestSetsForExercise: latestExerciseSets,
+          maxReps: maxReps,
+        )) {
+      final catalogResult =
+          await ref.read(exerciseRepositoryProvider).getById(exerciseId);
+      final fraction = switch (catalogResult) {
+        Success(:final value) when value != null =>
+          progressionLoadIncreaseFraction(value),
+        _ => 0.025,
+      };
+      suggestedWeight = nextRoundedSuggestedWorkingWeightKg(
+        latestSetsForExercise: latestExerciseSets,
+        loadIncreaseFraction: fraction,
+      );
     }
 
     return (rest, suggestedWeight);

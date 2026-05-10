@@ -2166,10 +2166,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final completedReps = sets
-        .where((s) => s.isCompleted && s.reps != null)
-        .map((s) => s.reps!)
-        .toList();
+    final completedReps = <int>[];
+    for (final s in sets) {
+      if (!s.isCompleted || s.isWarmup) continue;
+      final n = repsForAggregateLoadFeedback(
+        reps: s.reps,
+        leftReps: s.leftReps,
+        rightReps: s.rightReps,
+      );
+      if (n <= 0) continue;
+      completedReps.add(n);
+    }
 
     final feedback = loadFeedback(
       cs: colorScheme,

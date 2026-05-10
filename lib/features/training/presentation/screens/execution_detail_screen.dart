@@ -448,6 +448,7 @@ class _ExecutionDetailBody extends StatelessWidget {
                 isUnilateral: wasUnilateral,
                 isIsometric: ex?.isIsometric ?? false,
                 sets: exerciseSets,
+                workoutExercise: workoutExerciseByExerciseId[exId],
                 prSetIds: prSetIds,
                 colorScheme: colorScheme,
                 textTheme: textTheme,
@@ -510,6 +511,8 @@ class _ExerciseBreakdown extends StatelessWidget {
   final bool isUnilateral;
   final bool isIsometric;
   final List<ExecutionSet> sets;
+  /// When null (legacy session), falls back to [ExecutionSet.plannedReps].
+  final WorkoutExercise? workoutExercise;
   final Set<int> prSetIds;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
@@ -521,6 +524,7 @@ class _ExerciseBreakdown extends StatelessWidget {
     this.isUnilateral = false,
     this.isIsometric = false,
     required this.sets,
+    this.workoutExercise,
     this.prSetIds = const {},
     required this.colorScheme,
     required this.textTheme,
@@ -653,18 +657,35 @@ class _ExerciseBreakdown extends StatelessWidget {
   Widget? _feedbackChip(BuildContext context) {
     if (_usesDuration) return null;
 
-    final workingSets = sets.where((s) => s.isCompleted).toList();
+    final workingSets =
+        sets.where((s) => s.isCompleted && !s.isWarmup).toList();
     if (workingSets.isEmpty) return null;
 
-    final plannedReps = workingSets.first.plannedReps ?? 0;
+    final fallbackPlanned = workingSets.first.plannedReps ?? 0;
+    final template = workoutExercise;
+    final minR = template?.minReps ?? fallbackPlanned;
+    final maxR = template?.maxReps ?? template?.minReps ?? fallbackPlanned;
+    final amrap = template?.isAmrap ?? false;
+
+    final completedReps = <int>[];
+    for (final s in workingSets) {
+      final n = repsForAggregateLoadFeedback(
+        reps: s.reps,
+        leftReps: s.leftReps,
+        rightReps: s.rightReps,
+      );
+      if (n > 0) completedReps.add(n);
+    }
+    if (completedReps.isEmpty) return null;
+
     final feedback = loadFeedback(
       cs: colorScheme,
       custom: Theme.of(context).extension<AthlosCustomColors>()!,
       l10n: l10n,
-      completedReps: workingSets.map((s) => s.reps!).toList(),
-      minReps: plannedReps,
-      maxReps: plannedReps,
-      isAmrap: false,
+      completedReps: completedReps,
+      minReps: minR,
+      maxReps: maxR,
+      isAmrap: amrap,
     );
     if (feedback == null) return null;
 
