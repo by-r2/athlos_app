@@ -2609,5 +2609,45 @@
       "assistKg": { "type": "String" },
       "totalKg": { "type": "String" }
     }
+  },
+  "workoutFormLoadModeFieldLabel": "Tipo de carga",
+  "@workoutFormLoadModeFieldLabel": {
+    "description": "Label on the workout exercise card row that opens the load-mode picker"
+  },
+  "workoutFormLoadModePickerTitle": "Como registrar a carga",
+  "@workoutFormLoadModePickerTitle": {
+    "description": "Bottom sheet title when choosing bodyweight vs weighted vs assisted in workout builder"
+  },
+  "workoutFormSectionPrescription": "Prescrição",
+  "@workoutFormSectionPrescription": {
+    "description": "Section heading for sets, reps, duration, and rest in workout exercise form"
+  },
+  "workoutFormSectionMoreOptions": "Mais opções",
+  "@workoutFormSectionMoreOptions": {
+    "description": "Section heading for AMRAP, unilateral, notes toggles in workout exercise form"
+  },
+  "loadModeShortBodyweight": "Peso corporal",
+  "@loadModeShortBodyweight": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeShortWeighted": "Carga externa",
+  "@loadModeShortWeighted": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeShortAssisted": "Assistido",
+  "@loadModeShortAssisted": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeOptionBodyweight": "Peso corporal (+ carga extra)",
+  "@loadModeOptionBodyweight": {
+    "description": "Load mode: body × factor plus ballast plates/vest (+kg)"
+  },
+  "loadModeOptionWeighted": "Carga externa (máquina, cabo ou barra)",
+  "@loadModeOptionWeighted": {
+    "description": "Load mode: only plates/stack/pin weight counts (kg)"
+  },
+  "loadModeOptionAssisted": "Assistido (remove peso corporal)",
+  "@loadModeOptionAssisted": {
+    "description": "Load mode: assisted machine or band − counterbalance (−kg)"
   }
 }

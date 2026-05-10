@@ -25,6 +25,7 @@ import '../../domain/enums/load_mode.dart';
 import '../../domain/helpers/training_metrics.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
+import '../helpers/load_mode_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/cardio_timer_notifier.dart';
@@ -364,12 +365,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     LoadMode.weighted => 'kg',
     LoadMode.bodyweight => '+kg',
     LoadMode.assisted => '-kg',
-  };
-
-  String _loadModeChipLabel(LoadMode mode) => switch (mode) {
-    LoadMode.bodyweight => 'BW',
-    LoadMode.weighted => 'Máquina',
-    LoadMode.assisted => 'Assistido',
   };
 
   String? _effectiveLoadTooltipMessage({
@@ -810,7 +805,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                               ),
                               title: Text(l10n.executionSetLoadModeSheetTitle),
                               subtitle: Text(
-                                _loadModeChipLabel(resolvedForHub),
+                                localizedLoadModeOptionTitle(
+                                  resolvedForHub,
+                                  l10n,
+                                ),
                               ),
                               trailing: Icon(
                                 Icons.chevron_right,
@@ -848,7 +846,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(l10n.executionSetLoadModeInherit),
-                            subtitle: Text(_loadModeChipLabel(inheritedMode)),
+                            subtitle: Text(
+                              localizedLoadModeOptionTitle(inheritedMode, l10n),
+                            ),
                             onTap: () {
                               ref
                                   .read(activeExecutionProvider.notifier)
@@ -863,7 +863,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                           for (final mode in LoadMode.values)
                             ListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: Text(_loadModeChipLabel(mode)),
+                              title: Text(
+                                localizedLoadModeOptionTitle(mode, l10n),
+                              ),
                               onTap: () {
                                 ref
                                     .read(activeExecutionProvider.notifier)
