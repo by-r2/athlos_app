@@ -9,7 +9,8 @@ import '../tables/workouts_table.dart';
 part 'workout_execution_dao.g.dart';
 
 @DriftAccessor(
-    tables: [WorkoutExecutions, ExecutionSets, ExecutionSetSegments, Workouts])
+  tables: [WorkoutExecutions, ExecutionSets, ExecutionSetSegments, Workouts],
+)
 class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     with _$WorkoutExecutionDaoMixin {
   WorkoutExecutionDao(super.db);
@@ -21,11 +22,12 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
           .get();
 
   /// Returns the most recently finished execution, or null.
-  Future<WorkoutExecution?> getLastFinished() => (select(workoutExecutions)
-        ..where((e) => e.finishedAt.isNotNull())
-        ..orderBy([(e) => OrderingTerm.desc(e.finishedAt)])
-        ..limit(1))
-      .getSingleOrNull();
+  Future<WorkoutExecution?> getLastFinished() =>
+      (select(workoutExecutions)
+            ..where((e) => e.finishedAt.isNotNull())
+            ..orderBy([(e) => OrderingTerm.desc(e.finishedAt)])
+            ..limit(1))
+          .getSingleOrNull();
 
   Future<List<WorkoutExecution>> getByWorkout(int workoutId) =>
       (select(workoutExecutions)
@@ -33,53 +35,50 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(e) => OrderingTerm.desc(e.startedAt)]))
           .get();
 
-  Future<WorkoutExecution?> getById(int id) =>
-      (select(workoutExecutions)..where((e) => e.id.equals(id)))
-          .getSingleOrNull();
+  Future<WorkoutExecution?> getById(int id) => (select(
+    workoutExecutions,
+  )..where((e) => e.id.equals(id))).getSingleOrNull();
 
   Future<int> create(WorkoutExecutionsCompanion entry) =>
       into(workoutExecutions).insert(entry);
 
   Future<void> finish(int id) =>
       (update(workoutExecutions)..where((e) => e.id.equals(id))).write(
-        WorkoutExecutionsCompanion(
-          finishedAt: Value(DateTime.now()),
-        ),
+        WorkoutExecutionsCompanion(finishedAt: Value(DateTime.now())),
       );
 
   /// Returns unfinished executions whose workout still exists.
   /// Used to offer resume/discard on app launch.
-  Future<List<WorkoutExecution>> getDangling() => (select(workoutExecutions)
-        ..where((e) => e.finishedAt.isNull())
-        ..orderBy([(e) => OrderingTerm.desc(e.startedAt)]))
-      .get();
+  Future<List<WorkoutExecution>> getDangling() =>
+      (select(workoutExecutions)
+            ..where((e) => e.finishedAt.isNull())
+            ..orderBy([(e) => OrderingTerm.desc(e.startedAt)]))
+          .get();
 
   /// Deletes only **unfinished** executions (and their sets/segments) for a
   /// given workout. Finished executions are preserved as training history.
   Future<void> deleteUnfinishedByWorkout(int workoutId) async {
-    final execIds = await (select(workoutExecutions)
-          ..where((e) =>
-              e.workoutId.equals(workoutId) & e.finishedAt.isNull()))
-        .map((e) => e.id)
-        .get();
+    final execIds =
+        await (select(workoutExecutions)..where(
+              (e) => e.workoutId.equals(workoutId) & e.finishedAt.isNull(),
+            ))
+            .map((e) => e.id)
+            .get();
     if (execIds.isEmpty) return;
 
-    final setIds = await (select(executionSets)
-          ..where((s) => s.executionId.isIn(execIds)))
-        .map((s) => s.id)
-        .get();
+    final setIds = await (select(
+      executionSets,
+    )..where((s) => s.executionId.isIn(execIds))).map((s) => s.id).get();
 
     if (setIds.isNotEmpty) {
-      await (delete(executionSetSegments)
-            ..where((seg) => seg.executionSetId.isIn(setIds)))
-          .go();
+      await (delete(
+        executionSetSegments,
+      )..where((seg) => seg.executionSetId.isIn(setIds))).go();
     }
-    await (delete(executionSets)
-          ..where((s) => s.executionId.isIn(execIds)))
-        .go();
-    await (delete(workoutExecutions)
-          ..where((e) => e.id.isIn(execIds)))
-        .go();
+    await (delete(
+      executionSets,
+    )..where((s) => s.executionId.isIn(execIds))).go();
+    await (delete(workoutExecutions)..where((e) => e.id.isIn(execIds))).go();
   }
 
   /// Deletes **unfinished** executions referencing workouts that no longer
@@ -93,63 +92,65 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     ).map((row) => row.read<int>('id')).get();
     if (orphanedIds.isEmpty) return;
 
-    final setIds = await (select(executionSets)
-          ..where((s) => s.executionId.isIn(orphanedIds)))
-        .map((s) => s.id)
-        .get();
+    final setIds = await (select(
+      executionSets,
+    )..where((s) => s.executionId.isIn(orphanedIds))).map((s) => s.id).get();
 
     if (setIds.isNotEmpty) {
-      await (delete(executionSetSegments)
-            ..where((seg) => seg.executionSetId.isIn(setIds)))
-          .go();
+      await (delete(
+        executionSetSegments,
+      )..where((seg) => seg.executionSetId.isIn(setIds))).go();
     }
-    await (delete(executionSets)
-          ..where((s) => s.executionId.isIn(orphanedIds)))
-        .go();
-    await (delete(workoutExecutions)
-          ..where((e) => e.id.isIn(orphanedIds)))
-        .go();
+    await (delete(
+      executionSets,
+    )..where((s) => s.executionId.isIn(orphanedIds))).go();
+    await (delete(
+      workoutExecutions,
+    )..where((e) => e.id.isIn(orphanedIds))).go();
   }
 
   Future<void> deleteById(int id) async {
-    final setIds = await (select(executionSets)
-          ..where((s) => s.executionId.equals(id)))
-        .map((s) => s.id)
-        .get();
+    final setIds = await (select(
+      executionSets,
+    )..where((s) => s.executionId.equals(id))).map((s) => s.id).get();
 
     if (setIds.isNotEmpty) {
-      await (delete(executionSetSegments)
-            ..where((seg) => seg.executionSetId.isIn(setIds)))
-          .go();
+      await (delete(
+        executionSetSegments,
+      )..where((seg) => seg.executionSetId.isIn(setIds))).go();
     }
 
-    await (delete(executionSets)
-          ..where((s) => s.executionId.equals(id)))
-        .go();
+    await (delete(executionSets)..where((s) => s.executionId.equals(id))).go();
     await (delete(workoutExecutions)..where((e) => e.id.equals(id))).go();
   }
 
   /// Returns the last recorded weight per exercise from finished executions.
   Future<Map<int, double>> getLastWeightsForExercises(
-      List<int> exerciseIds) async {
+    List<int> exerciseIds,
+  ) async {
     if (exerciseIds.isEmpty) return {};
 
     final result = <int, double>{};
     for (final exerciseId in exerciseIds) {
-      final row = await (select(executionSets).join([
-        innerJoin(workoutExecutions,
-            workoutExecutions.id.equalsExp(executionSets.executionId)),
-      ])
-            ..where(executionSets.exerciseId.equals(exerciseId) &
-                executionSets.isCompleted.equals(true) &
-                executionSets.weight.isNotNull() &
-                workoutExecutions.finishedAt.isNotNull())
-            ..orderBy([
-              OrderingTerm.desc(workoutExecutions.startedAt),
-              OrderingTerm.desc(executionSets.setNumber),
-            ])
-            ..limit(1))
-          .getSingleOrNull();
+      final row =
+          await (select(executionSets).join([
+                  innerJoin(
+                    workoutExecutions,
+                    workoutExecutions.id.equalsExp(executionSets.executionId),
+                  ),
+                ])
+                ..where(
+                  executionSets.exerciseId.equals(exerciseId) &
+                      executionSets.isCompleted.equals(true) &
+                      executionSets.weight.isNotNull() &
+                      workoutExecutions.finishedAt.isNotNull(),
+                )
+                ..orderBy([
+                  OrderingTerm.desc(workoutExecutions.startedAt),
+                  OrderingTerm.desc(executionSets.setNumber),
+                ])
+                ..limit(1))
+              .getSingleOrNull();
 
       if (row != null) {
         result[exerciseId] = row.readTable(executionSets).weight!;
@@ -161,25 +162,33 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   /// Returns completed sets from the most recent finished execution
   /// that included [exerciseId]. Empty list if no history found.
   Future<List<ExecutionSet>> getLastCompletedSetsForExercise(
-      int exerciseId) async {
-    final lastExec = await (select(workoutExecutions).join([
-      innerJoin(executionSets,
-          executionSets.executionId.equalsExp(workoutExecutions.id)),
-    ])
-          ..where(executionSets.exerciseId.equals(exerciseId) &
-              executionSets.isCompleted.equals(true) &
-              workoutExecutions.finishedAt.isNotNull())
-          ..orderBy([OrderingTerm.desc(workoutExecutions.startedAt)])
-          ..limit(1))
-        .getSingleOrNull();
+    int exerciseId,
+  ) async {
+    final lastExec =
+        await (select(workoutExecutions).join([
+                innerJoin(
+                  executionSets,
+                  executionSets.executionId.equalsExp(workoutExecutions.id),
+                ),
+              ])
+              ..where(
+                executionSets.exerciseId.equals(exerciseId) &
+                    executionSets.isCompleted.equals(true) &
+                    workoutExecutions.finishedAt.isNotNull(),
+              )
+              ..orderBy([OrderingTerm.desc(workoutExecutions.startedAt)])
+              ..limit(1))
+            .getSingleOrNull();
     if (lastExec == null) return [];
 
     final execId = lastExec.readTable(workoutExecutions).id;
     return (select(executionSets)
-          ..where((s) =>
-              s.executionId.equals(execId) &
-              s.exerciseId.equals(exerciseId) &
-              s.isCompleted.equals(true))
+          ..where(
+            (s) =>
+                s.executionId.equals(execId) &
+                s.exerciseId.equals(exerciseId) &
+                s.isCompleted.equals(true),
+          )
           ..orderBy([(s) => OrderingTerm.asc(s.setNumber)]))
         .get();
   }
@@ -187,14 +196,19 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   /// All completed sets for [exerciseId] across all finished
   /// executions. Used for PR detection and 1RM history.
   Future<List<ExecutionSet>> getAllCompletedSetsForExercise(
-      int exerciseId) async {
+    int exerciseId,
+  ) async {
     return (select(executionSets).join([
-      innerJoin(workoutExecutions,
-          workoutExecutions.id.equalsExp(executionSets.executionId)),
-    ])
-          ..where(executionSets.exerciseId.equals(exerciseId) &
-              executionSets.isCompleted.equals(true) &
-              workoutExecutions.finishedAt.isNotNull())
+            innerJoin(
+              workoutExecutions,
+              workoutExecutions.id.equalsExp(executionSets.executionId),
+            ),
+          ])
+          ..where(
+            executionSets.exerciseId.equals(exerciseId) &
+                executionSets.isCompleted.equals(true) &
+                workoutExecutions.finishedAt.isNotNull(),
+          )
           ..orderBy([OrderingTerm.desc(workoutExecutions.startedAt)]))
         .map((row) => row.readTable(executionSets))
         .get();
@@ -203,21 +217,28 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   /// Returns completed sets for [exerciseId] paired with
   /// the execution's startedAt date (for charting over time).
   Future<List<({ExecutionSet set, DateTime date})>>
-      getCompletedSetsWithDateForExercise(int exerciseId) async {
-    final rows = await (select(executionSets).join([
-      innerJoin(workoutExecutions,
-          workoutExecutions.id.equalsExp(executionSets.executionId)),
-    ])
-          ..where(executionSets.exerciseId.equals(exerciseId) &
-              executionSets.isCompleted.equals(true) &
-              workoutExecutions.finishedAt.isNotNull())
-          ..orderBy([OrderingTerm.asc(workoutExecutions.startedAt)]))
-        .get();
+  getCompletedSetsWithDateForExercise(int exerciseId) async {
+    final rows =
+        await (select(executionSets).join([
+                innerJoin(
+                  workoutExecutions,
+                  workoutExecutions.id.equalsExp(executionSets.executionId),
+                ),
+              ])
+              ..where(
+                executionSets.exerciseId.equals(exerciseId) &
+                    executionSets.isCompleted.equals(true) &
+                    workoutExecutions.finishedAt.isNotNull(),
+              )
+              ..orderBy([OrderingTerm.asc(workoutExecutions.startedAt)]))
+            .get();
     return rows
-        .map((row) => (
-              set: row.readTable(executionSets),
-              date: row.readTable(workoutExecutions).startedAt,
-            ))
+        .map(
+          (row) => (
+            set: row.readTable(executionSets),
+            date: row.readTable(workoutExecutions).startedAt,
+          ),
+        )
         .toList();
   }
 
@@ -246,12 +267,26 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(s) => OrderingTerm.asc(s.segmentOrder)]))
           .get();
 
-  Future<List<ExecutionSetSegment>> getSegmentsForExecution(
-      int executionId) async {
-    final setIds = await (select(executionSets)
-          ..where((s) => s.executionId.equals(executionId)))
-        .map((s) => s.id)
+  /// Segments belonging to any of [executionSetIds] (bulk attach for charts/PR).
+  Future<List<ExecutionSetSegment>> getSegmentsForExecutionSetIds(
+    List<int> executionSetIds,
+  ) async {
+    if (executionSetIds.isEmpty) return [];
+    return (select(executionSetSegments)
+          ..where((s) => s.executionSetId.isIn(executionSetIds))
+          ..orderBy([
+            (s) => OrderingTerm.asc(s.executionSetId),
+            (s) => OrderingTerm.asc(s.segmentOrder),
+          ]))
         .get();
+  }
+
+  Future<List<ExecutionSetSegment>> getSegmentsForExecution(
+    int executionId,
+  ) async {
+    final setIds = await (select(
+      executionSets,
+    )..where((s) => s.executionId.equals(executionId))).map((s) => s.id).get();
     if (setIds.isEmpty) return [];
     return (select(executionSetSegments)
           ..where((s) => s.executionSetId.isIn(setIds))
@@ -263,14 +298,14 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> insertSegments(
-      List<ExecutionSetSegmentsCompanion> entries) async {
+    List<ExecutionSetSegmentsCompanion> entries,
+  ) async {
     await batch((b) => b.insertAll(executionSetSegments, entries));
   }
 
-  Future<void> deleteSegments(int executionSetId) =>
-      (delete(executionSetSegments)
-            ..where((s) => s.executionSetId.equals(executionSetId)))
-          .go();
+  Future<void> deleteSegments(int executionSetId) => (delete(
+    executionSetSegments,
+  )..where((s) => s.executionSetId.equals(executionSetId))).go();
 
   Future<void> replaceSegments(
     int executionSetId,

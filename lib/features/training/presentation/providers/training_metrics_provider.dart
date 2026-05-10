@@ -5,15 +5,19 @@ import '../../../profile/domain/entities/body_metric.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../../data/repositories/training_providers.dart';
-import '../../domain/entities/execution_set.dart';
-import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/enums/load_mode.dart';
 import '../../domain/helpers/training_metrics.dart';
-import '../../domain/repositories/workout_execution_repository.dart';
+import '../../domain/helpers/week_calendar.dart';
 import 'exercise_notifier.dart';
 
 part 'training_metrics_provider.g.dart';
+
+/// Calendar week bucket (Monday local) with working-set tally for trend charts.
+typedef WeeklyMuscleWorkingSetPoint = ({
+  DateTime weekStartMonday,
+  int workingSetCount,
+});
 
 /// Weight from the body timeline at or before [instant] ([metrics] newest first).
 double? profileWeightAtOrBefore(
@@ -56,22 +60,20 @@ Future<ExercisePR?> exercisePR(Ref ref, int exerciseId) async {
   if (exercise == null) return null;
 
   final metrics = await ref.watch(bodyMetricListProvider.future);
-  final latestWeight =
-      metrics.isEmpty ? null : metrics.first.weight;
+  final latestWeight = metrics.isEmpty ? null : metrics.first.weight;
 
-  final setsResult =
-      await execRepo.getCompletedSetsWithDateForExercise(exerciseId);
+  final setsResult = await execRepo.getCompletedSetsWithDateForExercise(
+    exerciseId,
+  );
   if (!setsResult.isSuccess) return null;
   final rows = setsResult.getOrThrow();
   if (rows.isEmpty) return null;
 
-  final execIds =
-      rows.map((r) => r.set.executionId).toSet();
+  final execIds = rows.map((r) => r.set.executionId).toSet();
   final weByExecId = <int, WorkoutExercise?>{};
   for (final execId in execIds) {
     final execResult = await execRepo.getById(execId);
-    final exec =
-        execResult.isSuccess ? execResult.getOrThrow() : null;
+    final exec = execResult.isSuccess ? execResult.getOrThrow() : null;
     if (exec == null) {
       weByExecId[execId] = null;
       continue;
@@ -95,25 +97,23 @@ Future<ExercisePR?> exercisePR(Ref ref, int exerciseId) async {
     final we = weByExecId[s.executionId];
     final profileAt = profileWeightAtOrBefore(metrics, row.date);
     final resolvedBw =
-        s.bodyWeightSnapshot ?? profileAt ?? latestWeight;
-    final load = effectiveLoad(
-      mode: resolveLoadMode(
-        set: s,
-        workoutExercise: we,
-        exercise: exercise,
-      ),
-      setWeight: s.weight,
-      bodyWeight: resolvedBw,
-      loadFactor: exercise.bodyweightLoadFactor,
-    );
-    final e1rm = estimated1RM(weight: load, reps: s.reps);
-    if (e1rm != null && (best == null || e1rm > best.best1RM)) {
-      best = ExercisePR(
-        exerciseId: exerciseId,
-        best1RM: e1rm,
-        weight: load ?? 0,
-        reps: s.reps ?? 1,
-      );
+        (s.bodyWeightSnapshot ?? profileAt ?? latestWeight) ?? 0.0;
+
+    for (final probe in strengthEffortsForEstimated1Rm(
+      s,
+      exercise: exercise,
+      workoutExercise: we,
+      resolvedBodyWeight: resolvedBw,
+    )) {
+      final e1rm = estimated1RM(weight: probe.loadKg, reps: probe.reps);
+      if (e1rm != null && (best == null || e1rm > best.best1RM)) {
+        best = ExercisePR(
+          exerciseId: exerciseId,
+          best1RM: e1rm,
+          weight: probe.loadKg,
+          reps: probe.reps,
+        );
+      }
     }
   }
   return best;
@@ -135,12 +135,13 @@ Future<bool> isSetNewPR(
   required int? reps,
   required LoadMode loadMode,
   double? loadFactor,
+
   /// When set (e.g. snapshot + historic timeline resolved by caller), skips
   /// fetching latest weight only.
   double? resolvedBodyWeight,
 }) async {
-  final profileWeight = resolvedBodyWeight ??
-      await ref.watch(latestBodyWeightProvider.future);
+  final profileWeight =
+      resolvedBodyWeight ?? await ref.watch(latestBodyWeightProvider.future);
 
   final load = effectiveLoad(
     mode: loadMode,
@@ -156,16 +157,12 @@ Future<bool> isSetNewPR(
   return setE1rm > pr.best1RM;
 }
 
-/// Weekly volume per muscle group in kg (tonnage)
-/// per [MuscleGroup] in the last 7 days.
+/// Working sets per muscle group (excluding warmups) over the last 7 rolling days.
 @riverpod
 Future<Map<String, int>> weeklyVolumePerMuscleGroup(Ref ref) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final exercises = await ref.watch(exerciseListProvider.future);
   final exerciseMap = {for (final e in exercises) e.id: e};
-  final metrics = await ref.watch(bodyMetricListProvider.future);
-  final latestBodyWeight =
-      metrics.isEmpty ? null : metrics.first.weight;
 
   final allExecsResult = await execRepo.getAll();
   if (!allExecsResult.isSuccess) return {};
@@ -176,35 +173,21 @@ Future<Map<String, int>> weeklyVolumePerMuscleGroup(Ref ref) async {
       .where((e) => e.finishedAt != null && e.startedAt.isAfter(cutoff))
       .toList();
 
-  final volume = <String, int>{};
+  final tally = <String, int>{};
   for (final exec in recentExecs) {
-    final sets = await _setsWithSegments(execRepo, exec.id);
-    final workoutExercisesResult = await ref
-        .read(workoutRepositoryProvider)
-        .getExercises(exec.workoutId);
-    if (!workoutExercisesResult.isSuccess) continue;
-    final workoutExerciseByExerciseId = {
-      for (final we in workoutExercisesResult.getOrThrow()) we.exerciseId: we,
-    };
-    final profileAtExec =
-        profileWeightAtOrBefore(metrics, exec.startedAt);
+    final setsResult = await execRepo.getSets(exec.id);
+    if (!setsResult.isSuccess) continue;
+    final sets = setsResult.getOrThrow();
     for (final s in sets) {
       if (!s.isCompleted) continue;
       if (s.isWarmup) continue;
       final exercise = exerciseMap[s.exerciseId];
       if (exercise == null) continue;
       final key = exercise.muscleGroup.name;
-      final setVolume = computeSetVolume(
-        s,
-        exercise: exercise,
-        workoutExercise: workoutExerciseByExerciseId[s.exerciseId],
-        profileBodyWeightOnExecutionDate: profileAtExec,
-        latestBodyWeight: latestBodyWeight,
-      );
-      volume[key] = (volume[key] ?? 0) + setVolume.round();
+      tally[key] = (tally[key] ?? 0) + 1;
     }
   }
-  return volume;
+  return tally;
 }
 
 /// Volume recommendation ranges based on experience level.
@@ -270,13 +253,15 @@ Future<ConsistencyStatus> consistencyStatus(Ref ref) async {
   }
 
   final now = DateTime.now();
-  final thisMonday =
-      DateTime(now.year, now.month, now.day - (now.weekday - 1));
+  final thisMonday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
 
   final thisWeekEnd = thisMonday.add(const Duration(days: 7));
   final thisWeekCount = finished
-      .where((e) =>
-          !e.startedAt.isBefore(thisMonday) && e.startedAt.isBefore(thisWeekEnd))
+      .where(
+        (e) =>
+            !e.startedAt.isBefore(thisMonday) &&
+            e.startedAt.isBefore(thisWeekEnd),
+      )
       .length;
   final isCurrentWeekSecured = thisWeekCount >= target;
 
@@ -288,8 +273,10 @@ Future<ConsistencyStatus> consistencyStatus(Ref ref) async {
   while (true) {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final count = finished
-        .where((e) =>
-            !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd))
+        .where(
+          (e) =>
+              !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd),
+        )
         .length;
     if (count >= target) {
       streak++;
@@ -345,8 +332,7 @@ Future<List<LoadDataPoint>> exerciseLoadHistory(
 
   final workoutRepo = ref.watch(workoutRepositoryProvider);
   final metrics = await ref.watch(bodyMetricListProvider.future);
-  final latestWeight =
-      metrics.isEmpty ? null : metrics.first.weight;
+  final latestWeight = metrics.isEmpty ? null : metrics.first.weight;
 
   final result = await execRepo.getCompletedSetsWithDateForExercise(exerciseId);
   if (!result.isSuccess) return [];
@@ -362,8 +348,7 @@ Future<List<LoadDataPoint>> exerciseLoadHistory(
   final weByExecId = <int, WorkoutExercise?>{};
   for (final execId in execIds) {
     final execResult = await execRepo.getById(execId);
-    final exec =
-        execResult.isSuccess ? execResult.getOrThrow() : null;
+    final exec = execResult.isSuccess ? execResult.getOrThrow() : null;
     if (exec == null) {
       weByExecId[execId] = null;
       continue;
@@ -386,28 +371,26 @@ Future<List<LoadDataPoint>> exerciseLoadHistory(
     final we = weByExecId[r.set.executionId];
     final profileAt = profileWeightAtOrBefore(metrics, r.date);
     final resolvedBw =
-        r.set.bodyWeightSnapshot ?? profileAt ?? latestWeight;
-    final load = effectiveLoad(
-      mode: resolveLoadMode(
-        set: r.set,
-        workoutExercise: we,
-        exercise: exercise,
-      ),
-      setWeight: r.set.weight,
-      bodyWeight: resolvedBw,
-      loadFactor: exercise.bodyweightLoadFactor,
-    );
-    final e1rm = estimated1RM(weight: load, reps: r.set.reps);
-    if (e1rm == null) continue;
-    final dayKey = '${r.date.year}-${r.date.month}-${r.date.day}';
-    final existing = byDay[dayKey];
-    if (existing == null || e1rm > existing.estimated1RM) {
-      byDay[dayKey] = LoadDataPoint(
-        date: DateTime(r.date.year, r.date.month, r.date.day),
-        estimated1RM: e1rm,
-        weight: load ?? 0,
-        reps: r.set.reps ?? 1,
-      );
+        (r.set.bodyWeightSnapshot ?? profileAt ?? latestWeight) ?? 0.0;
+
+    for (final probe in strengthEffortsForEstimated1Rm(
+      r.set,
+      exercise: exercise,
+      workoutExercise: we,
+      resolvedBodyWeight: resolvedBw,
+    )) {
+      final e1rm = estimated1RM(weight: probe.loadKg, reps: probe.reps);
+      if (e1rm == null) continue;
+      final dayKey = '${r.date.year}-${r.date.month}-${r.date.day}';
+      final existing = byDay[dayKey];
+      if (existing == null || e1rm > existing.estimated1RM) {
+        byDay[dayKey] = LoadDataPoint(
+          date: DateTime(r.date.year, r.date.month, r.date.day),
+          estimated1RM: e1rm,
+          weight: probe.loadKg,
+          reps: probe.reps,
+        );
+      }
     }
   }
   return byDay.values.toList()..sort((a, b) => a.date.compareTo(b.date));
@@ -459,121 +442,56 @@ Future<List<ExercisePRRecord>> allExercisePRs(Ref ref) async {
   return prs;
 }
 
-/// Weekly volume per muscle group over [weeks] weeks (kg tonnage trend).
+/// Working sets per muscle group per **calendar** week (Mon–Sun), last [weeks]
+/// ISO weeks ending in the current week.
 @riverpod
-Future<Map<String, List<({DateTime weekStart, int sets})>>> weeklyVolumeTrend(
+Future<Map<String, List<WeeklyMuscleWorkingSetPoint>>> weeklyVolumeTrend(
   Ref ref, {
   int weeks = 8,
 }) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final exercises = await ref.watch(exerciseListProvider.future);
   final exerciseMap = {for (final e in exercises) e.id: e};
-  final metrics = await ref.watch(bodyMetricListProvider.future);
-  final latestBodyWeight =
-      metrics.isEmpty ? null : metrics.first.weight;
 
   final allExecsResult = await execRepo.getAll();
   if (!allExecsResult.isSuccess) return {};
   final allExecs = allExecsResult.getOrThrow();
 
   final now = DateTime.now();
-  final cutoff = now.subtract(Duration(days: weeks * 7));
-  final recentExecs = allExecs
-      .where((e) => e.finishedAt != null && e.startedAt.isAfter(cutoff))
-      .toList();
+  final orderedWeekStarts = weekStartsEndingCurrent(now, weeks);
+  final anchorMonday = orderedWeekStarts.first;
 
-  // { muscleGroup: { weekIndex: kg } }
+  // { muscleGroup: { weekIndex: workingSetCount } }
   final data = <String, Map<int, int>>{};
 
-  for (final exec in recentExecs) {
-    final sets = await _setsWithSegments(execRepo, exec.id);
-    final workoutExercisesResult = await ref
-        .read(workoutRepositoryProvider)
-        .getExercises(exec.workoutId);
-    if (!workoutExercisesResult.isSuccess) continue;
-    final workoutExerciseByExerciseId = {
-      for (final we in workoutExercisesResult.getOrThrow()) we.exerciseId: we,
-    };
-    final profileAtExec =
-        profileWeightAtOrBefore(metrics, exec.startedAt);
-    final weekIdx = now.difference(exec.startedAt).inDays ~/ 7;
-    for (final s in sets) {
+  for (final exec in allExecs) {
+    if (exec.finishedAt == null) continue;
+    final weekIdx = calendarWeekBucketIndex(exec.startedAt, anchorMonday);
+    if (weekIdx < 0 || weekIdx >= weeks) continue;
+
+    final setsResult = await execRepo.getSets(exec.id);
+    if (!setsResult.isSuccess) continue;
+    for (final s in setsResult.getOrThrow()) {
       if (!s.isCompleted) continue;
       if (s.isWarmup) continue;
       final exercise = exerciseMap[s.exerciseId];
       if (exercise == null) continue;
       final key = exercise.muscleGroup.name;
       data.putIfAbsent(key, () => {});
-      final setVolume = computeSetVolume(
-        s,
-        exercise: exercise,
-        workoutExercise: workoutExerciseByExerciseId[s.exerciseId],
-        profileBodyWeightOnExecutionDate: profileAtExec,
-        latestBodyWeight: latestBodyWeight,
-      );
-      data[key]![weekIdx] = (data[key]![weekIdx] ?? 0) + setVolume.round();
+      data[key]![weekIdx] = (data[key]![weekIdx] ?? 0) + 1;
     }
   }
 
-  // Convert to list of (weekStart, sets) per muscle group.
-  final result = <String, List<({DateTime weekStart, int sets})>>{};
+  final result = <String, List<WeeklyMuscleWorkingSetPoint>>{};
   for (final entry in data.entries) {
-    final points = <({DateTime weekStart, int sets})>[];
-    for (var w = weeks - 1; w >= 0; w--) {
-      final weekStart = now.subtract(Duration(days: (w + 1) * 7));
-      points.add((
-        weekStart: DateTime(weekStart.year, weekStart.month, weekStart.day),
-        sets: entry.value[w] ?? 0,
-      ));
-    }
+    final points = <WeeklyMuscleWorkingSetPoint>[
+      for (var i = 0; i < weeks; i++)
+        (
+          weekStartMonday: orderedWeekStarts[i],
+          workingSetCount: entry.value[i] ?? 0,
+        ),
+    ];
     result[entry.key] = points;
   }
   return result;
-}
-
-Future<List<ExecutionSet>> _setsWithSegments(
-  WorkoutExecutionRepository execRepo,
-  int executionId,
-) async {
-  final setsResult = await execRepo.getSets(executionId);
-  if (!setsResult.isSuccess) return const [];
-  final sets = setsResult.getOrThrow();
-
-  final segmentsResult = await execRepo.getSegmentsForExecution(executionId);
-  if (!segmentsResult.isSuccess) return sets;
-  final allSegments = segmentsResult.getOrThrow();
-  if (allSegments.isEmpty) return sets;
-
-  final bySetId = <int, List<ExecutionSetSegment>>{};
-  for (final seg in allSegments) {
-    bySetId.putIfAbsent(seg.executionSetId, () => []).add(seg);
-  }
-
-  return sets.map((s) {
-    final attached = bySetId[s.id];
-    if (attached == null || attached.isEmpty) return s;
-    return ExecutionSet(
-      id: s.id,
-      executionId: s.executionId,
-      exerciseId: s.exerciseId,
-      setNumber: s.setNumber,
-      plannedReps: s.plannedReps,
-      plannedWeight: s.plannedWeight,
-      reps: s.reps,
-      weight: s.weight,
-      duration: s.duration,
-      distance: s.distance,
-      isCompleted: s.isCompleted,
-      isWarmup: s.isWarmup,
-      rpe: s.rpe,
-      bodyWeightSnapshot: s.bodyWeightSnapshot,
-      loadModeOverride: s.loadModeOverride,
-      leftReps: s.leftReps,
-      leftWeight: s.leftWeight,
-      rightReps: s.rightReps,
-      rightWeight: s.rightWeight,
-      isUnilateral: s.isUnilateral,
-      segments: attached,
-    );
-  }).toList();
 }

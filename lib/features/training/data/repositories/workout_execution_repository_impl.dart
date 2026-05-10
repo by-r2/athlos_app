@@ -26,9 +26,9 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     ExerciseRepository? exerciseRepository,
     WorkoutRepository? workoutRepository,
     BodyMetricRepository? bodyMetricRepository,
-  })  : _exerciseRepository = exerciseRepository,
-        _workoutRepository = workoutRepository,
-        _bodyMetricRepository = bodyMetricRepository;
+  }) : _exerciseRepository = exerciseRepository,
+       _workoutRepository = workoutRepository,
+       _bodyMetricRepository = bodyMetricRepository;
 
   @override
   Future<Result<List<domain.WorkoutExecution>>> getAll() async {
@@ -42,13 +42,15 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.WorkoutExecution>>> getByWorkout(
-      int workoutId) async {
+    int workoutId,
+  ) async {
     try {
       final rows = await _dao.getByWorkout(workoutId);
       return Success(rows.map(_executionToDomain).toList());
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to load executions for workout: $e'));
+        DatabaseException('Failed to load executions for workout: $e'),
+      );
     }
   }
 
@@ -69,13 +71,15 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       return Success(row != null ? _executionToDomain(row) : null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to load last finished execution: $e'));
+        DatabaseException('Failed to load last finished execution: $e'),
+      );
     }
   }
 
   @override
   Future<Result<ExecutionComparison?>> getLastTwoFinishedWithVolume(
-      int workoutId) async {
+    int workoutId,
+  ) async {
     try {
       final byWorkout = await _dao.getByWorkout(workoutId);
       final finished = byWorkout
@@ -90,15 +94,18 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       final volumeLast = await _volumeForExecution(last);
       final volumePrevious = await _volumeForExecution(previous);
 
-      return Success(ExecutionComparison(
-        last: last,
-        previous: previous,
-        volumeLast: volumeLast,
-        volumePrevious: volumePrevious,
-      ));
+      return Success(
+        ExecutionComparison(
+          last: last,
+          previous: previous,
+          volumeLast: volumeLast,
+          volumePrevious: volumePrevious,
+        ),
+      );
     } on Exception catch (e) {
-      return Failure(DatabaseException(
-          'Failed to load last two executions with volume: $e'));
+      return Failure(
+        DatabaseException('Failed to load last two executions with volume: $e'),
+      );
     }
   }
 
@@ -123,12 +130,10 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       for (final we in workoutWeResult.getOrThrow()) we.exerciseId: we,
     };
 
-    final historical =
-        (await bodyMetricRepo.getLatestAtOrBefore(exec.startedAt))
-            .getOrThrow()
-            ?.weight;
-    final latest =
-        (await bodyMetricRepo.getLatest()).getOrThrow()?.weight;
+    final historical = (await bodyMetricRepo.getLatestAtOrBefore(
+      exec.startedAt,
+    )).getOrThrow()?.weight;
+    final latest = (await bodyMetricRepo.getLatest()).getOrThrow()?.weight;
 
     return computeTotalVolume(
       sets,
@@ -144,8 +149,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   /// consumers (volume comparisons, future analytics) see the full picture.
   Future<List<domain.ExecutionSet>> _setsWithSegments(int executionId) async {
     final sets = (await getSets(executionId)).getOrThrow();
-    final segments =
-        (await getSegmentsForExecution(executionId)).getOrThrow();
+    final segments = (await getSegmentsForExecution(executionId)).getOrThrow();
 
     if (segments.isEmpty) return sets;
 
@@ -190,7 +194,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       return Success(rows.map(_executionToDomain).toList());
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to load dangling executions: $e'));
+        DatabaseException('Failed to load dangling executions: $e'),
+      );
     }
   }
 
@@ -200,8 +205,11 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       await _dao.deleteUnfinishedByWorkout(workoutId);
       return const Success(null);
     } on Exception catch (e) {
-      return Failure(DatabaseException(
-          'Failed to delete unfinished executions for workout $workoutId: $e'));
+      return Failure(
+        DatabaseException(
+          'Failed to delete unfinished executions for workout $workoutId: $e',
+        ),
+      );
     }
   }
 
@@ -212,13 +220,17 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to delete orphaned executions: $e'));
+        DatabaseException('Failed to delete orphaned executions: $e'),
+      );
     }
   }
 
   @override
-  Future<Result<int>> start(int workoutId,
-      {required int programId, String? exerciseConfigSnapshot}) async {
+  Future<Result<int>> start(
+    int workoutId, {
+    required int programId,
+    String? exerciseConfigSnapshot,
+  }) async {
     try {
       final id = await _dao.create(
         WorkoutExecutionsCompanion.insert(
@@ -326,24 +338,26 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<Map<int, double>>> getLastWeightsForExercises(
-      List<int> exerciseIds) async {
+    List<int> exerciseIds,
+  ) async {
     try {
       final weights = await _dao.getLastWeightsForExercises(exerciseIds);
       return Success(weights);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load last weights: $e'));
+      return Failure(DatabaseException('Failed to load last weights: $e'));
     }
   }
 
   @override
-  Future<Result<List<domain.ExecutionSet>>>
-      getLastCompletedSetsForExercise(int exerciseId) async {
+  Future<Result<List<domain.ExecutionSet>>> getLastCompletedSetsForExercise(
+    int exerciseId,
+  ) async {
     try {
-      final rows =
-          await _dao.getLastCompletedSetsForExercise(exerciseId);
-      return Success(rows
-          .map((r) => domain.ExecutionSet(
+      final rows = await _dao.getLastCompletedSetsForExercise(exerciseId);
+      return Success(
+        rows
+            .map(
+              (r) => domain.ExecutionSet(
                 id: r.id,
                 executionId: r.executionId,
                 exerciseId: r.exerciseId,
@@ -357,22 +371,25 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
                 isCompleted: r.isCompleted,
                 isWarmup: r.isWarmup,
                 rpe: r.rpe,
-              ))
-          .toList());
+              ),
+            )
+            .toList(),
+      );
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load last sets: $e'));
+      return Failure(DatabaseException('Failed to load last sets: $e'));
     }
   }
 
   @override
-  Future<Result<List<domain.ExecutionSet>>>
-      getAllCompletedSetsForExercise(int exerciseId) async {
+  Future<Result<List<domain.ExecutionSet>>> getAllCompletedSetsForExercise(
+    int exerciseId,
+  ) async {
     try {
-      final rows =
-          await _dao.getAllCompletedSetsForExercise(exerciseId);
-      return Success(rows
-          .map((r) => domain.ExecutionSet(
+      final rows = await _dao.getAllCompletedSetsForExercise(exerciseId);
+      return Success(
+        rows
+            .map(
+              (r) => domain.ExecutionSet(
                 id: r.id,
                 executionId: r.executionId,
                 exerciseId: r.exerciseId,
@@ -386,29 +403,73 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
                 isCompleted: r.isCompleted,
                 isWarmup: r.isWarmup,
                 rpe: r.rpe,
-              ))
-          .toList());
+              ),
+            )
+            .toList(),
+      );
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load all sets: $e'));
+      return Failure(DatabaseException('Failed to load all sets: $e'));
     }
+  }
+
+  Future<List<domain.ExecutionSet>> _attachSegmentsIfAny(
+    List<domain.ExecutionSet> sets,
+  ) async {
+    if (sets.isEmpty) return sets;
+    final ids = sets.map((s) => s.id).toList();
+    final raw = await _dao.getSegmentsForExecutionSetIds(ids);
+    if (raw.isEmpty) return sets;
+
+    final bySetId = <int, List<domain.ExecutionSetSegment>>{};
+    for (final row in raw) {
+      final d = _segmentToDomain(row);
+      bySetId.putIfAbsent(d.executionSetId, () => []).add(d);
+    }
+    return sets.map((s) {
+      final attached = bySetId[s.id];
+      if (attached == null || attached.isEmpty) return s;
+      return domain.ExecutionSet(
+        id: s.id,
+        executionId: s.executionId,
+        exerciseId: s.exerciseId,
+        setNumber: s.setNumber,
+        plannedReps: s.plannedReps,
+        plannedWeight: s.plannedWeight,
+        reps: s.reps,
+        weight: s.weight,
+        duration: s.duration,
+        distance: s.distance,
+        isCompleted: s.isCompleted,
+        isWarmup: s.isWarmup,
+        rpe: s.rpe,
+        bodyWeightSnapshot: s.bodyWeightSnapshot,
+        loadModeOverride: s.loadModeOverride,
+        leftReps: s.leftReps,
+        leftWeight: s.leftWeight,
+        rightReps: s.rightReps,
+        rightWeight: s.rightWeight,
+        isUnilateral: s.isUnilateral,
+        segments: attached,
+      );
+    }).toList();
   }
 
   @override
   Future<Result<List<({domain.ExecutionSet set, DateTime date})>>>
-      getCompletedSetsWithDateForExercise(int exerciseId) async {
+  getCompletedSetsWithDateForExercise(int exerciseId) async {
     try {
-      final rows =
-          await _dao.getCompletedSetsWithDateForExercise(exerciseId);
-      return Success(rows
-          .map((r) => (
-                set: _setToDomain(r.set),
-                date: r.date,
-              ))
-          .toList());
+      final rows = await _dao.getCompletedSetsWithDateForExercise(exerciseId);
+      if (rows.isEmpty) return const Success([]);
+
+      final domainSets = rows.map((r) => _setToDomain(r.set)).toList();
+      final hydrated = await _attachSegmentsIfAny(domainSets);
+
+      return Success([
+        for (var i = 0; i < rows.length; i++)
+          (set: hydrated[i], date: rows[i].date),
+      ]);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load sets with date: $e'));
+      return Failure(DatabaseException('Failed to load sets with date: $e'));
     }
   }
 
@@ -423,27 +484,27 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       );
 
   domain.ExecutionSet _setToDomain(dynamic row) => domain.ExecutionSet(
-        id: row.id as int,
-        executionId: row.executionId as int,
-        exerciseId: row.exerciseId as int,
-        setNumber: row.setNumber as int,
-        plannedReps: row.plannedReps as int?,
-        plannedWeight: row.plannedWeight as double?,
-        reps: row.reps as int?,
-        weight: row.weight as double?,
-        duration: row.duration as int?,
-        distance: row.distance as double?,
-        isCompleted: row.isCompleted as bool,
-        isWarmup: row.isWarmup as bool,
-        rpe: row.rpe as int?,
-        bodyWeightSnapshot: row.bodyWeightSnapshot as double?,
-        loadModeOverride: row.loadModeOverride as LoadMode?,
-        leftReps: row.leftReps as int?,
-        leftWeight: row.leftWeight as double?,
-        rightReps: row.rightReps as int?,
-        rightWeight: row.rightWeight as double?,
-        isUnilateral: row.isUnilateral as bool?,
-      );
+    id: row.id as int,
+    executionId: row.executionId as int,
+    exerciseId: row.exerciseId as int,
+    setNumber: row.setNumber as int,
+    plannedReps: row.plannedReps as int?,
+    plannedWeight: row.plannedWeight as double?,
+    reps: row.reps as int?,
+    weight: row.weight as double?,
+    duration: row.duration as int?,
+    distance: row.distance as double?,
+    isCompleted: row.isCompleted as bool,
+    isWarmup: row.isWarmup as bool,
+    rpe: row.rpe as int?,
+    bodyWeightSnapshot: row.bodyWeightSnapshot as double?,
+    loadModeOverride: row.loadModeOverride as LoadMode?,
+    leftReps: row.leftReps as int?,
+    leftWeight: row.leftWeight as double?,
+    rightReps: row.rightReps as int?,
+    rightWeight: row.rightWeight as double?,
+    isUnilateral: row.isUnilateral as bool?,
+  );
 
   domain.ExecutionSetSegment _segmentToDomain(dynamic row) =>
       domain.ExecutionSetSegment(
@@ -456,7 +517,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.ExecutionSetSegment>>> getSegments(
-      int executionSetId) async {
+    int executionSetId,
+  ) async {
     try {
       final rows = await _dao.getSegments(executionSetId);
       return Success(rows.map(_segmentToDomain).toList());
@@ -467,13 +529,15 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.ExecutionSetSegment>>> getSegmentsForExecution(
-      int executionId) async {
+    int executionId,
+  ) async {
     try {
       final rows = await _dao.getSegmentsForExecution(executionId);
       return Success(rows.map(_segmentToDomain).toList());
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to load segments for execution: $e'));
+        DatabaseException('Failed to load segments for execution: $e'),
+      );
     }
   }
 
@@ -486,12 +550,14 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       await _dao.replaceSegments(
         executionSetId,
         segments
-            .map((s) => ExecutionSetSegmentsCompanion.insert(
-                  executionSetId: executionSetId,
-                  segmentOrder: s.segmentOrder,
-                  reps: s.reps,
-                  weight: Value(s.weight),
-                ))
+            .map(
+              (s) => ExecutionSetSegmentsCompanion.insert(
+                executionSetId: executionSetId,
+                segmentOrder: s.segmentOrder,
+                reps: s.reps,
+                weight: Value(s.weight),
+              ),
+            )
             .toList(),
       );
       return const Success(null);

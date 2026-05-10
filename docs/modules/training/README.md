@@ -221,6 +221,7 @@ New data points and computed analytics to enrich the training experience.
 ##### 6b. Estimated 1RM and PRs
 
 - Computed from execution history using Epley formula: `1RM = weight × (1 + reps/30)`
+- Drop-set segments and unilateral limbs each contribute discrete load×reps probes; PR keeps the best estimated 1RM across probes
 - For bodyweight exercises: use total load (body weight + added weight) in the formula
 - Show per-exercise PR badge in history and exercise detail
 - Chiron can reference 1RM for percentage-based programming
@@ -283,7 +284,7 @@ Charts and records computed from existing execution data — zero additional use
 
 ##### 10c. Weekly Volume Trend
 
-- Bar/line chart showing total working sets per muscle group across weeks
+- Bar chart showing total working sets per muscle group per **calendar** week (Monday–Sunday)
 - Accessible from Training Home dashboard (tapping the volume card from Phase 6c)
 - Highlights under-volume and over-volume zones
 

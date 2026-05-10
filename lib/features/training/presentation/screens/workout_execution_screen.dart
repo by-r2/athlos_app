@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1293,15 +1295,30 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (label.isEmpty) return const [];
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final metaStyle = textTheme.labelSmall?.copyWith(
+      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+      fontWeight: FontWeight.w400,
+    );
+    final metaIconColor =
+        colorScheme.onSurfaceVariant.withValues(alpha: 0.65);
+
     return [
       Padding(
         padding: const EdgeInsets.only(top: AthlosSpacing.xs),
         child: Center(
-          child: Text(
-            label,
-            style: textTheme.labelSmall?.copyWith(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
-              fontWeight: FontWeight.w400,
+          child: Text.rich(
+            TextSpan(
+              style: metaStyle,
+              children: [
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: ExcludeSemantics(
+                    child: _RepsGoalTargetWithArrow(color: metaIconColor),
+                  ),
+                ),
+                const TextSpan(text: ' '),
+                TextSpan(text: label),
+              ],
             ),
           ),
         ),
@@ -4270,4 +4287,82 @@ class _RpeChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Tiny target-board with a dart hitting the center (preset-rep “goal” cue).
+class _RepsGoalTargetWithArrow extends StatelessWidget {
+  final Color color;
+
+  const _RepsGoalTargetWithArrow({required this.color});
+
+  static const double _size = 14;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: _size,
+        height: _size,
+        child: CustomPaint(
+          painter: _RepsGoalTargetArrowPainter(color: color),
+        ),
+      );
+}
+
+class _RepsGoalTargetArrowPainter extends CustomPainter {
+  final Color color;
+
+  _RepsGoalTargetArrowPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final outerR = math.min(center.dx, center.dy) - 0.55;
+    final ringW = (outerR * 0.11).clamp(0.75, 1.05);
+    final shaftW = (outerR * 0.15).clamp(0.9, 1.25);
+
+    final ringPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ringW
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(center, outerR, ringPaint);
+    canvas.drawCircle(center, outerR * 0.56, ringPaint);
+
+    final start =
+        center + Offset.fromDirection(-math.pi * 3 / 4, outerR * 0.92);
+    final tip = center;
+    final dir = (tip - start).direction;
+    final headLen = outerR * 0.47;
+    final halfBase = outerR * 0.22;
+    final shaftEnd = tip - Offset.fromDirection(dir, headLen);
+
+    final shaftPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = shaftW
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+    canvas.drawLine(start, shaftEnd, shaftPaint);
+
+    final baseMid = tip - Offset.fromDirection(dir, headLen * 0.92);
+    final baseA = baseMid + Offset.fromDirection(dir + math.pi / 2, halfBase);
+    final baseB = baseMid + Offset.fromDirection(dir - math.pi / 2, halfBase);
+
+    final headPath = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(baseA.dx, baseA.dy)
+      ..lineTo(baseB.dx, baseB.dy)
+      ..close();
+    canvas.drawPath(
+      headPath,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _RepsGoalTargetArrowPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

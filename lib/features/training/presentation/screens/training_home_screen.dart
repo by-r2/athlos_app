@@ -107,9 +107,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.danglingExecutionMessage(workoutName)),
-          ],
+          children: [Text(l10n.danglingExecutionMessage(workoutName))],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -419,12 +417,11 @@ class _FrequencyPill extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final target =
         profileAsync.value?.trainingFrequency ?? kDefaultTrainingFrequency;
-    final consistencyStatus = ref.watch(consistencyStatusProvider).value ??
+    final consistencyStatus =
+        ref.watch(consistencyStatusProvider).value ??
         const ConsistencyStatus(streakCount: 0, isCurrentWeekSecured: false);
-    final frequencyStreak =
-        profileAsync.value?.currentFrequencyStreak ?? 0;
-    final bestFrequencyStreak =
-        profileAsync.value?.bestFrequencyStreak ?? 0;
+    final frequencyStreak = profileAsync.value?.currentFrequencyStreak ?? 0;
+    final bestFrequencyStreak = profileAsync.value?.bestFrequencyStreak ?? 0;
 
     final dotCount = thisWeek > target ? thisWeek : target;
 
@@ -668,11 +665,12 @@ class _WeeklyVolumeCard extends ConsumerWidget {
                           : e.key;
                       return _VolumeRow(
                         label: label,
-                        volumeKg: e.value,
+                        workingSets: e.value,
                         targetMin: target.min,
                         targetMax: target.max,
                         colorScheme: colorScheme,
                         textTheme: textTheme,
+                        l10n: l10n,
                       );
                     }),
                   ],
@@ -688,19 +686,21 @@ class _WeeklyVolumeCard extends ConsumerWidget {
 
 class _VolumeRow extends StatelessWidget {
   final String label;
-  final int volumeKg;
+  final int workingSets;
   final int targetMin;
   final int targetMax;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
+  final AppLocalizations l10n;
 
   const _VolumeRow({
     required this.label,
-    required this.volumeKg,
+    required this.workingSets,
     required this.targetMin,
     required this.targetMax,
     required this.colorScheme,
     required this.textTheme,
+    required this.l10n,
   });
 
   static const _volumeGood = Color(0xFF4CAF50);
@@ -708,10 +708,10 @@ class _VolumeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fraction = (volumeKg / targetMax).clamp(0.0, 1.0);
-    final statusColor = volumeKg < targetMin
+    final fraction = (workingSets / targetMax).clamp(0.0, 1.0);
+    final statusColor = workingSets < targetMin
         ? colorScheme.error
-        : volumeKg > targetMax
+        : workingSets > targetMax
         ? _volumeOver
         : _volumeGood;
 
@@ -741,14 +741,16 @@ class _VolumeRow extends StatelessWidget {
           ),
           const Gap(AthlosSpacing.sm),
           SizedBox(
-            width: 56,
+            width: 88,
             child: Text(
-              '${volumeKg}kg',
+              l10n.weeklyVolumeSets(workingSets),
               style: textTheme.labelMedium?.copyWith(
                 color: statusColor,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

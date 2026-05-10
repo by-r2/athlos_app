@@ -972,7 +972,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         final setsResult = await _executionRepo.getSets(exec.id);
         if (!setsResult.isSuccess) continue;
         for (final s in setsResult.getOrThrow()) {
-          if (!s.isCompleted) continue;
+          if (!s.isCompleted || s.isWarmup) continue;
           final ex = exerciseMap[s.exerciseId];
           if (ex == null) continue;
           final key = ex.muscleGroup.name;
@@ -1060,22 +1060,22 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         final we = weByExecId[s.executionId];
         final profileAt = profileWeightAtOrBefore(row.date);
         final resolvedBw =
-            s.bodyWeightSnapshot ?? profileAt ?? latestWeight;
-        final load = effectiveLoad(
-          mode: resolveLoadMode(
-            set: s,
-            workoutExercise: we,
-            exercise: exercise,
-          ),
-          setWeight: s.weight,
-          bodyWeight: resolvedBw,
-          loadFactor: exercise.bodyweightLoadFactor,
-        );
-        final e1rm = estimated1RM(weight: load, reps: s.reps);
-        if (e1rm != null && (best1RM == null || e1rm > best1RM)) {
-          best1RM = e1rm;
-          bestWeight = load;
-          bestReps = s.reps;
+            (s.bodyWeightSnapshot ?? profileAt ?? latestWeight) ?? 0.0;
+
+        for (final probe in strengthEffortsForEstimated1Rm(
+          s,
+          exercise: exercise,
+          workoutExercise: we,
+          resolvedBodyWeight: resolvedBw,
+        )) {
+          final e1rm =
+              estimated1RM(weight: probe.loadKg, reps: probe.reps);
+          if (e1rm != null &&
+              (best1RM == null || e1rm > best1RM)) {
+            best1RM = e1rm;
+            bestWeight = probe.loadKg;
+            bestReps = probe.reps;
+          }
         }
       }
       return {

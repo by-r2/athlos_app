@@ -78,6 +78,82 @@ bool _recordsPerSideVolume(ExecutionSet set) {
   return left > 0 || right > 0;
 }
 
+/// Discrete load×reps pairs to evaluate Epley 1RM (including each drop tier).
+///
+/// For unilateral flat sets (no segments), yields left and right arms when
+/// applicable. Callers should only pass completed, non-warmup sets.
+Iterable<({double loadKg, int reps})> strengthEffortsForEstimated1Rm(
+  ExecutionSet set, {
+  required Exercise exercise,
+  WorkoutExercise? workoutExercise,
+  required double resolvedBodyWeight,
+}) sync* {
+  if (!set.isCompleted || set.isWarmup) return;
+
+  final mode = resolveLoadMode(
+    set: set,
+    workoutExercise: workoutExercise,
+    exercise: exercise,
+  );
+  final loadFactor = exercise.bodyweightLoadFactor;
+
+  bool yieldsMeaningful(double loadKg, int reps) {
+    if (reps <= 0) return false;
+    if (mode == LoadMode.weighted && loadKg <= 0) return false;
+    return estimated1RM(weight: loadKg, reps: reps) != null;
+  }
+
+  if (set.segments.isNotEmpty) {
+    for (final seg in set.segments) {
+      final loadKg = _effectiveLoadOrZero(
+        mode: mode,
+        setWeight: seg.weight,
+        resolvedBodyWeight: resolvedBodyWeight,
+        loadFactor: loadFactor,
+      );
+      if (yieldsMeaningful(loadKg, seg.reps)) {
+        yield (loadKg: loadKg, reps: seg.reps);
+      }
+    }
+    return;
+  }
+
+  if (_recordsPerSideVolume(set)) {
+    final loadL = _effectiveLoadOrZero(
+      mode: mode,
+      setWeight: set.leftWeight ?? set.weight,
+      resolvedBodyWeight: resolvedBodyWeight,
+      loadFactor: loadFactor,
+    );
+    final loadR = _effectiveLoadOrZero(
+      mode: mode,
+      setWeight: set.rightWeight ?? set.leftWeight ?? set.weight,
+      resolvedBodyWeight: resolvedBodyWeight,
+      loadFactor: loadFactor,
+    );
+    final leftReps = set.leftReps ?? set.reps ?? 0;
+    final rightReps = set.rightReps ?? 0;
+    if (yieldsMeaningful(loadL, leftReps)) {
+      yield (loadKg: loadL, reps: leftReps);
+    }
+    if (yieldsMeaningful(loadR, rightReps)) {
+      yield (loadKg: loadR, reps: rightReps);
+    }
+    return;
+  }
+
+  final loadKg = _effectiveLoadOrZero(
+    mode: mode,
+    setWeight: set.weight,
+    resolvedBodyWeight: resolvedBodyWeight,
+    loadFactor: loadFactor,
+  );
+  final reps = set.reps ?? 0;
+  if (yieldsMeaningful(loadKg, reps)) {
+    yield (loadKg: loadKg, reps: reps);
+  }
+}
+
 double _effectiveLoadOrZero({
   required LoadMode mode,
   required double? setWeight,
@@ -128,7 +204,8 @@ double computeSetVolume(
           exercise: exercise,
         );
   final loadFactor = exercise?.bodyweightLoadFactor;
-  final resolvedBodyWeight = set.bodyWeightSnapshot ??
+  final resolvedBodyWeight =
+      set.bodyWeightSnapshot ??
       profileBodyWeightOnExecutionDate ??
       latestBodyWeight ??
       0;
@@ -183,7 +260,8 @@ double computeSetVolume(
     return total;
   }
 
-  final load = effectiveLoad(
+  final load =
+      effectiveLoad(
         mode: mode,
         setWeight: set.weight,
         bodyWeight: resolvedBodyWeight,

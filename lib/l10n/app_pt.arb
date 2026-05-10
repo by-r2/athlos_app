@@ -2266,7 +2266,7 @@
   "weeklyVolume": "Volume semanal",
   "weeklyVolumeTooltip": "Séries de trabalho (excl. aquecimento) por grupo muscular nos últimos 7 dias.",
   "@weeklyVolumeTooltip": { "description": "Tooltip explaining the weekly volume card" },
-  "weeklyVolumeSets": "{count} sets",
+  "weeklyVolumeSets": "{count, plural, =1{1 série} other{{count} séries}}",
   "@weeklyVolumeSets": {
     "placeholders": {
       "count": { "type": "int" }
@@ -2326,9 +2326,9 @@
   "prHistoryEmpty": "Nenhum recorde pessoal registado. Complete treinos para detectar PRs automaticamente.",
 
   "volumeTrendTitle": "Volume semanal",
-  "volumeTrendSubtitle": "Séries de trabalho por grupo muscular.",
+  "volumeTrendSubtitle": "Séries de trabalho por grupo e semana (segunda a domingo).",
   "@volumeTrendSubtitle": { "description": "Brief inline subtitle on the volume trend screen" },
-  "volumeTrendDescription": "Volume é o total de séries de trabalho (excluindo aquecimento) por grupo muscular. As linhas tracejadas indicam a faixa recomendada para o seu nível de experiência.",
+  "volumeTrendDescription": "Cada barra conta séries de trabalho (sem aquecimento) numa semana de calendário (segunda a domingo). As linhas tracejadas mostram a faixa recomendada para o seu nível de experiência.",
   "volumeTrendLegendMin": "Mín. recomendado ({value})",
   "@volumeTrendLegendMin": {
     "description": "Legend label for the minimum target line",

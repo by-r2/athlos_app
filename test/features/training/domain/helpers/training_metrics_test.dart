@@ -213,6 +213,89 @@ void main() {
     });
   });
 
+  group('strengthEffortsForEstimated1Rm', () {
+    final bench = Exercise(
+      id: 99,
+      name: 'bench',
+      muscleGroup: MuscleGroup.chest,
+      defaultLoadMode: LoadMode.weighted,
+    );
+
+    test('returns one probe for a simple weighted set', () {
+      final probes = strengthEffortsForEstimated1Rm(
+        _set(reps: 5, weight: 100),
+        exercise: bench,
+        resolvedBodyWeight: 75,
+      ).toList();
+      expect(probes, [(loadKg: 100.0, reps: 5)]);
+    });
+
+    test('returns every drop-set segment as its own probe', () {
+      final s = _set(
+        segments: const [
+          ExecutionSetSegment(
+            id: 1,
+            executionSetId: 1,
+            segmentOrder: 1,
+            reps: 4,
+            weight: 100,
+          ),
+          ExecutionSetSegment(
+            id: 2,
+            executionSetId: 1,
+            segmentOrder: 2,
+            reps: 8,
+            weight: 80,
+          ),
+        ],
+      );
+      final probes = strengthEffortsForEstimated1Rm(
+        s,
+        exercise: bench,
+        resolvedBodyWeight: 75,
+      ).toList();
+      expect(probes.length, 2);
+      expect(probes[0].reps * probes[0].loadKg > 0, true);
+      expect(probes[1].reps, 8);
+    });
+
+    test('unilateral flat set yields left and right', () {
+      final s = ExecutionSet(
+        id: 1,
+        executionId: 1,
+        exerciseId: 1,
+        setNumber: 1,
+        reps: 8,
+        weight: 20,
+        leftReps: 8,
+        rightReps: 10,
+        leftWeight: 20,
+        rightWeight: 20,
+        isUnilateral: true,
+        isCompleted: true,
+      );
+      final probes = strengthEffortsForEstimated1Rm(
+        s,
+        exercise: bench,
+        resolvedBodyWeight: 75,
+      ).toList();
+      expect(probes.length, 2);
+      expect(probes[0].reps, 8);
+      expect(probes[1].reps, 10);
+    });
+
+    test('returns nothing for incomplete set', () {
+      expect(
+        strengthEffortsForEstimated1Rm(
+          _set(reps: 5, weight: 50, isCompleted: false),
+          exercise: bench,
+          resolvedBodyWeight: 75,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('computeTotalVolume', () {
     test('sums every set ignoring incomplete and warmup', () {
       final sets = [
