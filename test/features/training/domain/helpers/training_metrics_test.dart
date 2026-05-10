@@ -13,6 +13,11 @@ ExecutionSet _set({
   double? weight = 50,
   bool isCompleted = true,
   bool isWarmup = false,
+  bool? isUnilateral,
+  int? leftReps,
+  int? rightReps,
+  double? leftWeight,
+  double? rightWeight,
   List<ExecutionSetSegment> segments = const [],
 }) =>
     ExecutionSet(
@@ -24,6 +29,11 @@ ExecutionSet _set({
       weight: weight,
       isCompleted: isCompleted,
       isWarmup: isWarmup,
+      isUnilateral: isUnilateral,
+      leftReps: leftReps,
+      rightReps: rightReps,
+      leftWeight: leftWeight,
+      rightWeight: rightWeight,
       segments: segments,
     );
 
@@ -121,6 +131,85 @@ void main() {
         ],
       );
       expect(computeSetVolume(set), 0);
+    });
+
+    test('unilateral sums left arm and right arm tonnage when isUnilateral is true',
+        () {
+      expect(
+        computeSetVolume(
+          _set(
+            isUnilateral: true,
+            reps: 12,
+            weight: 20,
+            leftReps: 12,
+            rightReps: 10,
+            leftWeight: 20,
+            rightWeight: 20,
+          ),
+        ),
+        12 * 20 + 10 * 20,
+      );
+    });
+
+    test('explicit bilateral ignores per-side reps for volume totals', () {
+      expect(
+        computeSetVolume(
+          _set(
+            isUnilateral: false,
+            reps: 10,
+            weight: 50,
+            leftReps: 999,
+          ),
+        ),
+        500,
+      );
+    });
+
+    test(
+        'legacy rows infer per-side volume when reps exist on either side '
+        '(isUnilateral null)',
+        () {
+      expect(
+        computeSetVolume(
+          _set(
+            reps: 10,
+            weight: 20,
+            leftReps: 10,
+            rightReps: 10,
+          ),
+        ),
+        400,
+      );
+    });
+
+    test(
+        'unilateral with drop-set segments scales second arm tonnage '
+        'by rightReps over left total reps',
+        () {
+      final set = _set(
+        isUnilateral: true,
+        reps: 10,
+        weight: 50,
+        rightReps: 12,
+        segments: const [
+          ExecutionSetSegment(
+            id: 1,
+            executionSetId: 1,
+            segmentOrder: 1,
+            reps: 6,
+            weight: 50,
+          ),
+          ExecutionSetSegment(
+            id: 2,
+            executionSetId: 1,
+            segmentOrder: 2,
+            reps: 4,
+            weight: 40,
+          ),
+        ],
+      );
+      final armVol = 6 * 50 + 4 * 40; // 300 + 160 = 460
+      expect(computeSetVolume(set), armVol + armVol * (12 / 10));
     });
   });
 

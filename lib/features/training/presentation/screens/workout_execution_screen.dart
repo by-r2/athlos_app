@@ -109,6 +109,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   double _currentDistance = 0;
   int? _selectedRpe;
   bool _isUnilateral = false;
+
+  /// When true, single weight + reps widgets mirror to both limbs (common case).
+  bool _unilateralSidesLinked = true;
   List<_DropSegmentInput> _dropSegments = [];
   _TimedSubState _timedSubState = _TimedSubState.ready;
   int _countdownValue = 3;
@@ -381,15 +384,22 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
     final l10n = AppLocalizations.of(context)!;
     final bk = bodyWeight.toStringAsFixed(1);
-    final fac = (exerciseEntity.bodyweightLoadFactor ?? 1.0)
-        .toStringAsFixed(2);
+    final fac = (exerciseEntity.bodyweightLoadFactor ?? 1.0).toStringAsFixed(2);
     final plate = plateOrAssistKg.toStringAsFixed(1);
     final tot = effectiveTotal.toStringAsFixed(1);
     return switch (mode) {
-      LoadMode.bodyweight =>
-        l10n.executionBodyweightLoadTooltip(bk, fac, plate, tot),
-      LoadMode.assisted =>
-        l10n.executionAssistedLoadTooltip(bk, fac, plate, tot),
+      LoadMode.bodyweight => l10n.executionBodyweightLoadTooltip(
+        bk,
+        fac,
+        plate,
+        tot,
+      ),
+      LoadMode.assisted => l10n.executionAssistedLoadTooltip(
+        bk,
+        fac,
+        plate,
+        tot,
+      ),
       LoadMode.weighted => null,
     };
   }
@@ -566,6 +576,12 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       _leftWeight = entry.leftWeight ?? _currentWeight;
       _rightReps = entry.rightReps ?? _currentReps;
       _rightWeight = entry.rightWeight ?? _currentWeight;
+      _unilateralSidesLinked = _inferUnilateralSidesLinked(
+        _leftWeight,
+        _rightWeight,
+        _leftReps,
+        _rightReps,
+      );
     });
   }
 
@@ -1293,6 +1309,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     ];
   }
 
+  /// True when load and reps match on both sides (single merged UI is enough).
+  bool _inferUnilateralSidesLinked(
+    double leftWeight,
+    double rightWeight,
+    int leftReps,
+    int rightReps,
+  ) {
+    const eps = 1e-6;
+    return (leftWeight - rightWeight).abs() < eps && leftReps == rightReps;
+  }
+
   // ---------------------------------------------------------------------------
   // View 2: Focused
   // ---------------------------------------------------------------------------
@@ -1323,8 +1350,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final resolvedLoadMode = _resolvedLoadModeFor(exercise, currentSetEntry);
     final weightSuffix = _weightSuffixForMode(resolvedLoadMode);
     final bodyWeight = ref.watch(latestBodyWeightProvider).value;
-    final weightForEffectiveLoad =
-        _isUnilateral ? _leftWeight : _currentWeight;
+    final weightForEffectiveLoad = _isUnilateral ? _leftWeight : _currentWeight;
     final effectiveLoadHint = exerciseEntity == null
         ? null
         : effectiveLoad(
@@ -1335,6 +1361,24 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             bodyWeight: bodyWeight,
             loadFactor: exerciseEntity.bodyweightLoadFactor,
           );
+
+    Widget? unilateralPlateTooltip(double plateKg) {
+      if (exerciseEntity == null) return null;
+      final hint = effectiveLoad(
+        mode: resolvedLoadMode,
+        setWeight: plateKg > 0 ? plateKg : null,
+        bodyWeight: bodyWeight,
+        loadFactor: exerciseEntity.bodyweightLoadFactor,
+      );
+      return _effectiveLoadTooltipIcon(
+        mode: resolvedLoadMode,
+        exerciseEntity: exerciseEntity,
+        bodyWeight: bodyWeight,
+        effectiveTotal: hint,
+        plateOrAssistKg: plateKg,
+        colorScheme: colorScheme,
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -1383,6 +1427,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                           _leftWeight = _currentWeight;
                           _rightReps = _currentReps;
                           _rightWeight = _currentWeight;
+                          _unilateralSidesLinked = true;
                         } else {
                           _currentReps = _leftReps;
                           _currentWeight = _leftWeight;
@@ -1514,96 +1559,253 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
               ..._executionRepsTargetBelowInputs(context, exercise),
             ] else ...[
-              // Unilateral: shared weight, per-side reps
-              _NumberInput(
-                value: _leftWeight,
-                suffix: weightSuffix,
-                suffixTrailing: _effectiveLoadTooltipIcon(
-                  mode: resolvedLoadMode,
-                  exerciseEntity: exerciseEntity,
-                  bodyWeight: bodyWeight,
-                  effectiveTotal: effectiveLoadHint,
-                  plateOrAssistKg: weightForEffectiveLoad,
+              Center(
+                child: IconButton(
+                  tooltip: _unilateralSidesLinked
+                      ? l10n.executionUnilateralSidesLinkedTooltip
+                      : l10n.executionUnilateralSidesSplitTooltip,
+                  onPressed: () => setState(() {
+                    if (_unilateralSidesLinked) {
+                      _unilateralSidesLinked = false;
+                    } else {
+                      _unilateralSidesLinked = true;
+                      _rightWeight = _leftWeight;
+                      _rightReps = _leftReps;
+                    }
+                  }),
+                  icon: Icon(
+                    _unilateralSidesLinked
+                        ? Icons.link_rounded
+                        : Icons.link_off_rounded,
+                    color: _unilateralSidesLinked
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
+                child: Center(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: AthlosSpacing.xxs,
+                    children: [
+                      Text(
+                        l10n.executionUnilateralWeightPerSideLabel,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      Tooltip(
+                        message: _unilateralSidesLinked
+                            ? l10n.executionUnilateralMergedHint
+                            : l10n.executionUnilateralWeightHint,
+                        triggerMode: TooltipTriggerMode.tap,
+                        child: Icon(
+                          Icons.help_outline,
+                          size: 18,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              if (_unilateralSidesLinked) ...[
+                _NumberInput(
+                  value: _leftWeight,
+                  suffix: weightSuffix,
+                  suffixTrailing: _effectiveLoadTooltipIcon(
+                    mode: resolvedLoadMode,
+                    exerciseEntity: exerciseEntity,
+                    bodyWeight: bodyWeight,
+                    effectiveTotal: effectiveLoadHint,
+                    plateOrAssistKg: weightForEffectiveLoad,
+                    colorScheme: colorScheme,
+                  ),
+                  step: 2.5,
+                  onChanged: (v) => setState(() {
+                    _leftWeight = v;
+                    _rightWeight = v;
+                  }),
+                  textTheme: textTheme,
                   colorScheme: colorScheme,
                 ),
-                step: 2.5,
-                onChanged: (v) => setState(() {
-                  _leftWeight = v;
-                  _rightWeight = v;
-                }),
-                textTheme: textTheme,
-                colorScheme: colorScheme,
-              ),
-
-              const SizedBox(height: AthlosSpacing.lg),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          l10n.leftSideLabel,
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: AthlosSpacing.xs),
-                        _NumberInput(
-                          value: _leftReps.toDouble(),
-                          suffix: l10n.repsShort,
-                          step: 1,
-                          compact: true,
-                          onChanged: (v) =>
-                              setState(() => _leftReps = v.toInt()),
-                          textTheme: textTheme,
-                          colorScheme: colorScheme,
-                          valueColor: repsDeviationColor(
-                            colorScheme,
-                            Theme.of(context).extension<AthlosCustomColors>()!,
-                            _leftReps,
-                            exercise.minReps ?? 0,
-                            exercise.maxReps ?? 0,
-                            exercise.isAmrap,
-                          ),
-                        ),
-                      ],
-                    ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AthlosSpacing.lg,
+                    bottom: AthlosSpacing.sm,
                   ),
-                  const SizedBox(width: AthlosSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          l10n.rightSideLabel,
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: AthlosSpacing.xs),
-                        _NumberInput(
-                          value: _rightReps.toDouble(),
-                          suffix: l10n.repsShort,
-                          step: 1,
-                          compact: true,
-                          onChanged: (v) =>
-                              setState(() => _rightReps = v.toInt()),
-                          textTheme: textTheme,
-                          colorScheme: colorScheme,
-                          valueColor: repsDeviationColor(
-                            colorScheme,
-                            Theme.of(context).extension<AthlosCustomColors>()!,
-                            _rightReps,
-                            exercise.minReps ?? 0,
-                            exercise.maxReps ?? 0,
-                            exercise.isAmrap,
-                          ),
-                        ),
-                      ],
+                  child: Text(
+                    l10n.executionUnilateralRepsPerSideLabel,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ],
-              ),
+                ),
+                _NumberInput(
+                  value: _leftReps.toDouble(),
+                  suffix: l10n.repsShort,
+                  step: 1,
+                  onChanged: (v) => setState(() {
+                    final reps = v.toInt();
+                    _leftReps = reps;
+                    _rightReps = reps;
+                  }),
+                  textTheme: textTheme,
+                  colorScheme: colorScheme,
+                  valueColor: repsDeviationColor(
+                    colorScheme,
+                    Theme.of(context).extension<AthlosCustomColors>()!,
+                    _leftReps,
+                    exercise.minReps ?? 0,
+                    exercise.maxReps ?? 0,
+                    exercise.isAmrap,
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            l10n.leftSideLabel,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.xs),
+                          _NumberInput(
+                            value: _leftWeight,
+                            suffix: weightSuffix,
+                            suffixTrailing: unilateralPlateTooltip(_leftWeight),
+                            step: 2.5,
+                            compact: true,
+                            onChanged: (v) => setState(() => _leftWeight = v),
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AthlosSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            l10n.rightSideLabel,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.xs),
+                          _NumberInput(
+                            value: _rightWeight,
+                            suffix: weightSuffix,
+                            suffixTrailing: unilateralPlateTooltip(
+                              _rightWeight,
+                            ),
+                            step: 2.5,
+                            compact: true,
+                            onChanged: (v) => setState(() => _rightWeight = v),
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: AthlosSpacing.lg,
+                    bottom: AthlosSpacing.sm,
+                  ),
+                  child: Text(
+                    l10n.executionUnilateralRepsPerSideLabel,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            l10n.leftSideLabel,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.xs),
+                          _NumberInput(
+                            value: _leftReps.toDouble(),
+                            suffix: l10n.repsShort,
+                            step: 1,
+                            compact: true,
+                            onChanged: (v) =>
+                                setState(() => _leftReps = v.toInt()),
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                            valueColor: repsDeviationColor(
+                              colorScheme,
+                              Theme.of(
+                                context,
+                              ).extension<AthlosCustomColors>()!,
+                              _leftReps,
+                              exercise.minReps ?? 0,
+                              exercise.maxReps ?? 0,
+                              exercise.isAmrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AthlosSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            l10n.rightSideLabel,
+                            style: textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AthlosSpacing.xs),
+                          _NumberInput(
+                            value: _rightReps.toDouble(),
+                            suffix: l10n.repsShort,
+                            step: 1,
+                            compact: true,
+                            onChanged: (v) =>
+                                setState(() => _rightReps = v.toInt()),
+                            textTheme: textTheme,
+                            colorScheme: colorScheme,
+                            valueColor: repsDeviationColor(
+                              colorScheme,
+                              Theme.of(
+                                context,
+                              ).extension<AthlosCustomColors>()!,
+                              _rightReps,
+                              exercise.minReps ?? 0,
+                              exercise.maxReps ?? 0,
+                              exercise.isAmrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               ..._executionRepsTargetBelowInputs(context, exercise),
             ],
@@ -3622,6 +3824,7 @@ class _OverviewExerciseCard extends StatelessWidget {
 class _NumberInput extends StatelessWidget {
   final double value;
   final String suffix;
+
   /// Optional widget beside [suffix] (e.g. BW load explanation tooltip).
   final Widget? suffixTrailing;
   final double step;

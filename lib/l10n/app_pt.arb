@@ -2374,6 +2374,31 @@
     }
   },
 
+  "executionUnilateralWeightPerSideLabel": "Peso por lado (cada lado)",
+  "@executionUnilateralWeightPerSideLabel": {
+    "description": "Título sobre o campo de carga em modo unilateral: não é soma das duas pegadas."
+  },
+  "executionUnilateralMergedHint": "Um valor só: conta para cada braço (haltere de 20 kg → 20, não o total dos dois).",
+  "@executionUnilateralMergedHint": {
+    "description": "Ajuda quando peso/reps são iguais nos dois lados."
+  },
+  "executionUnilateralWeightHint": "Por braço ou haltere individual, não a soma esquerdo + direito.",
+  "@executionUnilateralWeightHint": {
+    "description": "Texto quando lado esquerdo e direito estão separados."
+  },
+  "executionUnilateralRepsPerSideLabel": "Repetições (cada lado)",
+  "@executionUnilateralRepsPerSideLabel": {
+    "description": "Reps unilateral: igual em modo vínculo ou separado por braço."
+  },
+  "executionUnilateralSidesLinkedTooltip": "Separar lado esquerdo e direito",
+  "@executionUnilateralSidesLinkedTooltip": {
+    "description": "Ícone vínculo ativo — toque para abrir 4 campos."
+  },
+  "executionUnilateralSidesSplitTooltip": "Igual peso e repetições nos dois lados",
+  "@executionUnilateralSidesSplitTooltip": {
+    "description": "Modo 4 campos — toque para voltar ao único valor."
+  },
+
   "leftSideLabel": "Lado esquerdo",
   "rightSideLabel": "Lado direito",
   "leftAbbr": "E",

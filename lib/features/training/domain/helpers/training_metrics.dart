@@ -66,11 +66,41 @@ double? estimated1RM({required double? weight, required int? reps}) {
   return weight * (1 + reps / 30);
 }
 
+/// Whether [set] should use per-arm volume (`left × loadL + right × loadR`).
+///
+/// Explicit bilateral (`isUnilateral == false`) stays on the legacy single-line
+/// path so stray side fields cannot skew machines / barbell rows.
+bool _recordsPerSideVolume(ExecutionSet set) {
+  if (set.isUnilateral == false) return false;
+  if (set.isUnilateral == true) return true;
+  final left = set.leftReps ?? 0;
+  final right = set.rightReps ?? 0;
+  return left > 0 || right > 0;
+}
+
+double _effectiveLoadOrZero({
+  required LoadMode mode,
+  required double? setWeight,
+  required double resolvedBodyWeight,
+  required double? loadFactor,
+}) =>
+    effectiveLoad(
+      mode: mode,
+      setWeight: setWeight,
+      bodyWeight: resolvedBodyWeight,
+      loadFactor: loadFactor,
+    ) ??
+    0;
+
 /// Computes the volume contribution of a single execution [set] in `kg × reps`.
 ///
 /// Rules:
 /// - Returns 0 when the set is not completed.
 /// - Returns 0 for warmup sets (warmups don't count toward volume).
+/// - Unilateral recording (`isUnilateral` or legacy per-side reps): totals
+///   `leftReps × effectiveLoad(left)` + `rightReps × effectiveLoad(right)`.
+///   With drop-set segments stored per arm, mirrors that arm's tonnage onto
+///   the other side proportional to reps when only one arm's ladder is persisted.
 /// - Sums every drop-set segment when present (`segment.reps × segment.weight`).
 /// - Otherwise: `set.reps × set.weight`.
 ///
@@ -103,16 +133,51 @@ double computeSetVolume(
       latestBodyWeight ??
       0;
 
+  if (_recordsPerSideVolume(set)) {
+    final leftReps = set.leftReps ?? set.reps ?? 0;
+    final rightReps = set.rightReps ?? 0;
+
+    if (set.segments.isNotEmpty) {
+      var armVol = 0.0;
+      for (final seg in set.segments) {
+        final load = _effectiveLoadOrZero(
+          mode: mode,
+          setWeight: seg.weight,
+          resolvedBodyWeight: resolvedBodyWeight,
+          loadFactor: loadFactor,
+        );
+        armVol += seg.reps * load;
+      }
+      if (rightReps <= 0) return armVol;
+      final leftTotalReps = set.segments.fold<int>(0, (a, s) => a + s.reps);
+      if (leftTotalReps <= 0) return armVol;
+      return armVol + armVol * (rightReps / leftTotalReps);
+    }
+
+    final loadL = _effectiveLoadOrZero(
+      mode: mode,
+      setWeight: set.leftWeight ?? set.weight,
+      resolvedBodyWeight: resolvedBodyWeight,
+      loadFactor: loadFactor,
+    );
+    final loadR = _effectiveLoadOrZero(
+      mode: mode,
+      setWeight: set.rightWeight ?? set.leftWeight ?? set.weight,
+      resolvedBodyWeight: resolvedBodyWeight,
+      loadFactor: loadFactor,
+    );
+    return leftReps * loadL + rightReps * loadR;
+  }
+
   if (set.segments.isNotEmpty) {
     var total = 0.0;
     for (final seg in set.segments) {
-      final load = effectiveLoad(
+      final load = _effectiveLoadOrZero(
         mode: mode,
         setWeight: seg.weight,
-        bodyWeight: resolvedBodyWeight,
+        resolvedBodyWeight: resolvedBodyWeight,
         loadFactor: loadFactor,
-      ) ??
-          0;
+      );
       total += seg.reps * load;
     }
     return total;
