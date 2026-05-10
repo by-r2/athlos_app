@@ -3205,6 +3205,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             ),
           ];
 
+    /// When unilateral drops are mirrored (linked limbs), persisted [rightReps]
+    /// must match total reps on the ladder so volume scaling matches the left-arm
+    /// segment sum (computeSetVolume divides by segment total reps).
+    final int? rightRepsPersisted = !isUni
+        ? null
+        : !_unilateralSidesLinked
+        ? (_rightReps > 0 ? _rightReps : null)
+        : segments.isNotEmpty
+        ? segments.fold<int>(0, (a, seg) => a + seg.reps)
+        : (_rightReps > 0 ? _rightReps : null);
+
     final int rest;
     final double? suggestedWeight;
     try {
@@ -3225,7 +3236,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             segments: segments.isEmpty ? null : segments,
             leftReps: isUni && _leftReps > 0 ? _leftReps : null,
             leftWeight: isUni && _leftWeight > 0 ? _leftWeight : null,
-            rightReps: isUni && _rightReps > 0 ? _rightReps : null,
+            rightReps: rightRepsPersisted,
             rightWeight: isUni && _rightWeight > 0 ? _rightWeight : null,
             isUnilateral: isUni,
           );
