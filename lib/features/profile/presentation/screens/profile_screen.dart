@@ -15,6 +15,8 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/user_profile.dart';
@@ -75,6 +77,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int? _availableWorkoutMinutes;
   bool? _trainsAtGym;
 
+  String? _overviewEditBaseline;
+  String? _trainingEditBaseline;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -93,7 +98,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _selectedGender = profile.gender;
     _injuriesController.text = profile.injuries ?? '';
     _bioController.text = profile.bio ?? '';
-    setState(() => _editingTab = _EditingTab.overview);
+    _trainingEditBaseline = null;
+    setState(() {
+      _editingTab = _EditingTab.overview;
+      _overviewEditBaseline = _snapshotOverviewEdit();
+    });
   }
 
   void _startEditingTraining(UserProfile profile) {
@@ -106,7 +115,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _workoutMinutesController.text =
         profile.availableWorkoutMinutes?.toString() ?? '60';
     _trainsAtGym = profile.trainsAtGym;
-    setState(() => _editingTab = _EditingTab.training);
+    _overviewEditBaseline = null;
+    setState(() {
+      _editingTab = _EditingTab.training;
+      _trainingEditBaseline = _snapshotTrainingEdit();
+    });
+  }
+
+  String _snapshotOverviewEdit() => [
+        _nameController.text,
+        _heightController.text,
+        _ageController.text,
+        _injuriesController.text,
+        _bioController.text,
+        _selectedGender?.name ?? 'null',
+      ].join('\u001e');
+
+  String _snapshotTrainingEdit() => [
+        _selectedGoal?.name ?? 'null',
+        _selectedAesthetic?.name ?? 'null',
+        _selectedStyle?.name ?? 'null',
+        _selectedExperience?.name ?? 'null',
+        '${_trainingFrequency ?? -1}',
+        '${_availableWorkoutMinutes ?? -1}',
+        _workoutMinutesController.text,
+        '${_trainsAtGym ?? -1}',
+      ].join('\u001e');
+
+  bool get _isProfileEditDirty {
+    if (_editingTab == _EditingTab.overview && _overviewEditBaseline != null) {
+      return _snapshotOverviewEdit() != _overviewEditBaseline;
+    }
+    if (_editingTab == _EditingTab.training && _trainingEditBaseline != null) {
+      return _snapshotTrainingEdit() != _trainingEditBaseline;
+    }
+    return false;
+  }
+
+  Future<void> _cancelEditing() async {
+    if (!_isProfileEditDirty) {
+      setState(() => _editingTab = _EditingTab.none);
+      return;
+    }
+    final discard = await confirmDiscardUnsavedEdits(context);
+    if (!mounted) return;
+    if (discard) {
+      setState(() {
+        _editingTab = _EditingTab.none;
+        _overviewEditBaseline = null;
+        _trainingEditBaseline = null;
+      });
+    }
   }
 
   @override
@@ -117,7 +176,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final isEditing = _editingTab != _EditingTab.none;
 
-    return DefaultTabController(
+    return ConfirmNavigationScope(
+      guardActive:
+          _editingTab != _EditingTab.none && _isProfileEditDirty,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      onLeaveConfirmed: (_) {
+        if (!mounted) return;
+        setState(() {
+          _editingTab = _EditingTab.none;
+          _overviewEditBaseline = null;
+          _trainingEditBaseline = null;
+        });
+      },
+      child: DefaultTabController(
       length: 4,
       child: Scaffold(
         appBar: AppBar(
@@ -156,6 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
       ),
+    ),
     );
   }
 
@@ -491,7 +563,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () => setState(() => _editingTab = _EditingTab.none),
+                onPressed: _cancelEditing,
                 child: Text(l10n.cancel),
               ),
             ),
@@ -527,6 +599,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     controller: _nameController,
                     decoration: InputDecoration(labelText: l10n.nameLabel),
                     textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => setState(() {}),
                   ),
                   const Gap(AthlosSpacing.md),
                   TextFormField(
@@ -549,6 +622,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       }
                       return null;
                     },
+                    onChanged: (_) => setState(() {}),
                   ),
                   const Gap(AthlosSpacing.md),
                   TextFormField(
@@ -567,6 +641,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       }
                       return null;
                     },
+                    onChanged: (_) => setState(() {}),
                   ),
                   const Gap(AthlosSpacing.md),
                   Text(l10n.profileGender, style: textTheme.titleMedium),
@@ -605,6 +680,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     maxLines: 3,
                     textCapitalization: TextCapitalization.sentences,
+                    onChanged: (_) => setState(() {}),
                   ),
                   const Gap(AthlosSpacing.md),
                   TextFormField(
@@ -616,6 +692,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
+                    onChanged: (_) => setState(() {}),
                   ),
                 ],
               ),
@@ -800,7 +877,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(profileProvider.notifier).updateProfile(updated);
       if (mounted) {
-        setState(() => _editingTab = _EditingTab.none);
+        setState(() {
+          _editingTab = _EditingTab.none;
+          _overviewEditBaseline = null;
+          _trainingEditBaseline = null;
+        });
       }
     } on Exception catch (_) {
       if (mounted) {

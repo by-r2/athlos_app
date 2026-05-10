@@ -10,6 +10,8 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/exercise_name_match.dart';
@@ -374,6 +376,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   String _primaryMuscleQuery = '';
   String _secondaryMuscleQuery = '';
   bool _isSaving = false;
+  bool _dirty = false;
 
   /// When non-null, the sheet shows similar-name review instead of the form.
   List<Exercise>? _pendingSimilarReview;
@@ -383,6 +386,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     super.initState();
     if (widget.initialName.isNotEmpty) {
       _nameController.text = widget.initialName;
+      _dirty = true;
     }
   }
 
@@ -391,6 +395,22 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  void _touchDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
+  Future<void> _closeSheet(BuildContext context) async {
+    final mustConfirm =
+        _dirty || _pendingSimilarReview != null;
+    if (!mustConfirm) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final discard = await confirmDiscardUnsavedEdits(context);
+    if (!context.mounted) return;
+    if (discard) Navigator.of(context).pop();
   }
 
   List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
@@ -415,7 +435,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
       }
     });
 
-    return Padding(
+    return ConfirmNavigationScope(
+      guardActive: _dirty || _pendingSimilarReview != null,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      child: Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -463,7 +486,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                               ),
                             ),
                             IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
+                              onPressed: () => _closeSheet(context),
                               icon: const Icon(Icons.close),
                             ),
                           ],
@@ -477,7 +500,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                               ),
                             ),
                             IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
+                              onPressed: () => _closeSheet(context),
                               icon: const Icon(Icons.close),
                             ),
                           ],
@@ -508,6 +531,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                               ),
                               textCapitalization: TextCapitalization.sentences,
                               autofocus: true,
+                              onChanged: (_) => _touchDirty(),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return l10n.fieldRequired;
@@ -550,6 +574,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                               }).toList(),
                               onChanged: (value) {
                                 if (value != null) {
+                                  _touchDirty();
                                   setState(() => _selectedGroup = value);
                                 }
                               },
@@ -567,12 +592,15 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                                 ),
                               ],
                               selected: {_selectedType},
-                              onSelectionChanged: (v) => setState(() {
-                                _selectedType = v.first;
-                                if (_selectedType == ExerciseType.cardio) {
-                                  _isIsometric = false;
-                                }
-                              }),
+                              onSelectionChanged: (v) {
+                                _touchDirty();
+                                setState(() {
+                                  _selectedType = v.first;
+                                  if (_selectedType == ExerciseType.cardio) {
+                                    _isIsometric = false;
+                                  }
+                                });
+                              },
                             ),
                             if (_selectedType == ExerciseType.strength) ...[
                               const Gap(AthlosSpacing.sm),
@@ -580,8 +608,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                                 title: Text(l10n.isometricLabel),
                                 subtitle: Text(l10n.isometricHint),
                                 value: _isIsometric,
-                                onChanged: (v) =>
-                                    setState(() => _isIsometric = v),
+                                onChanged: (v) {
+                                  _touchDirty();
+                                  setState(() => _isIsometric = v);
+                                },
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ],
@@ -604,7 +634,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                             ),
                             onPressed: _isSaving
                                 ? null
-                                : () => Navigator.of(context).pop(),
+                                : () => _closeSheet(context),
                             child: Text(l10n.cancel),
                           ),
                           FilledButton(
@@ -650,6 +680,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -714,8 +745,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           muscles: _primaryMuscles,
           excludedMuscles: _secondaryMuscles.map((m) => m.muscle).toSet(),
           query: _primaryMuscleQuery,
-          onQueryChanged: (value) =>
-              setState(() => _primaryMuscleQuery = value),
+          onQueryChanged: (value) {
+            _touchDirty();
+            setState(() => _primaryMuscleQuery = value);
+          },
           l10n: l10n,
           textTheme: textTheme,
           colorScheme: colorScheme,
@@ -726,8 +759,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           muscles: _secondaryMuscles,
           excludedMuscles: _primaryMuscles.map((m) => m.muscle).toSet(),
           query: _secondaryMuscleQuery,
-          onQueryChanged: (value) =>
-              setState(() => _secondaryMuscleQuery = value),
+          onQueryChanged: (value) {
+            _touchDirty();
+            setState(() => _secondaryMuscleQuery = value);
+          },
           l10n: l10n,
           textTheme: textTheme,
           colorScheme: colorScheme,
@@ -755,7 +790,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
               ),
             ),
           ],
-          onChanged: (v) => setState(() => _selectedMovementPattern = v),
+          onChanged: (v) {
+            _touchDirty();
+            setState(() => _selectedMovementPattern = v);
+          },
         ),
         const Gap(AthlosSpacing.md),
         TextFormField(
@@ -768,6 +806,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
+          onChanged: (_) => _touchDirty(),
         ),
       ],
     );
@@ -826,9 +865,12 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
             children: muscles.map((focus) {
               return InputChip(
                 label: Text(localizedTargetMuscle(focus.muscle, l10n)),
-                onDeleted: () => setState(() {
-                  muscles.removeWhere((f) => f.muscle == focus.muscle);
-                }),
+                onDeleted: () {
+                  _touchDirty();
+                  setState(() {
+                    muscles.removeWhere((f) => f.muscle == focus.muscle);
+                  });
+                },
               );
             }).toList(),
           ),
@@ -867,6 +909,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
                   ),
                   title: Text(localizedTargetMuscle(muscle, l10n)),
                   onTap: () {
+                    _touchDirty();
                     setState(() {
                       muscles.add((muscle: muscle, region: null));
                     });
@@ -924,6 +967,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
               ),
             ],
             onChanged: (value) {
+              _touchDirty();
               setState(() {
                 list[idx] = (muscle: focus.muscle, region: value);
               });
@@ -947,7 +991,10 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
     );
     if (similar.isNotEmpty) {
       FocusScope.of(context).unfocus();
-      setState(() => _pendingSimilarReview = similar);
+      setState(() {
+        _pendingSimilarReview = similar;
+        _dirty = true;
+      });
       return;
     }
     await _executeCreate();

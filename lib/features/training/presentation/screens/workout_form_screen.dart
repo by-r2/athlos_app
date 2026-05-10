@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
@@ -31,6 +33,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   final List<WorkoutExerciseEntry> _entries = [];
   bool _isLoading = false;
   bool _hasLoadedExisting = false;
+  bool _dirty = false;
   int _nextGroupId = 1;
   int? _expandedExerciseIndex;
 
@@ -72,6 +75,11 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
         }
       }
     }
+    _dirty = false;
+  }
+
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
   }
 
   /// Maps each unique groupId to a sequential color index (0, 1, 2, …).
@@ -89,6 +97,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   void _toggleSupersetLink(int index) {
     if (index >= _entries.length - 1) return;
 
+    _markDirty();
     setState(() {
       final current = _entries[index];
       final next = _entries[index + 1];
@@ -117,6 +126,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     if (exercise == null || !mounted) return;
 
     try {
+      _markDirty();
       setState(() {
         _entries.add(WorkoutExerciseEntry(
           exercise: exercise,
@@ -217,6 +227,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   }
 
   void _removeExercise(int index) {
+    _markDirty();
     setState(() {
       _entries.removeAt(index);
       final expandedIndex = _expandedExerciseIndex;
@@ -230,6 +241,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   }
 
   void _reorderExercises(int oldIndex, int newIndex) {
+    _markDirty();
     setState(() {
       if (newIndex > oldIndex) newIndex--;
       final item = _entries.removeAt(oldIndex);
@@ -285,7 +297,13 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       );
     }
 
-    return Scaffold(
+    return ConfirmNavigationScope(
+      guardActive: _dirty,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      onLeaveConfirmed: (ctx) {
+        if (ctx.mounted) ctx.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.isEditing ? l10n.editWorkout : l10n.createWorkout),
         actions: [
@@ -319,6 +337,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                     decoration: InputDecoration(
                       labelText: l10n.workoutNameLabel,
                     ),
+                    onChanged: (_) => _markDirty(),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
                   ),
@@ -330,6 +349,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                       hintText: l10n.workoutDescriptionHint,
                     ),
                     maxLines: 2,
+                    onChanged: (_) => _markDirty(),
                   ),
                 ],
               ),
@@ -415,16 +435,19 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                               onToggleExpand: () =>
                                   _toggleExpandedExercise(index),
                               onRemove: () => _removeExercise(index),
-                              onChanged: (_) => setState(() {
-                                final gid = entry.groupId;
-                                if (gid == null) return;
-                                final rest = entry.rest;
-                                for (final e in _entries) {
-                                  if (e.groupId == gid) {
-                                    e.rest = rest;
+                              onChanged: (_) {
+                                _markDirty();
+                                setState(() {
+                                  final gid = entry.groupId;
+                                  if (gid == null) return;
+                                  final rest = entry.rest;
+                                  for (final e in _entries) {
+                                    if (e.groupId == gid) {
+                                      e.rest = rest;
+                                    }
                                   }
-                                }
-                              }),
+                                });
+                              },
                             ),
                             if (!isLast)
                               _SupersetBetweenTilesButton(
@@ -440,6 +463,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

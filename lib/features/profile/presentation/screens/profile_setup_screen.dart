@@ -10,6 +10,8 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -180,6 +182,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (step == null) return 0;
     return (step.index + 1) / _StepType.values.length;
   }
+
+  bool get _hasUnpersistedSetupProgress =>
+      !_isSaving &&
+      (_entries.any((e) => e.isUser) ||
+          _textController.text.trim().isNotEmpty ||
+          _editingIndex != null);
 
   bool _tryApplyEditedAnswer({
     required _StepType step,
@@ -590,7 +598,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return ConfirmNavigationScope(
+      guardActive: _hasUnpersistedSetupProgress,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      onLeaveConfirmed: (ctx) {
+        if (ctx.mounted) ctx.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(l10n.profileSetupTitle),
         automaticallyImplyLeading: false,
@@ -648,6 +662,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

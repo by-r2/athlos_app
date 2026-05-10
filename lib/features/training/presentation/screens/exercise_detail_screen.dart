@@ -7,6 +7,8 @@ import '../../../../core/router/route_paths.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -349,6 +351,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   final List<({TargetMuscle muscle, MuscleRegion? region})>
       _secondaryMuscles = [];
   bool _isSaving = false;
+  bool _dirty = false;
 
   @override
   void initState() {
@@ -368,6 +371,20 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         _primaryMuscles.add(entry);
       }
     }
+  }
+
+  void _touchDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
+
+  Future<void> _closeSheet(BuildContext context) async {
+    if (!_dirty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final discard = await confirmDiscardUnsavedEdits(context);
+    if (!context.mounted) return;
+    if (discard) Navigator.of(context).pop();
   }
 
   @override
@@ -390,7 +407,10 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
+    return ConfirmNavigationScope(
+      guardActive: _dirty,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      child: Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -431,7 +451,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => _closeSheet(context),
                         icon: const Icon(Icons.close),
                       ),
                     ],
@@ -453,6 +473,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                           border: const OutlineInputBorder(),
                         ),
                         textCapitalization: TextCapitalization.sentences,
+                        onChanged: (_) => _touchDirty(),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return l10n.fieldRequired;
@@ -476,6 +497,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                         }).toList(),
                         onChanged: (value) {
                           if (value != null) {
+                            _touchDirty();
                             setState(() => _selectedGroup = value);
                           }
                         },
@@ -493,12 +515,15 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                           ),
                         ],
                         selected: {_selectedType},
-                        onSelectionChanged: (v) => setState(() {
-                          _selectedType = v.first;
-                          if (_selectedType == ExerciseType.cardio) {
-                            _isIsometric = false;
-                          }
-                        }),
+                        onSelectionChanged: (v) {
+                          _touchDirty();
+                          setState(() {
+                            _selectedType = v.first;
+                            if (_selectedType == ExerciseType.cardio) {
+                              _isIsometric = false;
+                            }
+                          });
+                        },
                       ),
                       if (_selectedType == ExerciseType.strength) ...[
                         const Gap(AthlosSpacing.sm),
@@ -506,8 +531,10 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                           title: Text(l10n.isometricLabel),
                           subtitle: Text(l10n.isometricHint),
                           value: _isIsometric,
-                          onChanged: (v) =>
-                              setState(() => _isIsometric = v),
+                          onChanged: (v) {
+                            _touchDirty();
+                            setState(() => _isIsometric = v);
+                          },
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
@@ -539,6 +566,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -597,8 +625,10 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
               ),
             ),
           ],
-          onChanged: (v) =>
-              setState(() => _selectedMovementPattern = v),
+          onChanged: (v) {
+            _touchDirty();
+            setState(() => _selectedMovementPattern = v);
+          },
         ),
         const Gap(AthlosSpacing.md),
         TextFormField(
@@ -611,6 +641,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
           ),
           maxLines: 3,
           textCapitalization: TextCapitalization.sentences,
+          onChanged: (_) => _touchDirty(),
         ),
       ],
     );
@@ -663,6 +694,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                   selected: isSelected,
                   visualDensity: VisualDensity.compact,
                   onSelected: (selected) {
+                    _touchDirty();
                     setState(() {
                       if (selected) {
                         muscles
@@ -728,6 +760,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
               ),
             ],
             onChanged: (value) {
+              _touchDirty();
               setState(() {
                 list[idx] = (muscle: focus.muscle, region: value);
               });

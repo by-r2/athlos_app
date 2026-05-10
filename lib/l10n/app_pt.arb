@@ -2674,5 +2674,37 @@
   "loadModeOptionAssisted": "Assistido (remove peso corporal)",
   "@loadModeOptionAssisted": {
     "description": "Load mode: assisted machine or band − counterbalance (−kg)"
+  },
+  "navigateAwayUnsavedTitle": "Sair sem salvar?",
+  "@navigateAwayUnsavedTitle": {
+    "description": "Title when leaving a screen with unsaved edits"
+  },
+  "navigateAwayUnsavedMessage": "Se você sair agora, os dados que ainda não foram salvos serão perdidos.",
+  "@navigateAwayUnsavedMessage": {
+    "description": "Body explaining unsaved changes will be lost on navigation"
+  },
+  "navigateAwayDiscardAction": "Sair e descartar",
+  "@navigateAwayDiscardAction": {
+    "description": "Destructive action: leave and discard unsaved work"
+  },
+  "navigateAwayKeepEditingAction": "Continuar editando",
+  "@navigateAwayKeepEditingAction": {
+    "description": "Safe action: stay on the current screen"
+  },
+  "navigateAwayChironTitle": "Sair do Chiron?",
+  "@navigateAwayChironTitle": {
+    "description": "Title when closing the Chiron assistant sheet with active session state"
+  },
+  "navigateAwayChironMessage": "Fechar interrompe respostas em geração e descarta o texto ainda não enviado. A conversa permanece salva ao reabrir o assistente.",
+  "@navigateAwayChironMessage": {
+    "description": "Explains what is lost when dismissing Chiron mid-session"
+  },
+  "navigateAwayChironLeaveAction": "Sair",
+  "@navigateAwayChironLeaveAction": {
+    "description": "Leave Chiron sheet (destructive)"
+  },
+  "navigateAwayChironStayAction": "Continuar",
+  "@navigateAwayChironStayAction": {
+    "description": "Stay on Chiron sheet"
   }
 }

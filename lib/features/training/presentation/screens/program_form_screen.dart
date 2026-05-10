@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/deload_config.dart';
@@ -39,6 +41,7 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
   bool _activate = true;
   bool _loaded = false;
   bool _saving = false;
+  bool _dirty = false;
   bool _deloadEnabled = false;
   DeloadStrategy _deloadStrategy = DeloadStrategy.reduceVolume;
 
@@ -77,6 +80,11 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
       _deloadIntController.text =
           p.deloadConfig!.intensityMultiplier.toString();
     }
+    _dirty = false;
+  }
+
+  void _touchEdit() {
+    if (!_dirty) setState(() => _dirty = true);
   }
 
   Future<void> _save() async {
@@ -162,13 +170,16 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
   }
 
   void _updateFocusRest(ProgramFocus focus) {
-    _focus = focus;
-    if (_restController.text.isEmpty) {
-      final suggested = focus.suggestedRestSeconds;
-      if (suggested != null) {
-        _restController.text = suggested.toString();
+    _touchEdit();
+    setState(() {
+      _focus = focus;
+      if (_restController.text.isEmpty) {
+        final suggested = focus.suggestedRestSeconds;
+        if (suggested != null) {
+          _restController.text = suggested.toString();
+        }
       }
-    }
+    });
   }
 
   @override
@@ -189,7 +200,13 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
     final canSave = _nameController.text.trim().isNotEmpty &&
         (_durationController.text.trim().isNotEmpty);
 
-    return Scaffold(
+    return ConfirmNavigationScope(
+      guardActive: _dirty,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      onLeaveConfirmed: (ctx) {
+        if (ctx.mounted) ctx.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? l10n.programEditTitle : l10n.programCreateTitle),
         actions: [
@@ -215,7 +232,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
               hintText: l10n.programNameHint,
             ),
             textCapitalization: TextCapitalization.sentences,
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              _touchEdit();
+              setState(() {});
+            },
           ),
           const SizedBox(height: AthlosSpacing.lg),
 
@@ -238,7 +258,7 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
               return ChoiceChip(
                 label: Text(label),
                 selected: _focus == f,
-                onSelected: (_) => setState(() => _updateFocusRest(f)),
+                onSelected: (_) => _updateFocusRest(f),
               );
             }).toList(),
           ),
@@ -263,8 +283,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
               ),
             ],
             selected: {_durationMode},
-            onSelectionChanged: (s) =>
-                setState(() => _durationMode = s.first),
+            onSelectionChanged: (s) {
+              _touchEdit();
+              setState(() => _durationMode = s.first);
+            },
           ),
           const SizedBox(height: AthlosSpacing.md),
 
@@ -278,7 +300,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
             ),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              _touchEdit();
+              setState(() {});
+            },
           ),
           const SizedBox(height: AthlosSpacing.md),
 
@@ -291,6 +316,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
             ),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (_) {
+              _touchEdit();
+              setState(() {});
+            },
           ),
 
           const SizedBox(height: AthlosSpacing.lg),
@@ -304,7 +333,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
             contentPadding: EdgeInsets.zero,
             title: Text(l10n.deloadEnableLabel),
             value: _deloadEnabled,
-            onChanged: (v) => setState(() => _deloadEnabled = v),
+            onChanged: (v) {
+              _touchEdit();
+              setState(() => _deloadEnabled = v);
+            },
           ),
           if (_deloadEnabled) ...[
             const SizedBox(height: AthlosSpacing.sm),
@@ -329,8 +361,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
                 return ChoiceChip(
                   label: Text(label),
                   selected: _deloadStrategy == s,
-                  onSelected: (_) =>
-                      setState(() => _deloadStrategy = s),
+                  onSelected: (_) {
+                    _touchEdit();
+                    setState(() => _deloadStrategy = s);
+                  },
                 );
               }).toList(),
             ),
@@ -343,6 +377,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) {
+                _touchEdit();
+                setState(() {});
+              },
             ),
             const SizedBox(height: AthlosSpacing.md),
             if (_deloadStrategy != DeloadStrategy.reduceIntensity)
@@ -354,6 +392,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) {
+                  _touchEdit();
+                  setState(() {});
+                },
               ),
             if (_deloadStrategy != DeloadStrategy.reduceIntensity)
               const SizedBox(height: AthlosSpacing.md),
@@ -366,6 +408,10 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) {
+                  _touchEdit();
+                  setState(() {});
+                },
               ),
           ],
 
@@ -374,12 +420,16 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
             SwitchListTile(
               title: Text(l10n.programActivateAndSave),
               value: _activate,
-              onChanged: (v) => setState(() => _activate = v),
+              onChanged: (v) {
+                _touchEdit();
+                setState(() => _activate = v);
+              },
             ),
           ],
           const SizedBox(height: AthlosSpacing.fabClearance),
         ],
       ),
+    ),
     );
   }
 }
