@@ -44,8 +44,9 @@ class ProgramProgressInfo {
     required this.totalSessions,
   });
 
-  double get fraction =>
-      totalSessions > 0 ? (completedSessions / totalSessions).clamp(0.0, 1.0) : 0;
+  double get fraction => totalSessions > 0
+      ? (completedSessions / totalSessions).clamp(0.0, 1.0)
+      : 0;
 
   bool get isCompleted => completedSessions >= totalSessions;
 }
@@ -58,16 +59,18 @@ Future<ProgramProgressInfo> programProgress(Ref ref, int programId) async {
     return const ProgramProgressInfo(completedSessions: 0, totalSessions: 1);
   }
 
-  final sessionCount =
-      await ref.watch(programSessionCountProvider(programId).future);
+  final sessionCount = await ref.watch(
+    programSessionCountProvider(programId).future,
+  );
 
   int totalSessions;
   if (program.durationMode == DurationMode.rotations) {
     final steps = await ref.watch(
       cycleStepsForProgramProvider(programId).future,
     );
-    totalSessions =
-        steps.isEmpty ? program.durationValue : program.durationValue * steps.length;
+    totalSessions = steps.isEmpty
+        ? program.durationValue
+        : program.durationValue * steps.length;
   } else {
     totalSessions = program.durationValue;
   }
@@ -83,21 +86,23 @@ Future<ProgramProgressInfo> programProgress(Ref ref, int programId) async {
 /// is a multiple of that frequency, and the program is not already in deload.
 @riverpod
 Future<bool> isDeloadDue(Ref ref) async {
-  final program = await ref.watch(activeProgramProvider.future);
+  final repo = ref.watch(programRepositoryProvider);
+  final program = (await repo.getActive()).getOrThrow();
   if (program == null || program.isInDeload) return false;
   final config = program.deloadConfig;
   if (config == null || config.frequency == null) return false;
 
-  final steps =
-      await ref.watch(cycleStepsForProgramProvider(program.id).future);
+  final steps = await ref.watch(
+    cycleStepsForProgramProvider(program.id).future,
+  );
   if (steps.isEmpty) return false;
 
-  final sessionCount =
-      await ref.watch(programSessionCountProvider(program.id).future);
+  final sessionCount = await ref.watch(
+    programSessionCountProvider(program.id).future,
+  );
   final completedRotations = sessionCount ~/ steps.length;
 
-  return completedRotations > 0 &&
-      completedRotations % config.frequency! == 0;
+  return completedRotations > 0 && completedRotations % config.frequency! == 0;
 }
 
 /// Notifier for program mutations (create, update, activate, archive).

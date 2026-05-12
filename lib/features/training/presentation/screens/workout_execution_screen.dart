@@ -29,6 +29,7 @@ import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
 import '../helpers/load_mode_l10n.dart';
 import '../helpers/rep_performance.dart';
+import '../helpers/rest_next_target.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/cardio_timer_notifier.dart';
 import '../providers/exercise_notifier.dart';
@@ -277,10 +278,11 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     }
 
     if (next.isRunning && next.remainingSeconds > 0) {
+      final nextBody = _restTimerNextBody(l10n);
       if (_restTimerNotificationService.supportsFrequentOngoingUpdates) {
         await _restTimerNotificationService.showOngoingRest(
           title: l10n.restTimerLabel(next.remainingSeconds),
-          body: l10n.nextSetLabel,
+          body: nextBody,
         );
       } else {
         final previousRemaining = previous?.remainingSeconds ?? 0;
@@ -291,7 +293,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         if (startedOrResumed || wasExtended) {
           await _restTimerNotificationService.showOngoingRest(
             title: l10n.restTimerLabel(next.remainingSeconds),
-            body: l10n.nextSetLabel,
+            body: nextBody,
           );
           await _restTimerNotificationService.scheduleRestFinished(
             title: l10n.restTimerDone,
@@ -313,6 +315,23 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (!next.isActive) {
       await _restTimerNotificationService.cancelAllForRestTimer();
     }
+  }
+
+  String _restTimerNextBody(AppLocalizations l10n) {
+    final exec = ref.read(activeExecutionProvider);
+    if (exec == null) return l10n.nextSetLabel;
+
+    final next = findNextRestTarget(
+      exec,
+      focusedExerciseIndex: _focusedExerciseIndex,
+      focusedSetNumber: _focusedSetNumber,
+    );
+    if (next == null) return l10n.allSetsComplete;
+
+    return l10n.nextUpLabel(
+      _exerciseName(exec.exercises[next.exerciseIndex].exerciseId),
+      next.setNumber,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -589,50 +608,13 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
   void _goToNextSetFromTimer(ActiveExecutionState exec) {
     ref.read(restTimerProvider.notifier).reset();
-    final currentExercise = exec.exercises[_focusedExerciseIndex];
-    final groupId = currentExercise.groupId;
-
-    if (groupId != null) {
-      final groupIndices = _getSupersetGroupIndices(
-        exec,
-        _focusedExerciseIndex,
-      );
-      final groupNext = <(int exerciseIndex, int setNumber)>[];
-
-      for (final index in groupIndices) {
-        final exId = exec.exercises[index].exerciseId;
-        final sets = exec.exerciseSets[exId] ?? [];
-        final firstPending = sets.where((s) => !s.isCompleted).firstOrNull;
-        if (firstPending != null) {
-          groupNext.add((index, firstPending.setNumber));
-        }
-      }
-
-      if (groupNext.isNotEmpty) {
-        groupNext.sort((a, b) {
-          final bySet = a.$2.compareTo(b.$2);
-          if (bySet != 0) return bySet;
-          return a.$1.compareTo(b.$1);
-        });
-        _goToFocused(exec, groupNext.first.$1, groupNext.first.$2);
-        return;
-      }
-    }
-
-    final exId = currentExercise.exerciseId;
-    final sets = exec.exerciseSets[exId] ?? [];
-    final nextInExercise = sets
-        .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
-        .toList();
-
-    if (nextInExercise.isNotEmpty) {
-      _goToFocused(exec, _focusedExerciseIndex, nextInExercise.first.setNumber);
-      return;
-    }
-
-    final globalNext = _findNextPendingSet(exec);
-    if (globalNext != null) {
-      _goToFocused(exec, globalNext.$1, globalNext.$2);
+    final next = findNextRestTarget(
+      exec,
+      focusedExerciseIndex: _focusedExerciseIndex,
+      focusedSetNumber: _focusedSetNumber,
+    );
+    if (next != null) {
+      _goToFocused(exec, next.exerciseIndex, next.setNumber);
     } else {
       setState(() => _viewMode = _ViewMode.overview);
     }
@@ -1299,8 +1281,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       color: colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
       fontWeight: FontWeight.w400,
     );
-    final metaIconColor =
-        colorScheme.onSurfaceVariant.withValues(alpha: 0.65);
+    final metaIconColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.65);
 
     return [
       Padding(
@@ -1958,28 +1939,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final focusedExId = exec.exercises[_focusedExerciseIndex].exerciseId;
-    final focusedSets = exec.exerciseSets[focusedExId] ?? [];
-    final nextInFocused = focusedSets.cast<SetEntry?>().firstWhere(
-      (s) => !s!.isCompleted,
-      orElse: () => null,
+    final next = findNextRestTarget(
+      exec,
+      focusedExerciseIndex: _focusedExerciseIndex,
+      focusedSetNumber: _focusedSetNumber,
     );
-
-    final String nextLabel;
-    if (nextInFocused != null) {
-      nextLabel = l10n.nextUpLabel(
-        _exerciseName(focusedExId),
-        nextInFocused.setNumber,
-      );
-    } else {
-      final next = _findNextPendingSet(exec);
-      nextLabel = next != null
-          ? l10n.nextUpLabel(
-              _exerciseName(exec.exercises[next.$1].exerciseId),
-              next.$2,
-            )
-          : l10n.allSetsComplete;
-    }
+    final nextLabel = next != null
+        ? l10n.nextUpLabel(
+            _exerciseName(exec.exercises[next.exerciseIndex].exerciseId),
+            next.setNumber,
+          )
+        : l10n.allSetsComplete;
 
     final minutes = timerState.remainingSeconds ~/ 60;
     final seconds = timerState.remainingSeconds % 60;
@@ -2070,11 +2040,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final exId = exec.exercises[_focusedExerciseIndex].exerciseId;
-    final sets = exec.exerciseSets[exId] ?? [];
-    final hasMoreSetsInExercise = sets.any(
-      (s) => !s.isCompleted && s.setNumber > _focusedSetNumber,
+    final next = findNextRestTarget(
+      exec,
+      focusedExerciseIndex: _focusedExerciseIndex,
+      focusedSetNumber: _focusedSetNumber,
     );
+    final nextLabel = next != null
+        ? l10n.nextUpLabel(
+            _exerciseName(exec.exercises[next.exerciseIndex].exerciseId),
+            next.setNumber,
+          )
+        : l10n.allSetsComplete;
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerHighest,
@@ -2099,15 +2075,14 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
             ),
 
-            if (!hasMoreSetsInExercise) ...[
-              const SizedBox(height: AthlosSpacing.md),
-              Text(
-                l10n.exerciseCompleteMessage,
-                style: textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+            const SizedBox(height: AthlosSpacing.md),
+            Text(
+              nextLabel,
+              style: textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
-            ],
+              textAlign: TextAlign.center,
+            ),
 
             ?_buildLoadFeedback(exec, context),
 
@@ -2115,29 +2090,34 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.xl),
-              child: hasMoreSetsInExercise
-                  ? SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _goToNextSetFromTimer(exec),
-                        icon: const Icon(Icons.arrow_forward),
-                        label: Text(l10n.nextSetLabel),
-                      ),
-                    )
-                  : Column(
+              child: next != null
+                  ? Column(
                       children: [
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
-                            onPressed: () {
-                              ref.read(restTimerProvider.notifier).reset();
-                              _goToNextExerciseOrOverview(exec);
-                            },
+                            onPressed: () => _goToNextSetFromTimer(exec),
                             icon: const Icon(Icons.arrow_forward),
-                            label: Text(l10n.nextExerciseButton),
+                            label: Text(
+                              next.exerciseIndex == _focusedExerciseIndex
+                                  ? l10n.nextSetLabel
+                                  : l10n.nextExerciseButton,
+                            ),
                           ),
                         ),
                         const SizedBox(height: AthlosSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _returnToOverviewFromTimer(),
+                            icon: const Icon(Icons.list_alt),
+                            label: Text(l10n.backToOverview),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -2288,6 +2268,23 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   void _exitCardioTimer() {
     ref.read(cardioTimerProvider.notifier).reset();
     setState(() => _viewMode = _ViewMode.overview);
+  }
+
+  void _enterTimedManualEntry(ActiveExecutionState exec) {
+    final exercise = exec.exercises[_focusedExerciseIndex];
+    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final currentSetEntry = sets.firstWhere(
+      (s) => s.setNumber == _focusedSetNumber,
+      orElse: () => sets.first,
+    );
+
+    ref.read(cardioTimerProvider.notifier).reset();
+    setState(() {
+      _currentDuration =
+          currentSetEntry.duration ?? exercise.duration ?? _currentDuration;
+      _timedSubState = _TimedSubState.finishing;
+      _viewMode = _ViewMode.timedSet;
+    });
   }
 
   PreferredSizeWidget _cardioAppBar(
@@ -2805,7 +2802,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               const SizedBox(height: AthlosSpacing.xl),
 
               TextButton(
-                onPressed: () => setState(() => _viewMode = _ViewMode.focused),
+                onPressed: () => _enterTimedManualEntry(exec),
                 child: Text(l10n.isometricManualEntry),
               ),
 
@@ -2982,10 +2979,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final timedSetEntry = sets.firstWhere(
-      (s) => s.setNumber == _focusedSetNumber,
-      orElse: () => sets.first,
-    );
     final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.duration ?? 0;
 
@@ -3012,13 +3005,14 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           children: [
             const Spacer(flex: 2),
 
-            Text(
-              formatDuration(_currentDuration),
-              style: textTheme.displayLarge?.copyWith(
-                fontSize: 56,
-                fontWeight: FontWeight.w300,
-                color: diffColor ?? colorScheme.onSurface,
-              ),
+            _NumberInput(
+              value: _currentDuration.toDouble(),
+              suffix: l10n.durationSecondsSuffix,
+              step: 5,
+              onChanged: (v) => setState(() => _currentDuration = v.toInt()),
+              textTheme: textTheme,
+              colorScheme: colorScheme,
+              valueColor: diffColor,
             ),
 
             if (goalSeconds > 0)
@@ -3056,19 +3050,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
 
             const SizedBox(height: AthlosSpacing.xl),
-
-            _NumberInput(
-              value: _currentWeight,
-              suffix: _weightSuffixForMode(
-                _resolvedLoadModeFor(exercise, timedSetEntry),
-              ),
-              step: 2.5,
-              onChanged: (v) => setState(() => _currentWeight = v),
-              textTheme: textTheme,
-              colorScheme: colorScheme,
-            ),
-
-            const SizedBox(height: AthlosSpacing.md),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -3169,7 +3150,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             exercise.exerciseId,
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
-            weight: _currentWeight > 0 ? _currentWeight : null,
             rpe: _selectedRpe,
           );
       rest = r;
@@ -4306,12 +4286,10 @@ class _RepsGoalTargetWithArrow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: _size,
-        height: _size,
-        child: CustomPaint(
-          painter: _RepsGoalTargetArrowPainter(color: color),
-        ),
-      );
+    width: _size,
+    height: _size,
+    child: CustomPaint(painter: _RepsGoalTargetArrowPainter(color: color)),
+  );
 }
 
 class _RepsGoalTargetArrowPainter extends CustomPainter {
