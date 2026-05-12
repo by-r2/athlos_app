@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../auth/data/repositories/auth_providers.dart';
+import '../../domain/entities/auth_error_code.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/enums/social_auth_provider.dart';
 
@@ -38,6 +40,10 @@ class AuthNotifier extends _$AuthNotifier {
           .read(authRepositoryProvider)
           .signUpWithEmail(email: email, password: password);
       final user = result.getOrThrow();
+      await _ensureCurrentSession(
+        user,
+        failureCode: AuthErrorCode.emailNotConfirmed,
+      );
       state = AsyncData(user);
       return user;
     } on Object {
@@ -61,6 +67,10 @@ class AuthNotifier extends _$AuthNotifier {
           .read(authRepositoryProvider)
           .signInWithEmail(email: email, password: password);
       final user = result.getOrThrow();
+      await _ensureCurrentSession(
+        user,
+        failureCode: AuthErrorCode.invalidCredentials,
+      );
       state = AsyncData(user);
       return user;
     } on Object {
@@ -95,5 +105,17 @@ class AuthNotifier extends _$AuthNotifier {
       state = AsyncData(previousUser);
       rethrow;
     }
+  }
+
+  Future<void> _ensureCurrentSession(
+    AuthUser expectedUser, {
+    required String failureCode,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    final currentUser = (await repository.currentUser()).getOrThrow();
+    if (currentUser?.id == expectedUser.id) return;
+
+    await repository.signOut();
+    throw AuthAppException(failureCode);
   }
 }

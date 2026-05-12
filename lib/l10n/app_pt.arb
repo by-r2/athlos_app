@@ -2767,6 +2767,34 @@
   "@authSignUpEmailSubtitle": {
     "description": "Subtitle for the email sign-up form"
   },
+  "authSignUpChatGreeting": "Vamos criar sua conta em poucos passos.",
+  "@authSignUpChatGreeting": {
+    "description": "Chat-style sign-up greeting"
+  },
+  "authSignUpChatAskEmail": "Qual e-mail você quer usar para entrar?",
+  "@authSignUpChatAskEmail": {
+    "description": "Chat-style sign-up email question"
+  },
+  "authSignUpChatAskPassword": "Agora crie uma senha com pelo menos 6 caracteres.",
+  "@authSignUpChatAskPassword": {
+    "description": "Chat-style sign-up password question"
+  },
+  "authSignUpChatReady": "Tudo pronto. Posso criar sua conta agora.",
+  "@authSignUpChatReady": {
+    "description": "Chat-style sign-up ready message"
+  },
+  "authSignUpChatCreating": "Criando sua conta...",
+  "@authSignUpChatCreating": {
+    "description": "Chat-style message while creating an account"
+  },
+  "authSignUpChatSuccess": "Conta criada com sucesso. Vou te levar para o app.",
+  "@authSignUpChatSuccess": {
+    "description": "Chat-style success message after creating an account"
+  },
+  "authSignUpChatGoToLogin": "Conta criada. Agora entre com seu e-mail e senha.",
+  "@authSignUpChatGoToLogin": {
+    "description": "Chat-style message shown when signup created an account without an active session"
+  },
   "authEmailLabel": "E-mail",
   "@authEmailLabel": {
     "description": "Email input label"
@@ -2782,6 +2810,10 @@
   "authPasswordMinHint": "Use pelo menos 6 caracteres.",
   "@authPasswordMinHint": {
     "description": "Password minimum length hint"
+  },
+  "authPasswordHiddenMessage": "••••••",
+  "@authPasswordHiddenMessage": {
+    "description": "Masked password text shown in chat bubbles"
   },
   "authNoAccountAction": "Ainda não tenho conta",
   "@authNoAccountAction": {

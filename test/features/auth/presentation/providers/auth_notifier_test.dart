@@ -75,6 +75,35 @@ void main() {
       expect(container.read(authProvider).value, same(user));
     });
 
+    test(
+      'signUpWithEmail falha quando sucesso nao cria sessao atual',
+      () async {
+        final user = AuthUser(id: 'user-2', email: 'novo@example.com');
+        final repository = _FakeAuthRepository(
+          signUpResult: Success(user),
+          persistSuccessfulAuth: false,
+        );
+        final container = _container(repository);
+        addTearDown(() {
+          container.dispose();
+          repository.dispose();
+        });
+
+        await container.read(authProvider.future);
+
+        await expectLater(
+          () => container
+              .read(authProvider.notifier)
+              .signUpWithEmail(
+                email: 'novo@example.com',
+                password: 'password123',
+              ),
+          throwsA(isA<AuthAppException>()),
+        );
+        expect(container.read(authProvider).value, isNull);
+      },
+    );
+
     test('signOut limpa usuario atual', () async {
       final user = AuthUser(id: 'user-1', email: 'rafa@example.com');
       final repository = _FakeAuthRepository(initialUser: user);
@@ -97,11 +126,17 @@ ProviderContainer _container(AuthRepository repository) => ProviderContainer(
 );
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({this.initialUser, this.signInResult, this.signUpResult});
+  _FakeAuthRepository({
+    this.initialUser,
+    this.signInResult,
+    this.signUpResult,
+    this.persistSuccessfulAuth = true,
+  });
 
   final AuthUser? initialUser;
   final Result<AuthUser>? signInResult;
   final Result<AuthUser>? signUpResult;
+  final bool persistSuccessfulAuth;
   final _controller = StreamController<AuthUser?>.broadcast();
 
   AuthUser? _currentUser;
@@ -125,7 +160,7 @@ class _FakeAuthRepository implements AuthRepository {
     final result =
         signInResult ??
         Success(AuthUser(id: 'user-1', email: email.trim().toLowerCase()));
-    if (result case Success(:final value)) {
+    if (result case Success(:final value) when persistSuccessfulAuth) {
       _currentUser = value;
       _controller.add(value);
     }
@@ -140,7 +175,7 @@ class _FakeAuthRepository implements AuthRepository {
     final result =
         signUpResult ??
         Success(AuthUser(id: 'user-1', email: email.trim().toLowerCase()));
-    if (result case Success(:final value)) {
+    if (result case Success(:final value) when persistSuccessfulAuth) {
       _currentUser = value;
       _controller.add(value);
     }
