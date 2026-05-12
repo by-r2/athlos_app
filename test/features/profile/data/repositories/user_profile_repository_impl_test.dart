@@ -53,8 +53,7 @@ void main() {
           age: 20,
           lastActiveModule: AppModule.training,
         ),
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
       final updateResult = await repository.update(
         const domain.UserProfile(

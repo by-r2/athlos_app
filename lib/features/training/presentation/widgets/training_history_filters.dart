@@ -49,7 +49,8 @@ class _TrainingHistoryFiltersBody extends StatefulWidget {
       _TrainingHistoryFiltersBodyState();
 }
 
-class _TrainingHistoryFiltersBodyState extends State<_TrainingHistoryFiltersBody> {
+class _TrainingHistoryFiltersBodyState
+    extends State<_TrainingHistoryFiltersBody> {
   late int? _workoutId;
 
   @override
@@ -152,10 +153,8 @@ class _TrainingHistoryFiltersBodyState extends State<_TrainingHistoryFiltersBody
                   const Gap(AthlosSpacing.sm),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final matches =
-                          sorted.where((w) => w.id == _workoutId);
-                      final selected =
-                          matches.isEmpty ? null : matches.first;
+                      final matches = sorted.where((w) => w.id == _workoutId);
+                      final selected = matches.isEmpty ? null : matches.first;
                       final label = switch (_workoutId) {
                         null => l10n.filterAll,
                         _ when selected != null => selected.name,

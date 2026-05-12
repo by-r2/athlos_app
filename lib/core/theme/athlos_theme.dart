@@ -28,6 +28,10 @@ class AthlosTheme {
     /// as controls, not paragraphs.
     const darkFgAlpha = 0.78;
     const darkOutlineBorderAlpha = 0.42;
+    final inputAccentColor = isDark
+        ? colorScheme.secondary
+        : colorScheme.primary;
+    final inputBorderRadius = BorderRadius.circular(AthlosRadius.md);
 
     Color outlineGhostForeground(Set<WidgetState> states) {
       if (states.contains(WidgetState.disabled)) {
@@ -52,6 +56,11 @@ class AthlosTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       textTheme: AthlosTextTheme.textTheme,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: inputAccentColor,
+        selectionColor: inputAccentColor.withValues(alpha: 0.24),
+        selectionHandleColor: inputAccentColor,
+      ),
       appBarTheme: AppBarTheme(
         centerTitle: true,
         backgroundColor: colorScheme.surface,
@@ -66,6 +75,44 @@ class AthlosTheme {
           0,
           AthlosSpacing.lg,
           AthlosSpacing.md,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationThemeData(
+        filled: true,
+        fillColor: colorScheme.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AthlosSpacing.smd,
+          vertical: AthlosSpacing.smd,
+        ),
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        floatingLabelStyle: TextStyle(
+          color: inputAccentColor,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: inputBorderRadius,
+          borderSide: BorderSide(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.36),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: inputBorderRadius,
+          borderSide: BorderSide(color: inputAccentColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: inputBorderRadius,
+          borderSide: BorderSide(color: colorScheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: inputBorderRadius,
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: inputBorderRadius,
+          borderSide: BorderSide(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.18),
+          ),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(

@@ -94,10 +94,7 @@ class ModuleCard extends StatelessWidget {
 
               // Arrow or "coming soon" badge
               if (isEnabled)
-                Icon(
-                  Icons.chevron_right,
-                  color: colorScheme.onSurfaceVariant,
-                )
+                Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant)
               else if (disabledLabel != null)
                 Container(
                   padding: const EdgeInsets.symmetric(

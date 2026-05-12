@@ -54,8 +54,9 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
       latestBodyWeight: latestBodyWeight,
     );
     final locale = Localizations.localeOf(context).toString();
-    final dateStr =
-        DateFormat.yMMMd(locale).add_Hm().format(execution.startedAt);
+    final dateStr = DateFormat.yMMMd(
+      locale,
+    ).add_Hm().format(execution.startedAt);
     final durationStr = formatWorkoutTotalDuration(execution.duration, l10n);
 
     return Center(
@@ -69,9 +70,7 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colorScheme.surface,
                 borderRadius: AthlosRadius.lgAll,
-                border: Border.all(
-                  color: colorScheme.outlineVariant,
-                ),
+                border: Border.all(color: colorScheme.outlineVariant),
                 boxShadow: [
                   BoxShadow(
                     color: colorScheme.shadow.withValues(alpha: 0.07),
@@ -195,8 +194,7 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
                                     _ShareStatTile(
                                       icon: Icons.fitness_center_rounded,
                                       label: l10n.volumeLabel(
-                                        metrics.totalVolume
-                                            .toStringAsFixed(0),
+                                        metrics.totalVolume.toStringAsFixed(0),
                                       ),
                                       isTertiaryTone: true,
                                       colorScheme: colorScheme,
@@ -264,10 +262,10 @@ class _ShareStatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeBg =
-        isTertiaryTone ? colorScheme.tertiary : colorScheme.primary;
-    final badgeFg =
-        isTertiaryTone ? colorScheme.onTertiary : colorScheme.onPrimary;
+    final badgeBg = isTertiaryTone ? colorScheme.tertiary : colorScheme.primary;
+    final badgeFg = isTertiaryTone
+        ? colorScheme.onTertiary
+        : colorScheme.onPrimary;
 
     return DecoratedBox(
       decoration: BoxDecoration(

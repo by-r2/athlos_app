@@ -5,6 +5,7 @@ import '../../domain/repositories/body_metric_repository.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/body_metric_dao.dart';
 import '../datasources/daos/user_profile_dao.dart';
+import '../datasources/user_profile_remote_data_source.dart';
 import 'body_metric_repository_impl.dart';
 import 'user_profile_repository_impl.dart';
 
@@ -16,7 +17,14 @@ UserProfileDao userProfileDao(Ref ref) =>
 
 @riverpod
 UserProfileRepository userProfileRepository(Ref ref) =>
-    UserProfileRepositoryImpl(ref.watch(userProfileDaoProvider));
+    UserProfileRepositoryImpl(
+      ref.watch(userProfileDaoProvider),
+      remoteDataSource: ref.watch(userProfileRemoteDataSourceProvider),
+    );
+
+@riverpod
+UserProfileRemoteDataSource userProfileRemoteDataSource(Ref ref) =>
+    UserProfileRemoteDataSource();
 
 @riverpod
 BodyMetricDao bodyMetricDao(Ref ref) =>

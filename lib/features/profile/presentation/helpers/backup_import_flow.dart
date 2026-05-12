@@ -132,8 +132,7 @@ Future<void> runBackupImportFlow({
                     child: Text(l10n.cancel),
                   ),
                   FilledButton(
-                    style:
-                        AthlosDialogButtonStyles.stackedFilled(context),
+                    style: AthlosDialogButtonStyles.stackedFilled(context),
                     onPressed: () => Navigator.of(context).pop(true),
                     child: Text(l10n.profileDataImportAction),
                   ),
@@ -268,17 +267,28 @@ Future<BackupConflictResolution?> _showConflictDialog({
               children: [
                 Text(
                   l10n.profileDataConflictType(
-                      _conflictTypeLabel(conflict, l10n)),
+                    _conflictTypeLabel(conflict, l10n),
+                  ),
                 ),
                 const Gap(AthlosSpacing.sm),
-                Text(l10n.profileDataConflictExisting(
-                  _resolveEntityLabel(
-                      conflict.type, conflict.existingLabel, l10n),
-                )),
-                Text(l10n.profileDataConflictImported(
-                  _resolveEntityLabel(
-                      conflict.type, conflict.importedLabel, l10n),
-                )),
+                Text(
+                  l10n.profileDataConflictExisting(
+                    _resolveEntityLabel(
+                      conflict.type,
+                      conflict.existingLabel,
+                      l10n,
+                    ),
+                  ),
+                ),
+                Text(
+                  l10n.profileDataConflictImported(
+                    _resolveEntityLabel(
+                      conflict.type,
+                      conflict.importedLabel,
+                      l10n,
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
@@ -305,8 +315,11 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
   required BackupPendingReview review,
   required AppLocalizations l10n,
 }) {
-  final importedDisplay =
-      _resolveEntityLabel(review.entityType, review.importedLabel, l10n);
+  final importedDisplay = _resolveEntityLabel(
+    review.entityType,
+    review.importedLabel,
+    l10n,
+  );
   final existingDisplay = review.existingLabel != null
       ? _resolveEntityLabel(review.entityType, review.existingLabel!, l10n)
       : null;
@@ -314,8 +327,7 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
       ? _resolveEntityLabel(review.entityType, review.suggestedLabel!, l10n)
       : null;
 
-  final similarityPercent =
-      review.similarityScore != null
+  final similarityPercent = review.similarityScore != null
       ? '${(review.similarityScore!.clamp(0.0, 1.0) * 100).round()}%'
       : null;
 
@@ -403,8 +415,9 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
             children: [
               TextButton(
                 style: AthlosDialogButtonStyles.stackedGhost(context),
-                onPressed: () => Navigator.of(context)
-                    .pop(BackupPendingReviewResolution.skip),
+                onPressed: () => Navigator.of(
+                  context,
+                ).pop(BackupPendingReviewResolution.skip),
                 child: _pendingDialogActionLabel(l10n.profileDataPendingSkip),
               ),
               if (allowUserChoice) ...[
@@ -446,11 +459,7 @@ Future<BackupPendingReviewResolution?> _showPendingReviewDialog({
 /// Centered, up to two lines — avoids odd left-aligned wraps in full-width
 /// dialog buttons.
 Widget _pendingDialogActionLabel(String text) {
-  return Text(
-    text,
-    textAlign: TextAlign.center,
-    maxLines: 2,
-  );
+  return Text(text, textAlign: TextAlign.center, maxLines: 2);
 }
 
 Widget _pendingDialogValueBlock(
@@ -496,15 +505,15 @@ String _pendingSituationSentence(
   return switch (review.type) {
     BackupPendingReviewType.missingCanonicalReference =>
       l10n.profileDataPendingMissingCanonical(entityLabel),
-    BackupPendingReviewType.fuzzyMatchCandidate =>
-      l10n.profileDataPendingFuzzy(entityLabel),
+    BackupPendingReviewType.fuzzyMatchCandidate => l10n.profileDataPendingFuzzy(
+      entityLabel,
+    ),
     BackupPendingReviewType.verifiedVsCustomConfirmation =>
       l10n.profileDataPendingVerifiedVsCustom(entityLabel),
     BackupPendingReviewType.governanceConflict =>
       l10n.profileDataPendingGovernance(entityLabel),
   };
 }
-
 
 String _conflictTypeLabel(
   BackupImportConflict conflict,

@@ -48,7 +48,9 @@ void main() {
       final workoutId = createResult.getOrThrow();
       expect(workoutId, greaterThan(0));
 
-      final exercises1 = (await repository.getExercises(workoutId)).getOrThrow();
+      final exercises1 = (await repository.getExercises(
+        workoutId,
+      )).getOrThrow();
       expect(exercises1.length, 1);
       expect(exercises1.first.exerciseId, 1);
 
@@ -72,15 +74,30 @@ void main() {
         ],
       );
       expect(updateResult.isSuccess, isTrue);
-      expect((await repository.getById(workoutId)).getOrThrow()!.name, 'Treino Repo V2');
-      final exercises2 = (await repository.getExercises(workoutId)).getOrThrow();
+      expect(
+        (await repository.getById(workoutId)).getOrThrow()!.name,
+        'Treino Repo V2',
+      );
+      final exercises2 = (await repository.getExercises(
+        workoutId,
+      )).getOrThrow();
       expect(exercises2.single.exerciseId, 2);
 
       expect((await repository.archive(workoutId)).isSuccess, isTrue);
-      expect((await repository.getArchived()).getOrThrow().any((w) => w.id == workoutId), isTrue);
+      expect(
+        (await repository.getArchived()).getOrThrow().any(
+          (w) => w.id == workoutId,
+        ),
+        isTrue,
+      );
 
       expect((await repository.unarchive(workoutId)).isSuccess, isTrue);
-      expect((await repository.getActive()).getOrThrow().any((w) => w.id == workoutId), isTrue);
+      expect(
+        (await repository.getActive()).getOrThrow().any(
+          (w) => w.id == workoutId,
+        ),
+        isTrue,
+      );
 
       expect((await repository.delete(workoutId)).isSuccess, isTrue);
       expect((await repository.getById(workoutId)).getOrThrow(), isNull);
@@ -97,24 +114,31 @@ void main() {
       final id1 = (await repository.create(
         domain.Workout(id: 0, name: 'A', createdAt: DateTime.now()),
         const [],
-      ))
-          .getOrThrow();
+      )).getOrThrow();
       final id2 = (await repository.create(
         domain.Workout(id: 0, name: 'B', createdAt: DateTime.now()),
         const [],
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
       final duplicated = await repository.duplicate(id1, nameSuffix: '(copy)');
       expect(duplicated.isSuccess, isTrue);
       final duplicatedId = duplicated.getOrThrow();
-      final duplicatedWorkout = (await repository.getById(duplicatedId)).getOrThrow();
+      final duplicatedWorkout = (await repository.getById(
+        duplicatedId,
+      )).getOrThrow();
       expect(duplicatedWorkout, isNotNull);
       expect(duplicatedWorkout!.name.contains('(copy)'), isTrue);
 
-      expect((await repository.reorder([id2, id1, duplicatedId])).isSuccess, isTrue);
+      expect(
+        (await repository.reorder([id2, id1, duplicatedId])).isSuccess,
+        isTrue,
+      );
       final active = (await repository.getActive()).getOrThrow();
-      expect(active.take(3).map((w) => w.id).toList(), [id2, id1, duplicatedId]);
+      expect(active.take(3).map((w) => w.id).toList(), [
+        id2,
+        id1,
+        duplicatedId,
+      ]);
     });
   });
 }

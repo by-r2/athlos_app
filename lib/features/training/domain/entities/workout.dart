@@ -23,13 +23,12 @@ class Workout {
     int? Function()? sortOrder,
     bool? isArchived,
     DateTime? createdAt,
-  }) =>
-      Workout(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        description: description != null ? description() : this.description,
-        sortOrder: sortOrder != null ? sortOrder() : this.sortOrder,
-        isArchived: isArchived ?? this.isArchived,
-        createdAt: createdAt ?? this.createdAt,
-      );
+  }) => Workout(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description != null ? description() : this.description,
+    sortOrder: sortOrder != null ? sortOrder() : this.sortOrder,
+    isArchived: isArchived ?? this.isArchived,
+    createdAt: createdAt ?? this.createdAt,
+  );
 }

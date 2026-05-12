@@ -5,10 +5,7 @@ class AthlosCustomColors extends ThemeExtension<AthlosCustomColors> {
   final Color warning;
   final Color onWarning;
 
-  const AthlosCustomColors({
-    required this.warning,
-    required this.onWarning,
-  });
+  const AthlosCustomColors({required this.warning, required this.onWarning});
 
   static const light = AthlosCustomColors(
     warning: Color(0xFFE8A317),

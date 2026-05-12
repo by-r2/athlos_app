@@ -108,8 +108,9 @@ void main() {
     test('retorna falha quando salvar segmentos falha', () async {
       final repository = _FakeWorkoutExecutionRepository();
       repository.logSetResult = const Success(123);
-      repository.saveSegmentsResult =
-          const Failure(DatabaseException('segments error'));
+      repository.saveSegmentsResult = const Failure(
+        DatabaseException('segments error'),
+      );
       final useCase = CompleteSetUseCase(repository);
 
       final result = await useCase(
@@ -149,10 +150,12 @@ void main() {
 
 class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   Result<int> logSetResult = const Failure(DatabaseException('not configured'));
-  Result<void> updateSetResult =
-      const Failure(DatabaseException('not configured'));
-  Result<void> saveSegmentsResult =
-      const Failure(DatabaseException('not configured'));
+  Result<void> updateSetResult = const Failure(
+    DatabaseException('not configured'),
+  );
+  Result<void> saveSegmentsResult = const Failure(
+    DatabaseException('not configured'),
+  );
 
   int logSetCalls = 0;
   int updateSetCalls = 0;
@@ -193,12 +196,13 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   @override
   Future<Result<ExecutionComparison?>> getLastTwoFinishedWithVolume(
     int workoutId,
-  ) =>
-      _unsupported();
+  ) => _unsupported();
   @override
-  Future<Result<int>> start(int workoutId,
-          {required int programId, String? exerciseConfigSnapshot}) =>
-      _unsupported();
+  Future<Result<int>> start(
+    int workoutId, {
+    required int programId,
+    String? exerciseConfigSnapshot,
+  }) => _unsupported();
   @override
   Future<Result<void>> finish(int executionId, {String? notes}) =>
       _unsupported();
@@ -209,31 +213,26 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   @override
   Future<Result<Map<int, double>>> getLastWeightsForExercises(
     List<int> exerciseIds,
-  ) =>
-      _unsupported();
+  ) => _unsupported();
   @override
   Future<Result<List<ExecutionSetSegment>>> getSegments(int executionSetId) =>
       _unsupported();
   @override
   Future<Result<List<ExecutionSetSegment>>> getSegmentsForExecution(
     int executionId,
-  ) =>
-      _unsupported();
+  ) => _unsupported();
   @override
   Future<Result<List<ExecutionSet>>> getLastCompletedSetsForExercise(
     int exerciseId,
-  ) =>
-      _unsupported();
+  ) => _unsupported();
   @override
   Future<Result<List<ExecutionSet>>> getAllCompletedSetsForExercise(
     int exerciseId,
-  ) =>
-      _unsupported();
+  ) => _unsupported();
 
   @override
   Future<Result<List<({ExecutionSet set, DateTime date})>>>
-      getCompletedSetsWithDateForExercise(int exerciseId) =>
-          _unsupported();
+  getCompletedSetsWithDateForExercise(int exerciseId) => _unsupported();
   @override
   Future<Result<List<WorkoutExecution>>> getDangling() => _unsupported();
   @override

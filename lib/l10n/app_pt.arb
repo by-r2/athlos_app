@@ -2706,5 +2706,152 @@
   "navigateAwayChironStayAction": "Continuar",
   "@navigateAwayChironStayAction": {
     "description": "Stay on Chiron sheet"
+  },
+  "authPromptTitle": "Bem-vindo",
+  "@authPromptTitle": {
+    "description": "Title for the account prompt after updating to auth-enabled version"
+  },
+  "authPromptSubtitle": "Entre, crie sua conta ou continue usando offline.",
+  "@authPromptSubtitle": {
+    "description": "Subtitle explaining cloud account benefits and local data migration"
+  },
+  "authPromptBackupBenefit": "Evite perder seus treinos ao trocar ou perder o celular.",
+  "@authPromptBackupBenefit": {
+    "description": "Account prompt benefit: backup"
+  },
+  "authPromptSecurityBenefit": "Seus dados ficam protegidos por login, token de sessão e regras por usuário.",
+  "@authPromptSecurityBenefit": {
+    "description": "Account prompt benefit: security"
+  },
+  "authPromptSyncBenefit": "Começaremos pelo perfil e vamos migrar os outros dados aos poucos.",
+  "@authPromptSyncBenefit": {
+    "description": "Account prompt benefit: gradual sync"
+  },
+  "authCreateAccountAction": "Criar conta",
+  "@authCreateAccountAction": {
+    "description": "Action to create an account"
+  },
+  "authSignInAction": "Entrar",
+  "@authSignInAction": {
+    "description": "Action to sign in"
+  },
+  "authSignInWithGoogleAction": "Entrar com Google",
+  "@authSignInWithGoogleAction": {
+    "description": "Action to start Google sign-in"
+  },
+  "authContinueLocalAction": "Continuar offline",
+  "@authContinueLocalAction": {
+    "description": "Temporary action to keep using local mode"
+  },
+  "authOfflineModeMessage": "Você está sem internet, acessando no modo offline.",
+  "@authOfflineModeMessage": {
+    "description": "Message shown when auth cannot be offered because there is no internet connection"
+  },
+  "authSignInTitle": "Entrar na conta",
+  "@authSignInTitle": {
+    "description": "Sign-in screen title"
+  },
+  "authSignUpTitle": "Criar conta",
+  "@authSignUpTitle": {
+    "description": "Sign-up screen title"
+  },
+  "authSignUpChatGreeting": "Vamos criar sua conta Athlos em poucos passos. Se estiver sem internet agora, você pode voltar e continuar usando o app offline.",
+  "@authSignUpChatGreeting": {
+    "description": "Chat-style sign-up greeting"
+  },
+  "authSignUpChatAskEmail": "Qual e-mail você quer usar para entrar?",
+  "@authSignUpChatAskEmail": {
+    "description": "Chat-style sign-up email question"
+  },
+  "authSignUpChatAskPassword": "Perfeito. Agora escolha uma senha com pelo menos 6 caracteres.",
+  "@authSignUpChatAskPassword": {
+    "description": "Chat-style sign-up password question"
+  },
+  "authSignUpChatReady": "Tudo pronto. Vou criar sua conta e manter seus dados locais aqui até você confirmar a migração para a nuvem.",
+  "@authSignUpChatReady": {
+    "description": "Chat-style sign-up ready confirmation"
+  },
+  "authSignUpChatInvalidEmail": "Esse e-mail não parece válido. Tente novamente.",
+  "@authSignUpChatInvalidEmail": {
+    "description": "Chat-style invalid email message"
+  },
+  "authSignUpChatInvalidPassword": "A senha precisa ter pelo menos 6 caracteres. Tente novamente.",
+  "@authSignUpChatInvalidPassword": {
+    "description": "Chat-style invalid password message"
+  },
+  "authEmailLabel": "E-mail",
+  "@authEmailLabel": {
+    "description": "Email input label"
+  },
+  "authPasswordLabel": "Senha",
+  "@authPasswordLabel": {
+    "description": "Password input label"
+  },
+  "authPasswordMinHint": "Use pelo menos 6 caracteres.",
+  "@authPasswordMinHint": {
+    "description": "Password minimum length hint"
+  },
+  "authNoAccountAction": "Ainda não tenho conta",
+  "@authNoAccountAction": {
+    "description": "Navigation action from sign-in to sign-up"
+  },
+  "authHaveAccountAction": "Já tenho conta",
+  "@authHaveAccountAction": {
+    "description": "Navigation action from sign-up to sign-in"
+  },
+  "authGenericError": "Não foi possível concluir a autenticação agora.",
+  "@authGenericError": {
+    "description": "Generic auth error shown to users"
+  },
+  "authGoogleStarted": "Conclua o login no navegador.",
+  "@authGoogleStarted": {
+    "description": "Message after starting OAuth"
+  },
+  "authMigrationTitle": "Enviar perfil para a nuvem?",
+  "@authMigrationTitle": {
+    "description": "Cloud migration prompt title"
+  },
+  "authMigrationSubtitle": "Encontramos um perfil salvo neste aparelho. Depois do login, você pode enviá-lo para sua conta antes de continuar.",
+  "@authMigrationSubtitle": {
+    "description": "Cloud migration prompt subtitle"
+  },
+  "authMigrationSyncAction": "Migrar perfil agora",
+  "@authMigrationSyncAction": {
+    "description": "Action to sync local profile to cloud"
+  },
+  "authMigrationSkipAction": "Fazer depois",
+  "@authMigrationSkipAction": {
+    "description": "Action to skip cloud migration temporarily"
+  },
+  "authMigrationSuccess": "Perfil salvo na sua conta.",
+  "@authMigrationSuccess": {
+    "description": "Success message after syncing profile to cloud"
+  },
+  "authLogoutAction": "Sair da conta",
+  "@authLogoutAction": {
+    "description": "Sign-out action"
+  },
+  "authAccountSectionTitle": "Conta e nuvem",
+  "@authAccountSectionTitle": {
+    "description": "Profile data tab section title for account/cloud state"
+  },
+  "authSignedInAs": "Conectado como {email}",
+  "@authSignedInAs": {
+    "description": "Signed-in account label",
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "authNotSignedIn": "Você ainda está usando dados locais neste aparelho.",
+  "@authNotSignedIn": {
+    "description": "Not signed-in account label"
+  },
+  "authSyncProfileAction": "Salvar perfil na nuvem",
+  "@authSyncProfileAction": {
+    "description": "Action to sync profile to cloud from Profile data tab"
+  },
+  "authSupabaseNotConfigured": "Supabase não está configurado neste build.",
+  "@authSupabaseNotConfigured": {
+    "description": "Development/configuration error when Supabase env vars are missing"
   }
 }

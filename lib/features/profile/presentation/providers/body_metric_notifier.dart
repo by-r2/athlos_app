@@ -57,4 +57,3 @@ Future<double?> profileBodyWeightAt(Ref ref, DateTime instant) async {
   if (!result.isSuccess) return null;
   return result.getOrThrow()?.weight;
 }
-

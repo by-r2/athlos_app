@@ -5,10 +5,12 @@ import 'exercise_migration_maps.dart';
 /// Merge pairs live in [kExerciseMergeLosersIntoKeeper] (declared next to rename maps).
 
 Future<int?> _exerciseIdByName(GeneratedDatabase db, String name) async {
-  final rows = await db.customSelect(
-    'SELECT id FROM exercises WHERE name = ? LIMIT 1',
-    variables: [Variable<String>(name)],
-  ).get();
+  final rows = await db
+      .customSelect(
+        'SELECT id FROM exercises WHERE name = ? LIMIT 1',
+        variables: [Variable<String>(name)],
+      )
+      .get();
   if (rows.isEmpty) return null;
   return rows.first.data['id'] as int?;
 }
@@ -86,7 +88,11 @@ Future<void> applyExerciseCanonicalMerges(GeneratedDatabase db) async {
     final loserId = await _exerciseIdByName(db, loser);
     final keeperId = await _exerciseIdByName(db, keeper);
     if (loserId == null || keeperId == null) continue;
-    await _mergeOneExerciseIntoAnother(db, winnerId: keeperId, loserId: loserId);
+    await _mergeOneExerciseIntoAnother(
+      db,
+      winnerId: keeperId,
+      loserId: loserId,
+    );
   }
 
   await db.customStatement('''

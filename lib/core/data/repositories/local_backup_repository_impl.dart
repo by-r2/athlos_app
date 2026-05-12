@@ -81,8 +81,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       );
       final cycleSteps = await _fetchTableRows(_tableCycleSteps);
       final programs = await _fetchTableRows(_tablePrograms);
-      final progressionRules =
-          await _fetchTableRows(_tableProgressionRules);
+      final progressionRules = await _fetchTableRows(_tableProgressionRules);
       final bodyMetrics = await _fetchTableRows(_tableBodyMetrics);
 
       final allExercises = await _fetchTableRows(_tableExercises);
@@ -151,8 +150,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
               .toList(),
           _tableCycleSteps: cycleSteps.map(_toJsonMap).toList(),
           _tablePrograms: programs.map(_toJsonMap).toList(),
-          _tableProgressionRules:
-              progressionRules.map(_toJsonMap).toList(),
+          _tableProgressionRules: progressionRules.map(_toJsonMap).toList(),
           _tableBodyMetrics: bodyMetrics.map(_toJsonMap).toList(),
           _tableUserEquipments: <Map<String, dynamic>>[],
         },
@@ -182,8 +180,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   @override
   Future<Result<BackupImportPreview>> previewImport(String jsonContent) async {
     try {
-      final payload =
-          _applyLegacyExerciseImportTransforms(_parsePayload(jsonContent));
+      final payload = _applyLegacyExerciseImportTransforms(
+        _parsePayload(jsonContent),
+      );
       final conflicts = await _scanConflicts(payload.tables);
       final pendingReviews = await _scanPendingReviews(payload);
 
@@ -207,8 +206,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   ) async {
     try {
       _importDefaultProgramId = null;
-      final payload =
-          _applyLegacyExerciseImportTransforms(_parsePayload(request.jsonContent));
+      final payload = _applyLegacyExerciseImportTransforms(
+        _parsePayload(request.jsonContent),
+      );
 
       var createdCount = 0;
       var updatedCount = 0;
@@ -278,7 +278,12 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
                   _tableUserProfiles,
                   existingProfileId,
                   mergedProfile,
-                  excludeKeys: const {'id', 'created_at', 'updated_at', 'weight'},
+                  excludeKeys: const {
+                    'id',
+                    'created_at',
+                    'updated_at',
+                    'weight',
+                  },
                 );
                 updatedCount++;
               } else if (hasFieldSkip) {
@@ -461,12 +466,13 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         // Programs
         final programRows = payload.tables[_tablePrograms] ?? const [];
         final programIdMap = <int, int>{};
-        var hasActiveProgram = (await _db
-                .customSelect(
-                  'SELECT 1 FROM $_tablePrograms WHERE is_active = 1 LIMIT 1',
-                )
-                .get())
-            .isNotEmpty;
+        var hasActiveProgram =
+            (await _db
+                    .customSelect(
+                      'SELECT 1 FROM $_tablePrograms WHERE is_active = 1 LIMIT 1',
+                    )
+                    .get())
+                .isNotEmpty;
         for (final row in programRows) {
           final oldId = _asInt(row['id']);
           if (oldId == null) continue;
@@ -485,8 +491,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
               'deload_frequency': row['deload_frequency'],
               'deload_strategy': row['deload_strategy'],
               'deload_volume_multiplier': row['deload_volume_multiplier'],
-              'deload_intensity_multiplier':
-                  row['deload_intensity_multiplier'],
+              'deload_intensity_multiplier': row['deload_intensity_multiplier'],
               'created_at': row['created_at'],
               'archived_at': row['archived_at'],
             },
@@ -507,10 +512,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           final newExerciseId = exerciseIdMap[oldExerciseId];
           if (newProgramId == null || newExerciseId == null) {
             failedCount++;
-            bumpReason(
-              failedReasons,
-              'progression_rule_missing_mapping',
-            );
+            bumpReason(failedReasons, 'progression_rule_missing_mapping');
             continue;
           }
           await _insertRow(
@@ -529,8 +531,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         }
 
         // Body Metrics
-        final bodyMetricRows =
-            payload.tables[_tableBodyMetrics] ?? const [];
+        final bodyMetricRows = payload.tables[_tableBodyMetrics] ?? const [];
         for (final row in bodyMetricRows) {
           await _insertRow(
             _tableBodyMetrics,
@@ -1034,8 +1035,9 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       suggestions = _topFuzzyCandidates(ref.name, verifiedRows, limit: 1);
     }
 
-    final bestScore =
-        suggestions.isEmpty ? -1.0 : suggestions.first['score'] as double;
+    final bestScore = suggestions.isEmpty
+        ? -1.0
+        : suggestions.first['score'] as double;
 
     if (suggestions.isNotEmpty && bestScore >= _strongMatchThreshold) {
       return _asInt(suggestions.first['id']);
@@ -1094,7 +1096,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           failedCount++;
           continue;
         }
-        final linked = idMap[oldId] ??
+        final linked =
+            idMap[oldId] ??
             _linkVerifiedImportedExerciseToLocalCatalog(
               importedRow: row,
               localVerifiedCatalog: localVerifiedCatalog,
@@ -1517,16 +1520,12 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     for (final ref in exerciseRefs) {
       if (ref.catalogRemoteId.isNotEmpty) {
         final byRemote = verifiedExercises.any(
-          (row) =>
-              row['catalog_remote_id']?.toString() == ref.catalogRemoteId,
+          (row) => row['catalog_remote_id']?.toString() == ref.catalogRemoteId,
         );
         if (byRemote) continue;
       }
 
-      if (_verifiedExercisesContainBackedUpLabel(
-        verifiedExercises,
-        ref.name,
-      )) {
+      if (_verifiedExercisesContainBackedUpLabel(verifiedExercises, ref.name)) {
         continue;
       }
 
@@ -1927,8 +1926,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       BackupConflictType.exercise => _tableExercises,
       BackupConflictType.equipment ||
       BackupConflictType.profile ||
-      BackupConflictType.workout =>
-        null,
+      BackupConflictType.workout => null,
     };
   }
 
@@ -2094,22 +2092,24 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         .map(_copyExerciseRowApplyingLegacyNamingMigration)
         .toList();
 
-    final workoutExecutions = (payload.tables[_tableWorkoutExecutions] ?? const [])
-        .map((row) => Map<String, dynamic>.from(row)..remove('notes'))
-        .toList();
+    final workoutExecutions =
+        (payload.tables[_tableWorkoutExecutions] ?? const [])
+            .map((row) => Map<String, dynamic>.from(row)..remove('notes'))
+            .toList();
     final executionSets = (payload.tables[_tableExecutionSets] ?? const [])
-        .map((row) => Map<String, dynamic>.from(row)
-          ..remove('notes')
-          ..putIfAbsent('body_weight_snapshot', () => null)
-          ..putIfAbsent('load_mode_override', () => null))
+        .map(
+          (row) => Map<String, dynamic>.from(row)
+            ..remove('notes')
+            ..putIfAbsent('body_weight_snapshot', () => null)
+            ..putIfAbsent('load_mode_override', () => null),
+        )
         .toList();
 
-    final nextTables = Map<String, List<Map<String, dynamic>>>.from(
-      payload.tables,
-    )
-      ..[_tableExercises] = migratedExercises
-      ..[_tableWorkoutExecutions] = workoutExecutions
-      ..[_tableExecutionSets] = executionSets;
+    final nextTables =
+        Map<String, List<Map<String, dynamic>>>.from(payload.tables)
+          ..[_tableExercises] = migratedExercises
+          ..[_tableWorkoutExecutions] = workoutExecutions
+          ..[_tableExecutionSets] = executionSets;
 
     final migratedRefs =
         (payload.catalogReferences[_catalogExercises] ?? const [])
@@ -2189,8 +2189,10 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final byExact = _exerciseRowIdByExactName(localVerifiedCatalog, name);
       if (byExact != null) return byExact;
 
-      final fuzzy =
-          _topFuzzyBackedUpExerciseNameCandidates(name, localVerifiedCatalog);
+      final fuzzy = _topFuzzyBackedUpExerciseNameCandidates(
+        name,
+        localVerifiedCatalog,
+      );
       if (fuzzy.isNotEmpty &&
           (fuzzy.first['score'] as double) >= _strongMatchThreshold) {
         return _asInt(fuzzy.first['id']);
@@ -2285,13 +2287,13 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     return [];
   }
 
-  Future<void> _mergeLegacyImportedEquipment(_BackupParsedPayload payload) async {
+  Future<void> _mergeLegacyImportedEquipment(
+    _BackupParsedPayload payload,
+  ) async {
     final userRowsRaw = payload.tables[_tableUserEquipments];
     final userRows = userRowsRaw == null
         ? const <Map<String, dynamic>>[]
-        : (userRowsRaw as List)
-            .whereType<Map<String, dynamic>>()
-            .toList();
+        : (userRowsRaw as List).whereType<Map<String, dynamic>>().toList();
     if (userRows.isEmpty) return;
 
     final existingProfiles = await _fetchTableRows(_tableUserProfiles);
@@ -2304,9 +2306,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     final equipRowsRaw = payload.tables[_tableEquipments];
     final equipRows = equipRowsRaw == null
         ? const <Map<String, dynamic>>[]
-        : (equipRowsRaw as List)
-            .whereType<Map<String, dynamic>>()
-            .toList();
+        : (equipRowsRaw as List).whereType<Map<String, dynamic>>().toList();
 
     final idToName = <int, String>{};
     for (final r in equipRows) {
@@ -2314,11 +2314,14 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final name = r['name']?.toString().trim();
       if (id != null && name != null && name.isNotEmpty) idToName[id] = name;
     }
-    for (final ref in payload.catalogReferences[_catalogEquipments] ?? const []) {
+    for (final ref
+        in payload.catalogReferences[_catalogEquipments] ?? const []) {
       idToName.putIfAbsent(ref.localId, () => ref.name);
     }
 
-    final owned = List<String>.from(_decodeOwnedEquipmentNames(row['owned_equipment_names']));
+    final owned = List<String>.from(
+      _decodeOwnedEquipmentNames(row['owned_equipment_names']),
+    );
     final seen = owned.map((e) => e.toLowerCase()).toSet();
 
     for (final ur in userRows) {
@@ -2404,7 +2407,8 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         'movement_pattern': row['movement_pattern'],
         'description': row['description'],
         'is_verified': 0,
-        'default_load_mode': row['default_load_mode'] ??
+        'default_load_mode':
+            row['default_load_mode'] ??
             (_asBool(row['is_bodyweight']) ? 'bodyweight' : 'weighted'),
         'bodyweight_load_factor': row['bodyweight_load_factor'],
         'is_isometric': row['is_isometric'] ?? 0,
@@ -2488,24 +2492,24 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required String importedName,
     required List<Map<String, dynamic>> existingRows,
   }) {
-    final String? exerciseImportIndexedCanon =
-        tableName == _tableExercises
+    final String? exerciseImportIndexedCanon = tableName == _tableExercises
         ? exerciseCatalogLabelIndex.tryResolveCanonicalStrict(
             importedName.trim(),
           )
         : null;
 
     if (tableName == _tableExercises) {
-      final resolvedImported =
-          resolveImportedExerciseCatalogName(importedName).trim();
+      final resolvedImported = resolveImportedExerciseCatalogName(
+        importedName,
+      ).trim();
       final indexedCanonical = exerciseImportIndexedCanon;
 
       for (final existingRow in existingRows) {
         final existingName = (existingRow['name'] as String?)?.trim();
         if (existingName == null || existingName.isEmpty) continue;
-        final nameMatchesImported = existingName == resolvedImported ||
-            (indexedCanonical != null &&
-                existingName == indexedCanonical);
+        final nameMatchesImported =
+            existingName == resolvedImported ||
+            (indexedCanonical != null && existingName == indexedCanonical);
         if (!nameMatchesImported) continue;
         if (!_isSemanticallyCompatible(
           tableName: tableName,
@@ -2514,11 +2518,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         )) {
           continue;
         }
-        return _CatalogMatch(
-          row: existingRow,
-          score: 1,
-          isStrong: true,
-        );
+        return _CatalogMatch(row: existingRow, score: 1, isStrong: true);
       }
     }
 
@@ -2554,11 +2554,10 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       if (tableName == _tableExercises &&
           _asBool(existingRow['is_verified']) &&
           exerciseCatalogLabelIndex.isKnownCanonicalKey(existingName)) {
-        final synonymScore =
-            exerciseCatalogLabelIndex.maxFuzzySimilarity(
-              importedName,
-              existingName,
-            );
+        final synonymScore = exerciseCatalogLabelIndex.maxFuzzySimilarity(
+          importedName,
+          existingName,
+        );
         final legacyScore = containsMatch
             ? 0.98
             : _similarity(importedNormalized, existingNormalized);
@@ -2881,9 +2880,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
   /// Returns (or creates) a default program to use when imported data
   /// has no program_id. Caches the result for the duration of the import.
-  Future<int> _ensureDefaultProgramForImport(
-    Map<int, int> programIdMap,
-  ) async {
+  Future<int> _ensureDefaultProgramForImport(Map<int, int> programIdMap) async {
     if (_importDefaultProgramId != null) return _importDefaultProgramId!;
     final id = await _insertRow(
       _tablePrograms,

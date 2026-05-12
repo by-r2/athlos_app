@@ -10,8 +10,9 @@ class Exercises extends Table {
   TextColumn get catalogRemoteId => text().nullable()();
   TextColumn get name => text().withLength(min: 1, max: 150)();
   TextColumn get muscleGroup => textEnum<MuscleGroup>()();
-  TextColumn get type =>
-      textEnum<ExerciseType>().withDefault(Constant(ExerciseType.strength.name))();
+  TextColumn get type => textEnum<ExerciseType>().withDefault(
+    Constant(ExerciseType.strength.name),
+  )();
   TextColumn get movementPattern => textEnum<MovementPattern>().nullable()();
   TextColumn get description => text().nullable()();
   BoolColumn get isVerified => boolean().withDefault(const Constant(false))();
@@ -21,8 +22,8 @@ class Exercises extends Table {
   /// (`ExecutionSets.loadModeOverride`) without duplicating catalog rows.
   ///
   /// Replaces the legacy `isBodyweight` boolean column (migration v34).
-  TextColumn get defaultLoadMode => textEnum<LoadMode>()
-      .withDefault(Constant(LoadMode.weighted.name))();
+  TextColumn get defaultLoadMode =>
+      textEnum<LoadMode>().withDefault(Constant(LoadMode.weighted.name))();
 
   /// Fraction of body weight applied as load when the exercise is performed
   /// in `bodyweight` or `assisted` modes. `null` means the exercise never

@@ -36,12 +36,16 @@ class _ExerciseLoadChartScreenState
         ?.where((e) => e.id == widget.exerciseId)
         .firstOrNull;
     final exerciseName = exercise != null
-        ? localizedExerciseName(exercise.name,
-            isVerified: exercise.isVerified, l10n: l10n)
+        ? localizedExerciseName(
+            exercise.name,
+            isVerified: exercise.isVerified,
+            l10n: l10n,
+          )
         : '...';
 
     final dataAsync = ref.watch(
-        exerciseLoadHistoryProvider(widget.exerciseId, range: _range));
+      exerciseLoadHistoryProvider(widget.exerciseId, range: _range),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(exerciseName)),
@@ -50,10 +54,7 @@ class _ExerciseLoadChartScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.loadChartTitle,
-              style: textTheme.titleMedium,
-            ),
+            Text(l10n.loadChartTitle, style: textTheme.titleMedium),
             const Gap(AthlosSpacing.sm),
             SegmentedButton<ChartTimeRange>(
               segments: [
@@ -71,18 +72,13 @@ class _ExerciseLoadChartScreenState
                 ),
               ],
               selected: {_range},
-              onSelectionChanged: (s) =>
-                  setState(() => _range = s.first),
+              onSelectionChanged: (s) => setState(() => _range = s.first),
             ),
             const Gap(AthlosSpacing.lg),
             Expanded(
               child: dataAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                error: (_, _) => Center(
-                  child: Text(l10n.genericError),
-                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, _) => Center(child: Text(l10n.genericError)),
                 data: (points) {
                   if (points.length < 2) {
                     return Center(
@@ -112,10 +108,12 @@ class _ExerciseLoadChartScreenState
     final dateFormat = intl.DateFormat.MMMd();
     final firstDate = points.first.date;
     final spots = points
-        .map((p) => FlSpot(
-              p.date.difference(firstDate).inDays.toDouble(),
-              double.parse(p.estimated1RM.toStringAsFixed(1)),
-            ))
+        .map(
+          (p) => FlSpot(
+            p.date.difference(firstDate).inDays.toDouble(),
+            double.parse(p.estimated1RM.toStringAsFixed(1)),
+          ),
+        )
         .toList();
 
     final minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
@@ -146,18 +144,19 @@ class _ExerciseLoadChartScreenState
           ),
         ],
         titlesData: FlTitlesData(
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 28,
               interval: _bottomInterval(spots),
               getTitlesWidget: (value, meta) {
-                final date =
-                    firstDate.add(Duration(days: value.toInt()));
+                final date = firstDate.add(Duration(days: value.toInt()));
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
@@ -195,19 +194,16 @@ class _ExerciseLoadChartScreenState
         borderData: FlBorderData(show: false),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (touchedSpots) => touchedSpots
-                .map((s) {
-                  final date =
-                      firstDate.add(Duration(days: s.x.toInt()));
-                  return LineTooltipItem(
-                    '${dateFormat.format(date)}\n${s.y.toStringAsFixed(1)} kg',
-                    TextStyle(
-                      color: colorScheme.onInverseSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                })
-                .toList(),
+            getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+              final date = firstDate.add(Duration(days: s.x.toInt()));
+              return LineTooltipItem(
+                '${dateFormat.format(date)}\n${s.y.toStringAsFixed(1)} kg',
+                TextStyle(
+                  color: colorScheme.onInverseSurface,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }).toList(),
           ),
         ),
       ),

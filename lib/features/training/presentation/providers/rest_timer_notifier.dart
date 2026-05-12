@@ -17,19 +17,17 @@ class RestTimerState {
 
   bool get isActive => remainingSeconds > 0 || isRunning;
 
-  double get progress =>
-      totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
+  double get progress => totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
 
   RestTimerState copyWith({
     int? remainingSeconds,
     int? totalSeconds,
     bool? isRunning,
-  }) =>
-      RestTimerState(
-        remainingSeconds: remainingSeconds ?? this.remainingSeconds,
-        totalSeconds: totalSeconds ?? this.totalSeconds,
-        isRunning: isRunning ?? this.isRunning,
-      );
+  }) => RestTimerState(
+    remainingSeconds: remainingSeconds ?? this.remainingSeconds,
+    totalSeconds: totalSeconds ?? this.totalSeconds,
+    isRunning: isRunning ?? this.isRunning,
+  );
 }
 
 @Riverpod(keepAlive: true)

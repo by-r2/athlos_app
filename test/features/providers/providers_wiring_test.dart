@@ -14,9 +14,7 @@ void main() {
     setUp(() {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       container = ProviderContainer(
-        overrides: [
-          appDatabaseProvider.overrideWith((ref) => db),
-        ],
+        overrides: [appDatabaseProvider.overrideWith((ref) => db)],
       );
     });
 
@@ -42,7 +40,10 @@ void main() {
 
       expect(container.read(localBackupRepositoryProvider), isNotNull);
       expect(container.read(exportLocalBackupUseCaseProvider), isNotNull);
-      expect(container.read(previewLocalBackupImportUseCaseProvider), isNotNull);
+      expect(
+        container.read(previewLocalBackupImportUseCaseProvider),
+        isNotNull,
+      );
       expect(container.read(importLocalBackupUseCaseProvider), isNotNull);
     });
   });

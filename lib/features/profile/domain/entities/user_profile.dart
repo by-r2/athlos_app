@@ -60,6 +60,12 @@ class UserProfile {
   /// Version of streak algorithm; 0 means history should be materialized once.
   final int trainingStreaksSchema;
 
+  /// Supabase Auth user id linked to this local profile cache.
+  final String? remoteUserId;
+
+  /// Last time the local profile was successfully written to the cloud.
+  final DateTime? lastSyncedAt;
+
   const UserProfile({
     required this.id,
     this.name,
@@ -82,6 +88,8 @@ class UserProfile {
     this.currentFrequencyStreak = 0,
     this.bestFrequencyStreak = 0,
     this.trainingStreaksSchema = 0,
+    this.remoteUserId,
+    this.lastSyncedAt,
   });
 
   UserProfile copyWith({
@@ -106,38 +114,38 @@ class UserProfile {
     int? currentFrequencyStreak,
     int? bestFrequencyStreak,
     int? trainingStreaksSchema,
-  }) =>
-      UserProfile(
-        id: id ?? this.id,
-        name: name != null ? name() : this.name,
-        height: height != null ? height() : this.height,
-        age: age != null ? age() : this.age,
-        goal: goal != null ? goal() : this.goal,
-        bodyAesthetic:
-            bodyAesthetic != null ? bodyAesthetic() : this.bodyAesthetic,
-        trainingStyle:
-            trainingStyle != null ? trainingStyle() : this.trainingStyle,
-        experienceLevel:
-            experienceLevel != null ? experienceLevel() : this.experienceLevel,
-        gender: gender != null ? gender() : this.gender,
-        trainingFrequency: trainingFrequency != null
-            ? trainingFrequency()
-            : this.trainingFrequency,
-        availableWorkoutMinutes: availableWorkoutMinutes != null
-            ? availableWorkoutMinutes()
-            : this.availableWorkoutMinutes,
-        trainsAtGym: trainsAtGym != null ? trainsAtGym() : this.trainsAtGym,
-        injuries: injuries != null ? injuries() : this.injuries,
-        bio: bio != null ? bio() : this.bio,
-        ownedEquipmentNames: ownedEquipmentNames ?? this.ownedEquipmentNames,
-        lastActiveModule: lastActiveModule ?? this.lastActiveModule,
-        currentCycleStreak: currentCycleStreak ?? this.currentCycleStreak,
-        bestCycleStreak: bestCycleStreak ?? this.bestCycleStreak,
-        currentFrequencyStreak:
-            currentFrequencyStreak ?? this.currentFrequencyStreak,
-        bestFrequencyStreak:
-            bestFrequencyStreak ?? this.bestFrequencyStreak,
-        trainingStreaksSchema:
-            trainingStreaksSchema ?? this.trainingStreaksSchema,
-      );
+    String? Function()? remoteUserId,
+    DateTime? Function()? lastSyncedAt,
+  }) => UserProfile(
+    id: id ?? this.id,
+    name: name != null ? name() : this.name,
+    height: height != null ? height() : this.height,
+    age: age != null ? age() : this.age,
+    goal: goal != null ? goal() : this.goal,
+    bodyAesthetic: bodyAesthetic != null ? bodyAesthetic() : this.bodyAesthetic,
+    trainingStyle: trainingStyle != null ? trainingStyle() : this.trainingStyle,
+    experienceLevel: experienceLevel != null
+        ? experienceLevel()
+        : this.experienceLevel,
+    gender: gender != null ? gender() : this.gender,
+    trainingFrequency: trainingFrequency != null
+        ? trainingFrequency()
+        : this.trainingFrequency,
+    availableWorkoutMinutes: availableWorkoutMinutes != null
+        ? availableWorkoutMinutes()
+        : this.availableWorkoutMinutes,
+    trainsAtGym: trainsAtGym != null ? trainsAtGym() : this.trainsAtGym,
+    injuries: injuries != null ? injuries() : this.injuries,
+    bio: bio != null ? bio() : this.bio,
+    ownedEquipmentNames: ownedEquipmentNames ?? this.ownedEquipmentNames,
+    lastActiveModule: lastActiveModule ?? this.lastActiveModule,
+    currentCycleStreak: currentCycleStreak ?? this.currentCycleStreak,
+    bestCycleStreak: bestCycleStreak ?? this.bestCycleStreak,
+    currentFrequencyStreak:
+        currentFrequencyStreak ?? this.currentFrequencyStreak,
+    bestFrequencyStreak: bestFrequencyStreak ?? this.bestFrequencyStreak,
+    trainingStreaksSchema: trainingStreaksSchema ?? this.trainingStreaksSchema,
+    remoteUserId: remoteUserId != null ? remoteUserId() : this.remoteUserId,
+    lastSyncedAt: lastSyncedAt != null ? lastSyncedAt() : this.lastSyncedAt,
+  );
 }

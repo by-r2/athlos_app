@@ -45,13 +45,16 @@ Future<WorkoutExecution?> danglingExecution(Ref ref) async {
 /// Sets for a specific execution, with segments loaded.
 @riverpod
 Future<List<ExecutionSet>> executionSetsWithSegments(
-    Ref ref, int executionId) async {
+  Ref ref,
+  int executionId,
+) async {
   final repo = ref.watch(workoutExecutionRepositoryProvider);
   final setsResult = await repo.getSets(executionId);
   final sets = setsResult.getOrThrow();
 
-  final allSegments =
-      (await repo.getSegmentsForExecution(executionId)).getOrThrow();
+  final allSegments = (await repo.getSegmentsForExecution(
+    executionId,
+  )).getOrThrow();
 
   // Group segments by executionSetId
   final segmentsBySetId = <int, List<ExecutionSetSegment>>{};
@@ -59,30 +62,28 @@ Future<List<ExecutionSet>> executionSetsWithSegments(
     segmentsBySetId.putIfAbsent(seg.executionSetId, () => []).add(seg);
   }
 
-  return sets
-      .map((s) {
-        final segments = segmentsBySetId[s.id];
-        if (segments != null && segments.isNotEmpty) {
-          return ExecutionSet(
-            id: s.id,
-            executionId: s.executionId,
-            exerciseId: s.exerciseId,
-            setNumber: s.setNumber,
-            plannedReps: s.plannedReps,
-            plannedWeight: s.plannedWeight,
-            reps: s.reps,
-            weight: s.weight,
-            isCompleted: s.isCompleted,
-            isWarmup: s.isWarmup,
-            rpe: s.rpe,
-            bodyWeightSnapshot: s.bodyWeightSnapshot,
-            loadModeOverride: s.loadModeOverride,
-            segments: segments,
-          );
-        }
-        return s;
-      })
-      .toList();
+  return sets.map((s) {
+    final segments = segmentsBySetId[s.id];
+    if (segments != null && segments.isNotEmpty) {
+      return ExecutionSet(
+        id: s.id,
+        executionId: s.executionId,
+        exerciseId: s.exerciseId,
+        setNumber: s.setNumber,
+        plannedReps: s.plannedReps,
+        plannedWeight: s.plannedWeight,
+        reps: s.reps,
+        weight: s.weight,
+        isCompleted: s.isCompleted,
+        isWarmup: s.isWarmup,
+        rpe: s.rpe,
+        bodyWeightSnapshot: s.bodyWeightSnapshot,
+        loadModeOverride: s.loadModeOverride,
+        segments: segments,
+      );
+    }
+    return s;
+  }).toList();
 }
 
 /// Resolves the exercise configuration for a past execution.
@@ -90,7 +91,9 @@ Future<List<ExecutionSet>> executionSetsWithSegments(
 /// live workout template for older executions without a snapshot.
 @riverpod
 Future<List<WorkoutExercise>> executionExerciseConfig(
-    Ref ref, WorkoutExecution execution) async {
+  Ref ref,
+  WorkoutExecution execution,
+) async {
   final snapshot = execution.exerciseConfigSnapshot;
   if (snapshot != null && snapshot.isNotEmpty) {
     return _parseExerciseSnapshot(execution.workoutId, snapshot);
@@ -99,22 +102,26 @@ Future<List<WorkoutExercise>> executionExerciseConfig(
 }
 
 List<WorkoutExercise> _parseExerciseSnapshot(
-    int workoutId, String jsonSnapshot) {
+  int workoutId,
+  String jsonSnapshot,
+) {
   final list = (jsonDecode(jsonSnapshot) as List).cast<Map<String, dynamic>>();
   return list
-      .map((e) => WorkoutExercise(
-            workoutId: workoutId,
-            exerciseId: e['exerciseId'] as int,
-            order: e['order'] as int? ?? 0,
-            sets: e['sets'] as int,
-            minReps: e['minReps'] as int?,
-            maxReps: e['maxReps'] as int?,
-            isAmrap: e['isAmrap'] as bool? ?? false,
-            rest: e['rest'] as int? ?? 0,
-            duration: e['duration'] as int?,
-            groupId: e['groupId'] as int?,
-            isUnilateral: e['isUnilateral'] as bool? ?? false,
-            notes: e['notes'] as String?,
-          ))
+      .map(
+        (e) => WorkoutExercise(
+          workoutId: workoutId,
+          exerciseId: e['exerciseId'] as int,
+          order: e['order'] as int? ?? 0,
+          sets: e['sets'] as int,
+          minReps: e['minReps'] as int?,
+          maxReps: e['maxReps'] as int?,
+          isAmrap: e['isAmrap'] as bool? ?? false,
+          rest: e['rest'] as int? ?? 0,
+          duration: e['duration'] as int?,
+          groupId: e['groupId'] as int?,
+          isUnilateral: e['isUnilateral'] as bool? ?? false,
+          notes: e['notes'] as String?,
+        ),
+      )
       .toList();
 }

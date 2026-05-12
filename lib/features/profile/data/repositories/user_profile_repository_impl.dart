@@ -6,17 +6,40 @@ import '../../../../core/errors/result.dart';
 import '../../domain/entities/user_profile.dart' as domain;
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/user_profile_dao.dart';
+import '../datasources/user_profile_remote_data_source.dart';
 
 class UserProfileRepositoryImpl implements UserProfileRepository {
   final UserProfileDao _dao;
+  final UserProfileRemoteDataSource? _remoteDataSource;
 
-  UserProfileRepositoryImpl(this._dao);
+  UserProfileRepositoryImpl(
+    this._dao, {
+    UserProfileRemoteDataSource? remoteDataSource,
+  }) : _remoteDataSource = remoteDataSource;
 
   @override
   Future<Result<domain.UserProfile?>> get() async {
     try {
       final row = await _dao.get();
-      return Success(row != null ? _toDomain(row) : null);
+      if (row != null) return Success(_toDomain(row));
+
+      final remoteProfile = await _remoteDataSource?.fetchCurrentProfile();
+      if (remoteProfile == null) return const Success(null);
+
+      final idResult = await create(remoteProfile);
+      final id = idResult.getOrThrow();
+      final syncedAt = remoteProfile.lastSyncedAt ?? DateTime.now().toUtc();
+      final remoteUserId = remoteProfile.remoteUserId;
+      if (remoteUserId != null) {
+        await _dao.markSynced(
+          id: id,
+          remoteUserId: remoteUserId,
+          syncedAt: syncedAt,
+        );
+      }
+      return Success(
+        remoteProfile.copyWith(id: id, lastSyncedAt: () => syncedAt),
+      );
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load profile: $e'));
     }
@@ -47,7 +70,13 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
           currentFrequencyStreak: const Value(0),
           bestFrequencyStreak: const Value(0),
           trainingStreaksSchema: const Value(1),
+          remoteUserId: Value(profile.remoteUserId),
+          lastSyncedAt: Value(profile.lastSyncedAt),
         ),
+      );
+      await _syncProfileIfPossible(
+        profile.copyWith(id: id),
+        allowUnlinked: true,
       );
       return Success(id);
     } on Exception catch (e) {
@@ -81,8 +110,11 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
           currentFrequencyStreak: Value(profile.currentFrequencyStreak),
           bestFrequencyStreak: Value(profile.bestFrequencyStreak),
           trainingStreaksSchema: Value(profile.trainingStreaksSchema),
+          remoteUserId: Value(profile.remoteUserId),
+          lastSyncedAt: Value(profile.lastSyncedAt),
         ),
       );
+      await _syncProfileIfPossible(profile, allowUnlinked: false);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update profile: $e'));
@@ -99,27 +131,83 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     }
   }
 
-  domain.UserProfile _toDomain(UserProfile row) => domain.UserProfile(
-        id: row.id,
-        name: row.name,
-        height: row.height,
-        age: row.age,
-        goal: row.goal,
-        bodyAesthetic: row.bodyAesthetic,
-        trainingStyle: row.trainingStyle,
-        experienceLevel: row.experienceLevel,
-        gender: row.gender,
-        trainingFrequency: row.trainingFrequency,
-        availableWorkoutMinutes: row.availableWorkoutMinutes,
-        trainsAtGym: row.trainsAtGym,
-        injuries: row.injuries,
-        bio: row.bio,
-        ownedEquipmentNames: row.ownedEquipmentNames ?? const [],
-        lastActiveModule: row.lastActiveModule,
-        currentCycleStreak: row.currentCycleStreak,
-        bestCycleStreak: row.bestCycleStreak,
-        currentFrequencyStreak: row.currentFrequencyStreak,
-        bestFrequencyStreak: row.bestFrequencyStreak,
-        trainingStreaksSchema: row.trainingStreaksSchema,
+  @override
+  Future<Result<void>> syncLocalProfileToCloud() async {
+    try {
+      final remoteDataSource = _remoteDataSource;
+      if (remoteDataSource == null) {
+        return const Failure(AuthAppException('Cloud sync is not configured.'));
+      }
+
+      final row = await _dao.get();
+      if (row == null) {
+        return const Failure(NotFoundException('No local profile to sync.'));
+      }
+
+      final profile = _toDomain(row);
+      final syncedAt = await remoteDataSource.upsertCurrentProfile(profile);
+      final remoteUserId = remoteDataSource.currentUserId;
+      if (remoteUserId == null) {
+        return const Failure(AuthAppException('User must be signed in.'));
+      }
+      await _dao.markSynced(
+        id: profile.id,
+        remoteUserId: remoteUserId,
+        syncedAt: syncedAt,
       );
+      return const Success(null);
+    } on AppException catch (e) {
+      return Failure(e);
+    } on Exception catch (e) {
+      return Failure(NetworkException('Failed to sync profile: $e'));
+    }
+  }
+
+  Future<void> _syncProfileIfPossible(
+    domain.UserProfile profile, {
+    required bool allowUnlinked,
+  }) async {
+    try {
+      final remoteDataSource = _remoteDataSource;
+      final remoteUserId = remoteDataSource?.currentUserId;
+      if (remoteUserId == null) return;
+      if (!allowUnlinked && profile.remoteUserId != remoteUserId) return;
+
+      final syncedAt = await remoteDataSource!.upsertCurrentProfile(profile);
+      await _dao.markSynced(
+        id: profile.id,
+        remoteUserId: remoteUserId,
+        syncedAt: syncedAt,
+      );
+    } on Exception {
+      // Local-first safety: explicit cloud migration surfaces errors, but local
+      // profile edits should not be lost or blocked by a transient network issue.
+    }
+  }
+
+  domain.UserProfile _toDomain(UserProfile row) => domain.UserProfile(
+    id: row.id,
+    name: row.name,
+    height: row.height,
+    age: row.age,
+    goal: row.goal,
+    bodyAesthetic: row.bodyAesthetic,
+    trainingStyle: row.trainingStyle,
+    experienceLevel: row.experienceLevel,
+    gender: row.gender,
+    trainingFrequency: row.trainingFrequency,
+    availableWorkoutMinutes: row.availableWorkoutMinutes,
+    trainsAtGym: row.trainsAtGym,
+    injuries: row.injuries,
+    bio: row.bio,
+    ownedEquipmentNames: row.ownedEquipmentNames ?? const [],
+    lastActiveModule: row.lastActiveModule,
+    currentCycleStreak: row.currentCycleStreak,
+    bestCycleStreak: row.bestCycleStreak,
+    currentFrequencyStreak: row.currentFrequencyStreak,
+    bestFrequencyStreak: row.bestFrequencyStreak,
+    trainingStreaksSchema: row.trainingStreaksSchema,
+    remoteUserId: row.remoteUserId,
+    lastSyncedAt: row.lastSyncedAt,
+  );
 }

@@ -251,8 +251,9 @@ class PromptBuilder {
           workoutNames[exec.workoutId] ?? 'Workout #${exec.workoutId}';
       final dateFmt = exec.startedAt.toLocal().toString().substring(0, 10);
 
-      final historicResult =
-          await _bodyMetricRepo.getLatestAtOrBefore(exec.startedAt);
+      final historicResult = await _bodyMetricRepo.getLatestAtOrBefore(
+        exec.startedAt,
+      );
       final historicWeight = historicResult.isSuccess
           ? historicResult.getOrThrow()?.weight
           : null;
@@ -272,15 +273,10 @@ class PromptBuilder {
           final exercise = exerciseById[s.exerciseId];
           final we = weByExerciseId[s.exerciseId];
           final resolvedMode = exercise != null
-              ? resolveLoadMode(
-                  set: s,
-                  workoutExercise: we,
-                  exercise: exercise,
-                )
+              ? resolveLoadMode(set: s, workoutExercise: we, exercise: exercise)
               : null;
-          final resolvedBody = s.bodyWeightSnapshot ??
-              historicWeight ??
-              profileBodyWeight;
+          final resolvedBody =
+              s.bodyWeightSnapshot ?? historicWeight ?? profileBodyWeight;
           final load = exercise != null
               ? effectiveLoad(
                   mode: resolvedMode!,
@@ -292,9 +288,11 @@ class PromptBuilder {
           final loadModeTag = resolvedMode != null
               ? '[mode=${resolvedMode.name}] '
               : '';
-          final loadTag =
-              load != null ? '${load.toStringAsFixed(1)}kg×${s.reps ?? 0}' : null;
-          final base = loadTag ??
+          final loadTag = load != null
+              ? '${load.toStringAsFixed(1)}kg×${s.reps ?? 0}'
+              : null;
+          final base =
+              loadTag ??
               (s.duration != null ? '${s.duration}s' : '${s.reps ?? 0}r');
           final label = s.rpe != null ? '$base @RPE${s.rpe}' : base;
           final prev = bestByExercise[s.exerciseId];
@@ -321,9 +319,7 @@ class PromptBuilder {
     final overflow = names.length > maxExerciseNamesInContext
         ? ' +${names.length - maxExerciseNamesInContext}'
         : '';
-    sections.add(
-      '## Catalog (${names.length}$overflow)\n${shown.join("; ")}',
-    );
+    sections.add('## Catalog (${names.length}$overflow)\n${shown.join("; ")}');
   }
 
   String _humanize(String enumName) =>

@@ -2,6 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/auth/presentation/providers/auth_notifier.dart';
+import '../../features/auth/presentation/providers/auth_prompt_notifier.dart';
+import '../../features/auth/presentation/screens/account_prompt_screen.dart';
+import '../../features/auth/presentation/screens/auth_email_screen.dart';
+import '../../features/auth/presentation/screens/cloud_profile_migration_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/conflict_center_screen.dart';
@@ -30,6 +35,8 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
+  ref.listen(authProvider, (_, _) => refreshNotifier.value++);
+  ref.listen(authPromptProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
@@ -38,22 +45,45 @@ GoRouter appRouter(Ref ref) {
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final hasProfileAsync = ref.read(hasProfileProvider);
+      final authAsync = ref.read(authProvider);
+      final hasCompletedAuthPrompt = ref.read(authPromptProvider);
       final location = state.matchedLocation;
       final isOnSplash = location == RoutePaths.splash;
       final isOnSetup = location == RoutePaths.profileSetup;
+      final isOnAuthPrompt = location == RoutePaths.authPrompt;
+      final isOnAuthEmail =
+          location == RoutePaths.authSignIn ||
+          location == RoutePaths.authSignUp;
+      final isOnAuthMigration = location == RoutePaths.authMigrateProfile;
+      final isOnAuthRoute =
+          isOnAuthPrompt || isOnAuthEmail || isOnAuthMigration;
 
-      if (hasProfileAsync.isLoading) {
+      if (hasProfileAsync.isLoading || authAsync.isLoading) {
         return isOnSplash ? null : RoutePaths.splash;
       }
 
+      final authUser = authAsync.value;
       if (isOnSplash) {
+        if (authUser == null && !hasCompletedAuthPrompt) {
+          return RoutePaths.authPrompt;
+        }
         final hasProfile = hasProfileAsync.value ?? false;
         return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
       }
 
       final hasProfile = hasProfileAsync.value ?? false;
 
-      if (!hasProfile && !isOnSetup) return RoutePaths.profileSetup;
+      if (authUser == null && !hasCompletedAuthPrompt && !isOnAuthRoute) {
+        return RoutePaths.authPrompt;
+      }
+
+      if (authUser != null && (isOnAuthPrompt || isOnAuthEmail)) {
+        return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
+      }
+
+      if (!hasProfile && !isOnSetup && !isOnAuthRoute) {
+        return RoutePaths.profileSetup;
+      }
       if (hasProfile && isOnSetup) return RoutePaths.hub;
 
       if (!hasRestoredModule && hasProfile && location == RoutePaths.hub) {
@@ -67,9 +97,35 @@ GoRouter appRouter(Ref ref) {
       // Splash — shown while async state resolves
       GoRoute(
         path: RoutePaths.splash,
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const SplashScreen()),
+      ),
+
+      // Account rollout prompt
+      GoRoute(
+        path: RoutePaths.authPrompt,
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const AccountPromptScreen()),
+      ),
+      GoRoute(
+        path: RoutePaths.authSignIn,
         pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
           state,
-          const SplashScreen(),
+          const AuthEmailScreen.signIn(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.authSignUp,
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const AuthEmailScreen.signUp(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.authMigrateProfile,
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const CloudProfileMigrationScreen(),
         ),
       ),
 
@@ -117,10 +173,8 @@ GoRouter appRouter(Ref ref) {
       // Workout routes (pushed on top of training shell)
       GoRoute(
         path: RoutePaths.trainingWorkoutNew,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const WorkoutFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const WorkoutFormScreen()),
       ),
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId',
@@ -190,10 +244,8 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: RoutePaths.trainingPRHistory,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const PRHistoryScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const PRHistoryScreen()),
       ),
       GoRoute(
         path: RoutePaths.trainingVolumeTrend,

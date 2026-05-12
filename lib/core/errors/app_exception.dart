@@ -33,3 +33,13 @@ final class ValidationException extends AppException {
 final class ConflictException extends AppException {
   const ConflictException(super.message);
 }
+
+/// Authentication or authorization failed.
+final class AuthAppException extends AppException {
+  const AuthAppException(super.message);
+}
+
+/// A remote network/API operation failed.
+final class NetworkException extends AppException {
+  const NetworkException(super.message);
+}

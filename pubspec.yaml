@@ -65,3 +65,5 @@ flutter:
   assets:
     - assets/athlos-icon-gradient.svg
     - assets/athlos-icon-flat.svg
+    - assets/athlos-symbol.svg
+    - assets/google-g-logo.svg

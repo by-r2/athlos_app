@@ -6,24 +6,9 @@ void main() {
   group('workSetsQualifyForSuggestedWeightIncrease', () {
     test('returns false while some work sets are still incomplete', () {
       final sets = [
-        const SetEntry(
-          setNumber: 1,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
-        const SetEntry(
-          setNumber: 2,
-          isCompleted: false,
-          reps: 10,
-          weight: 50,
-        ),
-        const SetEntry(
-          setNumber: 3,
-          isCompleted: false,
-          reps: 10,
-          weight: 50,
-        ),
+        const SetEntry(setNumber: 1, isCompleted: true, reps: 10, weight: 50),
+        const SetEntry(setNumber: 2, isCompleted: false, reps: 10, weight: 50),
+        const SetEntry(setNumber: 3, isCompleted: false, reps: 10, weight: 50),
       ];
       expect(
         workSetsQualifyForSuggestedWeightIncrease(
@@ -34,30 +19,22 @@ void main() {
       );
     });
 
-    test('returns true when every planned work set completed at or above maxReps',
-        () {
-      final sets = [
-        const SetEntry(
-          setNumber: 1,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
-        const SetEntry(
-          setNumber: 2,
-          isCompleted: true,
-          reps: 12,
-          weight: 50,
-        ),
-      ];
-      expect(
-        workSetsQualifyForSuggestedWeightIncrease(
-          latestSetsForExercise: sets,
-          maxReps: 10,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'returns true when every planned work set completed at or above maxReps',
+      () {
+        final sets = [
+          const SetEntry(setNumber: 1, isCompleted: true, reps: 10, weight: 50),
+          const SetEntry(setNumber: 2, isCompleted: true, reps: 12, weight: 50),
+        ];
+        expect(
+          workSetsQualifyForSuggestedWeightIncrease(
+            latestSetsForExercise: sets,
+            maxReps: 10,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('ignores warm-up rows for completion gate', () {
       final sets = [
@@ -68,12 +45,7 @@ void main() {
           reps: 12,
           weight: 40,
         ),
-        const SetEntry(
-          setNumber: 2,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
+        const SetEntry(setNumber: 2, isCompleted: true, reps: 10, weight: 50),
       ];
       expect(
         workSetsQualifyForSuggestedWeightIncrease(
@@ -93,12 +65,7 @@ void main() {
           reps: 6,
           weight: 20,
         ),
-        const SetEntry(
-          setNumber: 2,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
+        const SetEntry(setNumber: 2, isCompleted: true, reps: 10, weight: 50),
       ];
       expect(
         workSetsQualifyForSuggestedWeightIncrease(
@@ -113,30 +80,18 @@ void main() {
   group('repsForAggregateLoadFeedback', () {
     test('averages both sides when unilateral limbs recorded', () {
       expect(
-        repsForAggregateLoadFeedback(
-          reps: 12,
-          leftReps: 8,
-          rightReps: 12,
-        ),
+        repsForAggregateLoadFeedback(reps: 12, leftReps: 8, rightReps: 12),
         10,
       );
     });
 
     test('falls back to single side or primary reps', () {
       expect(
-        repsForAggregateLoadFeedback(
-          reps: 11,
-          leftReps: 9,
-          rightReps: null,
-        ),
+        repsForAggregateLoadFeedback(reps: 11, leftReps: 9, rightReps: null),
         9,
       );
       expect(
-        repsForAggregateLoadFeedback(
-          reps: 11,
-          leftReps: null,
-          rightReps: null,
-        ),
+        repsForAggregateLoadFeedback(reps: 11, leftReps: null, rightReps: null),
         11,
       );
     });
@@ -145,12 +100,7 @@ void main() {
   group('nextRoundedSuggestedWorkingWeightKg', () {
     test('returns 2.5% bump quantized to quarter kg', () {
       final sets = [
-        const SetEntry(
-          setNumber: 1,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
+        const SetEntry(setNumber: 1, isCompleted: true, reps: 10, weight: 50),
       ];
       expect(
         nextRoundedSuggestedWorkingWeightKg(latestSetsForExercise: sets),
@@ -160,12 +110,7 @@ void main() {
 
     test('uses custom fraction when provided', () {
       final sets = [
-        const SetEntry(
-          setNumber: 1,
-          isCompleted: true,
-          reps: 10,
-          weight: 50,
-        ),
+        const SetEntry(setNumber: 1, isCompleted: true, reps: 10, weight: 50),
       ];
       expect(
         nextRoundedSuggestedWorkingWeightKg(
@@ -178,12 +123,7 @@ void main() {
 
     test('forces at least +0.25 kg when rounded bump stalls', () {
       final sets = [
-        const SetEntry(
-          setNumber: 1,
-          isCompleted: true,
-          reps: 10,
-          weight: 1.0,
-        ),
+        const SetEntry(setNumber: 1, isCompleted: true, reps: 10, weight: 1.0),
       ];
       expect(
         nextRoundedSuggestedWorkingWeightKg(latestSetsForExercise: sets),

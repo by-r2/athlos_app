@@ -2,7 +2,4 @@
 ///
 /// Affects exercise selection, split emphasis (e.g. leg priority for women),
 /// and body aesthetic goals.
-enum Gender {
-  male,
-  female,
-}
+enum Gender { male, female }

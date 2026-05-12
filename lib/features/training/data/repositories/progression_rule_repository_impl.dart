@@ -17,13 +17,13 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
 
   @override
   Future<Result<List<domain.ProgressionRule>>> getByProgram(
-      int programId) async {
+    int programId,
+  ) async {
     try {
       final rows = await _dao.getByProgram(programId);
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load progression rules: $e'));
+      return Failure(DatabaseException('Failed to load progression rules: $e'));
     }
   }
 
@@ -33,12 +33,10 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
     int exerciseId,
   ) async {
     try {
-      final row =
-          await _dao.getByProgramAndExercise(programId, exerciseId);
+      final row = await _dao.getByProgramAndExercise(programId, exerciseId);
       return Success(row != null ? _toDomain(row) : null);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load progression rule: $e'));
+      return Failure(DatabaseException('Failed to load progression rule: $e'));
     }
   }
 
@@ -49,7 +47,8 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
       return Success(id);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to create progression rule: $e'));
+        DatabaseException('Failed to create progression rule: $e'),
+      );
     }
   }
 
@@ -60,7 +59,8 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to update progression rule: $e'));
+        DatabaseException('Failed to update progression rule: $e'),
+      );
     }
   }
 
@@ -71,7 +71,8 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to delete progression rule: $e'));
+        DatabaseException('Failed to delete progression rule: $e'),
+      );
     }
   }
 
@@ -82,21 +83,24 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   ) async {
     try {
       final companions = rules
-          .map((r) => ProgressionRulesCompanion.insert(
-                programId: programId,
-                exerciseId: r.exerciseId,
-                type: r.type.name,
-                value: r.value,
-                frequency: r.frequency.name,
-                condition: Value(r.condition?.name),
-                conditionValue: Value(r.conditionValue),
-              ))
+          .map(
+            (r) => ProgressionRulesCompanion.insert(
+              programId: programId,
+              exerciseId: r.exerciseId,
+              type: r.type.name,
+              value: r.value,
+              frequency: r.frequency.name,
+              condition: Value(r.condition?.name),
+              conditionValue: Value(r.conditionValue),
+            ),
+          )
           .toList();
       await _dao.replaceAllForProgram(programId, companions);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to replace progression rules: $e'));
+        DatabaseException('Failed to replace progression rules: $e'),
+      );
     }
   }
 
@@ -125,8 +129,7 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
         conditionValue: Value(rule.conditionValue),
       );
 
-  ProgressionRulesCompanion _toUpdateCompanion(
-          domain.ProgressionRule rule) =>
+  ProgressionRulesCompanion _toUpdateCompanion(domain.ProgressionRule rule) =>
       ProgressionRulesCompanion(
         type: Value(rule.type.name),
         value: Value(rule.value),

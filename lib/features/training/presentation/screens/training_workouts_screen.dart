@@ -48,8 +48,8 @@ class TrainingWorkoutsScreen extends ConsumerWidget {
     return Scaffold(
       body: program == null
           ? programAsync.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : const _NoProgramActiveView()
+                ? const Center(child: CircularProgressIndicator())
+                : const _NoProgramActiveView()
           : _ActiveProgramCycleView(programId: program.id),
       floatingActionButton: _StartNextWorkoutFab(nextWorkout: nextWorkout),
     );
@@ -79,7 +79,8 @@ class _StartNextWorkoutFab extends ConsumerWidget {
 
     if (nextWorkout == null) {
       final steps =
-          ref.watch(effectiveCycleStepsProvider).value ?? const <TrainingCycleStep>[];
+          ref.watch(effectiveCycleStepsProvider).value ??
+          const <TrainingCycleStep>[];
       if (steps.isNotEmpty) {
         return const SizedBox.shrink();
       }
@@ -188,10 +189,7 @@ class _ActiveProgramCycleViewState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  workoutName,
-                  style: textTheme.titleMedium,
-                ),
+                Text(workoutName, style: textTheme.titleMedium),
                 if (descPreview != null) ...[
                   const Gap(AthlosSpacing.sm),
                   AthlosTruncatedText(
@@ -274,9 +272,7 @@ class _ActiveProgramCycleViewState
                       return ListTile(
                         minTileHeight: AthlosComponentSizes.listItemMinHeight,
                         leading: Icon(
-                          isInCycle
-                              ? Icons.check_circle
-                              : Icons.fitness_center,
+                          isInCycle ? Icons.check_circle : Icons.fitness_center,
                           color: isInCycle
                               ? colorScheme.primary
                               : colorScheme.onSurfaceVariant,
@@ -284,11 +280,8 @@ class _ActiveProgramCycleViewState
                         title: Text(w.name),
                         subtitle:
                             w.description != null && w.description!.isNotEmpty
-                                ? AthlosTruncatedText(
-                                    w.description!,
-                                    maxLines: 1,
-                                  )
-                                : null,
+                            ? AthlosTruncatedText(w.description!, maxLines: 1)
+                            : null,
                         onTap: () {
                           _addWorkout(w.id);
                           Navigator.of(ctx).pop();
@@ -298,8 +291,10 @@ class _ActiveProgramCycleViewState
                     const Divider(),
                     ListTile(
                       minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                      leading: Icon(Icons.edit_note,
-                          color: colorScheme.primary),
+                      leading: Icon(
+                        Icons.edit_note,
+                        color: colorScheme.primary,
+                      ),
                       title: Text(
                         l10n.trainingWorkoutActionCreateManual,
                         style: TextStyle(color: colorScheme.primary),
@@ -311,8 +306,10 @@ class _ActiveProgramCycleViewState
                     ),
                     ListTile(
                       minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                      leading: Icon(Icons.auto_awesome,
-                          color: colorScheme.primary),
+                      leading: Icon(
+                        Icons.auto_awesome,
+                        color: colorScheme.primary,
+                      ),
                       title: Text(
                         l10n.chironCreateWorkoutShortcut,
                         style: TextStyle(color: colorScheme.primary),
@@ -340,8 +337,9 @@ class _ActiveProgramCycleViewState
     final programAsync = ref.watch(activeProgramProvider);
     final program = programAsync.value;
 
-    final stepsAsync =
-        ref.watch(cycleStepsForProgramProvider(widget.programId));
+    final stepsAsync = ref.watch(
+      cycleStepsForProgramProvider(widget.programId),
+    );
     final workoutsAsync = ref.watch(workoutListProvider);
     final workouts = workoutsAsync.value ?? [];
 
@@ -422,7 +420,9 @@ class _ActiveProgramCycleViewState
                 background: Container(
                   margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: AthlosRadius.mdAll,
                   ),
                 ),
@@ -446,8 +446,8 @@ class _ActiveProgramCycleViewState
                   isNext: isNext,
                   onTap: workout != null
                       ? () => context.push(
-                            '${RoutePaths.trainingWorkouts}/${workout.id}',
-                          )
+                          '${RoutePaths.trainingWorkouts}/${workout.id}',
+                        )
                       : null,
                   onStart: () => context.push(
                     '${RoutePaths.trainingWorkouts}/$workoutId/execute',
@@ -615,8 +615,9 @@ class _CycleWorkoutCard extends StatelessWidget {
           ? RoundedRectangleBorder(
               borderRadius: AthlosRadius.mdAll,
               side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.6),
-                  width: 1.5),
+                color: colorScheme.primary.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
             )
           : null,
       child: InkWell(
@@ -677,8 +678,9 @@ class _CycleWorkoutCard extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.play_circle_outline,
-                    color:
-                        isNext ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    color: isNext
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                   ),
                   tooltip: l10n.startWorkout,
                   onPressed: onStart,
@@ -703,10 +705,8 @@ class _NoProgramActiveView extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final programsAsync = ref.watch(programListProvider);
-    final archivedPrograms = programsAsync.value
-            ?.where((p) => !p.isActive)
-            .toList() ??
-        [];
+    final archivedPrograms =
+        programsAsync.value?.where((p) => !p.isActive).toList() ?? [];
 
     return Padding(
       padding: const EdgeInsets.all(AthlosSpacing.xl),

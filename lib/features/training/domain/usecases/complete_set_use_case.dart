@@ -48,13 +48,15 @@ class CompleteSetUseCase {
       final mapped = params.segments
           .asMap()
           .entries
-          .map((e) => ExecutionSetSegment(
-                id: 0,
-                executionSetId: setId,
-                segmentOrder: e.key + 1,
-                reps: e.value.reps,
-                weight: e.value.weight,
-              ))
+          .map(
+            (e) => ExecutionSetSegment(
+              id: 0,
+              executionSetId: setId,
+              segmentOrder: e.key + 1,
+              reps: e.value.reps,
+              weight: e.value.weight,
+            ),
+          )
           .toList();
 
       final result = await _repository.saveSegments(setId, mapped);

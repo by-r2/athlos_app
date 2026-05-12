@@ -2137,10 +2137,7 @@ Future<void> seedExercisesV34(AppDatabase db) async {
   for (final entry in _kBodyweightLoadFactors.entries) {
     await db.customUpdate(
       'UPDATE exercises SET bodyweight_load_factor = ? WHERE name = ?',
-      variables: [
-        Variable<double>(entry.value),
-        Variable<String>(entry.key),
-      ],
+      variables: [Variable<double>(entry.value), Variable<String>(entry.key)],
     );
   }
 }

@@ -27,9 +27,7 @@ class ProgramListScreen extends ConsumerWidget {
     final programsAsync = ref.watch(programListProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.programListTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.programListTitle)),
       body: programsAsync.when(
         data: (programs) {
           if (programs.isEmpty) {
@@ -68,10 +66,7 @@ class ProgramListScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(AthlosSpacing.md),
             children: [
-              ...active.map((p) => _ProgramCard(
-                    program: p,
-                    isActive: true,
-                  )),
+              ...active.map((p) => _ProgramCard(program: p, isActive: true)),
               if (archived.isNotEmpty) ...[
                 const SizedBox(height: AthlosSpacing.md),
                 Text(
@@ -81,10 +76,9 @@ class ProgramListScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AthlosSpacing.sm),
-                ...archived.map((p) => _ProgramCard(
-                      program: p,
-                      isActive: false,
-                    )),
+                ...archived.map(
+                  (p) => _ProgramCard(program: p, isActive: false),
+                ),
               ],
               const SizedBox(height: AthlosSpacing.fabClearance),
             ],
@@ -131,9 +125,8 @@ class _ProgramCard extends ConsumerWidget {
             )
           : null,
       child: InkWell(
-        onTap: () => context.push(
-          '${RoutePaths.trainingPrograms}/${program.id}/edit',
-        ),
+        onTap: () =>
+            context.push('${RoutePaths.trainingPrograms}/${program.id}/edit'),
         borderRadius: AthlosRadius.mdAll,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -160,8 +153,9 @@ class _ProgramCard extends ConsumerWidget {
                             horizontal: AthlosSpacing.sm,
                             vertical: AthlosSpacing.xxs,
                           ),
-                          margin:
-                              const EdgeInsets.only(right: AthlosSpacing.xs),
+                          margin: const EdgeInsets.only(
+                            right: AthlosSpacing.xs,
+                          ),
                           decoration: BoxDecoration(
                             color: colorScheme.tertiaryContainer,
                             borderRadius: AthlosRadius.mdAll,
@@ -223,9 +217,7 @@ class _ProgramCard extends ConsumerWidget {
                             ref.invalidate(cycleStepsProvider);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(l10n.programActivated),
-                                ),
+                                SnackBar(content: Text(l10n.programActivated)),
                               );
                             }
                           } on Exception catch (_) {
@@ -262,9 +254,7 @@ class _ProgramCard extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.programDeleteMessage),
-          ],
+          children: [Text(l10n.programDeleteMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(

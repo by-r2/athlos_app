@@ -58,15 +58,18 @@ class RestTimerNotificationService {
     try {
       await _plugin.initialize(settings: initializationSettings);
 
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      final iOSPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>();
-      final macOSPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
-              MacOSFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      final iOSPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      final macOSPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >();
 
       await androidPlugin?.requestNotificationsPermission();
       await iOSPlugin?.requestPermissions(
@@ -202,8 +205,9 @@ class RestTimerNotificationService {
   }) async {
     if (!await init() || afterSeconds <= 0) return;
     await _ensureTimeZoneInitialized();
-    final scheduledDate =
-        tz.TZDateTime.now(tz.local).add(Duration(seconds: afterSeconds));
+    final scheduledDate = tz.TZDateTime.now(
+      tz.local,
+    ).add(Duration(seconds: afterSeconds));
     await _plugin.zonedSchedule(
       id: _restTimerFinishedNotificationId,
       title: title,

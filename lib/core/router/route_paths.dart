@@ -9,6 +9,12 @@ abstract final class RoutePaths {
   // Hub
   static const hub = '/';
 
+  // Auth / account rollout
+  static const authPrompt = '/auth';
+  static const authSignIn = '/auth/sign-in';
+  static const authSignUp = '/auth/sign-up';
+  static const authMigrateProfile = '/auth/migrate-profile';
+
   // Profile
   static const profile = '/profile';
   static const profileSetup = '/profile/setup';

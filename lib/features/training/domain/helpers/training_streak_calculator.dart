@@ -57,7 +57,8 @@ int _previousWorkoutInCycle(int workoutId, List<int> cycleWorkoutIds) {
   if (idx < 0) {
     return -1;
   }
-  return cycleWorkoutIds[(idx - 1 + cycleWorkoutIds.length) % cycleWorkoutIds.length];
+  return cycleWorkoutIds[(idx - 1 + cycleWorkoutIds.length) %
+      cycleWorkoutIds.length];
 }
 
 /// [chronological]: finished executions, oldest → newest (by [WorkoutExecution.startedAt]).
@@ -69,8 +70,7 @@ int _previousWorkoutInCycle(int workoutId, List<int> cycleWorkoutIds) {
     return (current: 0, best: 0);
   }
 
-  final finished =
-      chronological.where((e) => e.finishedAt != null).toList();
+  final finished = chronological.where((e) => e.finishedAt != null).toList();
   if (finished.isEmpty) {
     return (current: 0, best: 0);
   }
@@ -81,13 +81,17 @@ int _previousWorkoutInCycle(int workoutId, List<int> cycleWorkoutIds) {
 
   var best = 0;
   var running = 0;
-  for (var weekStart = firstMonday;
-      !weekStart.isAfter(thisMonday);
-      weekStart = weekStart.add(const Duration(days: 7))) {
+  for (
+    var weekStart = firstMonday;
+    !weekStart.isAfter(thisMonday);
+    weekStart = weekStart.add(const Duration(days: 7))
+  ) {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final count = finished
-        .where((e) =>
-            !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd))
+        .where(
+          (e) =>
+              !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd),
+        )
         .length;
     if (count >= weeklyTarget) {
       running++;
@@ -114,8 +118,11 @@ int _currentAnchoredWeeklyStreak(
   final thisMonday = _mondayOf(now);
   final thisWeekEnd = thisMonday.add(const Duration(days: 7));
   final thisWeekCount = finished
-      .where((e) =>
-          !e.startedAt.isBefore(thisMonday) && e.startedAt.isBefore(thisWeekEnd))
+      .where(
+        (e) =>
+            !e.startedAt.isBefore(thisMonday) &&
+            e.startedAt.isBefore(thisWeekEnd),
+      )
       .length;
   final isCurrentWeekSecured = thisWeekCount >= target;
 
@@ -127,8 +134,10 @@ int _currentAnchoredWeeklyStreak(
   while (true) {
     final weekEnd = weekStart.add(const Duration(days: 7));
     final count = finished
-        .where((e) =>
-            !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd))
+        .where(
+          (e) =>
+              !e.startedAt.isBefore(weekStart) && e.startedAt.isBefore(weekEnd),
+        )
         .length;
     if (count >= target) {
       streak++;

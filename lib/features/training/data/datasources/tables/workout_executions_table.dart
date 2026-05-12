@@ -7,8 +7,7 @@ class WorkoutExecutions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get workoutId => integer().references(Workouts, #id)();
   IntColumn get programId => integer().references(Programs, #id)();
-  DateTimeColumn get startedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get finishedAt => dateTime().nullable()();
 
   /// JSON snapshot of the workout exercise configuration at execution start.

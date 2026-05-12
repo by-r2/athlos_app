@@ -19,6 +19,8 @@ import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/providers/auth_prompt_notifier.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -60,6 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   _EditingTab _editingTab = _EditingTab.none;
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isCloudSyncing = false;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -123,24 +126,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _snapshotOverviewEdit() => [
-        _nameController.text,
-        _heightController.text,
-        _ageController.text,
-        _injuriesController.text,
-        _bioController.text,
-        _selectedGender?.name ?? 'null',
-      ].join('\u001e');
+    _nameController.text,
+    _heightController.text,
+    _ageController.text,
+    _injuriesController.text,
+    _bioController.text,
+    _selectedGender?.name ?? 'null',
+  ].join('\u001e');
 
   String _snapshotTrainingEdit() => [
-        _selectedGoal?.name ?? 'null',
-        _selectedAesthetic?.name ?? 'null',
-        _selectedStyle?.name ?? 'null',
-        _selectedExperience?.name ?? 'null',
-        '${_trainingFrequency ?? -1}',
-        '${_availableWorkoutMinutes ?? -1}',
-        _workoutMinutesController.text,
-        '${_trainsAtGym ?? -1}',
-      ].join('\u001e');
+    _selectedGoal?.name ?? 'null',
+    _selectedAesthetic?.name ?? 'null',
+    _selectedStyle?.name ?? 'null',
+    _selectedExperience?.name ?? 'null',
+    '${_trainingFrequency ?? -1}',
+    '${_availableWorkoutMinutes ?? -1}',
+    _workoutMinutesController.text,
+    '${_trainsAtGym ?? -1}',
+  ].join('\u001e');
 
   bool get _isProfileEditDirty {
     if (_editingTab == _EditingTab.overview && _overviewEditBaseline != null) {
@@ -177,8 +180,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isEditing = _editingTab != _EditingTab.none;
 
     return ConfirmNavigationScope(
-      guardActive:
-          _editingTab != _EditingTab.none && _isProfileEditDirty,
+      guardActive: _editingTab != _EditingTab.none && _isProfileEditDirty,
       onConfirmLeave: confirmDiscardUnsavedEdits,
       onLeaveConfirmed: (_) {
         if (!mounted) return;
@@ -189,45 +191,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         });
       },
       child: DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.profile),
-          actions: [const AppBarMenu()],
-          bottom: isEditing
-              ? null
-              : TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(text: l10n.profileOverviewTab),
-                    Tab(text: l10n.profileTrainingPreferencesTab),
-                    Tab(text: l10n.profileEquipmentTab),
-                    Tab(text: l10n.profileDataTab),
+        length: 4,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.profile),
+            actions: [const AppBarMenu()],
+            bottom: isEditing
+                ? null
+                : TabBar(
+                    isScrollable: true,
+                    tabs: [
+                      Tab(text: l10n.profileOverviewTab),
+                      Tab(text: l10n.profileTrainingPreferencesTab),
+                      Tab(text: l10n.profileEquipmentTab),
+                      Tab(text: l10n.profileDataTab),
+                    ],
+                  ),
+          ),
+          body: profileAsync.hasError
+              ? Center(child: Text(l10n.genericError))
+              : isEditing
+              ? _editingTab == _EditingTab.overview
+                    ? _buildOverviewEditView(resolved, l10n)
+                    : _buildTrainingEditView(resolved, l10n)
+              : TabBarView(
+                  children: [
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildOverviewCategory(resolved, l10n),
+                    ),
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildTrainingPreferencesCategory(resolved, l10n),
+                    ),
+                    const OwnedEquipmentList(),
+                    _buildDataCategory(l10n),
                   ],
                 ),
         ),
-        body: profileAsync.hasError
-            ? Center(child: Text(l10n.genericError))
-            : isEditing
-            ? _editingTab == _EditingTab.overview
-                  ? _buildOverviewEditView(resolved, l10n)
-                  : _buildTrainingEditView(resolved, l10n)
-            : TabBarView(
-                children: [
-                  Skeletonizer(
-                    enabled: profileAsync.isLoading,
-                    child: _buildOverviewCategory(resolved, l10n),
-                  ),
-                  Skeletonizer(
-                    enabled: profileAsync.isLoading,
-                    child: _buildTrainingPreferencesCategory(resolved, l10n),
-                  ),
-                  const OwnedEquipmentList(),
-                  _buildDataCategory(l10n),
-                ],
-              ),
       ),
-    ),
     );
   }
 
@@ -430,11 +432,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildDataCategory(AppLocalizations l10n) {
     final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
+    final authAsync = ref.watch(authProvider);
+    final authUser = authAsync.value;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AthlosSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _SectionHeader(title: l10n.authAccountSectionTitle),
+          const Gap(AthlosSpacing.xs),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AthlosSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    authUser?.email != null
+                        ? l10n.authSignedInAs(authUser!.email!)
+                        : l10n.authNotSignedIn,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const Gap(AthlosSpacing.md),
+                  if (authUser == null)
+                    FilledButton.icon(
+                      onPressed: () => context.push(RoutePaths.authPrompt),
+                      icon: const Icon(Icons.person_add_alt_outlined),
+                      label: Text(l10n.authCreateAccountAction),
+                    )
+                  else ...[
+                    FilledButton.icon(
+                      onPressed: _isCloudSyncing
+                          ? null
+                          : () => _syncProfileToCloud(l10n),
+                      icon: _isCloudSyncing
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            )
+                          : const Icon(Icons.cloud_upload_outlined),
+                      label: Text(l10n.authSyncProfileAction),
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    OutlinedButton.icon(
+                      onPressed: _isCloudSyncing ? null : _signOut,
+                      icon: const Icon(Icons.logout),
+                      label: Text(l10n.authLogoutAction),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const Gap(AthlosSpacing.lg),
           _SectionHeader(title: l10n.profileDataSectionTitle),
           const Gap(AthlosSpacing.xs),
           Card(
@@ -510,6 +564,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _syncProfileToCloud(AppLocalizations l10n) async {
+    setState(() => _isCloudSyncing = true);
+    try {
+      await ref.read(profileProvider.notifier).syncLocalProfileToCloud();
+      final user = ref.read(authProvider).value;
+      if (user != null) {
+        await ref
+            .read(cloudProfileMigrationPromptProvider(user.id).notifier)
+            .reset();
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authMigrationSuccess)));
+    } on Exception {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
+    } finally {
+      if (mounted) setState(() => _isCloudSyncing = false);
+    }
+  }
+
+  Future<void> _signOut() async {
+    await ref.read(authProvider.notifier).signOut();
+    if (mounted) context.go(RoutePaths.authPrompt);
   }
 
   Future<void> _importData(AppLocalizations l10n) async {

@@ -42,8 +42,8 @@ abstract final class AthlosDialogButtonStyles {
 
   static const WidgetStatePropertyAll<Size> _stackedMinSize =
       WidgetStatePropertyAll<Size>(
-    Size(double.infinity, AthlosButtonSizes.dialogMinHeight),
-  );
+        Size(double.infinity, AthlosButtonSizes.dialogMinHeight),
+      );
 
   static const WidgetStatePropertyAll<EdgeInsetsGeometry> _padding =
       WidgetStatePropertyAll<EdgeInsetsGeometry>(AthlosButtonInsets.screen);
@@ -67,9 +67,9 @@ abstract final class AthlosDialogButtonStyles {
   static ButtonStyle stackedFilled(BuildContext context) =>
       (Theme.of(context).filledButtonTheme.style ?? const ButtonStyle())
           .copyWith(
-        alignment: Alignment.center,
-        minimumSize: _stackedMinSize,
-        padding: _padding,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      );
+            alignment: Alignment.center,
+            minimumSize: _stackedMinSize,
+            padding: _padding,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          );
 }

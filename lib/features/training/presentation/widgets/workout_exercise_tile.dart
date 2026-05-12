@@ -100,18 +100,19 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
     final textTheme = Theme.of(context).textTheme;
     final entry = widget.entry;
     final isInGroup = widget.isLinkedToNext || widget.isLinkedToPrevious;
-    final groupColor =
-        isInGroup && widget.groupColorIndex != null
-            ? supersetColorFor(widget.groupColorIndex!, colorScheme)
-            : null;
+    final groupColor = isInGroup && widget.groupColorIndex != null
+        ? supersetColorFor(widget.groupColorIndex!, colorScheme)
+        : null;
 
     final displayName = localizedExerciseName(
       entry.exercise.name,
       isVerified: entry.exercise.isVerified,
       l10n: l10n,
     );
-    final groupName =
-        localizedMuscleGroupName(entry.exercise.muscleGroup, l10n);
+    final groupName = localizedMuscleGroupName(
+      entry.exercise.muscleGroup,
+      l10n,
+    );
     final effectiveLoadMode =
         entry.loadModeOverride ?? entry.exercise.defaultLoadMode;
     var summary = entry.usesDuration
@@ -136,9 +137,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
         decoration: groupColor != null
             ? BoxDecoration(
                 borderRadius: AthlosRadius.mdAll,
-                border: Border(
-                  left: BorderSide(color: groupColor, width: 4),
-                ),
+                border: Border(left: BorderSide(color: groupColor, width: 4)),
               )
             : null,
         child: Padding(
@@ -149,7 +148,9 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                 onTap: widget.onToggleExpand,
                 borderRadius: AthlosRadius.mdAll,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xxs),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AthlosSpacing.xxs,
+                  ),
                   child: Row(
                     children: [
                       ReorderableDragStartListener(
@@ -166,35 +167,47 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                           children: [
                             Row(
                               children: [
-                                if (isInGroup && !widget.isLinkedToPrevious &&
+                                if (isInGroup &&
+                                    !widget.isLinkedToPrevious &&
                                     groupColor != null)
                                   Padding(
                                     padding: const EdgeInsets.only(
-                                        right: AthlosSpacing.xs),
+                                      right: AthlosSpacing.xs,
+                                    ),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: AthlosSpacing.sm,
                                         vertical: AthlosSpacing.xxs,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: groupColor.withValues(alpha: 0.15),
+                                        color: groupColor.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: AthlosRadius.xsAll,
                                         border: Border.all(
-                                          color: groupColor.withValues(alpha: 0.4),
+                                          color: groupColor.withValues(
+                                            alpha: 0.4,
+                                          ),
                                         ),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.link,
-                                              size: 10, color: groupColor),
-                                          const SizedBox(width: AthlosSpacing.xs),
+                                          Icon(
+                                            Icons.link,
+                                            size: 10,
+                                            color: groupColor,
+                                          ),
+                                          const SizedBox(
+                                            width: AthlosSpacing.xs,
+                                          ),
                                           Text(
                                             l10n.supersetLabel,
-                                            style: textTheme.labelSmall?.copyWith(
-                                              color: groupColor,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                            style: textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: groupColor,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
                                           ),
                                         ],
                                       ),
@@ -258,7 +271,10 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                         tooltip: null,
                       ),
                       IconButton(
-                        icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+                        icon: Icon(
+                          Icons.close,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                         onPressed: widget.onRemove,
                         tooltip: l10n.removeExercise,
                       ),
@@ -332,8 +348,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                             value: entry.minReps ?? 12,
                             onChanged: (v) {
                               entry.minReps = v;
-                              if (entry.maxReps != null &&
-                                  entry.maxReps! < v) {
+                              if (entry.maxReps != null && entry.maxReps! < v) {
                                 entry.maxReps = v;
                               }
                               widget.onChanged(entry);
@@ -344,12 +359,10 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                         Expanded(
                           child: _NumberField(
                             label: l10n.maxRepsLabel,
-                            value:
-                                entry.maxReps ?? entry.minReps ?? 12,
+                            value: entry.maxReps ?? entry.minReps ?? 12,
                             onChanged: (v) {
                               entry.maxReps = v;
-                              if (entry.minReps != null &&
-                                  entry.minReps! > v) {
+                              if (entry.minReps != null && entry.minReps! > v) {
                                 entry.minReps = v;
                               }
                               widget.onChanged(entry);
@@ -399,8 +412,9 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                               color: colorScheme.surfaceContainerHighest,
                               borderRadius: AthlosRadius.fullAll,
                               border: Border.all(
-                                color: colorScheme.outline
-                                    .withValues(alpha: 0.3),
+                                color: colorScheme.outline.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -455,8 +469,12 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                               borderRadius: AthlosRadius.fullAll,
                               border: Border.all(
                                 color: entry.isAmrap
-                                    ? colorScheme.tertiary.withValues(alpha: 0.5)
-                                    : colorScheme.outline.withValues(alpha: 0.3),
+                                    ? colorScheme.tertiary.withValues(
+                                        alpha: 0.5,
+                                      )
+                                    : colorScheme.outline.withValues(
+                                        alpha: 0.3,
+                                      ),
                               ),
                             ),
                             child: Row(
@@ -607,10 +625,10 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
   }
 
   IconData _loadModeIcon(LoadMode mode) => switch (mode) {
-        LoadMode.bodyweight => Icons.person_outline,
-        LoadMode.weighted => Icons.fitness_center_outlined,
-        LoadMode.assisted => Icons.trending_down,
-      };
+    LoadMode.bodyweight => Icons.person_outline,
+    LoadMode.weighted => Icons.fitness_center_outlined,
+    LoadMode.assisted => Icons.trending_down,
+  };
 
   Future<void> _pickLoadMode(
     BuildContext context,
@@ -619,8 +637,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
   ) async {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final effective =
-        entry.loadModeOverride ?? entry.exercise.defaultLoadMode;
+    final effective = entry.loadModeOverride ?? entry.exercise.defaultLoadMode;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -652,9 +669,7 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                       _loadModeIcon(mode),
                       color: colorScheme.primary,
                     ),
-                    title: Text(
-                      localizedLoadModeOptionTitle(mode, l10n),
-                    ),
+                    title: Text(localizedLoadModeOptionTitle(mode, l10n)),
                     trailing: mode == effective
                         ? Icon(Icons.check, color: colorScheme.primary)
                         : null,

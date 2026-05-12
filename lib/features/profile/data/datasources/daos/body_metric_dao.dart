@@ -10,10 +10,9 @@ class BodyMetricDao extends DatabaseAccessor<AppDatabase>
     with _$BodyMetricDaoMixin {
   BodyMetricDao(super.db);
 
-  Future<List<BodyMetric>> getAll() =>
-      (select(bodyMetrics)
-            ..orderBy([(m) => OrderingTerm.desc(m.recordedAt)]))
-          .get();
+  Future<List<BodyMetric>> getAll() => (select(
+    bodyMetrics,
+  )..orderBy([(m) => OrderingTerm.desc(m.recordedAt)])).get();
 
   Future<BodyMetric?> getLatest() =>
       (select(bodyMetrics)

@@ -17,8 +17,7 @@ Future<void> shareRepaintBoundaryAsPng({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.maybeOf(context);
-  final pixelRatio =
-      MediaQuery.devicePixelRatioOf(context).clamp(2.0, 4.0);
+  final pixelRatio = MediaQuery.devicePixelRatioOf(context).clamp(2.0, 4.0);
 
   await WidgetsBinding.instance.endOfFrame;
   final object = boundaryKey.currentContext?.findRenderObject();
@@ -31,9 +30,7 @@ Future<void> shareRepaintBoundaryAsPng({
   }
 
   try {
-    final image = await boundary.toImage(
-      pixelRatio: pixelRatio,
-    );
+    final image = await boundary.toImage(pixelRatio: pixelRatio);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     if (byteData == null) {
@@ -44,10 +41,7 @@ Future<void> shareRepaintBoundaryAsPng({
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(bytes);
     await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path)],
-        text: shareText,
-      ),
+      ShareParams(files: [XFile(file.path)], text: shareText),
     );
   } on Exception catch (_) {
     messenger?.showSnackBar(

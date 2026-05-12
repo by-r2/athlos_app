@@ -72,85 +72,68 @@ enum TargetMuscle {
 
 extension TargetMuscleX on TargetMuscle {
   MuscleGroup get muscleGroup => switch (this) {
-        TargetMuscle.pectoralisMajor ||
-        TargetMuscle.pectoralisMinor =>
-          MuscleGroup.chest,
-        TargetMuscle.latissimusDorsi ||
-        TargetMuscle.rhomboids ||
-        TargetMuscle.trapezius ||
-        TargetMuscle.erectorSpinae ||
-        TargetMuscle.teresMajor =>
-          MuscleGroup.back,
-        TargetMuscle.anteriorDeltoid ||
-        TargetMuscle.lateralDeltoid ||
-        TargetMuscle.rearDeltoid =>
-          MuscleGroup.shoulders,
-        TargetMuscle.bicepsBrachii ||
-        TargetMuscle.brachialis ||
-        TargetMuscle.brachioradialis =>
-          MuscleGroup.biceps,
-        TargetMuscle.tricepsBrachii => MuscleGroup.triceps,
-        TargetMuscle.wristFlexors ||
-        TargetMuscle.wristExtensors =>
-          MuscleGroup.forearms,
-        TargetMuscle.rectusAbdominis ||
-        TargetMuscle.transverseAbdominis ||
-        TargetMuscle.obliques =>
-          MuscleGroup.abs,
-        TargetMuscle.rectusFemoris ||
-        TargetMuscle.vastusLateralis ||
-        TargetMuscle.vastusMedialis ||
-        TargetMuscle.vastusIntermedius =>
-          MuscleGroup.quadriceps,
-        TargetMuscle.bicepsFemoris ||
-        TargetMuscle.semitendinosus ||
-        TargetMuscle.semimembranosus =>
-          MuscleGroup.hamstrings,
-        TargetMuscle.gluteusMaximus ||
-        TargetMuscle.gluteusMedius ||
-        TargetMuscle.gluteusMinimus ||
-        TargetMuscle.tensorFasciaeLatae =>
-          MuscleGroup.glutes,
-        TargetMuscle.adductorMagnus ||
-        TargetMuscle.adductorLongus ||
-        TargetMuscle.adductorBrevis =>
-          MuscleGroup.adductors,
-        TargetMuscle.gastrocnemius ||
-        TargetMuscle.soleus =>
-          MuscleGroup.calves,
-        TargetMuscle.hipFlexors ||
-        TargetMuscle.serratus =>
-          MuscleGroup.fullBody,
-      };
+    TargetMuscle.pectoralisMajor ||
+    TargetMuscle.pectoralisMinor => MuscleGroup.chest,
+    TargetMuscle.latissimusDorsi ||
+    TargetMuscle.rhomboids ||
+    TargetMuscle.trapezius ||
+    TargetMuscle.erectorSpinae ||
+    TargetMuscle.teresMajor => MuscleGroup.back,
+    TargetMuscle.anteriorDeltoid ||
+    TargetMuscle.lateralDeltoid ||
+    TargetMuscle.rearDeltoid => MuscleGroup.shoulders,
+    TargetMuscle.bicepsBrachii ||
+    TargetMuscle.brachialis ||
+    TargetMuscle.brachioradialis => MuscleGroup.biceps,
+    TargetMuscle.tricepsBrachii => MuscleGroup.triceps,
+    TargetMuscle.wristFlexors ||
+    TargetMuscle.wristExtensors => MuscleGroup.forearms,
+    TargetMuscle.rectusAbdominis ||
+    TargetMuscle.transverseAbdominis ||
+    TargetMuscle.obliques => MuscleGroup.abs,
+    TargetMuscle.rectusFemoris ||
+    TargetMuscle.vastusLateralis ||
+    TargetMuscle.vastusMedialis ||
+    TargetMuscle.vastusIntermedius => MuscleGroup.quadriceps,
+    TargetMuscle.bicepsFemoris ||
+    TargetMuscle.semitendinosus ||
+    TargetMuscle.semimembranosus => MuscleGroup.hamstrings,
+    TargetMuscle.gluteusMaximus ||
+    TargetMuscle.gluteusMedius ||
+    TargetMuscle.gluteusMinimus ||
+    TargetMuscle.tensorFasciaeLatae => MuscleGroup.glutes,
+    TargetMuscle.adductorMagnus ||
+    TargetMuscle.adductorLongus ||
+    TargetMuscle.adductorBrevis => MuscleGroup.adductors,
+    TargetMuscle.gastrocnemius || TargetMuscle.soleus => MuscleGroup.calves,
+    TargetMuscle.hipFlexors || TargetMuscle.serratus => MuscleGroup.fullBody,
+  };
 
   List<MuscleRegion> get validRegions => switch (this) {
-        TargetMuscle.pectoralisMajor => [
-            MuscleRegion.upper,
-            MuscleRegion.mid,
-            MuscleRegion.lower,
-          ],
-        TargetMuscle.trapezius => [
-            MuscleRegion.upper,
-            MuscleRegion.mid,
-            MuscleRegion.lower,
-          ],
-        TargetMuscle.rectusAbdominis => [
-            MuscleRegion.upper,
-            MuscleRegion.lower,
-          ],
-        TargetMuscle.bicepsBrachii => [
-            MuscleRegion.longHead,
-            MuscleRegion.shortHead,
-          ],
-        TargetMuscle.tricepsBrachii => [
-            MuscleRegion.longHead,
-            MuscleRegion.lateralHead,
-            MuscleRegion.medialHead,
-          ],
-        TargetMuscle.gastrocnemius => [
-            MuscleRegion.medialHead,
-            MuscleRegion.lateralHead,
-          ],
-        _ => [],
-      };
+    TargetMuscle.pectoralisMajor => [
+      MuscleRegion.upper,
+      MuscleRegion.mid,
+      MuscleRegion.lower,
+    ],
+    TargetMuscle.trapezius => [
+      MuscleRegion.upper,
+      MuscleRegion.mid,
+      MuscleRegion.lower,
+    ],
+    TargetMuscle.rectusAbdominis => [MuscleRegion.upper, MuscleRegion.lower],
+    TargetMuscle.bicepsBrachii => [
+      MuscleRegion.longHead,
+      MuscleRegion.shortHead,
+    ],
+    TargetMuscle.tricepsBrachii => [
+      MuscleRegion.longHead,
+      MuscleRegion.lateralHead,
+      MuscleRegion.medialHead,
+    ],
+    TargetMuscle.gastrocnemius => [
+      MuscleRegion.medialHead,
+      MuscleRegion.lateralHead,
+    ],
+    _ => [],
+  };
 }

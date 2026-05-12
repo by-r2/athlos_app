@@ -29,12 +29,10 @@ class ExecutionSets extends Table {
   /// Actual distance covered in meters. Used for cardio exercises.
   RealColumn get distance => real().nullable()();
 
-  BoolColumn get isCompleted =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
 
   /// Whether this is a warmup set (excluded from volume and progression).
-  BoolColumn get isWarmup =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isWarmup => boolean().withDefault(const Constant(false))();
 
   /// Rate of Perceived Exertion (1–10). Null when not recorded.
   IntColumn get rpe => integer().nullable()();

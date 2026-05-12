@@ -27,12 +27,10 @@ part 'training_providers.g.dart';
 // --- DAOs ---
 
 @riverpod
-ExerciseDao exerciseDao(Ref ref) =>
-    ExerciseDao(ref.watch(appDatabaseProvider));
+ExerciseDao exerciseDao(Ref ref) => ExerciseDao(ref.watch(appDatabaseProvider));
 
 @riverpod
-WorkoutDao workoutDao(Ref ref) =>
-    WorkoutDao(ref.watch(appDatabaseProvider));
+WorkoutDao workoutDao(Ref ref) => WorkoutDao(ref.watch(appDatabaseProvider));
 
 @riverpod
 WorkoutExecutionDao workoutExecutionDao(Ref ref) =>
@@ -43,8 +41,7 @@ CycleStepDao cycleStepDao(Ref ref) =>
     CycleStepDao(ref.watch(appDatabaseProvider));
 
 @riverpod
-ProgramDao programDao(Ref ref) =>
-    ProgramDao(ref.watch(appDatabaseProvider));
+ProgramDao programDao(Ref ref) => ProgramDao(ref.watch(appDatabaseProvider));
 
 @riverpod
 ProgressionRuleDao progressionRuleDao(Ref ref) =>

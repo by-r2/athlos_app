@@ -34,7 +34,9 @@ class _OwnedEquipmentListState extends ConsumerState<OwnedEquipmentList> {
       return;
     }
 
-    await ref.read(profileProvider.notifier).updateProfile(
+    await ref
+        .read(profileProvider.notifier)
+        .updateProfile(
           profile.copyWith(ownedEquipmentNames: [...current, name]),
         );
     _controller.clear();

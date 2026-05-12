@@ -17,11 +17,7 @@ import '../providers/workout_notifier.dart';
 
 final _placeholderWorkouts = List.generate(
   6,
-  (i) => Workout(
-    id: -(i + 1),
-    name: BoneMock.name,
-    createdAt: DateTime(2024),
-  ),
+  (i) => Workout(id: -(i + 1), name: BoneMock.name, createdAt: DateTime(2024)),
 );
 
 /// Standalone workout catalog screen (all user workout templates).
@@ -108,8 +104,9 @@ class _WorkoutCatalogBody extends ConsumerWidget {
       );
     }
 
-    final displayWorkouts =
-        isLoading && workouts.isEmpty ? _placeholderWorkouts : workouts;
+    final displayWorkouts = isLoading && workouts.isEmpty
+        ? _placeholderWorkouts
+        : workouts;
 
     return Skeletonizer(
       enabled: isLoading,
@@ -127,10 +124,7 @@ class _WorkoutListView extends ConsumerStatefulWidget {
   final List<Workout> workouts;
   final AsyncValue<List<Workout>> archivedAsync;
 
-  const _WorkoutListView({
-    required this.workouts,
-    required this.archivedAsync,
-  });
+  const _WorkoutListView({required this.workouts, required this.archivedAsync});
 
   @override
   ConsumerState<_WorkoutListView> createState() => _WorkoutListViewState();
@@ -153,9 +147,8 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
             return _WorkoutCard(
               key: ValueKey(workout.id),
               workout: workout,
-              onTap: () => context.push(
-                '${RoutePaths.trainingWorkouts}/${workout.id}',
-              ),
+              onTap: () =>
+                  context.push('${RoutePaths.trainingWorkouts}/${workout.id}'),
               onStart: () => context.push(
                 '${RoutePaths.trainingWorkouts}/${workout.id}/execute',
               ),
@@ -180,20 +173,23 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
               onExpansionChanged: (v) =>
                   setState(() => _isArchivedExpanded = v),
               children: widget.archivedAsync.value!
-                  .map((w) => _ArchivedWorkoutTile(
-                        workout: w,
-                        onUnarchive: () => _unarchiveWorkout(context, w.id),
-                        onDuplicate: () => _duplicateWorkout(context, w.id),
-                        onTap: () => context.push(
-                          '${RoutePaths.trainingWorkouts}/${w.id}',
-                        ),
-                      ))
+                  .map(
+                    (w) => _ArchivedWorkoutTile(
+                      workout: w,
+                      onUnarchive: () => _unarchiveWorkout(context, w.id),
+                      onDuplicate: () => _duplicateWorkout(context, w.id),
+                      onTap: () => context.push(
+                        '${RoutePaths.trainingWorkouts}/${w.id}',
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
 
         const SliverPadding(
-            padding: EdgeInsets.only(bottom: AthlosSpacing.fabClearance)),
+          padding: EdgeInsets.only(bottom: AthlosSpacing.fabClearance),
+        ),
       ],
     );
   }
@@ -211,9 +207,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     } on Exception catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     }
@@ -232,9 +226,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     } on Exception catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     }
@@ -256,9 +248,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     } on Exception catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     }
@@ -274,9 +264,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deleteWorkoutMessage),
-          ],
+          children: [Text(l10n.deleteWorkoutMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -294,7 +282,8 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              AppLocalizations.of(context)!.genericError),
+                            AppLocalizations.of(context)!.genericError,
+                          ),
                         ),
                       );
                     }
@@ -359,80 +348,82 @@ class _WorkoutCard extends StatelessWidget {
               vertical: AthlosSpacing.sm,
             ),
             child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AthlosTruncatedText(
-                      workout.name,
-                      style: textTheme.titleMedium,
-                      maxLines: 1,
-                    ),
-                    if (workout.description != null &&
-                        workout.description!.isNotEmpty)
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       AthlosTruncatedText(
-                        workout.description!,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        workout.name,
+                        style: textTheme.titleMedium,
                         maxLines: 1,
                       ),
+                      if (workout.description != null &&
+                          workout.description!.isNotEmpty)
+                        AthlosTruncatedText(
+                          workout.description!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.play_circle_outline,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: l10n.startWorkout,
+                  onPressed: onStart,
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'archive':
+                        onArchive();
+                      case 'duplicate':
+                        onDuplicate();
+                      case 'delete':
+                        onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'archive',
+                      child: ListTile(
+                        leading: const Icon(Icons.archive_outlined),
+                        title: Text(l10n.archiveWorkout),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'duplicate',
+                      child: ListTile(
+                        leading: const Icon(Icons.copy_outlined),
+                        title: Text(l10n.duplicateWorkout),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.delete_outline,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(l10n.delete),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              IconButton(
-                icon: Icon(Icons.play_circle_outline,
-                    color: colorScheme.primary),
-                tooltip: l10n.startWorkout,
-                onPressed: onStart,
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'archive':
-                      onArchive();
-                    case 'duplicate':
-                      onDuplicate();
-                    case 'delete':
-                      onDelete();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'archive',
-                    child: ListTile(
-                      leading: const Icon(Icons.archive_outlined),
-                      title: Text(l10n.archiveWorkout),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'duplicate',
-                    child: ListTile(
-                      leading: const Icon(Icons.copy_outlined),
-                      title: Text(l10n.duplicateWorkout),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_outline,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(l10n.delete),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
             ),
           ),
         ),
@@ -463,14 +454,13 @@ class _ArchivedWorkoutTile extends StatelessWidget {
 
     return ListTile(
       minTileHeight: AthlosComponentSizes.listItemMinHeight,
-      leading:
-          Icon(Icons.archive_outlined, color: colorScheme.onSurfaceVariant),
+      leading: Icon(
+        Icons.archive_outlined,
+        color: colorScheme.onSurfaceVariant,
+      ),
       title: Text(workout.name),
       subtitle: workout.description != null && workout.description!.isNotEmpty
-          ? AthlosTruncatedText(
-              workout.description!,
-              maxLines: 1,
-            )
+          ? AthlosTruncatedText(workout.description!, maxLines: 1)
           : null,
       onTap: onTap,
       trailing: Row(

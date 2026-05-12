@@ -8,21 +8,12 @@ void main() {
         resolveImportedExerciseCatalogName('flatBarbellBenchPress'),
         'benchPress',
       );
-      expect(
-        resolveImportedExerciseCatalogName('seatedCableRow'),
-        'seatedRow',
-      );
-      expect(
-        resolveImportedExerciseCatalogName('barbellCurl'),
-        'bicepsCurl',
-      );
+      expect(resolveImportedExerciseCatalogName('seatedCableRow'), 'seatedRow');
+      expect(resolveImportedExerciseCatalogName('barbellCurl'), 'bicepsCurl');
     });
 
     test('applies equipment-only merges after rename pass', () {
-      expect(
-        resolveImportedExerciseCatalogName('ezBarCurl'),
-        'bicepsCurl',
-      );
+      expect(resolveImportedExerciseCatalogName('ezBarCurl'), 'bicepsCurl');
       expect(
         resolveImportedExerciseCatalogName('ropeTricepsPushdown'),
         'tricepsPushdown',

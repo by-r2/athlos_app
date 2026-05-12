@@ -39,16 +39,15 @@ class PRHistoryScreen extends ConsumerWidget {
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(l10n.prHistoryDescription),
-                  ],
+                  children: [Text(l10n.prHistoryDescription)],
                 ),
                 actions: [
                   AthlosStackedDialogActions(
                     children: [
                       FilledButton(
                         style: AthlosDialogButtonStyles.stackedFilled(
-                            dialogContext),
+                          dialogContext,
+                        ),
                         onPressed: () => Navigator.pop(dialogContext),
                         child: Text(l10n.okButton),
                       ),
@@ -61,10 +60,8 @@ class PRHistoryScreen extends ConsumerWidget {
         ],
       ),
       body: prsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (_, _) =>
-            Center(child: Text(l10n.genericError)),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => Center(child: Text(l10n.genericError)),
         data: (prs) {
           if (prs.isEmpty) {
             return Center(
@@ -144,8 +141,11 @@ class _PRTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final name = localizedExerciseName(pr.exerciseName,
-        isVerified: pr.isVerified, l10n: l10n);
+    final name = localizedExerciseName(
+      pr.exerciseName,
+      isVerified: pr.isVerified,
+      l10n: l10n,
+    );
 
     final weightStr = pr.weight % 1 == 0
         ? pr.weight.toInt().toString()
@@ -157,16 +157,18 @@ class _PRTile extends StatelessWidget {
     return Card(
       child: ListTile(
         minTileHeight: AthlosComponentSizes.listItemMinHeight,
-        leading: Icon(Icons.emoji_events,
-            color: colorScheme.tertiary, size: 28),
+        leading: Icon(
+          Icons.emoji_events,
+          color: colorScheme.tertiary,
+          size: 28,
+        ),
         title: Text(name),
         subtitle: Text(
           '$weightStr kg × ${pr.reps}  •  ${l10n.prEstimated1rm(e1rmStr)}',
           style: textTheme.bodySmall,
         ),
-        onTap: () => context.push(
-          '${RoutePaths.trainingExercises}/${pr.exerciseId}',
-        ),
+        onTap: () =>
+            context.push('${RoutePaths.trainingExercises}/${pr.exerciseId}'),
       ),
     );
   }

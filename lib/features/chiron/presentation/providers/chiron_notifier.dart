@@ -59,8 +59,10 @@ class ChironNotifier extends _$ChironNotifier {
           _trace(
             'tool:$toolName success=$success hasResult=${resultData != null}',
           );
-          final feedback =
-              ChironToolFeedback(toolName: toolName, success: success);
+          final feedback = ChironToolFeedback(
+            toolName: toolName,
+            success: success,
+          );
           toolFeedback.add(feedback);
           state = state.copyWith(
             lastResponseToolFeedback: List.of(toolFeedback),
@@ -165,7 +167,8 @@ class ChironNotifier extends _$ChironNotifier {
 
   static String _errorMessage(Exception e, AppLocalizations l10n) {
     final msg = e.toString().toLowerCase();
-    if (msg.contains('rate limit') || msg.contains('quota') ||
+    if (msg.contains('rate limit') ||
+        msg.contains('quota') ||
         msg.contains('resource_exhausted')) {
       return l10n.chironErrorRateLimit;
     }

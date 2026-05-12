@@ -6,7 +6,8 @@ import '../tables/cycle_steps_table.dart';
 part 'cycle_step_dao.g.dart';
 
 @DriftAccessor(tables: [CycleSteps])
-class CycleStepDao extends DatabaseAccessor<AppDatabase> with _$CycleStepDaoMixin {
+class CycleStepDao extends DatabaseAccessor<AppDatabase>
+    with _$CycleStepDaoMixin {
   CycleStepDao(super.db);
 
   /// Returns steps for the given [programId], ordered by orderIndex.
@@ -32,18 +33,17 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase> with _$CycleStepDaoMixi
 
   /// Removes all cycle steps that reference [workoutId] in the given program.
   Future<void> removeWorkout(int workoutId, int programId) async {
-    await (delete(cycleSteps)
-          ..where((s) =>
-              s.workoutId.equals(workoutId) &
-              s.programId.equals(programId)))
+    await (delete(cycleSteps)..where(
+          (s) => s.workoutId.equals(workoutId) & s.programId.equals(programId),
+        ))
         .go();
   }
 
   /// Removes all cycle steps that reference [workoutId] across ALL programs.
   Future<void> removeWorkoutFromAll(int workoutId) async {
-    await (delete(cycleSteps)
-          ..where((s) => s.workoutId.equals(workoutId)))
-        .go();
+    await (delete(
+      cycleSteps,
+    )..where((s) => s.workoutId.equals(workoutId))).go();
   }
 
   Future<int> insertStep(CycleStepsCompanion entry) =>

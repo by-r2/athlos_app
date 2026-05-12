@@ -79,255 +79,252 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final isNext = nextWorkout?.id == displayWorkout.id;
 
     return Scaffold(
-          appBar: AppBar(
-            title: Text(displayWorkout.name),
-            actions: [
+      appBar: AppBar(
+        title: Text(displayWorkout.name),
+        actions: [
+          if (!displayWorkout.isArchived)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: l10n.edit,
+              onPressed: () => context.push(
+                '${RoutePaths.trainingWorkouts}/${displayWorkout.id}/edit',
+              ),
+            ),
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              switch (value) {
+                case 'archive':
+                  try {
+                    await ref
+                        .read(workoutListProvider.notifier)
+                        .archiveWorkout(displayWorkout.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.workoutArchived)),
+                      );
+                      context.pop();
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                case 'unarchive':
+                  try {
+                    await ref
+                        .read(workoutListProvider.notifier)
+                        .unarchiveWorkout(displayWorkout.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.workoutUnarchived)),
+                      );
+                      context.pop();
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                case 'duplicate':
+                  try {
+                    await ref
+                        .read(workoutListProvider.notifier)
+                        .duplicateWorkout(
+                          displayWorkout.id,
+                          nameSuffix: l10n.workoutCopySuffix,
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.duplicatedWorkout)),
+                      );
+                    }
+                  } on Exception catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.genericError)),
+                      );
+                    }
+                  }
+                case 'delete':
+                  _confirmDelete(context, ref);
+              }
+            },
+            itemBuilder: (context) => [
               if (!displayWorkout.isArchived)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: l10n.edit,
-                  onPressed: () => context.push(
-                    '${RoutePaths.trainingWorkouts}/${displayWorkout.id}/edit',
+                PopupMenuItem(
+                  value: 'archive',
+                  child: ListTile(
+                    leading: const Icon(Icons.archive_outlined),
+                    title: Text(l10n.archiveWorkout),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                )
+              else
+                PopupMenuItem(
+                  value: 'unarchive',
+                  child: ListTile(
+                    leading: const Icon(Icons.unarchive_outlined),
+                    title: Text(l10n.unarchiveWorkout),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  switch (value) {
-                    case 'archive':
-                      try {
-                        await ref
-                            .read(workoutListProvider.notifier)
-                            .archiveWorkout(displayWorkout.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.workoutArchived)),
-                          );
-                          context.pop();
-                        }
-                      } on Exception catch (_) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(l10n.genericError)),
-                          );
-                        }
-                      }
-                    case 'unarchive':
-                      try {
-                        await ref
-                            .read(workoutListProvider.notifier)
-                            .unarchiveWorkout(displayWorkout.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.workoutUnarchived)),
-                          );
-                          context.pop();
-                        }
-                      } on Exception catch (_) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(l10n.genericError)),
-                          );
-                        }
-                      }
-                    case 'duplicate':
-                      try {
-                        await ref
-                            .read(workoutListProvider.notifier)
-                            .duplicateWorkout(displayWorkout.id,
-                                nameSuffix: l10n.workoutCopySuffix);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.duplicatedWorkout)),
-                          );
-                        }
-                      } on Exception catch (_) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(l10n.genericError)),
-                          );
-                        }
-                      }
-                    case 'delete':
-                      _confirmDelete(context, ref);
-                  }
-                },
-                itemBuilder: (context) => [
-                  if (!displayWorkout.isArchived)
-                    PopupMenuItem(
-                      value: 'archive',
-                      child: ListTile(
-                        leading: const Icon(Icons.archive_outlined),
-                        title: Text(l10n.archiveWorkout),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    )
-                  else
-                    PopupMenuItem(
-                      value: 'unarchive',
-                      child: ListTile(
-                        leading: const Icon(Icons.unarchive_outlined),
-                        title: Text(l10n.unarchiveWorkout),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  PopupMenuItem(
-                    value: 'duplicate',
-                    child: ListTile(
-                      leading: const Icon(Icons.copy_outlined),
-                      title: Text(l10n.duplicateWorkout),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+              PopupMenuItem(
+                value: 'duplicate',
+                child: ListTile(
+                  leading: const Icon(Icons.copy_outlined),
+                  title: Text(l10n.duplicateWorkout),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: ListTile(
+                  leading: Icon(
+                    Icons.delete_outline,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_outline,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(l10n.delete),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
+                  title: Text(l10n.delete),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ],
           ),
-          body: Skeletonizer(
-            enabled: workoutAsync.isLoading,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isNext)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.md,
-                    vertical: AthlosSpacing.sm,
-                  ),
-                  color: colorScheme.primaryContainer,
-                  child: Row(
-                    children: [
-                      Icon(Icons.play_circle_outline,
-                          color: colorScheme.onPrimaryContainer, size: 20),
-                      const SizedBox(width: AthlosSpacing.sm),
-                      Text(
-                        l10n.nextWorkoutBadge,
-                        style: textTheme.labelLarge?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (displayWorkout.description != null &&
-                  displayWorkout.description!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
-                    AthlosSpacing.sm,
-                    AthlosSpacing.md,
-                    AthlosSpacing.md,
-                  ),
-                  child: AthlosMarkdownNotesCard(
-                    title: l10n.workoutNotesTitle,
-                    markdown: displayWorkout.description!,
-                  ),
-                ),
-              _WorkoutLastVsPreviousSection(workoutId: workoutId),
-              Padding(
+        ],
+      ),
+      body: Skeletonizer(
+        enabled: workoutAsync.isLoading,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isNext)
+              Container(
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AthlosSpacing.md,
+                  vertical: AthlosSpacing.sm,
                 ),
-                child: Text(
-                  l10n.exercisesInWorkout,
-                  style: textTheme.titleSmall,
-                ),
-              ),
-              const SizedBox(height: AthlosSpacing.sm),
-              Expanded(
-                child: () {
-                  if (exercisesAsync.hasError) {
-                    return Center(
-                        child: Text('${exercisesAsync.error}'));
-                  }
-                  final exercises = exercisesAsync.value ??
-                      _placeholderExercises;
-                  return Skeletonizer(
-                    enabled: exercisesAsync.isLoading,
-                    child: exercises.isEmpty
-                        ? Center(
-                            child: Text(
-                              l10n.emptyWorkoutExercises,
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          )
-                        : Builder(
-                            builder: (context) {
-                              final groupColorMap = <int, int>{};
-                              var nextColorIdx = 0;
-                              for (final ex in exercises) {
-                                if (ex.groupId != null &&
-                                    !groupColorMap.containsKey(ex.groupId)) {
-                                  groupColorMap[ex.groupId!] = nextColorIdx++;
-                                }
-                              }
-                              return ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AthlosSpacing.sm,
-                                ),
-                                itemCount: exercises.length,
-                                itemBuilder: (context, index) {
-                                  final ex = exercises[index];
-                                  final gid = ex.groupId;
-                                  final isGroupedWithPrev = index > 0 &&
-                                      gid != null &&
-                                      exercises[index - 1].groupId == gid;
-                                  final isGroupedWithNext =
-                                      index < exercises.length - 1 &&
-                                          gid != null &&
-                                          exercises[index + 1].groupId == gid;
-                                  final groupColorIndex =
-                                      gid != null ? groupColorMap[gid] : null;
-
-                                  return _ExerciseDetailTile(
-                                    exercise: ex,
-                                    index: index + 1,
-                                    isGroupedWithPrev: isGroupedWithPrev,
-                                    isGroupedWithNext: isGroupedWithNext,
-                                    groupColorIndex: groupColorIndex,
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                  );
-                }(),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: displayWorkout.isArchived
-              ? null
-              : SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AthlosSpacing.md),
-                    child: FilledButton.icon(
-                      onPressed: () => _startWorkout(context, ref),
-                      icon: const Icon(Icons.play_arrow),
-                      label: Text(l10n.startWorkout),
+                color: colorScheme.primaryContainer,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.play_circle_outline,
+                      color: colorScheme.onPrimaryContainer,
+                      size: 20,
                     ),
-                  ),
+                    const SizedBox(width: AthlosSpacing.sm),
+                    Text(
+                      l10n.nextWorkoutBadge,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            if (displayWorkout.description != null &&
+                displayWorkout.description!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AthlosSpacing.md,
+                  AthlosSpacing.sm,
+                  AthlosSpacing.md,
+                  AthlosSpacing.md,
+                ),
+                child: AthlosMarkdownNotesCard(
+                  title: l10n.workoutNotesTitle,
+                  markdown: displayWorkout.description!,
+                ),
+              ),
+            _WorkoutLastVsPreviousSection(workoutId: workoutId),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
+              child: Text(l10n.exercisesInWorkout, style: textTheme.titleSmall),
+            ),
+            const SizedBox(height: AthlosSpacing.sm),
+            Expanded(
+              child: () {
+                if (exercisesAsync.hasError) {
+                  return Center(child: Text('${exercisesAsync.error}'));
+                }
+                final exercises = exercisesAsync.value ?? _placeholderExercises;
+                return Skeletonizer(
+                  enabled: exercisesAsync.isLoading,
+                  child: exercises.isEmpty
+                      ? Center(
+                          child: Text(
+                            l10n.emptyWorkoutExercises,
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      : Builder(
+                          builder: (context) {
+                            final groupColorMap = <int, int>{};
+                            var nextColorIdx = 0;
+                            for (final ex in exercises) {
+                              if (ex.groupId != null &&
+                                  !groupColorMap.containsKey(ex.groupId)) {
+                                groupColorMap[ex.groupId!] = nextColorIdx++;
+                              }
+                            }
+                            return ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AthlosSpacing.sm,
+                              ),
+                              itemCount: exercises.length,
+                              itemBuilder: (context, index) {
+                                final ex = exercises[index];
+                                final gid = ex.groupId;
+                                final isGroupedWithPrev =
+                                    index > 0 &&
+                                    gid != null &&
+                                    exercises[index - 1].groupId == gid;
+                                final isGroupedWithNext =
+                                    index < exercises.length - 1 &&
+                                    gid != null &&
+                                    exercises[index + 1].groupId == gid;
+                                final groupColorIndex = gid != null
+                                    ? groupColorMap[gid]
+                                    : null;
+
+                                return _ExerciseDetailTile(
+                                  exercise: ex,
+                                  index: index + 1,
+                                  isGroupedWithPrev: isGroupedWithPrev,
+                                  isGroupedWithNext: isGroupedWithNext,
+                                  groupColorIndex: groupColorIndex,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                );
+              }(),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: displayWorkout.isArchived
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: FilledButton.icon(
+                  onPressed: () => _startWorkout(context, ref),
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(l10n.startWorkout),
+                ),
+              ),
+            ),
     );
   }
 
@@ -345,9 +342,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deleteWorkoutMessage),
-          ],
+          children: [Text(l10n.deleteWorkoutMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -408,9 +403,9 @@ class _ExerciseDetailTile extends ConsumerWidget {
     final exercisesAsync = ref.watch(exerciseListProvider);
 
     final exerciseEntity = exercisesAsync.value?.cast<dynamic>().firstWhere(
-          (e) => e.id == exercise.exerciseId,
-          orElse: () => null,
-        );
+      (e) => e.id == exercise.exerciseId,
+      orElse: () => null,
+    );
 
     final displayName = exerciseEntity != null
         ? localizedExerciseName(
@@ -445,14 +440,13 @@ class _ExerciseDetailTile extends ConsumerWidget {
       child: Container(
         decoration: groupColor != null
             ? BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: groupColor, width: 3),
-                ),
+                border: Border(left: BorderSide(color: groupColor, width: 3)),
               )
             : null,
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: groupColor?.withValues(alpha: 0.15) ??
+            backgroundColor:
+                groupColor?.withValues(alpha: 0.15) ??
                 colorScheme.primaryContainer,
             child: Text(
               '$index',
@@ -473,16 +467,19 @@ class _ExerciseDetailTile extends ConsumerWidget {
                       vertical: AthlosSpacing.xxs,
                     ),
                     decoration: BoxDecoration(
-                      color: colorScheme.secondaryContainer
-                          .withValues(alpha: 0.5),
+                      color: colorScheme.secondaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
                       borderRadius: AthlosRadius.fullAll,
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.swap_horiz,
-                            size: 10,
-                            color: colorScheme.onSecondaryContainer),
+                        Icon(
+                          Icons.swap_horiz,
+                          size: 10,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           l10n.unilateralLabel,
@@ -570,8 +567,9 @@ class _WorkoutLastVsPreviousSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final comparisonAsync =
-        ref.watch(lastVsPreviousComparisonProvider(workoutId));
+    final comparisonAsync = ref.watch(
+      lastVsPreviousComparisonProvider(workoutId),
+    );
     return comparisonAsync.when(
       data: (c) {
         if (c == null) return const SizedBox.shrink();
@@ -579,10 +577,12 @@ class _WorkoutLastVsPreviousSection extends ConsumerWidget {
         final textTheme = Theme.of(context).textTheme;
         final colorScheme = Theme.of(context).colorScheme;
         final locale = Localizations.localeOf(context);
-        final lastDate = intl.DateFormat.MMMd(locale.toString())
-            .format(c.last.startedAt.toLocal());
-        final prevDate = intl.DateFormat.MMMd(locale.toString())
-            .format(c.previous.startedAt.toLocal());
+        final lastDate = intl.DateFormat.MMMd(
+          locale.toString(),
+        ).format(c.last.startedAt.toLocal());
+        final prevDate = intl.DateFormat.MMMd(
+          locale.toString(),
+        ).format(c.previous.startedAt.toLocal());
         final lastDur = formatDuration(c.last.duration?.inSeconds ?? 0);
         final prevDur = formatDuration(c.previous.duration?.inSeconds ?? 0);
         return Padding(
@@ -616,7 +616,9 @@ class _WorkoutLastVsPreviousSection extends ConsumerWidget {
                   if (c.volumeDelta != 0) ...[
                     const Gap(AthlosSpacing.xs),
                     Text(
-                      l10n.trainingVolumeDelta(c.volumeDelta.toStringAsFixed(1)),
+                      l10n.trainingVolumeDelta(
+                        c.volumeDelta.toStringAsFixed(1),
+                      ),
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.primary,
                       ),

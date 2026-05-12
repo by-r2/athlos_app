@@ -9,6 +9,7 @@ import '../enums/target_muscle.dart';
 abstract interface class ExerciseRepository {
   Future<Result<List<Exercise>>> getAll();
   Future<Result<Exercise?>> getById(int id);
+
   /// Case-insensitive lookup by exercise name. Returns the first match or null.
   Future<Result<Exercise?>> findByName(String name);
 
@@ -20,12 +21,13 @@ abstract interface class ExerciseRepository {
   Future<Result<int>> create(
     Exercise exercise, {
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
-        muscles = const [],
+        muscles =
+        const [],
   });
   Future<Result<void>> update(
     Exercise exercise, {
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>?
-        muscles,
+    muscles,
   });
   Future<Result<void>> delete(int id);
   Future<Result<void>> addVariation(int exerciseId, int variationId);

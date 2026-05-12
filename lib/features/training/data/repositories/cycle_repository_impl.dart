@@ -59,7 +59,8 @@ class CycleRepositoryImpl implements CycleRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to remove workout from cycle: $e'));
+        DatabaseException('Failed to remove workout from cycle: $e'),
+      );
     }
   }
 
@@ -70,7 +71,8 @@ class CycleRepositoryImpl implements CycleRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to remove workout from cycles: $e'));
+        DatabaseException('Failed to remove workout from cycles: $e'),
+      );
     }
   }
 
@@ -88,22 +90,25 @@ class CycleRepositoryImpl implements CycleRepository {
           workoutId: e.value.workoutId,
         );
       }).toList();
-      companions.add(CycleStepsCompanion.insert(
-        programId: programId,
-        orderIndex: steps.length,
-        workoutId: workoutId,
-      ));
+      companions.add(
+        CycleStepsCompanion.insert(
+          programId: programId,
+          orderIndex: steps.length,
+          workoutId: workoutId,
+        ),
+      );
       await _dao.replaceAll(companions, programId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to append workout to cycle: $e'));
+        DatabaseException('Failed to append workout to cycle: $e'),
+      );
     }
   }
 
   TrainingCycleStep _rowToDomain(CycleStep row) => TrainingCycleStep(
-        id: row.id,
-        orderIndex: row.orderIndex,
-        workoutId: row.workoutId,
-      );
+    id: row.id,
+    orderIndex: row.orderIndex,
+    workoutId: row.workoutId,
+  );
 }

@@ -57,10 +57,10 @@ class ProfileNotifier extends _$ProfileNotifier {
     );
     final result = await repo.create(profile);
     final id = result.getOrThrow();
-    state = AsyncData(profile.copyWith(
-      id: id,
-      trainingStreaksSchema: 1,
-    ));
+    final created = (await repo.get()).getOrThrow();
+    state = AsyncData(
+      created ?? profile.copyWith(id: id, trainingStreaksSchema: 1),
+    );
   }
 
   /// Updates an existing user profile and refreshes the state.
@@ -69,6 +69,13 @@ class ProfileNotifier extends _$ProfileNotifier {
     final result = await repo.update(profile);
     result.getOrThrow();
     state = AsyncData(profile);
+  }
+
+  Future<void> syncLocalProfileToCloud() async {
+    final repo = ref.read(userProfileRepositoryProvider);
+    final result = await repo.syncLocalProfileToCloud();
+    result.getOrThrow();
+    ref.invalidateSelf();
   }
 }
 

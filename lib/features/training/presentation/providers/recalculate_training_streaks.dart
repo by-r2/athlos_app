@@ -19,18 +19,19 @@ class RecalculateTrainingStreaks extends _$RecalculateTrainingStreaks {
   void build() {}
 
   Future<void> run() async {
-    final UserProfileRepository profileRepo =
-        ref.read(userProfileRepositoryProvider);
-    final WorkoutExecutionRepository execRepo =
-        ref.read(workoutExecutionRepositoryProvider);
+    final UserProfileRepository profileRepo = ref.read(
+      userProfileRepositoryProvider,
+    );
+    final WorkoutExecutionRepository execRepo = ref.read(
+      workoutExecutionRepositoryProvider,
+    );
     final CycleRepository cycleRepo = ref.read(cycleRepositoryProvider);
 
     final profileResult = await profileRepo.get();
     final loaded = profileResult.getOrThrow();
     if (loaded == null) return;
 
-    final execsNewestFirst =
-        (await execRepo.getAll()).getOrThrow();
+    final execsNewestFirst = (await execRepo.getAll()).getOrThrow();
     final chronological = execsNewestFirst.reversed.toList();
 
     final target = loaded.trainingFrequency ?? kDefaultTrainingFrequency;

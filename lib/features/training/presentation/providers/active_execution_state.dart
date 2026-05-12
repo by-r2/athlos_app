@@ -103,32 +103,30 @@ class SetEntry {
     int? Function()? rightReps,
     double? Function()? rightWeight,
     List<SegmentEntry>? segments,
-  }) =>
-      SetEntry(
-        id: id ?? this.id,
-        setNumber: setNumber ?? this.setNumber,
-        plannedReps:
-            plannedReps != null ? plannedReps() : this.plannedReps,
-        plannedWeight:
-            plannedWeight != null ? plannedWeight() : this.plannedWeight,
-        plannedDuration:
-            plannedDuration != null ? plannedDuration() : this.plannedDuration,
-        reps: reps != null ? reps() : this.reps,
-        weight: weight != null ? weight() : this.weight,
-        duration: duration != null ? duration() : this.duration,
-        distance: distance != null ? distance() : this.distance,
-        isCompleted: isCompleted ?? this.isCompleted,
-        isWarmup: isWarmup ?? this.isWarmup,
-        rpe: rpe != null ? rpe() : this.rpe,
-        loadModeOverride: loadModeOverride != null
-            ? loadModeOverride()
-            : this.loadModeOverride,
-        leftReps: leftReps != null ? leftReps() : this.leftReps,
-        leftWeight: leftWeight != null ? leftWeight() : this.leftWeight,
-        rightReps: rightReps != null ? rightReps() : this.rightReps,
-        rightWeight: rightWeight != null ? rightWeight() : this.rightWeight,
-        segments: segments ?? this.segments,
-      );
+  }) => SetEntry(
+    id: id ?? this.id,
+    setNumber: setNumber ?? this.setNumber,
+    plannedReps: plannedReps != null ? plannedReps() : this.plannedReps,
+    plannedWeight: plannedWeight != null ? plannedWeight() : this.plannedWeight,
+    plannedDuration: plannedDuration != null
+        ? plannedDuration()
+        : this.plannedDuration,
+    reps: reps != null ? reps() : this.reps,
+    weight: weight != null ? weight() : this.weight,
+    duration: duration != null ? duration() : this.duration,
+    distance: distance != null ? distance() : this.distance,
+    isCompleted: isCompleted ?? this.isCompleted,
+    isWarmup: isWarmup ?? this.isWarmup,
+    rpe: rpe != null ? rpe() : this.rpe,
+    loadModeOverride: loadModeOverride != null
+        ? loadModeOverride()
+        : this.loadModeOverride,
+    leftReps: leftReps != null ? leftReps() : this.leftReps,
+    leftWeight: leftWeight != null ? leftWeight() : this.leftWeight,
+    rightReps: rightReps != null ? rightReps() : this.rightReps,
+    rightWeight: rightWeight != null ? rightWeight() : this.rightWeight,
+    segments: segments ?? this.segments,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -154,9 +152,25 @@ class SetEntry {
           rightWeight == other.rightWeight;
 
   @override
-  int get hashCode => Object.hash(id, setNumber, plannedReps, plannedWeight,
-      plannedDuration, reps, weight, duration, distance, isCompleted, isWarmup,
-      rpe, loadModeOverride, leftReps, leftWeight, rightReps, rightWeight);
+  int get hashCode => Object.hash(
+    id,
+    setNumber,
+    plannedReps,
+    plannedWeight,
+    plannedDuration,
+    reps,
+    weight,
+    duration,
+    distance,
+    isCompleted,
+    isWarmup,
+    rpe,
+    loadModeOverride,
+    leftReps,
+    leftWeight,
+    rightReps,
+    rightWeight,
+  );
 }
 
 /// Holds the full state of an active workout execution in progress.
@@ -197,16 +211,15 @@ class ActiveExecutionState {
   ActiveExecutionState copyWith({
     Map<int, List<SetEntry>>? exerciseSets,
     bool? isFinishing,
-  }) =>
-      ActiveExecutionState(
-        executionId: executionId,
-        workoutId: workoutId,
-        exerciseSets: exerciseSets ?? this.exerciseSets,
-        exercises: exercises,
-        isFinishing: isFinishing ?? this.isFinishing,
-        defaultRestSeconds: defaultRestSeconds,
-        isDeload: isDeload,
-      );
+  }) => ActiveExecutionState(
+    executionId: executionId,
+    workoutId: workoutId,
+    exerciseSets: exerciseSets ?? this.exerciseSets,
+    exercises: exercises,
+    isFinishing: isFinishing ?? this.isFinishing,
+    defaultRestSeconds: defaultRestSeconds,
+    isDeload: isDeload,
+  );
 
   @override
   bool operator ==(Object other) =>

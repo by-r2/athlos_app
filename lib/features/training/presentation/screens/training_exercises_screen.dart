@@ -402,8 +402,7 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
   }
 
   Future<void> _closeSheet(BuildContext context) async {
-    final mustConfirm =
-        _dirty || _pendingSimilarReview != null;
+    final mustConfirm = _dirty || _pendingSimilarReview != null;
     if (!mustConfirm) {
       Navigator.of(context).pop();
       return;
@@ -439,248 +438,255 @@ class _AddExerciseSheetState extends ConsumerState<_AddExerciseSheet> {
       guardActive: _dirty || _pendingSimilarReview != null,
       onConfirmLeave: confirmDiscardUnsavedEdits,
       child: Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) {
-          return Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: AthlosSpacing.sm),
-                  child: Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurfaceVariant.withAlpha(80),
-                      borderRadius: AthlosRadius.xsAll,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: AthlosSpacing.sm),
+                    child: Container(
+                      width: 32,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurfaceVariant.withAlpha(80),
+                        borderRadius: AthlosRadius.xsAll,
+                      ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.sm,
-                    AthlosSpacing.md,
-                    AthlosSpacing.sm,
-                    0,
-                  ),
-                  child: _pendingSimilarReview != null
-                      ? Row(
-                          children: [
-                            IconButton(
-                              onPressed: () =>
-                                  setState(() => _pendingSimilarReview = null),
-                              icon: const Icon(Icons.arrow_back),
-                              tooltip: l10n.back,
-                            ),
-                            Expanded(
-                              child: Text(
-                                l10n.exerciseSimilarTitle,
-                                style: textTheme.titleLarge,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _closeSheet(context),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                l10n.addExercise,
-                                style: textTheme.titleLarge,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _closeSheet(context),
-                              icon: const Icon(Icons.close),
-                            ),
-                          ],
-                        ),
-                ),
-                const Divider(),
-                Expanded(
-                  child: _pendingSimilarReview != null
-                      ? _buildSimilarReview(
-                          l10n,
-                          textTheme,
-                          colorScheme,
-                          scrollController,
-                          _pendingSimilarReview!,
-                        )
-                      : ListView(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AthlosSpacing.md,
-                          ),
-                          children: [
-                            const Gap(AthlosSpacing.sm),
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: InputDecoration(
-                                labelText: l10n.exerciseNameLabel,
-                                border: const OutlineInputBorder(),
-                              ),
-                              textCapitalization: TextCapitalization.sentences,
-                              autofocus: true,
-                              onChanged: (_) => _touchDirty(),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return l10n.fieldRequired;
-                                }
-                                final exercises = ref
-                                    .watch(exerciseListProvider)
-                                    .value;
-                                if (exercises == null) return null;
-                                final conflict = ExerciseNameMatch.findConflict(
-                                  value,
-                                  exercises,
-                                );
-                                if (conflict != null) {
-                                  final display = localizedExerciseName(
-                                    conflict.name,
-                                    isVerified: conflict.isVerified,
-                                    l10n: l10n,
-                                  );
-                                  return l10n.exerciseDuplicateWithName(
-                                    display,
-                                  );
-                                }
-                                return null;
-                              },
-                            ),
-                            const Gap(AthlosSpacing.md),
-                            DropdownButtonFormField<MuscleGroup>(
-                              initialValue: _selectedGroup,
-                              decoration: InputDecoration(
-                                labelText: l10n.exerciseMuscleGroupLabel,
-                                border: const OutlineInputBorder(),
-                              ),
-                              items: MuscleGroup.values.map((group) {
-                                return DropdownMenuItem(
-                                  value: group,
-                                  child: Text(
-                                    localizedMuscleGroupName(group, l10n),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  _touchDirty();
-                                  setState(() => _selectedGroup = value);
-                                }
-                              },
-                            ),
-                            const Gap(AthlosSpacing.md),
-                            SegmentedButton<ExerciseType>(
-                              segments: [
-                                ButtonSegment(
-                                  value: ExerciseType.strength,
-                                  label: Text(l10n.exerciseTypeStrength),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AthlosSpacing.sm,
+                      AthlosSpacing.md,
+                      AthlosSpacing.sm,
+                      0,
+                    ),
+                    child: _pendingSimilarReview != null
+                        ? Row(
+                            children: [
+                              IconButton(
+                                onPressed: () => setState(
+                                  () => _pendingSimilarReview = null,
                                 ),
-                                ButtonSegment(
-                                  value: ExerciseType.cardio,
-                                  label: Text(l10n.exerciseTypeCardio),
+                                icon: const Icon(Icons.arrow_back),
+                                tooltip: l10n.back,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  l10n.exerciseSimilarTitle,
+                                  style: textTheme.titleLarge,
                                 ),
-                              ],
-                              selected: {_selectedType},
-                              onSelectionChanged: (v) {
-                                _touchDirty();
-                                setState(() {
-                                  _selectedType = v.first;
-                                  if (_selectedType == ExerciseType.cardio) {
-                                    _isIsometric = false;
-                                  }
-                                });
-                              },
-                            ),
-                            if (_selectedType == ExerciseType.strength) ...[
-                              const Gap(AthlosSpacing.sm),
-                              SwitchListTile(
-                                title: Text(l10n.isometricLabel),
-                                subtitle: Text(l10n.isometricHint),
-                                value: _isIsometric,
-                                onChanged: (v) {
-                                  _touchDirty();
-                                  setState(() => _isIsometric = v);
-                                },
-                                contentPadding: EdgeInsets.zero,
+                              ),
+                              IconButton(
+                                onPressed: () => _closeSheet(context),
+                                icon: const Icon(Icons.close),
                               ),
                             ],
-                            const Gap(AthlosSpacing.sm),
-                            _buildAdvancedSection(l10n, textTheme, colorScheme),
-                            const Gap(AthlosSpacing.xl),
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.addExercise,
+                                  style: textTheme.titleLarge,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => _closeSheet(context),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _pendingSimilarReview != null
+                        ? _buildSimilarReview(
+                            l10n,
+                            textTheme,
+                            colorScheme,
+                            scrollController,
+                            _pendingSimilarReview!,
+                          )
+                        : ListView(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AthlosSpacing.md,
+                            ),
+                            children: [
+                              const Gap(AthlosSpacing.sm),
+                              TextFormField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                  labelText: l10n.exerciseNameLabel,
+                                  border: const OutlineInputBorder(),
+                                ),
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                autofocus: true,
+                                onChanged: (_) => _touchDirty(),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return l10n.fieldRequired;
+                                  }
+                                  final exercises = ref
+                                      .watch(exerciseListProvider)
+                                      .value;
+                                  if (exercises == null) return null;
+                                  final conflict =
+                                      ExerciseNameMatch.findConflict(
+                                        value,
+                                        exercises,
+                                      );
+                                  if (conflict != null) {
+                                    final display = localizedExerciseName(
+                                      conflict.name,
+                                      isVerified: conflict.isVerified,
+                                      l10n: l10n,
+                                    );
+                                    return l10n.exerciseDuplicateWithName(
+                                      display,
+                                    );
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const Gap(AthlosSpacing.md),
+                              DropdownButtonFormField<MuscleGroup>(
+                                initialValue: _selectedGroup,
+                                decoration: InputDecoration(
+                                  labelText: l10n.exerciseMuscleGroupLabel,
+                                  border: const OutlineInputBorder(),
+                                ),
+                                items: MuscleGroup.values.map((group) {
+                                  return DropdownMenuItem(
+                                    value: group,
+                                    child: Text(
+                                      localizedMuscleGroupName(group, l10n),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _touchDirty();
+                                    setState(() => _selectedGroup = value);
+                                  }
+                                },
+                              ),
+                              const Gap(AthlosSpacing.md),
+                              SegmentedButton<ExerciseType>(
+                                segments: [
+                                  ButtonSegment(
+                                    value: ExerciseType.strength,
+                                    label: Text(l10n.exerciseTypeStrength),
+                                  ),
+                                  ButtonSegment(
+                                    value: ExerciseType.cardio,
+                                    label: Text(l10n.exerciseTypeCardio),
+                                  ),
+                                ],
+                                selected: {_selectedType},
+                                onSelectionChanged: (v) {
+                                  _touchDirty();
+                                  setState(() {
+                                    _selectedType = v.first;
+                                    if (_selectedType == ExerciseType.cardio) {
+                                      _isIsometric = false;
+                                    }
+                                  });
+                                },
+                              ),
+                              if (_selectedType == ExerciseType.strength) ...[
+                                const Gap(AthlosSpacing.sm),
+                                SwitchListTile(
+                                  title: Text(l10n.isometricLabel),
+                                  subtitle: Text(l10n.isometricHint),
+                                  value: _isIsometric,
+                                  onChanged: (v) {
+                                    _touchDirty();
+                                    setState(() => _isIsometric = v);
+                                  },
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ],
+                              const Gap(AthlosSpacing.sm),
+                              _buildAdvancedSection(
+                                l10n,
+                                textTheme,
+                                colorScheme,
+                              ),
+                              const Gap(AthlosSpacing.xl),
+                            ],
+                          ),
+                  ),
+                  if (_pendingSimilarReview != null)
+                    Padding(
+                      padding: const EdgeInsets.all(AthlosSpacing.md),
+                      child: AthlosDialogButtonTheme.wrap(
+                        context,
+                        AthlosStackedDialogActions(
+                          children: [
+                            OutlinedButton(
+                              style: AthlosDialogButtonStyles.stackedGhost(
+                                context,
+                              ),
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => _closeSheet(context),
+                              child: Text(l10n.cancel),
+                            ),
+                            FilledButton(
+                              style: AthlosDialogButtonStyles.stackedFilled(
+                                context,
+                              ),
+                              onPressed: _isSaving ? null : _onCreateAnyway,
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(l10n.exerciseCreateAnyway),
+                            ),
                           ],
                         ),
-                ),
-                if (_pendingSimilarReview != null)
-                  Padding(
-                    padding: const EdgeInsets.all(AthlosSpacing.md),
-                    child: AthlosDialogButtonTheme.wrap(
-                      context,
-                      AthlosStackedDialogActions(
-                        children: [
-                          OutlinedButton(
-                            style: AthlosDialogButtonStyles.stackedGhost(
-                              context,
-                            ),
-                            onPressed: _isSaving
-                                ? null
-                                : () => _closeSheet(context),
-                            child: Text(l10n.cancel),
-                          ),
-                          FilledButton(
-                            style: AthlosDialogButtonStyles.stackedFilled(
-                              context,
-                            ),
-                            onPressed: _isSaving ? null : _onCreateAnyway,
-                            child: _isSaving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(l10n.exerciseCreateAnyway),
-                          ),
-                        ],
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.all(AthlosSpacing.md),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _isSaving ? null : _onSave,
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(l10n.save),
+                        ),
                       ),
                     ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.all(AthlosSpacing.md),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _isSaving ? null : _onSave,
-                        child: _isSaving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(l10n.save),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 

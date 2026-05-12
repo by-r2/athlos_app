@@ -39,8 +39,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       final rows = await _dao.getArchived();
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load archived workouts: $e'));
+      return Failure(DatabaseException('Failed to load archived workouts: $e'));
     }
   }
 
@@ -69,21 +68,23 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       await _dao.setExercises(
         id,
         exercises
-            .map((e) => WorkoutExercisesCompanion.insert(
-                  workoutId: id,
-                  exerciseId: e.exerciseId,
-                  order: e.order,
-                  sets: e.sets,
-                  minReps: Value(e.minReps),
-                  maxReps: Value(e.maxReps),
-                  isAmrap: Value(e.isAmrap),
-                  rest: Value(e.rest),
-                  duration: Value(e.duration),
-                  groupId: Value(e.groupId),
-                  isUnilateral: Value(e.isUnilateral),
-                  loadModeOverride: Value(e.loadModeOverride),
-                  notes: Value(e.notes),
-                ))
+            .map(
+              (e) => WorkoutExercisesCompanion.insert(
+                workoutId: id,
+                exerciseId: e.exerciseId,
+                order: e.order,
+                sets: e.sets,
+                minReps: Value(e.minReps),
+                maxReps: Value(e.maxReps),
+                isAmrap: Value(e.isAmrap),
+                rest: Value(e.rest),
+                duration: Value(e.duration),
+                groupId: Value(e.groupId),
+                isUnilateral: Value(e.isUnilateral),
+                loadModeOverride: Value(e.loadModeOverride),
+                notes: Value(e.notes),
+              ),
+            )
             .toList(),
       );
       return Success(id);
@@ -108,21 +109,23 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       await _dao.setExercises(
         workout.id,
         exercises
-            .map((e) => WorkoutExercisesCompanion.insert(
-                  workoutId: workout.id,
-                  exerciseId: e.exerciseId,
-                  order: e.order,
-                  sets: e.sets,
-                  minReps: Value(e.minReps),
-                  maxReps: Value(e.maxReps),
-                  isAmrap: Value(e.isAmrap),
-                  rest: Value(e.rest),
-                  duration: Value(e.duration),
-                  groupId: Value(e.groupId),
-                  isUnilateral: Value(e.isUnilateral),
-                  loadModeOverride: Value(e.loadModeOverride),
-                  notes: Value(e.notes),
-                ))
+            .map(
+              (e) => WorkoutExercisesCompanion.insert(
+                workoutId: workout.id,
+                exerciseId: e.exerciseId,
+                order: e.order,
+                sets: e.sets,
+                minReps: Value(e.minReps),
+                maxReps: Value(e.maxReps),
+                isAmrap: Value(e.isAmrap),
+                rest: Value(e.rest),
+                duration: Value(e.duration),
+                groupId: Value(e.groupId),
+                isUnilateral: Value(e.isUnilateral),
+                loadModeOverride: Value(e.loadModeOverride),
+                notes: Value(e.notes),
+              ),
+            )
             .toList(),
       );
       return const Success(null);
@@ -186,40 +189,42 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
   @override
   Future<Result<List<domain.WorkoutExercise>>> getExercises(
-      int workoutId) async {
+    int workoutId,
+  ) async {
     try {
       final rows = await _dao.getExercises(workoutId);
       return Success(
         rows
-            .map((row) => domain.WorkoutExercise(
-                  workoutId: row.workoutId,
-                  exerciseId: row.exerciseId,
-                  order: row.order,
-                  sets: row.sets,
-                  minReps: row.minReps,
-                  maxReps: row.maxReps,
-                  isAmrap: row.isAmrap,
-                  rest: row.rest,
-                  duration: row.duration,
-                  groupId: row.groupId,
-                  isUnilateral: row.isUnilateral,
-                  loadModeOverride: row.loadModeOverride,
-                  notes: row.notes,
-                ))
+            .map(
+              (row) => domain.WorkoutExercise(
+                workoutId: row.workoutId,
+                exerciseId: row.exerciseId,
+                order: row.order,
+                sets: row.sets,
+                minReps: row.minReps,
+                maxReps: row.maxReps,
+                isAmrap: row.isAmrap,
+                rest: row.rest,
+                duration: row.duration,
+                groupId: row.groupId,
+                isUnilateral: row.isUnilateral,
+                loadModeOverride: row.loadModeOverride,
+                notes: row.notes,
+              ),
+            )
             .toList(),
       );
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to load workout exercises: $e'));
+      return Failure(DatabaseException('Failed to load workout exercises: $e'));
     }
   }
 
   domain.Workout _toDomain(Workout row) => domain.Workout(
-        id: row.id,
-        name: row.name,
-        description: row.description,
-        sortOrder: row.sortOrder,
-        isArchived: row.isArchived,
-        createdAt: row.createdAt,
-      );
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    sortOrder: row.sortOrder,
+    isArchived: row.isArchived,
+    createdAt: row.createdAt,
+  );
 }

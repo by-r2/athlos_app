@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-
 part 'cardio_timer_notifier.g.dart';
 
 class CardioTimerState {
@@ -28,21 +27,19 @@ class CardioTimerState {
   bool get isReady => !isRunning && !isStopped && elapsedSeconds == 0;
 
   /// True when timer is paused (has elapsed time but not running or stopped).
-  bool get isPaused =>
-      !isRunning && !isStopped && elapsedSeconds > 0;
+  bool get isPaused => !isRunning && !isStopped && elapsedSeconds > 0;
 
   CardioTimerState copyWith({
     int? elapsedSeconds,
     int? goalSeconds,
     bool? isRunning,
     bool? isStopped,
-  }) =>
-      CardioTimerState(
-        elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
-        goalSeconds: goalSeconds ?? this.goalSeconds,
-        isRunning: isRunning ?? this.isRunning,
-        isStopped: isStopped ?? this.isStopped,
-      );
+  }) => CardioTimerState(
+    elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+    goalSeconds: goalSeconds ?? this.goalSeconds,
+    isRunning: isRunning ?? this.isRunning,
+    isStopped: isStopped ?? this.isStopped,
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -54,10 +51,7 @@ class CardioTimer extends _$CardioTimer {
 
   void start(int goalSeconds) {
     _timer?.cancel();
-    state = CardioTimerState(
-      goalSeconds: goalSeconds,
-      isRunning: true,
-    );
+    state = CardioTimerState(goalSeconds: goalSeconds, isRunning: true);
     _startTicking();
   }
 
@@ -89,4 +83,3 @@ class CardioTimer extends _$CardioTimer {
     });
   }
 }
-

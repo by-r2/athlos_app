@@ -47,9 +47,11 @@ class CatalogSyncService {
   }
 
   Future<void> _pushPendingGovernanceEvents() async {
-    final rows = await _db.customSelect(
-      "SELECT * FROM catalog_governance_events WHERE status IN ('pending', 'failed') ORDER BY id ASC LIMIT 50",
-    ).get();
+    final rows = await _db
+        .customSelect(
+          "SELECT * FROM catalog_governance_events WHERE status IN ('pending', 'failed') ORDER BY id ASC LIMIT 50",
+        )
+        .get();
     for (final row in rows) {
       final data = row.data;
       final localId = data['id'] as int?;
@@ -101,9 +103,11 @@ class CatalogSyncService {
       final remoteRuleId = rule['id']?.toString();
       final version = (rule['rule_version'] as num?)?.toInt();
       if (remoteRuleId == null || version == null) continue;
-      final alreadyApplied = await _db.customSelect(
-        "SELECT id FROM catalog_governance_applied_rules WHERE remote_rule_id = '${_esc(remoteRuleId)}' LIMIT 1",
-      ).getSingleOrNull();
+      final alreadyApplied = await _db
+          .customSelect(
+            "SELECT id FROM catalog_governance_applied_rules WHERE remote_rule_id = '${_esc(remoteRuleId)}' LIMIT 1",
+          )
+          .getSingleOrNull();
       if (alreadyApplied != null) {
         if (version > maxVersion) maxVersion = version;
         continue;
@@ -150,10 +154,20 @@ class CatalogSyncService {
           loserRemoteId != null &&
           entityType == 'exercise') {
         const tableName = 'exercises';
-        final winnerId = await _findVerifiedIdByRemoteId(tableName, winnerRemoteId);
-        final loserId = await _findVerifiedIdByRemoteId(tableName, loserRemoteId);
+        final winnerId = await _findVerifiedIdByRemoteId(
+          tableName,
+          winnerRemoteId,
+        );
+        final loserId = await _findVerifiedIdByRemoteId(
+          tableName,
+          loserRemoteId,
+        );
         if (winnerId != null && loserId != null && winnerId != loserId) {
-          await _remapReferences(entityType: entityType!, winnerId: winnerId, loserId: loserId);
+          await _remapReferences(
+            entityType: entityType!,
+            winnerId: winnerId,
+            loserId: loserId,
+          );
         }
       }
 
@@ -169,10 +183,15 @@ class CatalogSyncService {
     });
   }
 
-  Future<int?> _findVerifiedIdByRemoteId(String tableName, String remoteId) async {
-    final rows = await _db.customSelect(
-      "SELECT id FROM $tableName WHERE is_verified = 1 AND catalog_remote_id = '${_esc(remoteId)}' LIMIT 1",
-    ).get();
+  Future<int?> _findVerifiedIdByRemoteId(
+    String tableName,
+    String remoteId,
+  ) async {
+    final rows = await _db
+        .customSelect(
+          "SELECT id FROM $tableName WHERE is_verified = 1 AND catalog_remote_id = '${_esc(remoteId)}' LIMIT 1",
+        )
+        .get();
     if (rows.isEmpty) return null;
     return rows.first.data['id'] as int?;
   }
@@ -260,10 +279,8 @@ class CatalogSyncService {
       final type = row['type'] as String;
       final movementPattern = row['movement_pattern'] as String?;
       final description = row['description'] as String?;
-      final mpSql =
-          movementPattern != null ? "'$movementPattern'" : 'NULL';
-      final descSql =
-          description != null ? "'${_esc(description)}'" : 'NULL';
+      final mpSql = movementPattern != null ? "'$movementPattern'" : 'NULL';
+      final descSql = description != null ? "'${_esc(description)}'" : 'NULL';
 
       if (existing == null) {
         await _db.customStatement(
@@ -280,8 +297,11 @@ class CatalogSyncService {
   }
 
   Future<void> _syncTargetMuscles() async {
-    final rows = await _supabase.from('exercise_target_muscles').select(
-        'exercise_id, target_muscle, muscle_region, role, exercises!inner(name)');
+    final rows = await _supabase
+        .from('exercise_target_muscles')
+        .select(
+          'exercise_id, target_muscle, muscle_region, role, exercises!inner(name)',
+        );
 
     final localExercises = await _db.select(_db.exercises).get();
     final nameToId = {for (final e in localExercises) e.name: e.id};
@@ -294,8 +314,7 @@ class CatalogSyncService {
       final targetMuscle = row['target_muscle'] as String;
       final muscleRegion = row['muscle_region'] as String?;
       final role = row['role'] as String? ?? 'primary';
-      final regionSql =
-          muscleRegion != null ? "'$muscleRegion'" : 'NULL';
+      final regionSql = muscleRegion != null ? "'$muscleRegion'" : 'NULL';
 
       await _db.customStatement(
         "INSERT OR IGNORE INTO exercise_target_muscles "

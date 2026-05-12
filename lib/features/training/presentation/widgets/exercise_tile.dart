@@ -36,10 +36,7 @@ class ExerciseTile extends StatelessWidget {
               ),
             )
           : null,
-      trailing: Icon(
-        Icons.chevron_right,
-        color: colorScheme.onSurfaceVariant,
-      ),
+      trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AthlosSpacing.md,
         vertical: AthlosSpacing.xs,
