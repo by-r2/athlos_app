@@ -186,16 +186,19 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       return;
     }
 
+    final authNotifier = ref.read(authProvider.notifier);
+    final authPromptNotifier = ref.read(authPromptProvider.notifier);
+
     setState(() => _isSubmitting = true);
     try {
-      await ref
-          .read(authProvider.notifier)
-          .signInWithEmail(
-            email: _emailController.text,
-            password: _passwordController.text,
-          );
-      await ref.read(authPromptProvider.notifier).markCompleted();
-      if (mounted) context.go(RoutePaths.hub);
+      await authNotifier.signInWithEmail(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      await authPromptNotifier.markCompleted();
+      if (!mounted) return;
+      context.go(RoutePaths.hub);
     } on Exception {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -279,16 +282,19 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       return;
     }
 
+    final authNotifier = ref.read(authProvider.notifier);
+    final authPromptNotifier = ref.read(authPromptProvider.notifier);
+
     setState(() => _isSubmitting = true);
     try {
-      await ref
-          .read(authProvider.notifier)
-          .signUpWithEmail(
-            email: _emailController.text,
-            password: _passwordController.text,
-          );
-      await ref.read(authPromptProvider.notifier).markCompleted();
-      if (mounted) context.go(RoutePaths.hub);
+      await authNotifier.signUpWithEmail(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      await authPromptNotifier.markCompleted();
+      if (!mounted) return;
+      context.go(RoutePaths.hub);
     } on Exception {
       if (!mounted) return;
       ScaffoldMessenger.of(

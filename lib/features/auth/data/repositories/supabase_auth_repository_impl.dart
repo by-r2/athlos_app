@@ -28,9 +28,11 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
     final client = _client;
     if (client == null) return Stream<AuthUser?>.value(null);
 
-    return client.auth.onAuthStateChange.map(
-      (event) => _toDomain(event.session?.user),
-    );
+    return client.auth.onAuthStateChange
+        .where(
+          (event) => event.event != supabase.AuthChangeEvent.initialSession,
+        )
+        .map((event) => _toDomain(event.session?.user));
   }
 
   @override
