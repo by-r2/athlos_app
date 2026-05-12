@@ -202,15 +202,20 @@ class _AuthChoicePanel extends StatelessWidget {
         Center(
           child: Tooltip(
             message: googleTooltip,
-            child: OutlinedButton.icon(
+            child: IconButton(
               onPressed: isBusy ? null : onGoogle,
+              style: IconButton.styleFrom(
+                fixedSize: const Size(56, 56),
+                backgroundColor: Colors.transparent,
+                foregroundColor: colorScheme.onSurface,
+                disabledBackgroundColor: Colors.transparent,
+              ),
               icon: SvgPicture.asset(
                 AthlosAssets.googleLogo,
-                width: 20,
-                height: 20,
+                width: 24,
+                height: 24,
                 semanticsLabel: googleTooltip,
               ),
-              label: Text(googleTooltip),
             ),
           ),
         ),

@@ -2715,15 +2715,15 @@
   "@authPromptSubtitle": {
     "description": "Subtitle explaining cloud account benefits and local data migration"
   },
-  "authPromptBackupBenefit": "Evite perder seus treinos ao trocar ou perder o celular.",
+  "authPromptBackupBenefit": "Guarde seus treinos na sua conta.",
   "@authPromptBackupBenefit": {
     "description": "Account prompt benefit: backup"
   },
-  "authPromptSecurityBenefit": "Seus dados ficam protegidos por login, token de sessão e regras por usuário.",
+  "authPromptSecurityBenefit": "Entre com segurança usando e-mail e senha.",
   "@authPromptSecurityBenefit": {
     "description": "Account prompt benefit: security"
   },
-  "authPromptSyncBenefit": "Sua conta será usada para recursos de nuvem conforme eles forem liberados.",
+  "authPromptSyncBenefit": "Continue usando offline se preferir.",
   "@authPromptSyncBenefit": {
     "description": "Account prompt benefit: gradual sync"
   },
