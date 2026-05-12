@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../domain/entities/auth_error_code.dart';
 import '../../../../core/services/supabase_config.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/enums/social_auth_provider.dart';
@@ -17,9 +18,9 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
     if (client == null) return const Success(null);
 
     try {
-      return Success(_toDomain(client.auth.currentUser));
-    } on Exception catch (e) {
-      return Failure(AuthAppException('Failed to restore auth session: $e'));
+      return Success(_toDomain(client.auth.currentSession?.user));
+    } on Exception {
+      return const Failure(AuthAppException(AuthErrorCode.generic));
     }
   }
 
@@ -42,23 +43,24 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
   }) async {
     final client = _client;
     if (client == null) {
-      return const Failure(AuthAppException('Supabase is not configured.'));
+      return const Failure(AuthAppException(AuthErrorCode.generic));
     }
 
     try {
+      final requestedEmail = _normalizeEmail(email);
+      await _clearExistingSession(client);
       final response = await client.auth.signUp(
-        email: email.trim(),
+        email: requestedEmail,
         password: password,
       );
-      final user = _toDomain(response.user ?? response.session?.user);
-      if (user == null) {
-        return const Failure(
-          AuthAppException('Sign up did not return an authenticated user.'),
-        );
+      final user = _toDomain(response.session?.user);
+      if (user == null || _normalizeEmail(user.email) != requestedEmail) {
+        await _clearExistingSession(client);
+        return const Failure(AuthAppException(AuthErrorCode.emailNotConfirmed));
       }
       return Success(user);
     } on supabase.AuthException catch (e) {
-      return Failure(AuthAppException(e.message));
+      return Failure(AuthAppException(_mapAuthException(e)));
     } on Exception catch (e) {
       return Failure(NetworkException('Failed to sign up: $e'));
     }
@@ -71,23 +73,26 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
   }) async {
     final client = _client;
     if (client == null) {
-      return const Failure(AuthAppException('Supabase is not configured.'));
+      return const Failure(AuthAppException(AuthErrorCode.generic));
     }
 
     try {
+      final requestedEmail = _normalizeEmail(email);
+      await _clearExistingSession(client);
       final response = await client.auth.signInWithPassword(
-        email: email.trim(),
+        email: requestedEmail,
         password: password,
       );
-      final user = _toDomain(response.user ?? response.session?.user);
-      if (user == null) {
+      final user = _toDomain(response.session?.user);
+      if (user == null || _normalizeEmail(user.email) != requestedEmail) {
+        await _clearExistingSession(client);
         return const Failure(
-          AuthAppException('Sign in did not return an authenticated user.'),
+          AuthAppException(AuthErrorCode.invalidCredentials),
         );
       }
       return Success(user);
     } on supabase.AuthException catch (e) {
-      return Failure(AuthAppException(e.message));
+      return Failure(AuthAppException(_mapAuthException(e)));
     } on Exception catch (e) {
       return Failure(NetworkException('Failed to sign in: $e'));
     }
@@ -99,7 +104,7 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
   ) async {
     final client = _client;
     if (client == null) {
-      return const Failure(AuthAppException('Supabase is not configured.'));
+      return const Failure(AuthAppException(AuthErrorCode.generic));
     }
 
     try {
@@ -108,13 +113,11 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
         redirectTo: supabaseRedirectUrl,
       );
       if (!started) {
-        return const Failure(
-          AuthAppException('Could not start the social sign-in flow.'),
-        );
+        return const Failure(AuthAppException(AuthErrorCode.generic));
       }
       return const Success(null);
     } on supabase.AuthException catch (e) {
-      return Failure(AuthAppException(e.message));
+      return Failure(AuthAppException(_mapAuthException(e)));
     } on Exception catch (e) {
       return Failure(NetworkException('Failed to start social sign-in: $e'));
     }
@@ -129,7 +132,7 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
       await client.auth.signOut();
       return const Success(null);
     } on supabase.AuthException catch (e) {
-      return Failure(AuthAppException(e.message));
+      return Failure(AuthAppException(_mapAuthException(e)));
     } on Exception catch (e) {
       return Failure(NetworkException('Failed to sign out: $e'));
     }
@@ -144,6 +147,31 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
       email: user.email,
       displayName: displayName is String ? displayName : null,
     );
+  }
+
+  String _normalizeEmail(String? email) => (email ?? '').trim().toLowerCase();
+
+  String _mapAuthException(supabase.AuthException exception) {
+    final message = exception.message.toLowerCase();
+    if (message.contains('invalid login credentials') ||
+        message.contains('invalid credentials')) {
+      return AuthErrorCode.invalidCredentials;
+    }
+    if (message.contains('email not confirmed') ||
+        message.contains('confirm your email')) {
+      return AuthErrorCode.emailNotConfirmed;
+    }
+    if (message.contains('already registered') ||
+        message.contains('already exists') ||
+        message.contains('user already')) {
+      return AuthErrorCode.accountAlreadyExists;
+    }
+    return AuthErrorCode.generic;
+  }
+
+  Future<void> _clearExistingSession(supabase.SupabaseClient client) async {
+    if (client.auth.currentSession == null) return;
+    await client.auth.signOut();
   }
 
   supabase.OAuthProvider _toSupabaseProvider(SocialAuthProvider provider) =>

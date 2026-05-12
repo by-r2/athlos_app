@@ -131,38 +131,6 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     }
   }
 
-  @override
-  Future<Result<void>> syncLocalProfileToCloud() async {
-    try {
-      final remoteDataSource = _remoteDataSource;
-      if (remoteDataSource == null) {
-        return const Failure(AuthAppException('Cloud sync is not configured.'));
-      }
-
-      final row = await _dao.get();
-      if (row == null) {
-        return const Failure(NotFoundException('No local profile to sync.'));
-      }
-
-      final profile = _toDomain(row);
-      final syncedAt = await remoteDataSource.upsertCurrentProfile(profile);
-      final remoteUserId = remoteDataSource.currentUserId;
-      if (remoteUserId == null) {
-        return const Failure(AuthAppException('User must be signed in.'));
-      }
-      await _dao.markSynced(
-        id: profile.id,
-        remoteUserId: remoteUserId,
-        syncedAt: syncedAt,
-      );
-      return const Success(null);
-    } on AppException catch (e) {
-      return Failure(e);
-    } on Exception catch (e) {
-      return Failure(NetworkException('Failed to sync profile: $e'));
-    }
-  }
-
   Future<void> _syncProfileIfPossible(
     domain.UserProfile profile, {
     required bool allowUnlinked,

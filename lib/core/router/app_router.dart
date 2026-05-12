@@ -6,7 +6,6 @@ import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/auth/presentation/providers/auth_prompt_notifier.dart';
 import '../../features/auth/presentation/screens/account_prompt_screen.dart';
 import '../../features/auth/presentation/screens/auth_email_screen.dart';
-import '../../features/auth/presentation/screens/cloud_profile_migration_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/conflict_center_screen.dart';
@@ -24,6 +23,7 @@ import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import 'app_entry_decision.dart';
 import 'athlos_router_pages.dart';
 import 'route_paths.dart';
 
@@ -36,7 +36,7 @@ GoRouter appRouter(Ref ref) {
 
   final refreshNotifier = ValueNotifier<int>(0);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
-  ref.listen(authPromptProvider, (_, _) => refreshNotifier.value++);
+  ref.listen(localAccessProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
@@ -46,45 +46,19 @@ GoRouter appRouter(Ref ref) {
     redirect: (context, state) {
       final hasProfileAsync = ref.read(hasProfileProvider);
       final authAsync = ref.read(authProvider);
-      final hasCompletedAuthPrompt = ref.read(authPromptProvider);
+      final hasLocalAccess = ref.read(localAccessProvider);
       final location = state.matchedLocation;
-      final isOnSplash = location == RoutePaths.splash;
-      final isOnSetup = location == RoutePaths.profileSetup;
-      final isOnAuthPrompt = location == RoutePaths.authPrompt;
-      final isOnAuthEmail =
-          location == RoutePaths.authSignIn ||
-          location == RoutePaths.authSignUp;
-      final isOnAuthMigration = location == RoutePaths.authMigrateProfile;
-      final isOnAuthRoute =
-          isOnAuthPrompt || isOnAuthEmail || isOnAuthMigration;
-
-      if (hasProfileAsync.isLoading || authAsync.isLoading) {
-        return isOnSplash ? null : RoutePaths.splash;
-      }
-
-      final authUser = authAsync.value;
-      if (isOnSplash) {
-        if (authUser == null && !hasCompletedAuthPrompt) {
-          return RoutePaths.authPrompt;
-        }
-        final hasProfile = hasProfileAsync.value ?? false;
-        return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
-      }
-
       final hasProfile = hasProfileAsync.value ?? false;
 
-      if (authUser == null && !hasCompletedAuthPrompt && !isOnAuthRoute) {
-        return RoutePaths.authPrompt;
-      }
-
-      if (authUser != null && (isOnAuthPrompt || isOnAuthEmail)) {
-        return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
-      }
-
-      if (!hasProfile && !isOnSetup && !isOnAuthRoute) {
-        return RoutePaths.profileSetup;
-      }
-      if (hasProfile && isOnSetup) return RoutePaths.hub;
+      final redirect = resolveAppEntryRedirect(
+        location: location,
+        isAuthLoading: authAsync.isLoading,
+        isProfileLoading: hasProfileAsync.isLoading,
+        hasAuthUser: authAsync.value != null,
+        hasLocalAccess: hasLocalAccess,
+        hasProfile: hasProfile,
+      );
+      if (redirect != null) return redirect;
 
       if (!hasRestoredModule && hasProfile && location == RoutePaths.hub) {
         hasRestoredModule = true;
@@ -121,14 +95,6 @@ GoRouter appRouter(Ref ref) {
           const AuthEmailScreen.signUp(),
         ),
       ),
-      GoRoute(
-        path: RoutePaths.authMigrateProfile,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const CloudProfileMigrationScreen(),
-        ),
-      ),
-
       // Hub (Olympus) — main entry point
       GoRoute(
         path: RoutePaths.hub,

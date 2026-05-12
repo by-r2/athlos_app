@@ -70,13 +70,6 @@ class ProfileNotifier extends _$ProfileNotifier {
     result.getOrThrow();
     state = AsyncData(profile);
   }
-
-  Future<void> syncLocalProfileToCloud() async {
-    final repo = ref.read(userProfileRepositoryProvider);
-    final result = await repo.syncLocalProfileToCloud();
-    result.getOrThrow();
-    ref.invalidateSelf();
-  }
 }
 
 /// Simple provider to check if a profile exists.

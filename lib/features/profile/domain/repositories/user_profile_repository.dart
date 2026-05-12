@@ -7,5 +7,4 @@ abstract interface class UserProfileRepository {
   Future<Result<int>> create(UserProfile profile);
   Future<Result<void>> update(UserProfile profile);
   Future<Result<bool>> hasProfile();
-  Future<Result<void>> syncLocalProfileToCloud();
 }

@@ -2723,13 +2723,17 @@
   "@authPromptSecurityBenefit": {
     "description": "Account prompt benefit: security"
   },
-  "authPromptSyncBenefit": "Começaremos pelo perfil e vamos migrar os outros dados aos poucos.",
+  "authPromptSyncBenefit": "Sua conta será usada para recursos de nuvem conforme eles forem liberados.",
   "@authPromptSyncBenefit": {
     "description": "Account prompt benefit: gradual sync"
   },
   "authCreateAccountAction": "Criar conta",
   "@authCreateAccountAction": {
     "description": "Action to create an account"
+  },
+  "authOpenAccountAction": "Entrar ou criar conta",
+  "@authOpenAccountAction": {
+    "description": "Action that opens the account flow where users can sign in or create an account"
   },
   "authSignInAction": "Entrar",
   "@authSignInAction": {
@@ -2755,33 +2759,21 @@
   "@authSignUpTitle": {
     "description": "Sign-up screen title"
   },
-  "authSignUpChatGreeting": "Vamos criar sua conta Athlos em poucos passos. Se estiver sem internet agora, você pode voltar e continuar usando o app offline.",
-  "@authSignUpChatGreeting": {
-    "description": "Chat-style sign-up greeting"
+  "authSignInEmailSubtitle": "Use o e-mail e senha da sua conta Athlos.",
+  "@authSignInEmailSubtitle": {
+    "description": "Subtitle for the email sign-in form"
   },
-  "authSignUpChatAskEmail": "Qual e-mail você quer usar para entrar?",
-  "@authSignUpChatAskEmail": {
-    "description": "Chat-style sign-up email question"
-  },
-  "authSignUpChatAskPassword": "Perfeito. Agora escolha uma senha com pelo menos 6 caracteres.",
-  "@authSignUpChatAskPassword": {
-    "description": "Chat-style sign-up password question"
-  },
-  "authSignUpChatReady": "Tudo pronto. Vou criar sua conta e manter seus dados locais aqui até você confirmar a migração para a nuvem.",
-  "@authSignUpChatReady": {
-    "description": "Chat-style sign-up ready confirmation"
-  },
-  "authSignUpChatInvalidEmail": "Esse e-mail não parece válido. Tente novamente.",
-  "@authSignUpChatInvalidEmail": {
-    "description": "Chat-style invalid email message"
-  },
-  "authSignUpChatInvalidPassword": "A senha precisa ter pelo menos 6 caracteres. Tente novamente.",
-  "@authSignUpChatInvalidPassword": {
-    "description": "Chat-style invalid password message"
+  "authSignUpEmailSubtitle": "Crie uma conta com e-mail e senha. Você ainda pode usar seus dados locais no aparelho.",
+  "@authSignUpEmailSubtitle": {
+    "description": "Subtitle for the email sign-up form"
   },
   "authEmailLabel": "E-mail",
   "@authEmailLabel": {
     "description": "Email input label"
+  },
+  "authInvalidEmail": "Informe um e-mail válido.",
+  "@authInvalidEmail": {
+    "description": "Validation message for invalid email"
   },
   "authPasswordLabel": "Senha",
   "@authPasswordLabel": {
@@ -2803,29 +2795,25 @@
   "@authGenericError": {
     "description": "Generic auth error shown to users"
   },
+  "authInvalidCredentials": "E-mail ou senha inválidos.",
+  "@authInvalidCredentials": {
+    "description": "Auth error shown for invalid credentials"
+  },
+  "authEmailNotConfirmed": "Confirme seu e-mail antes de entrar.",
+  "@authEmailNotConfirmed": {
+    "description": "Auth error shown when email confirmation is required"
+  },
+  "authAccountAlreadyExists": "Já existe uma conta com esse e-mail. Tente entrar.",
+  "@authAccountAlreadyExists": {
+    "description": "Auth error shown when trying to create an account with an existing email"
+  },
+  "authNetworkError": "Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.",
+  "@authNetworkError": {
+    "description": "Auth error shown for network failures"
+  },
   "authGoogleStarted": "Conclua o login no navegador.",
   "@authGoogleStarted": {
     "description": "Message after starting OAuth"
-  },
-  "authMigrationTitle": "Enviar perfil para a nuvem?",
-  "@authMigrationTitle": {
-    "description": "Cloud migration prompt title"
-  },
-  "authMigrationSubtitle": "Encontramos um perfil salvo neste aparelho. Depois do login, você pode enviá-lo para sua conta antes de continuar.",
-  "@authMigrationSubtitle": {
-    "description": "Cloud migration prompt subtitle"
-  },
-  "authMigrationSyncAction": "Migrar perfil agora",
-  "@authMigrationSyncAction": {
-    "description": "Action to sync local profile to cloud"
-  },
-  "authMigrationSkipAction": "Fazer depois",
-  "@authMigrationSkipAction": {
-    "description": "Action to skip cloud migration temporarily"
-  },
-  "authMigrationSuccess": "Perfil salvo na sua conta.",
-  "@authMigrationSuccess": {
-    "description": "Success message after syncing profile to cloud"
   },
   "authLogoutAction": "Sair da conta",
   "@authLogoutAction": {
@@ -2834,6 +2822,10 @@
   "authAccountSectionTitle": "Conta e nuvem",
   "@authAccountSectionTitle": {
     "description": "Profile data tab section title for account/cloud state"
+  },
+  "authCheckingSession": "Verificando sessão da conta...",
+  "@authCheckingSession": {
+    "description": "Message shown while the app checks whether the user is signed in"
   },
   "authSignedInAs": "Conectado como {email}",
   "@authSignedInAs": {
@@ -2845,10 +2837,6 @@
   "authNotSignedIn": "Você ainda está usando dados locais neste aparelho.",
   "@authNotSignedIn": {
     "description": "Not signed-in account label"
-  },
-  "authSyncProfileAction": "Salvar perfil na nuvem",
-  "@authSyncProfileAction": {
-    "description": "Action to sync profile to cloud from Profile data tab"
   },
   "authSupabaseNotConfigured": "Supabase não está configurado neste build.",
   "@authSupabaseNotConfigured": {

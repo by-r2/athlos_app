@@ -26,7 +26,7 @@ class AccountPromptScreen extends ConsumerWidget {
   }
 
   Future<void> _continueLocal(BuildContext context, WidgetRef ref) async {
-    await ref.read(authPromptProvider.notifier).markCompleted();
+    await ref.read(localAccessProvider.notifier).accept();
     if (!context.mounted) return;
     await _goToApp(context, ref);
   }
@@ -70,7 +70,7 @@ class AccountPromptScreen extends ConsumerWidget {
         subtitle: l10n.authPromptSubtitle,
         heroHeightFactor: 0.38,
         symbolSize: 132,
-        child: const AthlosAuthCheckingPanel(),
+        child: AthlosAuthCheckingPanel(message: l10n.authCheckingSession),
       ),
       error: (_, _) => AthlosAuthScaffold(
         title: l10n.appTitle,
@@ -105,6 +105,11 @@ class AccountPromptScreen extends ConsumerWidget {
           symbolSize: 132,
           child: _AuthChoicePanel(
             title: l10n.authPromptTitle,
+            benefits: [
+              l10n.authPromptBackupBenefit,
+              l10n.authPromptSecurityBenefit,
+              l10n.authPromptSyncBenefit,
+            ],
             signInLabel: l10n.authSignInAction,
             createAccountLabel: l10n.authCreateAccountAction,
             googleTooltip: l10n.authSignInWithGoogleAction,
@@ -124,6 +129,7 @@ class AccountPromptScreen extends ConsumerWidget {
 class _AuthChoicePanel extends StatelessWidget {
   const _AuthChoicePanel({
     required this.title,
+    required this.benefits,
     required this.signInLabel,
     required this.createAccountLabel,
     required this.googleTooltip,
@@ -136,6 +142,7 @@ class _AuthChoicePanel extends StatelessWidget {
   });
 
   final String title;
+  final List<String> benefits;
   final String signInLabel;
   final String createAccountLabel;
   final String googleTooltip;
@@ -163,6 +170,25 @@ class _AuthChoicePanel extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const Gap(AthlosSpacing.xl),
+        for (final benefit in benefits) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.check_circle_outline, color: colorScheme.primary),
+              const Gap(AthlosSpacing.sm),
+              Expanded(
+                child: Text(
+                  benefit,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Gap(AthlosSpacing.sm),
+        ],
+        const Gap(AthlosSpacing.md),
         FilledButton(
           onPressed: isBusy ? null : onSignIn,
           child: Text(signInLabel),
@@ -176,15 +202,15 @@ class _AuthChoicePanel extends StatelessWidget {
         Center(
           child: Tooltip(
             message: googleTooltip,
-            child: IconButton(
+            child: OutlinedButton.icon(
               onPressed: isBusy ? null : onGoogle,
-              style: IconButton.styleFrom(fixedSize: const Size(56, 56)),
               icon: SvgPicture.asset(
                 AthlosAssets.googleLogo,
-                width: 24,
-                height: 24,
+                width: 20,
+                height: 20,
                 semanticsLabel: googleTooltip,
               ),
+              label: Text(googleTooltip),
             ),
           ),
         ),

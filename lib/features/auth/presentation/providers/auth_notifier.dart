@@ -23,36 +23,48 @@ class AuthNotifier extends _$AuthNotifier {
     return result.getOrThrow();
   }
 
-  Future<void> signUpWithEmail({
+  Future<AuthUser> signUpWithEmail({
     required String email,
     required String password,
   }) async {
     final previousUser = state.value;
     state = const AsyncLoading();
     try {
+      if (previousUser != null) {
+        final signOutResult = await ref.read(authRepositoryProvider).signOut();
+        signOutResult.getOrThrow();
+      }
       final result = await ref
           .read(authRepositoryProvider)
           .signUpWithEmail(email: email, password: password);
-      state = AsyncData(result.getOrThrow());
+      final user = result.getOrThrow();
+      state = AsyncData(user);
+      return user;
     } on Object {
-      state = AsyncData(previousUser);
+      state = const AsyncData(null);
       rethrow;
     }
   }
 
-  Future<void> signInWithEmail({
+  Future<AuthUser> signInWithEmail({
     required String email,
     required String password,
   }) async {
     final previousUser = state.value;
     state = const AsyncLoading();
     try {
+      if (previousUser != null) {
+        final signOutResult = await ref.read(authRepositoryProvider).signOut();
+        signOutResult.getOrThrow();
+      }
       final result = await ref
           .read(authRepositoryProvider)
           .signInWithEmail(email: email, password: password);
-      state = AsyncData(result.getOrThrow());
+      final user = result.getOrThrow();
+      state = AsyncData(user);
+      return user;
     } on Object {
-      state = AsyncData(previousUser);
+      state = const AsyncData(null);
       rethrow;
     }
   }

@@ -13,7 +13,6 @@ abstract final class RoutePaths {
   static const authPrompt = '/auth';
   static const authSignIn = '/auth/sign-in';
   static const authSignUp = '/auth/sign-up';
-  static const authMigrateProfile = '/auth/migrate-profile';
 
   // Profile
   static const profile = '/profile';

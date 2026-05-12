@@ -62,7 +62,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   _EditingTab _editingTab = _EditingTab.none;
   bool _isExporting = false;
   bool _isImporting = false;
-  bool _isCloudSyncing = false;
+  bool _isSigningOut = false;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -447,40 +447,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    authUser?.email != null
-                        ? l10n.authSignedInAs(authUser!.email!)
-                        : l10n.authNotSignedIn,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  if (authUser == null)
+                  if (authAsync.isLoading) ...[
+                    Row(
+                      children: [
+                        const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const Gap(AthlosSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            l10n.authCheckingSession,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (authUser == null) ...[
+                    Text(
+                      l10n.authNotSignedIn,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Gap(AthlosSpacing.md),
                     FilledButton.icon(
                       onPressed: () => context.push(RoutePaths.authPrompt),
-                      icon: const Icon(Icons.person_add_alt_outlined),
-                      label: Text(l10n.authCreateAccountAction),
-                    )
-                  else ...[
-                    FilledButton.icon(
-                      onPressed: _isCloudSyncing
-                          ? null
-                          : () => _syncProfileToCloud(l10n),
-                      icon: _isCloudSyncing
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            )
-                          : const Icon(Icons.cloud_upload_outlined),
-                      label: Text(l10n.authSyncProfileAction),
+                      icon: const Icon(Icons.login),
+                      label: Text(l10n.authOpenAccountAction),
                     ),
-                    const Gap(AthlosSpacing.sm),
-                    OutlinedButton.icon(
-                      onPressed: _isCloudSyncing ? null : _signOut,
-                      icon: const Icon(Icons.logout),
+                  ] else ...[
+                    Text(
+                      authUser.email != null
+                          ? l10n.authSignedInAs(authUser.email!)
+                          : l10n.authNotSignedIn,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    FilledButton.icon(
+                      onPressed: _isSigningOut ? null : () => _signOut(l10n),
+                      icon: _isSigningOut
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.logout),
                       label: Text(l10n.authLogoutAction),
                     ),
                   ],
@@ -566,33 +575,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Future<void> _syncProfileToCloud(AppLocalizations l10n) async {
-    setState(() => _isCloudSyncing = true);
+  Future<void> _signOut(AppLocalizations l10n) async {
+    setState(() => _isSigningOut = true);
     try {
-      await ref.read(profileProvider.notifier).syncLocalProfileToCloud();
-      final user = ref.read(authProvider).value;
-      if (user != null) {
-        await ref
-            .read(cloudProfileMigrationPromptProvider(user.id).notifier)
-            .reset();
-      }
+      await ref.read(authProvider.notifier).signOut();
+      await ref.read(localAccessProvider.notifier).reset();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authMigrationSuccess)));
+      context.go(RoutePaths.authPrompt);
     } on Exception {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
     } finally {
-      if (mounted) setState(() => _isCloudSyncing = false);
+      if (mounted) setState(() => _isSigningOut = false);
     }
-  }
-
-  Future<void> _signOut() async {
-    await ref.read(authProvider.notifier).signOut();
-    if (mounted) context.go(RoutePaths.authPrompt);
   }
 
   Future<void> _importData(AppLocalizations l10n) async {

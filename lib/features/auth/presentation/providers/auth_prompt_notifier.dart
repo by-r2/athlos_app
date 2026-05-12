@@ -4,46 +4,25 @@ import '../../../../core/providers/last_module_provider.dart';
 
 part 'auth_prompt_notifier.g.dart';
 
-const _authPromptKey = 'auth_prompt_completed_2026_auth_sync_mvp';
-const _cloudMigrationSkipPrefix = 'cloud_profile_migration_skipped_';
+const _localAccessAcceptedKey = 'local_access_accepted_v1';
 
 @Riverpod(keepAlive: true)
-class AuthPromptNotifier extends _$AuthPromptNotifier {
+class LocalAccess extends _$LocalAccess {
   @override
   bool build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    return prefs.getBool(_authPromptKey) ?? false;
+    return prefs.getBool(_localAccessAcceptedKey) ?? false;
   }
 
-  Future<void> markCompleted() async {
-    await ref.read(sharedPreferencesProvider).setBool(_authPromptKey, true);
-    state = true;
-  }
-}
-
-@riverpod
-bool cloudProfileMigrationSkipped(Ref ref, String userId) {
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return prefs.getBool('$_cloudMigrationSkipPrefix$userId') ?? false;
-}
-
-@riverpod
-class CloudProfileMigrationPrompt extends _$CloudProfileMigrationPrompt {
-  @override
-  bool build(String userId) =>
-      ref.watch(cloudProfileMigrationSkippedProvider(userId));
-
-  Future<void> skip() async {
+  Future<void> accept() async {
     await ref
         .read(sharedPreferencesProvider)
-        .setBool('$_cloudMigrationSkipPrefix$userId', true);
+        .setBool(_localAccessAcceptedKey, true);
     state = true;
   }
 
   Future<void> reset() async {
-    await ref
-        .read(sharedPreferencesProvider)
-        .remove('$_cloudMigrationSkipPrefix$userId');
+    await ref.read(sharedPreferencesProvider).remove(_localAccessAcceptedKey);
     state = false;
   }
 }

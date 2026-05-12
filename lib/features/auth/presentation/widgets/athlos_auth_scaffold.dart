@@ -186,14 +186,31 @@ class AthlosAuthOfflinePanel extends StatelessWidget {
 }
 
 class AthlosAuthCheckingPanel extends StatelessWidget {
-  const AthlosAuthCheckingPanel({super.key});
+  const AthlosAuthCheckingPanel({super.key, this.message});
+
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: SizedBox.square(
-        dimension: 28,
-        child: CircularProgressIndicator(strokeWidth: 2),
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox.square(
+            dimension: 28,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          if (message != null) ...[
+            const Gap(AthlosSpacing.md),
+            Text(
+              message!,
+              style: textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
       ),
     );
   }
