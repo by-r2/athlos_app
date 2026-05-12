@@ -1,4 +1,5 @@
 import '../../domain/entities/workout_exercise.dart';
+import '../../domain/enums/load_mode.dart';
 
 /// In-memory representation of a drop set segment during active execution.
 ///
@@ -50,8 +51,8 @@ class SetEntry {
   /// Rate of Perceived Exertion (1–10). Null when not recorded.
   final int? rpe;
 
-  /// Per-set user notes (e.g. "shoulder pain", "try wider grip").
-  final String? notes;
+  /// Rare per-set load mode override. Null inherits workout + catalog.
+  final LoadMode? loadModeOverride;
 
   final int? leftReps;
   final double? leftWeight;
@@ -73,7 +74,7 @@ class SetEntry {
     this.isCompleted = false,
     this.isWarmup = false,
     this.rpe,
-    this.notes,
+    this.loadModeOverride,
     this.leftReps,
     this.leftWeight,
     this.rightReps,
@@ -96,7 +97,7 @@ class SetEntry {
     bool? isCompleted,
     bool? isWarmup,
     int? Function()? rpe,
-    String? Function()? notes,
+    LoadMode? Function()? loadModeOverride,
     int? Function()? leftReps,
     double? Function()? leftWeight,
     int? Function()? rightReps,
@@ -119,7 +120,9 @@ class SetEntry {
         isCompleted: isCompleted ?? this.isCompleted,
         isWarmup: isWarmup ?? this.isWarmup,
         rpe: rpe != null ? rpe() : this.rpe,
-        notes: notes != null ? notes() : this.notes,
+        loadModeOverride: loadModeOverride != null
+            ? loadModeOverride()
+            : this.loadModeOverride,
         leftReps: leftReps != null ? leftReps() : this.leftReps,
         leftWeight: leftWeight != null ? leftWeight() : this.leftWeight,
         rightReps: rightReps != null ? rightReps() : this.rightReps,
@@ -144,6 +147,7 @@ class SetEntry {
           isCompleted == other.isCompleted &&
           isWarmup == other.isWarmup &&
           rpe == other.rpe &&
+          loadModeOverride == other.loadModeOverride &&
           leftReps == other.leftReps &&
           leftWeight == other.leftWeight &&
           rightReps == other.rightReps &&
@@ -152,7 +156,7 @@ class SetEntry {
   @override
   int get hashCode => Object.hash(id, setNumber, plannedReps, plannedWeight,
       plannedDuration, reps, weight, duration, distance, isCompleted, isWarmup,
-      rpe, leftReps, leftWeight, rightReps, rightWeight);
+      rpe, loadModeOverride, leftReps, leftWeight, rightReps, rightWeight);
 }
 
 /// Holds the full state of an active workout execution in progress.

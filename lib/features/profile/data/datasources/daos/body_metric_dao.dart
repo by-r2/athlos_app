@@ -21,6 +21,14 @@ class BodyMetricDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  /// Most recent entry with [recordedAt] on or before [instant] (inclusive).
+  Future<BodyMetric?> getLatestAtOrBefore(DateTime instant) =>
+      (select(bodyMetrics)
+            ..where((m) => m.recordedAt.isSmallerOrEqualValue(instant))
+            ..orderBy([(m) => OrderingTerm.desc(m.recordedAt)])
+            ..limit(1))
+          .getSingleOrNull();
+
   Future<int> create(BodyMetricsCompanion entry) =>
       into(bodyMetrics).insert(entry);
 

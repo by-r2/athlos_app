@@ -1,4 +1,5 @@
 import '../enums/exercise_type.dart';
+import '../enums/load_mode.dart';
 import '../enums/movement_pattern.dart';
 import '../enums/muscle_group.dart';
 import '../enums/muscle_region.dart';
@@ -28,9 +29,23 @@ class Exercise {
   final String? description;
   final bool isVerified;
 
-  /// True for exercises performed with body weight (pull-up, dip, push-up…).
-  /// Affects load calculation: total load = profile weight + added weight.
-  final bool isBodyweight;
+  /// Default load mode suggested by the catalog. The user may override per
+  /// workout (`WorkoutExercise.loadModeOverride`) or per executed set
+  /// (`ExecutionSet.loadModeOverride`).
+  ///
+  /// Replaces the legacy `isBodyweight: bool` flag — `defaultLoadMode ==
+  /// LoadMode.bodyweight` is the equivalent of "is bodyweight" for filtering.
+  final LoadMode defaultLoadMode;
+
+  /// Fraction of body weight applied as load when the exercise is performed
+  /// in `bodyweight` or `assisted` modes (e.g. 0.64 for a standard push-up,
+  /// 1.00 for a pull-up). Source: Ebben et al. (2011) JSCR; ExRx via de Leva
+  /// segmental data.
+  ///
+  /// `null` means the exercise never uses body weight as part of the load.
+  /// A non-null value also signals that the catalog supports switching the
+  /// load mode at the workout level (BW ↔ machine ↔ assisted).
+  final double? bodyweightLoadFactor;
 
   /// True for isometric exercises measured in duration rather than reps
   /// (plank, wall sit, dead hang, L-sit, etc.).
@@ -47,10 +62,16 @@ class Exercise {
     this.movementPattern,
     this.description,
     this.isVerified = false,
-    this.isBodyweight = false,
+    this.defaultLoadMode = LoadMode.weighted,
+    this.bodyweightLoadFactor,
     this.isIsometric = false,
     this.muscles = const [],
   });
 
   bool get isCardio => type == ExerciseType.cardio;
+
+  /// Whether this exercise can switch between BW / machine / assisted at the
+  /// workout level. Tied to the presence of a load factor.
+  bool get supportsLoadModeOverride =>
+      bodyweightLoadFactor != null && !isIsometric;
 }

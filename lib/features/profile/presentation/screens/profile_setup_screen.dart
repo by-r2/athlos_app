@@ -10,6 +10,8 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -76,6 +78,10 @@ class _ChatEntry {
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _scrollController = ScrollController();
   final _textController = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  final _bodyFatCtrl = TextEditingController();
+  final _heightCtrl = TextEditingController();
+  final _ageCtrl = TextEditingController();
   final _entries = <_ChatEntry>[];
 
   bool _isSaving = false;
@@ -83,9 +89,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   int? _editingIndex;
   _StepType? _editingStep;
 
+  /// Latest question step shown by Chiron (drives setup progress between messages).
+  _StepType? _latestPromptStep;
+
   // Collected data
   String? _name;
   double? _weight;
+  double? _bodyFatPercent;
   double? _height;
   int? _age;
   Gender? _gender;
@@ -108,6 +118,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   void dispose() {
     _scrollController.dispose();
     _textController.dispose();
+    _weightCtrl.dispose();
+    _bodyFatCtrl.dispose();
+    _heightCtrl.dispose();
+    _ageCtrl.dispose();
     super.dispose();
   }
 
@@ -123,7 +137,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   void _addChironMessage(String text, {_StepType? inputStep}) {
     setState(() {
       _entries.add(_ChatEntry(text: text, isUser: false, inputStep: inputStep));
-      if (inputStep != null) _waitingInput = true;
+      if (inputStep != null) {
+        _waitingInput = true;
+        _latestPromptStep = inputStep;
+      }
     });
     _scrollToBottom();
   }
@@ -158,6 +175,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   _StepType? get _activeInputStep => _editingStep ?? _currentInputStep;
+
+  /// 0 → none yet; 1 → full bar on final [done] step.
+  double get _setupProgressFraction {
+    final step = _editingStep ?? _latestPromptStep;
+    if (step == null) return 0;
+    return (step.index + 1) / _StepType.values.length;
+  }
+
+  bool get _hasUnpersistedSetupProgress =>
+      !_isSaving &&
+      (_entries.any((e) => e.isUser) ||
+          _textController.text.trim().isNotEmpty ||
+          _editingIndex != null);
 
   bool _tryApplyEditedAnswer({
     required _StepType step,
@@ -203,6 +233,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       _waitingInput = true;
       if (_editingStep == _StepType.name) {
         _textController.text = _name ?? '';
+      } else if (_editingStep == _StepType.body) {
+        _weightCtrl.text = _weight != null ? _weight.toString() : '';
+        _bodyFatCtrl.text = _bodyFatPercent != null
+            ? (_bodyFatPercent! % 1 == 0
+                ? _bodyFatPercent!.toInt().toString()
+                : _bodyFatPercent!.toStringAsFixed(1))
+            : '';
+        _heightCtrl.text = _height != null ? _height.toString() : '';
+        _ageCtrl.text = _age != null ? _age.toString() : '';
       }
     });
     _scrollToBottom();
@@ -237,18 +276,46 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   void _onBodySubmitted() {
     final l10n = AppLocalizations.of(context)!;
+    final w = _tryParseDecimal(_weightCtrl.text);
+    final bf = _tryParseDecimal(_bodyFatCtrl.text);
+    final h = _tryParseDecimal(_heightCtrl.text);
+    final a = int.tryParse(_ageCtrl.text.trim());
+
+    if (bf != null && w == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.setupChatBodyFatNeedsWeight)),
+      );
+      return;
+    }
+
+    String bfBubble(double value) {
+      final s =
+          value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+      return l10n.bodyMetricsDashboardBodyFat(s);
+    }
+
     final parts = <String>[];
-    if (_weight != null) parts.add('${_weight}kg');
-    if (_height != null) parts.add('${_height}cm');
-    if (_age != null) parts.add('$_age ${l10n.yearsUnit}');
+    if (w != null) parts.add('${w}kg');
+    if (bf != null) parts.add(bfBubble(bf));
+    if (h != null) parts.add('${h}cm');
+    if (a != null) parts.add('$a ${l10n.yearsUnit}');
     final userText = parts.isEmpty ? l10n.setupChatSkipped : parts.join(', ');
     if (_tryApplyEditedAnswer(
       step: _StepType.body,
       text: userText,
-      applyValue: () {},
+      applyValue: () {
+        _weight = w;
+        _bodyFatPercent = bf;
+        _height = h;
+        _age = a;
+      },
     )) {
       return;
     }
+    _weight = w;
+    _bodyFatPercent = bf;
+    _height = h;
+    _age = a;
     _addUserMessage(userText, answeredStep: _StepType.body);
 
     Future.delayed(const Duration(milliseconds: 400), () {
@@ -469,7 +536,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           );
 
       if (_weight != null) {
-        await ref.read(bodyMetricListProvider.notifier).add(weight: _weight!);
+        await ref.read(bodyMetricListProvider.notifier).add(
+              weight: _weight!,
+              bodyFatPercent: _bodyFatPercent,
+            );
       }
 
       await _ensureDefaultProgram();
@@ -526,10 +596,28 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ConfirmNavigationScope(
+      guardActive: _hasUnpersistedSetupProgress,
+      onConfirmLeave: confirmDiscardUnsavedEdits,
+      onLeaveConfirmed: (ctx) {
+        if (ctx.mounted) ctx.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(l10n.profileSetupTitle),
         automaticallyImplyLeading: false,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: LinearProgressIndicator(
+            value: _setupProgressFraction,
+            minHeight: 2,
+            backgroundColor:
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            color: colorScheme.primary.withValues(alpha: 0.38),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _persist,
@@ -574,6 +662,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -803,117 +892,74 @@ class _NameInput extends StatelessWidget {
   }
 }
 
-class _BodyInput extends StatefulWidget {
+class _BodyInput extends StatelessWidget {
   final _ProfileSetupScreenState state;
   const _BodyInput({required this.state});
 
   @override
-  State<_BodyInput> createState() => _BodyInputState();
-}
-
-class _BodyInputState extends State<_BodyInput> {
-  final _weightCtrl = TextEditingController();
-  final _heightCtrl = TextEditingController();
-  final _ageCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _weightCtrl.text = widget.state._weight?.toString() ?? '';
-    _heightCtrl.text = widget.state._height?.toString() ?? '';
-    _ageCtrl.text = widget.state._age?.toString() ?? '';
-  }
-
-  @override
-  void dispose() {
-    _weightCtrl.dispose();
-    _heightCtrl.dispose();
-    _ageCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    InputDecoration bodyFieldDecoration({
+      required String labelText,
+      String? suffixText,
+    }) =>
+        InputDecoration(
+          labelText: labelText,
+          suffixText: suffixText,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AthlosSpacing.smd,
+            vertical: AthlosSpacing.smd,
+          ),
+          border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
+        );
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _weightCtrl,
-                decoration: InputDecoration(
-                  hintText: l10n.weightLabel,
-                  suffixText: l10n.weightUnit,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.smd,
-                    vertical: AthlosSpacing.smd,
-                  ),
-                  border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-                ],
-              ),
-            ),
-            const Gap(AthlosSpacing.sm),
-            Expanded(
-              child: TextField(
-                controller: _heightCtrl,
-                decoration: InputDecoration(
-                  hintText: l10n.heightLabel,
-                  suffixText: l10n.heightUnit,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.smd,
-                    vertical: AthlosSpacing.smd,
-                  ),
-                  border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-                ],
-              ),
-            ),
-            const Gap(AthlosSpacing.sm),
-            Expanded(
-              child: TextField(
-                controller: _ageCtrl,
-                decoration: InputDecoration(
-                  hintText: l10n.ageLabel,
-                  suffixText: l10n.yearsUnit,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.smd,
-                    vertical: AthlosSpacing.smd,
-                  ),
-                  border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-            ),
+        TextField(
+          controller: state._weightCtrl,
+          decoration: bodyFieldDecoration(labelText: l10n.weightLabel),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
           ],
         ),
         const Gap(AthlosSpacing.sm),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: () {
-              widget.state._weight = _tryParseDecimal(_weightCtrl.text);
-              widget.state._height = _tryParseDecimal(_heightCtrl.text);
-              widget.state._age = int.tryParse(_ageCtrl.text);
-              widget.state._onBodySubmitted();
-            },
-            child: Text(l10n.next),
+        TextField(
+          controller: state._bodyFatCtrl,
+          decoration: bodyFieldDecoration(
+            labelText: l10n.bodyMetricsBodyFatLabel,
+          ).copyWith(hintText: l10n.bodyMetricsBodyFatHint),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+          ],
+        ),
+        const Gap(AthlosSpacing.sm),
+        TextField(
+          controller: state._heightCtrl,
+          decoration: bodyFieldDecoration(labelText: l10n.heightLabel),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+          ],
+        ),
+        const Gap(AthlosSpacing.sm),
+        TextField(
+          controller: state._ageCtrl,
+          decoration: bodyFieldDecoration(
+            labelText: l10n.ageLabel,
+            suffixText: l10n.yearsUnit,
           ),
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+        const Gap(AthlosSpacing.sm),
+        FilledButton(
+          onPressed: state._onBodySubmitted,
+          child: Text(l10n.next),
         ),
       ],
     );

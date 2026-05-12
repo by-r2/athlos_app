@@ -4,6 +4,8 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -107,7 +109,14 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
+    final shouldConfirmLeave = chatState.isStreaming ||
+        _controller.text.trim().isNotEmpty ||
+        chatState.messages.isNotEmpty;
+
+    return ConfirmNavigationScope(
+      guardActive: shouldConfirmLeave,
+      onConfirmLeave: confirmLeaveChironAssistant,
+      child: Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.85,
@@ -173,6 +182,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 

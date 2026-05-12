@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../profile/data/repositories/profile_providers.dart';
 import '../../domain/repositories/cycle_repository.dart';
 import '../../domain/repositories/exercise_repository.dart';
 import '../../domain/repositories/program_repository.dart';
@@ -61,7 +62,12 @@ WorkoutRepository workoutRepository(Ref ref) =>
 
 @riverpod
 WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>
-    WorkoutExecutionRepositoryImpl(ref.watch(workoutExecutionDaoProvider));
+    WorkoutExecutionRepositoryImpl(
+      ref.watch(workoutExecutionDaoProvider),
+      exerciseRepository: ref.watch(exerciseRepositoryProvider),
+      workoutRepository: ref.watch(workoutRepositoryProvider),
+      bodyMetricRepository: ref.watch(bodyMetricRepositoryProvider),
+    );
 
 @riverpod
 CycleRepository cycleRepository(Ref ref) =>

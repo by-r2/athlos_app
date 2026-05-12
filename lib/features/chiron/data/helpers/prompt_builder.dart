@@ -4,7 +4,9 @@ import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../../profile/domain/repositories/user_profile_repository.dart';
 import '../../../training/domain/entities/exercise.dart';
+import '../../../training/domain/helpers/training_metrics.dart';
 import '../../../training/domain/entities/workout.dart';
+import '../../../training/domain/entities/workout_exercise.dart';
 import '../../../training/domain/entities/workout_execution.dart';
 import '../../../training/domain/repositories/exercise_repository.dart';
 import '../../../training/domain/repositories/workout_execution_repository.dart';
@@ -91,6 +93,8 @@ class PromptBuilder {
       execResult,
       workoutResult,
       exerciseMap,
+      {for (final e in allExercises) e.id: e},
+      bodyWeight,
       sections,
       maxItems: recentExecutionsLimit,
     );
@@ -210,6 +214,8 @@ class PromptBuilder {
     Result<List<WorkoutExecution>> execResult,
     Result<List<Workout>> workoutResult,
     Map<int, String> exerciseMap,
+    Map<int, Exercise> exerciseById,
+    double? profileBodyWeight,
     List<String> sections, {
     required int maxItems,
   }) async {
@@ -231,6 +237,9 @@ class PromptBuilder {
     final setResults = await Future.wait(
       recent.map((exec) => _executionRepo.getSets(exec.id)),
     );
+    final weResults = await Future.wait(
+      recent.map((exec) => _workoutRepo.getExercises(exec.workoutId)),
+    );
 
     final lines = <String>['## Recent History (${recent.length} sessions)'];
     for (var i = 0; i < recent.length; i++) {
@@ -242,34 +251,59 @@ class PromptBuilder {
           workoutNames[exec.workoutId] ?? 'Workout #${exec.workoutId}';
       final dateFmt = exec.startedAt.toLocal().toString().substring(0, 10);
 
+      final historicResult =
+          await _bodyMetricRepo.getLatestAtOrBefore(exec.startedAt);
+      final historicWeight = historicResult.isSuccess
+          ? historicResult.getOrThrow()?.weight
+          : null;
+
+      final workoutExercises = weResults[i].isSuccess
+          ? weResults[i].getOrThrow()
+          : <WorkoutExercise>[];
+      final weByExerciseId = {
+        for (final we in workoutExercises) we.exerciseId: we,
+      };
+
       final setsResult = setResults[i];
       if (setsResult.isSuccess) {
         final sets = setsResult.getOrThrow();
         final bestByExercise = <int, String>{};
-        final setNotes = <int, List<String>>{};
         for (final s in sets.where((s) => s.isCompleted)) {
-          final base = s.weight != null
-              ? '${s.weight}kg×${s.reps ?? 0}'
-              : s.duration != null
-                  ? '${s.duration}s'
-                  : '${s.reps ?? 0}r';
+          final exercise = exerciseById[s.exerciseId];
+          final we = weByExerciseId[s.exerciseId];
+          final resolvedMode = exercise != null
+              ? resolveLoadMode(
+                  set: s,
+                  workoutExercise: we,
+                  exercise: exercise,
+                )
+              : null;
+          final resolvedBody = s.bodyWeightSnapshot ??
+              historicWeight ??
+              profileBodyWeight;
+          final load = exercise != null
+              ? effectiveLoad(
+                  mode: resolvedMode!,
+                  setWeight: s.weight,
+                  bodyWeight: resolvedBody,
+                  loadFactor: exercise.bodyweightLoadFactor,
+                )
+              : s.weight;
+          final loadModeTag = resolvedMode != null
+              ? '[mode=${resolvedMode.name}] '
+              : '';
+          final loadTag =
+              load != null ? '${load.toStringAsFixed(1)}kg×${s.reps ?? 0}' : null;
+          final base = loadTag ??
+              (s.duration != null ? '${s.duration}s' : '${s.reps ?? 0}r');
           final label = s.rpe != null ? '$base @RPE${s.rpe}' : base;
           final prev = bestByExercise[s.exerciseId];
-          if (prev == null) bestByExercise[s.exerciseId] = label;
-          if (s.notes != null && s.notes!.isNotEmpty) {
-            setNotes
-                .putIfAbsent(s.exerciseId, () => [])
-                .add(s.notes!);
-          }
+          if (prev == null) bestByExercise[s.exerciseId] = '$loadModeTag$label';
         }
         final summary = bestByExercise.entries
             .map((e) {
               final exName = exerciseMap[e.key] ?? '#${e.key}';
-              final notes = setNotes[e.key];
-              final noteSuffix = notes != null && notes.isNotEmpty
-                  ? ' (${notes.join('; ')})'
-                  : '';
-              return '$exName ${e.value}$noteSuffix';
+              return '$exName ${e.value}';
             })
             .join(', ');
         lines.add('- $dateFmt $wName ($duration) [$summary]');

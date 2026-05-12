@@ -27,7 +27,7 @@ abstract interface class WorkoutExecutionRepository {
 
   /// Deletes executions referencing workouts that no longer exist.
   Future<Result<void>> deleteOrphaned();
-  Future<Result<void>> finish(int executionId, {String? notes});
+  Future<Result<void>> finish(int executionId);
   Future<Result<void>> delete(int id);
   Future<Result<List<ExecutionSet>>> getSets(int executionId);
   Future<Result<int>> logSet(ExecutionSet set);

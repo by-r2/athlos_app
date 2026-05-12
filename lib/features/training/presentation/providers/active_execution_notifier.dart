@@ -9,9 +9,11 @@ import '../../domain/entities/deload_config.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/progression_rule.dart';
+import '../../domain/helpers/load_progression_rules.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/enums/deload_strategy.dart';
+import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_type.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
@@ -21,7 +23,9 @@ import 'program_notifier.dart';
 import 'workout_execution_notifier.dart';
 import 'workout_notifier.dart';
 
+import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
+import '../helpers/rep_performance.dart';
 import 'recalculate_training_streaks.dart';
 
 part 'active_execution_notifier.g.dart';
@@ -225,6 +229,31 @@ class ActiveExecution extends _$ActiveExecution {
   }
 
   /// Remove a drop segment by index.
+  /// Overrides how load is interpreted for one set (persisted when completed).
+  void updateSetLoadModeOverride(
+    int exerciseId,
+    int setNumber,
+    LoadMode? loadModeOverride,
+  ) {
+    final current = state;
+    if (current == null) return;
+
+    final sets = current.exerciseSets[exerciseId];
+    if (sets == null) return;
+
+    final updated = [
+      for (final s in sets)
+        if (s.setNumber == setNumber)
+          s.copyWith(loadModeOverride: () => loadModeOverride)
+        else
+          s,
+    ];
+
+    state = current.copyWith(
+      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+    );
+  }
+
   void removeDropSegment(int exerciseId, int setNumber, int segmentIndex) {
     final current = state;
     if (current == null) return;
@@ -254,7 +283,7 @@ class ActiveExecution extends _$ActiveExecution {
   /// Returns the rest time (seconds) for the exercise so the caller can start
   /// the timer.
   /// Returns (restSeconds, suggestedNextWeight) — suggestedNextWeight is non-null
-  /// when all working sets hit maxReps and no progression rule is defined.
+  /// only when **every planned work set** (excluding warm-ups) hit at least `maxReps`.
   Future<(int, double?)> completeSet(
     int exerciseId,
     int setNumber, {
@@ -263,7 +292,6 @@ class ActiveExecution extends _$ActiveExecution {
     int? duration,
     double? distance,
     int? rpe,
-    String? notes,
     List<SegmentEntry>? segments,
     int? leftReps,
     double? leftWeight,
@@ -279,6 +307,7 @@ class ActiveExecution extends _$ActiveExecution {
 
     final entry = sets.firstWhere((s) => s.setNumber == setNumber);
     final effectiveSegments = segments ?? entry.segments;
+    final bodyWeightSnapshot = await ref.read(latestBodyWeightProvider.future);
 
     final executionSet = ExecutionSet(
       id: entry.id ?? 0,
@@ -294,7 +323,8 @@ class ActiveExecution extends _$ActiveExecution {
       isCompleted: true,
       isWarmup: false,
       rpe: rpe,
-      notes: notes,
+      bodyWeightSnapshot: bodyWeightSnapshot,
+      loadModeOverride: entry.loadModeOverride,
       leftReps: leftReps,
       leftWeight: leftWeight,
       rightReps: rightReps,
@@ -330,7 +360,6 @@ class ActiveExecution extends _$ActiveExecution {
             isCompleted: true,
             isWarmup: false,
             rpe: () => rpe,
-            notes: () => notes,
             leftReps: () => leftReps,
             leftWeight: () => leftWeight,
             rightReps: () => rightReps,
@@ -352,21 +381,24 @@ class ActiveExecution extends _$ActiveExecution {
 
     double? suggestedWeight;
     final maxReps = exercise.maxReps;
-    if (maxReps != null && maxReps > 0) {
-      final latestSets = state!.exerciseSets[exerciseId] ?? [];
-      final workingSets = latestSets.where((s) => s.isCompleted);
-      final allComplete = workingSets.every((s) => s.isCompleted);
-      final allHitMax =
-          workingSets.every((s) => s.reps != null && s.reps! >= maxReps);
-      if (allComplete && allHitMax && workingSets.isNotEmpty) {
-        final currentWeight = workingSets
-            .map((s) => s.weight ?? 0.0)
-            .reduce((a, b) => a > b ? a : b);
-        if (currentWeight > 0) {
-          suggestedWeight =
-              (currentWeight * 1.025 * 4).roundToDouble() / 4;
-        }
-      }
+    final latestExerciseSets = state!.exerciseSets[exerciseId] ?? [];
+    if (maxReps != null &&
+        maxReps > 0 &&
+        workSetsQualifyForSuggestedWeightIncrease(
+          latestSetsForExercise: latestExerciseSets,
+          maxReps: maxReps,
+        )) {
+      final catalogResult =
+          await ref.read(exerciseRepositoryProvider).getById(exerciseId);
+      final fraction = switch (catalogResult) {
+        Success(:final value) when value != null =>
+          progressionLoadIncreaseFraction(value),
+        _ => 0.025,
+      };
+      suggestedWeight = nextRoundedSuggestedWorkingWeightKg(
+        latestSetsForExercise: latestExerciseSets,
+        loadIncreaseFraction: fraction,
+      );
     }
 
     return (rest, suggestedWeight);
@@ -437,7 +469,7 @@ class ActiveExecution extends _$ActiveExecution {
             isCompleted: existing.isCompleted,
             isWarmup: existing.isWarmup,
             rpe: existing.rpe,
-            notes: existing.notes,
+            loadModeOverride: existing.loadModeOverride,
             leftReps: existing.leftReps,
             leftWeight: existing.leftWeight,
             rightReps: existing.rightReps,

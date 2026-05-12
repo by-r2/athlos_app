@@ -15,7 +15,7 @@ import '../../domain/enums/muscle_group.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/training_metrics_provider.dart';
 
-/// Bar chart showing weekly volume (working sets) per muscle group over time.
+/// Bar chart showing weekly **working set counts** per muscle group (Mon–Sun weeks).
 class VolumeTrendChartScreen extends ConsumerStatefulWidget {
   const VolumeTrendChartScreen({super.key});
 
@@ -53,16 +53,15 @@ class _VolumeTrendChartScreenState
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(l10n.volumeTrendDescription),
-                  ],
+                  children: [Text(l10n.volumeTrendDescription)],
                 ),
                 actions: [
                   AthlosStackedDialogActions(
                     children: [
                       FilledButton(
                         style: AthlosDialogButtonStyles.stackedFilled(
-                            dialogContext),
+                          dialogContext,
+                        ),
                         onPressed: () => Navigator.pop(dialogContext),
                         child: Text(l10n.okButton),
                       ),
@@ -75,10 +74,8 @@ class _VolumeTrendChartScreenState
         ],
       ),
       body: trendAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (_, _) =>
-            Center(child: Text(l10n.genericError)),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => Center(child: Text(l10n.genericError)),
         data: (trend) {
           if (trend.isEmpty) {
             return Center(
@@ -111,17 +108,19 @@ class _VolumeTrendChartScreenState
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: groups
-                        .map((g) => Padding(
-                              padding: const EdgeInsets.only(
-                                  right: AthlosSpacing.xs),
-                              child: ChoiceChip(
-                                label: Text(
-                                    _muscleGroupLabel(g, l10n)),
-                                selected: g == selected,
-                                onSelected: (_) =>
-                                    setState(() => _selectedGroup = g),
-                              ),
-                            ))
+                        .map(
+                          (g) => Padding(
+                            padding: const EdgeInsets.only(
+                              right: AthlosSpacing.xs,
+                            ),
+                            child: ChoiceChip(
+                              label: Text(_muscleGroupLabel(g, l10n)),
+                              selected: g == selected,
+                              onSelected: (_) =>
+                                  setState(() => _selectedGroup = g),
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
@@ -143,13 +142,20 @@ class _VolumeTrendChartScreenState
                 ),
                 const Gap(AthlosSpacing.md),
                 Expanded(
-                  child: points.length < 2
+                  child: points.isEmpty
                       ? Center(
-                          child: Text(l10n.bodyMetricsNoData,
-                              style: textTheme.bodyMedium),
+                          child: Text(
+                            l10n.bodyMetricsNoData,
+                            style: textTheme.bodyMedium,
+                          ),
                         )
                       : _buildBarChart(
-                          points, target, colorScheme, textTheme),
+                          points,
+                          target,
+                          colorScheme,
+                          textTheme,
+                          l10n,
+                        ),
                 ),
               ],
             ),
@@ -160,19 +166,22 @@ class _VolumeTrendChartScreenState
   }
 
   Widget _buildBarChart(
-    List<({DateTime weekStart, int sets})> points,
+    List<({DateTime weekStartMonday, int workingSetCount})> points,
     ({int min, int max}) target,
     ColorScheme colorScheme,
     TextTheme textTheme,
+    AppLocalizations l10n,
   ) {
     final dateFormat = intl.DateFormat.MMMd();
-    final maxSets = points.map((p) => p.sets).reduce((a, b) => a > b ? a : b);
+    final maxSets = points
+        .map((p) => p.workingSetCount)
+        .fold<int>(0, (a, b) => a > b ? a : b);
     final chartMax = math.max(maxSets, target.max) + 2;
 
     return BarChart(
       BarChartData(
         barGroups: points.asMap().entries.map((e) {
-          final sets = e.value.sets;
+          final sets = e.value.workingSetCount;
           Color barColor;
           if (sets < target.min) {
             barColor = colorScheme.error.withValues(alpha: 0.7);
@@ -188,17 +197,20 @@ class _VolumeTrendChartScreenState
                 toY: sets.toDouble(),
                 color: barColor,
                 width: 20,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
             ],
           );
         }).toList(),
         titlesData: FlTitlesData(
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -211,7 +223,7 @@ class _VolumeTrendChartScreenState
                 return SideTitleWidget(
                   meta: meta,
                   child: Text(
-                    dateFormat.format(points[idx].weekStart),
+                    dateFormat.format(points[idx].weekStartMonday),
                     style: textTheme.labelSmall,
                   ),
                 );
@@ -263,7 +275,8 @@ class _VolumeTrendChartScreenState
             getTooltipItem: (group, groupIdx, rod, rodIdx) {
               final p = points[group.x];
               return BarTooltipItem(
-                '${dateFormat.format(p.weekStart)}\n${p.sets} sets',
+                '${dateFormat.format(p.weekStartMonday)}\n'
+                '${l10n.weeklyVolumeSets(p.workingSetCount)}',
                 TextStyle(
                   color: colorScheme.onInverseSurface,
                   fontWeight: FontWeight.bold,
@@ -278,8 +291,7 @@ class _VolumeTrendChartScreenState
 }
 
 String _muscleGroupLabel(String name, AppLocalizations l10n) {
-  final group =
-      MuscleGroup.values.where((g) => g.name == name).firstOrNull;
+  final group = MuscleGroup.values.where((g) => g.name == name).firstOrNull;
   if (group != null) return localizedMuscleGroupName(group, l10n);
   return name;
 }

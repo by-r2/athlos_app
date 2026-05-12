@@ -23,6 +23,7 @@ import '../../features/profile/domain/enums/training_style.dart';
 import '../../features/training/data/datasources/dev_seeder.dart';
 import '../../features/training/data/datasources/exercise_seeder.dart';
 import '../../features/training/domain/enums/exercise_type.dart';
+import '../../features/training/domain/enums/load_mode.dart';
 import '../../features/training/domain/enums/movement_pattern.dart';
 import '../../features/training/domain/enums/muscle_role.dart';
 import '../../features/training/data/datasources/daos/cycle_step_dao.dart';
@@ -94,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 35;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -609,6 +610,141 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 33) {
         await seedExercisesV33(this);
+      }
+
+      if (from < 34) {
+        // Add the new structured load mode columns alongside the legacy
+        // `is_bodyweight` flag so the migration can read both during the
+        // transition.
+        await customStatement(
+          "ALTER TABLE exercises ADD COLUMN default_load_mode TEXT "
+          "NOT NULL DEFAULT '${LoadMode.weighted.name}'",
+        );
+        await customStatement(
+          'ALTER TABLE exercises ADD COLUMN bodyweight_load_factor REAL',
+        );
+        await customStatement(
+          'ALTER TABLE workout_exercises ADD COLUMN load_mode_override TEXT',
+        );
+
+        // Migrate the legacy boolean into the new enum column. Everything
+        // that was `is_bodyweight = 1` becomes the bodyweight load mode.
+        await customStatement(
+          "UPDATE exercises SET default_load_mode = '${LoadMode.bodyweight.name}' "
+          "WHERE is_bodyweight = 1",
+        );
+
+        // Apply load factors from the literature (Ebben et al. 2011 JSCR /
+        // ExRx via de Leva). Isometrics keep `bodyweight_load_factor = NULL`
+        // because their volume is duration-based, not reps × load.
+        await seedExercisesV34(this);
+
+        // Drop the legacy `is_bodyweight` column via recreate-and-copy
+        // (matches the pattern used by earlier table-shape migrations and
+        // works on every SQLite version, including pre-3.35 devices).
+        await customStatement('''
+          CREATE TABLE exercises_tmp (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            catalog_remote_id TEXT,
+            name TEXT NOT NULL,
+            muscle_group TEXT NOT NULL,
+            type TEXT NOT NULL DEFAULT 'strength',
+            movement_pattern TEXT,
+            description TEXT,
+            is_verified INTEGER NOT NULL DEFAULT 0,
+            default_load_mode TEXT NOT NULL DEFAULT 'weighted',
+            bodyweight_load_factor REAL,
+            is_isometric INTEGER NOT NULL DEFAULT 0
+          )
+        ''');
+        await customStatement('''
+          INSERT INTO exercises_tmp
+            (id, catalog_remote_id, name, muscle_group, type, movement_pattern,
+             description, is_verified, default_load_mode, bodyweight_load_factor,
+             is_isometric)
+          SELECT id, catalog_remote_id, name, muscle_group, type, movement_pattern,
+                 description, is_verified, default_load_mode, bodyweight_load_factor,
+                 is_isometric
+          FROM exercises
+        ''');
+        await customStatement('DROP TABLE exercises');
+        await customStatement(
+          'ALTER TABLE exercises_tmp RENAME TO exercises',
+        );
+      }
+
+      if (from < 35) {
+        await customStatement(
+          'ALTER TABLE execution_sets ADD COLUMN body_weight_snapshot REAL',
+        );
+        await customStatement(
+          'ALTER TABLE execution_sets ADD COLUMN load_mode_override TEXT',
+        );
+
+        // Drop `execution_sets.notes` via recreate-and-copy for broad SQLite
+        // compatibility (pre-3.35).
+        await customStatement('''
+          CREATE TABLE execution_sets_tmp (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            execution_id INTEGER NOT NULL REFERENCES workout_executions(id),
+            exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+            set_number INTEGER NOT NULL,
+            planned_reps INTEGER,
+            planned_weight REAL,
+            reps INTEGER,
+            weight REAL,
+            duration INTEGER,
+            distance REAL,
+            is_completed INTEGER NOT NULL DEFAULT 0,
+            is_warmup INTEGER NOT NULL DEFAULT 0,
+            rpe INTEGER,
+            body_weight_snapshot REAL,
+            load_mode_override TEXT,
+            left_reps INTEGER,
+            left_weight REAL,
+            right_reps INTEGER,
+            right_weight REAL,
+            is_unilateral INTEGER
+          )
+        ''');
+        await customStatement('''
+          INSERT INTO execution_sets_tmp
+            (id, execution_id, exercise_id, set_number, planned_reps,
+             planned_weight, reps, weight, duration, distance, is_completed,
+             is_warmup, rpe, body_weight_snapshot, load_mode_override, left_reps,
+             left_weight, right_reps, right_weight, is_unilateral)
+          SELECT id, execution_id, exercise_id, set_number, planned_reps,
+                 planned_weight, reps, weight, duration, distance, is_completed,
+                 is_warmup, rpe, body_weight_snapshot, load_mode_override, left_reps,
+                 left_weight, right_reps, right_weight, is_unilateral
+          FROM execution_sets
+        ''');
+        await customStatement('DROP TABLE execution_sets');
+        await customStatement(
+          'ALTER TABLE execution_sets_tmp RENAME TO execution_sets',
+        );
+
+        // Drop `workout_executions.notes` via recreate-and-copy.
+        await customStatement('''
+          CREATE TABLE workout_executions_tmp (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            workout_id INTEGER NOT NULL REFERENCES workouts(id),
+            program_id INTEGER NOT NULL REFERENCES programs(id),
+            started_at INTEGER NOT NULL,
+            finished_at INTEGER,
+            exercise_config_snapshot TEXT
+          )
+        ''');
+        await customStatement('''
+          INSERT INTO workout_executions_tmp
+            (id, workout_id, program_id, started_at, finished_at, exercise_config_snapshot)
+          SELECT id, workout_id, program_id, started_at, finished_at, exercise_config_snapshot
+          FROM workout_executions
+        ''');
+        await customStatement('DROP TABLE workout_executions');
+        await customStatement(
+          'ALTER TABLE workout_executions_tmp RENAME TO workout_executions',
+        );
       }
     },
   );

@@ -33,6 +33,9 @@ Users keep an **owned gear** list on Profile (replacing the old equipment Drift 
 - Log a workout execution
 - **Strength exercises:**
   - Record weight used per set (defaults to last recorded weight from history)
+  - Load mode per exercise: `weighted`, `bodyweight`, or `assisted`
+  - Bodyweight load uses `bodyweightLoadFactor` and supports ballast/help in the same weight input (`+kg` / `-kg`)
+  - Body weight is snapshotted per completed set for stable historical tonnage
   - Record reps per set (defaults dynamically to last completed set's reps within the session)
   - **Drop sets** — add additional reduced-weight segments within a single set
   - **Performance feedback** — color-coded reps indicate deviation from plan (neutral within +-1 rep of target, warning at +-2-3, error at +-4+)
@@ -54,6 +57,7 @@ Users keep an **owned gear** list on Profile (replacing the old equipment Drift 
 - Detailed breakdown per exercise showing:
   - **Strength**: sets with weight x reps, color-coded performance indicators, aggregated load feedback
   - **Cardio**: sets with duration and distance
+- Weekly volume cards and trend chart use kg tonnage (warmups excluded), not set count
 - Performance feedback carried through to history (same color coding and suggestions as during execution)
 
 ### User Training Profile
@@ -217,6 +221,7 @@ New data points and computed analytics to enrich the training experience.
 ##### 6b. Estimated 1RM and PRs
 
 - Computed from execution history using Epley formula: `1RM = weight × (1 + reps/30)`
+- Drop-set segments and unilateral limbs each contribute discrete load×reps probes; PR keeps the best estimated 1RM across probes
 - For bodyweight exercises: use total load (body weight + added weight) in the formula
 - Show per-exercise PR badge in history and exercise detail
 - Chiron can reference 1RM for percentage-based programming
@@ -279,7 +284,7 @@ Charts and records computed from existing execution data — zero additional use
 
 ##### 10c. Weekly Volume Trend
 
-- Bar/line chart showing total working sets per muscle group across weeks
+- Bar chart showing total working sets per muscle group per **calendar** week (Monday–Sunday)
 - Accessible from Training Home dashboard (tapping the volume card from Phase 6c)
 - Highlights under-volume and over-volume zones
 

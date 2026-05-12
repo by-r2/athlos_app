@@ -5,7 +5,6 @@ import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
 import '../../domain/entities/execution_comparison.dart';
 import '../../domain/entities/workout.dart';
-import 'program_notifier.dart';
 import 'workout_notifier.dart';
 
 import '../../../profile/presentation/providers/profile_notifier.dart';
@@ -53,8 +52,7 @@ Future<TrainingHomeAnalytics> trainingHomeAnalytics(Ref ref) async {
   for (final w in activeWorkouts) {
     final byWorkoutResult = await execRepo.getByWorkout(w.id);
     final list = byWorkoutResult.getOrThrow();
-    sessionsByActiveWorkoutId[w.id] =
-        list.where((e) => e.isFinished).length;
+    sessionsByActiveWorkoutId[w.id] = list.where((e) => e.isFinished).length;
   }
 
   var archivedTotal = 0;
@@ -73,7 +71,10 @@ Future<TrainingHomeAnalytics> trainingHomeAnalytics(Ref ref) async {
 
 /// Last two finished executions with volume for a given workout (evolution).
 @riverpod
-Future<ExecutionComparison?> lastVsPreviousComparison(Ref ref, int workoutId) async {
+Future<ExecutionComparison?> lastVsPreviousComparison(
+  Ref ref,
+  int workoutId,
+) async {
   final repo = ref.watch(workoutExecutionRepositoryProvider);
   final result = await repo.getLastTwoFinishedWithVolume(workoutId);
   return result.getOrThrow();
@@ -83,7 +84,7 @@ Future<ExecutionComparison?> lastVsPreviousComparison(Ref ref, int workoutId) as
 /// Returns comparison and workout name, or null if not enough data.
 @riverpod
 Future<({ExecutionComparison comparison, String workoutName})?>
-    lastExecutedWorkoutComparison(Ref ref) async {
+lastExecutedWorkoutComparison(Ref ref) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final workoutRepo = ref.watch(workoutRepositoryProvider);
 
@@ -91,8 +92,9 @@ Future<({ExecutionComparison comparison, String workoutName})?>
   final last = lastResult.getOrThrow();
   if (last == null) return null;
 
-  final comparisonResult =
-      await execRepo.getLastTwoFinishedWithVolume(last.workoutId);
+  final comparisonResult = await execRepo.getLastTwoFinishedWithVolume(
+    last.workoutId,
+  );
   final comparison = comparisonResult.getOrThrow();
   if (comparison == null) return null;
 
@@ -106,18 +108,21 @@ Future<({ExecutionComparison comparison, String workoutName})?>
 /// Ordered cycle steps for the active program.
 @riverpod
 Future<List<TrainingCycleStep>> cycleSteps(Ref ref) async {
-  final programId =
-      (await ref.watch(activeProgramProvider.future))?.id;
-  if (programId == null) return [];
-  final repo = ref.watch(cycleRepositoryProvider);
-  final result = await repo.getSteps(programId);
+  final programRepo = ref.watch(programRepositoryProvider);
+  final cycleRepo = ref.watch(cycleRepositoryProvider);
+  final program = (await programRepo.getActive()).getOrThrow();
+  if (program == null) return [];
+
+  final result = await cycleRepo.getSteps(program.id);
   return result.getOrThrow();
 }
 
 /// Cycle steps for a specific program (used by progress calculations).
 @riverpod
 Future<List<TrainingCycleStep>> cycleStepsForProgram(
-    Ref ref, int programId) async {
+  Ref ref,
+  int programId,
+) async {
   final repo = ref.watch(cycleRepositoryProvider);
   final result = await repo.getSteps(programId);
   return result.getOrThrow();
@@ -195,12 +200,13 @@ Future<Workout?> nextCycleWorkout(Ref ref) async {
 /// Workout to start when the user taps "Iniciar próximo treino".
 @riverpod
 Future<Workout?> nextWorkoutToStart(Ref ref) async {
-  final activeProgramId =
-      (await ref.watch(activeProgramProvider.future))?.id;
-  if (activeProgramId != null) {
+  final programRepo = ref.watch(programRepositoryProvider);
+  final activeProgram = (await programRepo.getActive()).getOrThrow();
+  if (activeProgram != null) {
     final effectiveSteps = await ref.watch(effectiveCycleStepsProvider.future);
     if (effectiveSteps.isEmpty) return null;
   }
+
   final nextCycle = await ref.watch(nextCycleWorkoutProvider.future);
   if (nextCycle != null) return nextCycle;
   return ref.watch(nextWorkoutProvider);

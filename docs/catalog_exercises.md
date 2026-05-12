@@ -37,7 +37,28 @@ For conflict governance (import, verified vs local, future multi-device rules), 
 
 ## Seed shape (`_SeedExercise`)
 
-Each entry supplies: `name`, `MuscleGroup`, optional `ExerciseType` / `MovementPattern`, target-muscle rows (`_p` primary, `_s` secondary, optional `MuscleRegion`), and flags `isBodyweight` / `isIsometric`. Cardio rows often omit `movementPattern` and use `type: ExerciseType.cardio`.
+Each entry supplies: `name`, `MuscleGroup`, optional `ExerciseType` / `MovementPattern`, target-muscle rows (`_p` primary, `_s` secondary, optional `MuscleRegion`), `defaultLoadMode`, optional `bodyweightLoadFactor`, and `isIsometric`. Cardio rows often omit `movementPattern` and use `type: ExerciseType.cardio`.
+
+### Default load mode and bodyweight load factor
+
+Catalog rows now model load semantics explicitly:
+
+- `defaultLoadMode`: `bodyweight` | `weighted` | `assisted`
+- `bodyweightLoadFactor` (`double?`): fraction of body weight carried when mode is `bodyweight`/`assisted`
+
+Use this instead of the legacy boolean `isBodyweight`.
+
+Recommended factors (literature-backed defaults used in seed/migrations):
+
+- `pullUp`, `chinUp`, `dip` → `1.00`
+- `pushUp`, `diamondPushUp`, `pikePushUp` → `0.64`
+- `kneePushUp` → `0.49`
+- `declinePushUp` → `0.70`
+- `inclinePushUp` → `0.55`
+- `invertedRow` → `0.50`
+- isometrics stay `NULL` (volume is duration-based, not reps × load)
+
+References: Ebben et al. (2011, JSCR), ExRx/de Leva segmental estimates.
 
 Variations are declared as `_Variation(from, to)` and inserted as **undirected** pairs (both directions) in `seedExercises` / versioned seed helpers.
 

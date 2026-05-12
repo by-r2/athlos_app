@@ -1,4 +1,5 @@
 import 'execution_set_segment.dart';
+import '../enums/load_mode.dart';
 
 /// A single set performed during a workout execution.
 class ExecutionSet {
@@ -33,8 +34,12 @@ class ExecutionSet {
   /// Rate of Perceived Exertion (1–10). Null when not recorded.
   final int? rpe;
 
-  /// Per-set user notes.
-  final String? notes;
+  /// Body weight snapshot in kg captured when the set is completed.
+  final double? bodyWeightSnapshot;
+
+  /// Optional per-set load mode override. Null means inherit from
+  /// workout-level override and then from exercise catalog default.
+  final LoadMode? loadModeOverride;
 
   /// Reps performed with the left side (unilateral exercises).
   final int? leftReps;
@@ -69,7 +74,8 @@ class ExecutionSet {
     this.isCompleted = false,
     this.isWarmup = false,
     this.rpe,
-    this.notes,
+    this.bodyWeightSnapshot,
+    this.loadModeOverride,
     this.leftReps,
     this.leftWeight,
     this.rightReps,

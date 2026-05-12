@@ -1319,8 +1319,6 @@
   "@rpeTooltip": { "description": "Tooltip explaining what RPE means" },
   "warmupLabel": "Warmup",
   "@warmupLabel": { "description": "Label for warmup set toggle" },
-  "setNotesHint": "Notas do set (ex: dor no ombro, grip mais largo...)",
-  "@setNotesHint": { "description": "Hint text for per-set notes input during execution" },
   "restSecondsLabel": "Desc.",
   "@restSecondsLabel": { "description": "Short label for rest seconds" },
   "removeExercise": "Remover exercício",
@@ -1574,7 +1572,7 @@
       "total": { "type": "int" }
     }
   },
-  "nextSetButton": "Próxima: {exercise} S.{set}",
+  "nextSetButton": "Próxima: S{set} · {exercise}",
   "@nextSetButton": {
     "description": "Button to jump to next pending set",
     "placeholders": {
@@ -1649,6 +1647,29 @@
   "@unlinkSuperset": { "description": "Tooltip to unlink exercise from superset" },
   "addDropSet": "Adicionar drop",
   "@addDropSet": { "description": "Button to add a drop set segment" },
+  "executionDropSetsTileTitle": "Drop sets",
+  "@executionDropSetsTileTitle": { "description": "Compact row opening drop-set editor on workout execution" },
+  "executionDropSetsSubtitleEmpty": "Opcional · toque para editar",
+  "@executionDropSetsSubtitleEmpty": { "description": "Subtitle when no drop segments yet" },
+  "executionDropSetsSubtitleCount": "{count, plural, =1{1 segmento} other{{count} segmentos}}",
+  "@executionDropSetsSubtitleCount": {
+    "description": "Subtitle showing number of drop segments",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "executionDropSetsSheetTitle": "Editar drop sets",
+  "@executionDropSetsSheetTitle": { "description": "Bottom sheet title for drop segment editor" },
+  "executionDropSetsSheetHint": "Depois da primeira parte da série, registe peso e reps de cada segmento.",
+  "@executionDropSetsSheetHint": { "description": "Short hint under drop-set sheet title" },
+  "executionSetOptionsMenuTooltip": "Opções avançadas desta série",
+  "@executionSetOptionsMenuTooltip": { "description": "Tooltip for sheet: load mode, drops, notes beyond default inputs" },
+  "executionSetOptionsSheetTitle": "Opções avançadas da série",
+  "@executionSetOptionsSheetTitle": { "description": "Unified sheet title and ghost button; not global app settings" },
+  "executionSetOptionsSheetIntro": "Modo de carga e drop sets — para além de peso e reps.",
+  "@executionSetOptionsSheetIntro": { "description": "One-line intro: clarifies these are extra controls for this set" },
+  "executionSetOptionsNotesHeading": "Notas",
+  "@executionSetOptionsNotesHeading": { "description": "Section title for workout exercise notes in options sheet" },
   "dropSetSegment": "Drop {order}",
   "@dropSetSegment": {
     "description": "Label for a drop set segment",
@@ -2067,7 +2088,8 @@
     }
   },
   "setupChatGreetNoName": "Sem problemas! Vamos continuar.",
-  "setupChatAskBody": "Me conta um pouco sobre você — peso, altura e idade. Pode pular o que preferir.",
+  "setupChatAskBody": "Informe peso (kg), gordura corporal opcional (%), altura (cm) e idade (anos). Peso e gordura entram no seu histórico de métricas; altura e idade ficam no perfil.",
+  "setupChatBodyFatNeedsWeight": "Para registar gordura corporal, indique também o peso (kg).",
   "setupChatAskGender": "Qual seu gênero? Isso ajuda a personalizar a montagem dos treinos (ex.: prioridade de pernas para mulheres).",
   "setupChatPreferNotToSay": "Prefiro não dizer",
   "genderMale": "Homem",
@@ -2244,7 +2266,7 @@
   "weeklyVolume": "Volume semanal",
   "weeklyVolumeTooltip": "Séries de trabalho (excl. aquecimento) por grupo muscular nos últimos 7 dias.",
   "@weeklyVolumeTooltip": { "description": "Tooltip explaining the weekly volume card" },
-  "weeklyVolumeSets": "{count} sets",
+  "weeklyVolumeSets": "{count, plural, =1{1 série} other{{count} séries}}",
   "@weeklyVolumeSets": {
     "placeholders": {
       "count": { "type": "int" }
@@ -2304,9 +2326,9 @@
   "prHistoryEmpty": "Nenhum recorde pessoal registado. Complete treinos para detectar PRs automaticamente.",
 
   "volumeTrendTitle": "Volume semanal",
-  "volumeTrendSubtitle": "Séries de trabalho por grupo muscular.",
+  "volumeTrendSubtitle": "Séries de trabalho por grupo e semana (segunda a domingo).",
   "@volumeTrendSubtitle": { "description": "Brief inline subtitle on the volume trend screen" },
-  "volumeTrendDescription": "Volume é o total de séries de trabalho (excluindo aquecimento) por grupo muscular. As linhas tracejadas indicam a faixa recomendada para o seu nível de experiência.",
+  "volumeTrendDescription": "Cada barra conta séries de trabalho (sem aquecimento) numa semana de calendário (segunda a domingo). As linhas tracejadas mostram a faixa recomendada para o seu nível de experiência.",
   "volumeTrendLegendMin": "Mín. recomendado ({value})",
   "@volumeTrendLegendMin": {
     "description": "Legend label for the minimum target line",
@@ -2350,6 +2372,31 @@
     "placeholders": {
       "count": { "type": "int" }
     }
+  },
+
+  "executionUnilateralWeightPerSideLabel": "Peso por lado (cada lado)",
+  "@executionUnilateralWeightPerSideLabel": {
+    "description": "Título sobre o campo de carga em modo unilateral: não é soma das duas pegadas."
+  },
+  "executionUnilateralMergedHint": "Um valor só: conta para cada braço (haltere de 20 kg → 20, não o total dos dois).",
+  "@executionUnilateralMergedHint": {
+    "description": "Ajuda quando peso/reps são iguais nos dois lados."
+  },
+  "executionUnilateralWeightHint": "Por braço ou haltere individual, não a soma esquerdo + direito.",
+  "@executionUnilateralWeightHint": {
+    "description": "Texto quando lado esquerdo e direito estão separados."
+  },
+  "executionUnilateralRepsPerSideLabel": "Repetições (cada lado)",
+  "@executionUnilateralRepsPerSideLabel": {
+    "description": "Reps unilateral: igual em modo vínculo ou separado por braço."
+  },
+  "executionUnilateralSidesLinkedTooltip": "Separar lado esquerdo e direito",
+  "@executionUnilateralSidesLinkedTooltip": {
+    "description": "Ícone vínculo ativo — toque para abrir 4 campos."
+  },
+  "executionUnilateralSidesSplitTooltip": "Igual peso e repetições nos dois lados",
+  "@executionUnilateralSidesSplitTooltip": {
+    "description": "Modo 4 campos — toque para voltar ao único valor."
   },
 
   "leftSideLabel": "Lado esquerdo",
@@ -2559,5 +2606,105 @@
   "workoutShareSummaryCardHint": "Resumo da sessão",
   "@workoutShareSummaryCardHint": {
     "description": "Small label above stats on the shareable workout card"
+  },
+  "executionSetLoadModeSheetTitle": "Modo de carga (esta série)",
+  "@executionSetLoadModeSheetTitle": {
+    "description": "Bottom sheet title when overriding BW / weighted / assisted for one set"
+  },
+  "executionSetLoadModeInherit": "Herdar do treino",
+  "@executionSetLoadModeInherit": {
+    "description": "Clears per-set load mode override; uses workout + catalog cascade"
+  },
+  "executionBodyweightLoadTooltip": "({bodyKg} kg × {factor}) + {addedKg} kg adicional = {totalKg} kg efetivos",
+  "@executionBodyweightLoadTooltip": {
+    "description": "Effective load for BW mode: body×factor + extra weight from stepper",
+    "placeholders": {
+      "bodyKg": { "type": "String" },
+      "factor": { "type": "String" },
+      "addedKg": { "type": "String" },
+      "totalKg": { "type": "String" }
+    }
+  },
+  "executionAssistedLoadTooltip": "({bodyKg} kg × {factor}) − {assistKg} kg assistência = {totalKg} kg efetivos",
+  "@executionAssistedLoadTooltip": {
+    "description": "Effective load for assisted mode: body×factor minus assistance",
+    "placeholders": {
+      "bodyKg": { "type": "String" },
+      "factor": { "type": "String" },
+      "assistKg": { "type": "String" },
+      "totalKg": { "type": "String" }
+    }
+  },
+  "workoutFormLoadModeFieldLabel": "Tipo de carga",
+  "@workoutFormLoadModeFieldLabel": {
+    "description": "Label on the workout exercise card row that opens the load-mode picker"
+  },
+  "workoutFormLoadModePickerTitle": "Como registrar a carga",
+  "@workoutFormLoadModePickerTitle": {
+    "description": "Bottom sheet title when choosing bodyweight vs weighted vs assisted in workout builder"
+  },
+  "workoutFormSectionPrescription": "Prescrição",
+  "@workoutFormSectionPrescription": {
+    "description": "Section heading for sets, reps, duration, and rest in workout exercise form"
+  },
+  "workoutFormSectionMoreOptions": "Mais opções",
+  "@workoutFormSectionMoreOptions": {
+    "description": "Section heading for AMRAP, unilateral, notes toggles in workout exercise form"
+  },
+  "loadModeShortBodyweight": "Peso corporal",
+  "@loadModeShortBodyweight": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeShortWeighted": "Carga externa",
+  "@loadModeShortWeighted": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeShortAssisted": "Assistido",
+  "@loadModeShortAssisted": {
+    "description": "Short load mode label for collapsed summary and compact row"
+  },
+  "loadModeOptionBodyweight": "Peso corporal (+ carga extra)",
+  "@loadModeOptionBodyweight": {
+    "description": "Load mode: body × factor plus ballast plates/vest (+kg)"
+  },
+  "loadModeOptionWeighted": "Carga externa (máquina, cabo ou barra)",
+  "@loadModeOptionWeighted": {
+    "description": "Load mode: only plates/stack/pin weight counts (kg)"
+  },
+  "loadModeOptionAssisted": "Assistido (remove peso corporal)",
+  "@loadModeOptionAssisted": {
+    "description": "Load mode: assisted machine or band − counterbalance (−kg)"
+  },
+  "navigateAwayUnsavedTitle": "Sair sem salvar?",
+  "@navigateAwayUnsavedTitle": {
+    "description": "Title when leaving a screen with unsaved edits"
+  },
+  "navigateAwayUnsavedMessage": "Se você sair agora, os dados que ainda não foram salvos serão perdidos.",
+  "@navigateAwayUnsavedMessage": {
+    "description": "Body explaining unsaved changes will be lost on navigation"
+  },
+  "navigateAwayDiscardAction": "Sair e descartar",
+  "@navigateAwayDiscardAction": {
+    "description": "Destructive action: leave and discard unsaved work"
+  },
+  "navigateAwayKeepEditingAction": "Continuar editando",
+  "@navigateAwayKeepEditingAction": {
+    "description": "Safe action: stay on the current screen"
+  },
+  "navigateAwayChironTitle": "Sair do Chiron?",
+  "@navigateAwayChironTitle": {
+    "description": "Title when closing the Chiron assistant sheet with active session state"
+  },
+  "navigateAwayChironMessage": "Fechar interrompe respostas em geração e descarta o texto ainda não enviado. A conversa permanece salva ao reabrir o assistente.",
+  "@navigateAwayChironMessage": {
+    "description": "Explains what is lost when dismissing Chiron mid-session"
+  },
+  "navigateAwayChironLeaveAction": "Sair",
+  "@navigateAwayChironLeaveAction": {
+    "description": "Leave Chiron sheet (destructive)"
+  },
+  "navigateAwayChironStayAction": "Continuar",
+  "@navigateAwayChironStayAction": {
+    "description": "Stay on Chiron sheet"
   }
 }
