@@ -359,6 +359,22 @@
   "@conflictCenterDescription": {
     "description": "Conflict center screen description"
   },
+  "conflictCenterOverviewSectionTitle": "Situação atual",
+  "@conflictCenterOverviewSectionTitle": {
+    "description": "Section title for conflict center overview card"
+  },
+  "conflictCenterReviewsSectionTitle": "Casos para revisar",
+  "@conflictCenterReviewsSectionTitle": {
+    "description": "Section title for pending duplicate reviews"
+  },
+  "conflictCenterReviewHint": "Escolha uma opção em cada card abaixo.",
+  "@conflictCenterReviewHint": {
+    "description": "Hint shown before duplicate review cards"
+  },
+  "conflictCenterRetryAction": "Tentar novamente",
+  "@conflictCenterRetryAction": {
+    "description": "Retry action when conflict center fails to load"
+  },
   "conflictCenterLoadError": "Não foi possível carregar a central de conflitos.",
   "@conflictCenterLoadError": {
     "description": "Error message for conflict center loading"

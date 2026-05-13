@@ -32,4 +32,18 @@ class AthlosCustomColors extends ThemeExtension<AthlosCustomColors> {
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
     );
   }
+
+  /// Warning callout for duplicate-review status banners.
+  ({Color background, Color foreground, Color icon}) duplicateWarningCallout(
+    ColorScheme colorScheme,
+  ) {
+    return (
+      background: Color.alphaBlend(
+        warning.withValues(alpha: 0.18),
+        colorScheme.surfaceContainerHigh,
+      ),
+      foreground: colorScheme.onSurface,
+      icon: warning,
+    );
+  }
 }

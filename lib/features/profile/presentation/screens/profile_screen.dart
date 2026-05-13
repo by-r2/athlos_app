@@ -12,6 +12,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
@@ -1112,6 +1113,7 @@ class _ProfileConflictStatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
 
     return conflictCenterAsync.when(
       loading: () => _ProfileConflictStatusSurface(
@@ -1138,9 +1140,12 @@ class _ProfileConflictStatusBanner extends StatelessWidget {
           );
         }
 
+        final warningStyle = customColors.duplicateWarningCallout(colorScheme);
+
         return _ProfileConflictStatusSurface(
-          backgroundColor: colorScheme.secondaryContainer,
-          foregroundColor: colorScheme.onSecondaryContainer,
+          backgroundColor: warningStyle.background,
+          foregroundColor: warningStyle.foreground,
+          iconColor: warningStyle.icon,
           icon: Icons.warning_amber_rounded,
           message: l10n.profileDataLocalConflictSummary(duplicateCount),
         );
@@ -1176,7 +1181,7 @@ class _ProfileConflictStatusSurface extends StatelessWidget {
         borderRadius: AthlosRadius.mdAll,
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(icon, color: iconColor ?? foregroundColor),
           const Gap(AthlosSpacing.sm),
