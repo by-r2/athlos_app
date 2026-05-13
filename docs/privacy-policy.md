@@ -4,23 +4,24 @@
 
 ## Overview
 
-Athlos is a local-first health and fitness app. Your personal training data (profile, workouts, execution history) is stored on your device by default. The app also uses Supabase for verified catalog consistency workflows (catalog governance/sync).
+Athlos is a local-first health and fitness app. Your personal training data (profile, workouts, execution history) is stored on your device by default. When you sign in, Athlos may sync your profile to your Supabase-backed account so it can be restored on another device. Workouts and execution history remain on-device unless a future release enables additional cloud sync. The app also uses Supabase for verified catalog consistency workflows (catalog governance/sync).
 
 ## Data Collection
 
 Athlos does not use advertising trackers or behavior analytics SDKs.  
-Personal user content such as profile details, workouts, and execution logs is not automatically uploaded as part of regular local usage.
+Personal user content such as profile details, workouts, and execution logs is not automatically uploaded as part of regular local usage. Signed-in profile fields may be synced to your account when cloud sync is available.
 
 ## Data Storage
 
 - **Local storage (default):** profile, workouts, exercises, equipment ownership, execution history, and app preferences.
+- **Supabase account sync (signed-in users):** profile fields linked to your authenticated account, protected by row-level security so only your account can access them.
 - **Supabase catalog sync:** used for official catalog reconciliation events/rules (e.g., verified catalog conflict governance).
 
 ## Third-Party Services
 
 Athlos may use:
 
-- **Supabase** for catalog/governance sync related to verified catalog consistency
+- **Supabase** for authenticated profile sync (when signed in) and catalog/governance sync related to verified catalog consistency
 
 Athlos does not include:
 

@@ -68,7 +68,8 @@ class ProfileNotifier extends _$ProfileNotifier {
     final repo = ref.read(userProfileRepositoryProvider);
     final result = await repo.update(profile);
     result.getOrThrow();
-    state = AsyncData(profile);
+    final refreshed = (await repo.get()).getOrThrow();
+    state = AsyncData(refreshed ?? profile);
   }
 }
 

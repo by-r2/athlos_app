@@ -23,6 +23,7 @@ import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import '../services/user_data_sync_coordinator.dart';
 import 'app_entry_decision.dart';
 import 'athlos_router_pages.dart';
 import 'route_paths.dart';
@@ -35,6 +36,7 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
+  ref.watch(userProfileCloudSyncListenerProvider);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
   ref.listen(localAccessProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);

@@ -6,16 +6,16 @@ import '../../../../core/errors/result.dart';
 import '../../domain/entities/user_profile.dart' as domain;
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/user_profile_dao.dart';
-import '../datasources/user_profile_remote_data_source.dart';
+import '../datasources/user_profile_remote_sync_gateway.dart';
 
 class UserProfileRepositoryImpl implements UserProfileRepository {
   final UserProfileDao _dao;
-  final UserProfileRemoteDataSource? _remoteDataSource;
+  final UserProfileRemoteSyncGateway? _remoteGateway;
 
   UserProfileRepositoryImpl(
     this._dao, {
-    UserProfileRemoteDataSource? remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+    UserProfileRemoteSyncGateway? remoteDataSource,
+  }) : _remoteGateway = remoteDataSource;
 
   @override
   Future<Result<domain.UserProfile?>> get() async {
@@ -23,23 +23,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       final row = await _dao.get();
       if (row != null) return Success(_toDomain(row));
 
-      final remoteProfile = await _remoteDataSource?.fetchCurrentProfile();
-      if (remoteProfile == null) return const Success(null);
-
-      final idResult = await create(remoteProfile);
-      final id = idResult.getOrThrow();
-      final syncedAt = remoteProfile.lastSyncedAt ?? DateTime.now().toUtc();
-      final remoteUserId = remoteProfile.remoteUserId;
-      if (remoteUserId != null) {
-        await _dao.markSynced(
-          id: id,
-          remoteUserId: remoteUserId,
-          syncedAt: syncedAt,
-        );
-      }
-      return Success(
-        remoteProfile.copyWith(id: id, lastSyncedAt: () => syncedAt),
-      );
+      return _pullRemoteProfileIfNeeded();
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load profile: $e'));
     }
@@ -48,33 +32,8 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
   @override
   Future<Result<int>> create(domain.UserProfile profile) async {
     try {
-      final id = await _dao.create(
-        UserProfilesCompanion.insert(
-          name: Value(profile.name),
-          height: Value(profile.height),
-          age: Value(profile.age),
-          goal: Value(profile.goal),
-          bodyAesthetic: Value(profile.bodyAesthetic),
-          trainingStyle: Value(profile.trainingStyle),
-          experienceLevel: Value(profile.experienceLevel),
-          gender: Value(profile.gender),
-          trainingFrequency: Value(profile.trainingFrequency),
-          availableWorkoutMinutes: Value(profile.availableWorkoutMinutes),
-          trainsAtGym: Value(profile.trainsAtGym),
-          injuries: Value(profile.injuries),
-          bio: Value(profile.bio),
-          ownedEquipmentNames: Value(profile.ownedEquipmentNames),
-          lastActiveModule: Value(profile.lastActiveModule),
-          currentCycleStreak: const Value(0),
-          bestCycleStreak: const Value(0),
-          currentFrequencyStreak: const Value(0),
-          bestFrequencyStreak: const Value(0),
-          trainingStreaksSchema: const Value(1),
-          remoteUserId: Value(profile.remoteUserId),
-          lastSyncedAt: Value(profile.lastSyncedAt),
-        ),
-      );
-      await _syncProfileIfPossible(
+      final id = await _dao.create(_toInsertCompanion(profile));
+      await _pushLocalProfile(
         profile.copyWith(id: id),
         allowUnlinked: true,
       );
@@ -87,34 +46,8 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
   @override
   Future<Result<void>> update(domain.UserProfile profile) async {
     try {
-      await _dao.updateById(
-        profile.id,
-        UserProfilesCompanion(
-          name: Value(profile.name),
-          height: Value(profile.height),
-          age: Value(profile.age),
-          goal: Value(profile.goal),
-          bodyAesthetic: Value(profile.bodyAesthetic),
-          trainingStyle: Value(profile.trainingStyle),
-          experienceLevel: Value(profile.experienceLevel),
-          gender: Value(profile.gender),
-          trainingFrequency: Value(profile.trainingFrequency),
-          availableWorkoutMinutes: Value(profile.availableWorkoutMinutes),
-          trainsAtGym: Value(profile.trainsAtGym),
-          injuries: Value(profile.injuries),
-          bio: Value(profile.bio),
-          ownedEquipmentNames: Value(profile.ownedEquipmentNames),
-          lastActiveModule: Value(profile.lastActiveModule),
-          currentCycleStreak: Value(profile.currentCycleStreak),
-          bestCycleStreak: Value(profile.bestCycleStreak),
-          currentFrequencyStreak: Value(profile.currentFrequencyStreak),
-          bestFrequencyStreak: Value(profile.bestFrequencyStreak),
-          trainingStreaksSchema: Value(profile.trainingStreaksSchema),
-          remoteUserId: Value(profile.remoteUserId),
-          lastSyncedAt: Value(profile.lastSyncedAt),
-        ),
-      );
-      await _syncProfileIfPossible(profile, allowUnlinked: false);
+      await _dao.updateById(profile.id, _toUpdateCompanion(profile));
+      await _pushLocalProfile(profile, allowUnlinked: false);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update profile: $e'));
@@ -131,27 +64,223 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     }
   }
 
-  Future<void> _syncProfileIfPossible(
+  @override
+  Future<Result<domain.UserProfile?>> reconcileOnAuth() async {
+    try {
+      final remoteGateway = _remoteGateway;
+      final remoteUserId = remoteGateway?.currentUserId;
+      if (remoteGateway == null || remoteUserId == null) {
+        return get();
+      }
+
+      final localRow = await _dao.get();
+      final remoteProfile = await remoteGateway.fetchCurrentProfile();
+
+      if (localRow == null && remoteProfile == null) {
+        return const Success(null);
+      }
+
+      if (localRow == null && remoteProfile != null) {
+        return _pullRemoteProfileIfNeeded();
+      }
+
+      final local = _toDomain(localRow!);
+      _assertProfileBelongsToSession(local, remoteUserId);
+
+      if (remoteProfile == null) {
+        await _pushLocalProfile(local, allowUnlinked: local.remoteUserId == null);
+        return get();
+      }
+
+      if (_remoteIsNewer(local, remoteProfile)) {
+        await _updateLocalFromRemote(local.id, remoteProfile, remoteUserId);
+      } else {
+        await _pushLocalProfile(
+          local,
+          allowUnlinked: local.remoteUserId == null,
+        );
+      }
+
+      return get();
+    } on ValidationException catch (e) {
+      return Failure(e);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to reconcile profile: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> pushPendingLocalChanges() async {
+    try {
+      final remoteGateway = _remoteGateway;
+      final remoteUserId = remoteGateway?.currentUserId;
+      if (remoteGateway == null || remoteUserId == null) {
+        return const Success(null);
+      }
+
+      final localRow = await _dao.get();
+      if (localRow == null) return const Success(null);
+
+      final local = _toDomain(localRow);
+      _assertProfileBelongsToSession(local, remoteUserId);
+      await _pushLocalProfile(
+        local,
+        allowUnlinked: local.remoteUserId == null,
+      );
+      return const Success(null);
+    } on ValidationException catch (e) {
+      return Failure(e);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to push profile: $e'));
+    }
+  }
+
+  Future<Result<domain.UserProfile?>> _pullRemoteProfileIfNeeded() async {
+    final remoteGateway = _remoteGateway;
+    final remoteUserId = remoteGateway?.currentUserId;
+    if (remoteGateway == null || remoteUserId == null) {
+      return const Success(null);
+    }
+
+    final remoteProfile = await remoteGateway.fetchCurrentProfile();
+    if (remoteProfile == null) return const Success(null);
+
+    final id = await _dao.create(_toInsertCompanion(remoteProfile));
+    final syncedAt = remoteProfile.lastSyncedAt ?? DateTime.now().toUtc();
+    await _dao.markSynced(
+      id: id,
+      remoteUserId: remoteUserId,
+      syncedAt: syncedAt,
+    );
+
+    return Success(
+      remoteProfile.copyWith(
+        id: id,
+        remoteUserId: () => remoteUserId,
+        lastSyncedAt: () => syncedAt,
+      ),
+    );
+  }
+
+  Future<void> _pushLocalProfile(
     domain.UserProfile profile, {
     required bool allowUnlinked,
   }) async {
-    try {
-      final remoteDataSource = _remoteDataSource;
-      final remoteUserId = remoteDataSource?.currentUserId;
-      if (remoteUserId == null) return;
-      if (!allowUnlinked && profile.remoteUserId != remoteUserId) return;
+    final remoteGateway = _remoteGateway;
+    final remoteUserId = remoteGateway?.currentUserId;
+    if (remoteGateway == null || remoteUserId == null) return;
 
-      final syncedAt = await remoteDataSource!.upsertCurrentProfile(profile);
+    if (!allowUnlinked && profile.remoteUserId != remoteUserId) return;
+
+    try {
+      final syncedAt = await remoteGateway.upsertCurrentProfile(profile);
       await _dao.markSynced(
         id: profile.id,
         remoteUserId: remoteUserId,
         syncedAt: syncedAt,
       );
     } on Exception {
-      // Local-first safety: explicit cloud migration surfaces errors, but local
-      // profile edits should not be lost or blocked by a transient network issue.
+      // Local-first: profile edits must not be blocked by transient network issues.
     }
   }
+
+  Future<void> _updateLocalFromRemote(
+    int localId,
+    domain.UserProfile remoteProfile,
+    String remoteUserId,
+  ) async {
+    final syncedAt = remoteProfile.lastSyncedAt ?? DateTime.now().toUtc();
+    await _dao.updateById(
+      localId,
+      _toUpdateCompanion(
+        remoteProfile.copyWith(
+          id: localId,
+          remoteUserId: () => remoteUserId,
+          lastSyncedAt: () => syncedAt,
+        ),
+      ),
+    );
+    await _dao.markSynced(
+      id: localId,
+      remoteUserId: remoteUserId,
+      syncedAt: syncedAt,
+    );
+  }
+
+  void _assertProfileBelongsToSession(
+    domain.UserProfile profile,
+    String remoteUserId,
+  ) {
+    if (profile.remoteUserId != null && profile.remoteUserId != remoteUserId) {
+      throw const ValidationException(
+        'Profile is linked to a different account.',
+      );
+    }
+  }
+
+  bool _remoteIsNewer(domain.UserProfile local, domain.UserProfile remote) {
+    final remoteAt = remote.lastSyncedAt;
+    if (remoteAt == null) return false;
+
+    final localAt = local.lastSyncedAt;
+    if (localAt == null) return true;
+
+    return remoteAt.isAfter(localAt);
+  }
+
+  UserProfilesCompanion _toInsertCompanion(domain.UserProfile profile) =>
+      UserProfilesCompanion.insert(
+        name: Value(profile.name),
+        height: Value(profile.height),
+        age: Value(profile.age),
+        goal: Value(profile.goal),
+        bodyAesthetic: Value(profile.bodyAesthetic),
+        trainingStyle: Value(profile.trainingStyle),
+        experienceLevel: Value(profile.experienceLevel),
+        gender: Value(profile.gender),
+        trainingFrequency: Value(profile.trainingFrequency),
+        availableWorkoutMinutes: Value(profile.availableWorkoutMinutes),
+        trainsAtGym: Value(profile.trainsAtGym),
+        injuries: Value(profile.injuries),
+        bio: Value(profile.bio),
+        ownedEquipmentNames: Value(profile.ownedEquipmentNames),
+        lastActiveModule: Value(profile.lastActiveModule),
+        currentCycleStreak: Value(profile.currentCycleStreak),
+        bestCycleStreak: Value(profile.bestCycleStreak),
+        currentFrequencyStreak: Value(profile.currentFrequencyStreak),
+        bestFrequencyStreak: Value(profile.bestFrequencyStreak),
+        trainingStreaksSchema: Value(
+          profile.trainingStreaksSchema == 0 ? 1 : profile.trainingStreaksSchema,
+        ),
+        remoteUserId: Value(profile.remoteUserId),
+        lastSyncedAt: Value(profile.lastSyncedAt),
+      );
+
+  UserProfilesCompanion _toUpdateCompanion(domain.UserProfile profile) =>
+      UserProfilesCompanion(
+        name: Value(profile.name),
+        height: Value(profile.height),
+        age: Value(profile.age),
+        goal: Value(profile.goal),
+        bodyAesthetic: Value(profile.bodyAesthetic),
+        trainingStyle: Value(profile.trainingStyle),
+        experienceLevel: Value(profile.experienceLevel),
+        gender: Value(profile.gender),
+        trainingFrequency: Value(profile.trainingFrequency),
+        availableWorkoutMinutes: Value(profile.availableWorkoutMinutes),
+        trainsAtGym: Value(profile.trainsAtGym),
+        injuries: Value(profile.injuries),
+        bio: Value(profile.bio),
+        ownedEquipmentNames: Value(profile.ownedEquipmentNames),
+        lastActiveModule: Value(profile.lastActiveModule),
+        currentCycleStreak: Value(profile.currentCycleStreak),
+        bestCycleStreak: Value(profile.bestCycleStreak),
+        currentFrequencyStreak: Value(profile.currentFrequencyStreak),
+        bestFrequencyStreak: Value(profile.bestFrequencyStreak),
+        trainingStreaksSchema: Value(profile.trainingStreaksSchema),
+        remoteUserId: Value(profile.remoteUserId),
+        lastSyncedAt: Value(profile.lastSyncedAt),
+      );
 
   domain.UserProfile _toDomain(UserProfile row) => domain.UserProfile(
     id: row.id,
