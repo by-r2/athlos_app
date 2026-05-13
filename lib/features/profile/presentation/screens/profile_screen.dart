@@ -14,7 +14,10 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
@@ -225,7 +228,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       child: _buildTrainingPreferencesCategory(resolved, l10n),
                     ),
                     const OwnedEquipmentList(),
-                    _buildDataCategory(l10n),
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildDataCategory(l10n),
+                    ),
                   ],
                 ),
         ),
@@ -434,143 +440,180 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
     final authAsync = ref.watch(authProvider);
     final authUser = authAsync.value;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AthlosSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SectionHeader(title: l10n.authAccountSectionTitle),
-          const Gap(AthlosSpacing.xs),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (authAsync.isLoading) ...[
-                    Row(
-                      children: [
-                        const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+    final isDataLoading = authAsync.isLoading || conflictCenterAsync.isLoading;
+
+    return Skeletonizer(
+      enabled: isDataLoading,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SectionHeader(title: l10n.authAccountSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AthlosSpacing.sm,
+                  horizontal: AthlosSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileTile(
+                      icon: authUser != null
+                          ? Icons.verified_user_outlined
+                          : Icons.account_circle_outlined,
+                      label: l10n.profileDataAccountSessionLabel,
+                      value: authUser?.email ?? l10n.authNotSignedIn,
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    if (authUser == null)
+                      FilledButton.icon(
+                        onPressed: authAsync.isLoading
+                            ? null
+                            : () => context.push(RoutePaths.authPrompt),
+                        icon: const Icon(Icons.login),
+                        label: Text(l10n.authOpenAccountAction),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: _isSigningOut || authAsync.isLoading
+                            ? null
+                            : () => _signOut(l10n),
+                        icon: _isSigningOut
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.logout),
+                        label: Text(l10n.authLogoutAction),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const Gap(AthlosSpacing.md),
+            _SectionHeader(title: l10n.profileDataSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.profileDataSectionDescription,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0),
+                      ),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        title: Text(
+                          l10n.profileDataBackupLearnMoreTitle,
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
-                        const Gap(AthlosSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            l10n.authCheckingSession,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                        children: [
+                          Text(
+                            l10n.profileDataBackupDetails,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    AthlosStackedActions(
+                      spacing: AthlosSpacing.sm,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _isImporting
+                              ? null
+                              : () => _importData(l10n),
+                          icon: _isImporting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
+                                )
+                              : const Icon(Icons.download),
+                          label: Text(l10n.profileDataImportAction),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _isExporting
+                              ? null
+                              : () => _exportData(l10n),
+                          icon: _isExporting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_file),
+                          label: Text(l10n.profileDataExportAction),
                         ),
                       ],
                     ),
-                  ] else if (authUser == null) ...[
-                    Text(
-                      l10n.authNotSignedIn,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const Gap(AthlosSpacing.md),
-                    FilledButton.icon(
-                      onPressed: () => context.push(RoutePaths.authPrompt),
-                      icon: const Icon(Icons.login),
-                      label: Text(l10n.authOpenAccountAction),
-                    ),
-                  ] else ...[
-                    Text(
-                      authUser.email != null
-                          ? l10n.authSignedInAs(authUser.email!)
-                          : l10n.authNotSignedIn,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const Gap(AthlosSpacing.md),
-                    FilledButton.icon(
-                      onPressed: _isSigningOut ? null : () => _signOut(l10n),
-                      icon: _isSigningOut
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.logout),
-                      label: Text(l10n.authLogoutAction),
-                    ),
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-          const Gap(AthlosSpacing.lg),
-          _SectionHeader(title: l10n.profileDataSectionTitle),
-          const Gap(AthlosSpacing.xs),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.profileDataSectionDescription,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  Text(
-                    l10n.profileDataConflictSummaryTitle,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const Gap(AthlosSpacing.xs),
-                  conflictCenterAsync.when(
-                    loading: () => Text(l10n.profileDataConflictSummaryLoading),
-                    error: (_, _) => Text(l10n.profileDataConflictSummaryError),
-                    data: (summary) => Text(
-                      l10n.profileDataLocalConflictSummary(
-                        summary.localDuplicateCount,
+            const Gap(AthlosSpacing.md),
+            _SectionHeader(title: l10n.profileDataConflictsSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileConflictStatusBanner(
+                      conflictCenterAsync: conflictCenterAsync,
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    Text(
+                      l10n.profileDataConflictSummaryLocalHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                  const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.profileDataConflictSummaryLocalHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  FilledButton.icon(
-                    onPressed: () => context.push(RoutePaths.profileConflicts),
-                    icon: const Icon(Icons.rule_folder_outlined),
-                    label: Text(l10n.conflictCenterOpenAction),
-                  ),
-                  const Gap(AthlosSpacing.sm),
-                  FilledButton.icon(
-                    onPressed: _isImporting ? null : () => _importData(l10n),
-                    icon: _isImporting
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          )
-                        : const Icon(Icons.download),
-                    label: Text(l10n.profileDataImportAction),
-                  ),
-                  const Gap(AthlosSpacing.sm),
-                  OutlinedButton.icon(
-                    onPressed: _isExporting ? null : () => _exportData(l10n),
-                    icon: _isExporting
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : const Icon(Icons.upload_file),
-                    label: Text(l10n.profileDataExportAction),
-                  ),
-                ],
+                    const Gap(AthlosSpacing.md),
+                    _ProfileDataNavRow(
+                      icon: Icons.rule_folder_outlined,
+                      title: l10n.conflictCenterTitle,
+                      subtitle: l10n.tapToOpen,
+                      onTap: () => context.push(RoutePaths.profileConflicts),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            const Gap(AthlosSpacing.lg),
+          ],
+        ),
       ),
     );
   }
@@ -1055,6 +1098,155 @@ class _ProfileTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileConflictStatusBanner extends StatelessWidget {
+  const _ProfileConflictStatusBanner({required this.conflictCenterAsync});
+
+  final AsyncValue<ConflictCenterViewData> conflictCenterAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return conflictCenterAsync.when(
+      loading: () => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        foregroundColor: colorScheme.onSurfaceVariant,
+        icon: Icons.hourglass_empty_outlined,
+        message: l10n.profileDataConflictSummaryLoading,
+      ),
+      error: (_, _) => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.errorContainer,
+        foregroundColor: colorScheme.onErrorContainer,
+        icon: Icons.error_outline,
+        message: l10n.profileDataConflictSummaryError,
+      ),
+      data: (summary) {
+        final duplicateCount = summary.localDuplicateCount;
+        if (duplicateCount == 0) {
+          return _ProfileConflictStatusSurface(
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            foregroundColor: colorScheme.onSurfaceVariant,
+            iconColor: colorScheme.primary,
+            icon: Icons.check_circle_outline,
+            message: l10n.profileDataConflictStatusClear,
+          );
+        }
+
+        return _ProfileConflictStatusSurface(
+          backgroundColor: colorScheme.secondaryContainer,
+          foregroundColor: colorScheme.onSecondaryContainer,
+          icon: Icons.warning_amber_rounded,
+          message: l10n.profileDataLocalConflictSummary(duplicateCount),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileConflictStatusSurface extends StatelessWidget {
+  const _ProfileConflictStatusSurface({
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.icon,
+    required this.message,
+    this.iconColor,
+  });
+
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final IconData icon;
+  final String message;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: AthlosRadius.mdAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor ?? foregroundColor),
+          const Gap(AthlosSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: textTheme.bodyMedium?.copyWith(color: foregroundColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDataNavRow extends StatelessWidget {
+  const _ProfileDataNavRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: colorScheme.surfaceContainerHigh,
+      borderRadius: AthlosRadius.mdAll,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ListTile(
+          minTileHeight: AthlosComponentSizes.listItemMinHeight,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AthlosSpacing.md,
+            vertical: AthlosSpacing.xs,
+          ),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: AthlosRadius.mdAll,
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 22, color: colorScheme.onPrimaryContainer),
+          ),
+          title: Text(
+            title,
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

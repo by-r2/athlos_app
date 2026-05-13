@@ -59,13 +59,33 @@
   "@profileDataTab": {
     "description": "Profile tab label for data backup/import category"
   },
-  "profileDataSectionTitle": "Backup local (dados do usuário)",
+  "profileDataSectionTitle": "Guardar e restaurar",
   "@profileDataSectionTitle": {
     "description": "Profile data section title for local backup"
   },
-  "profileDataSectionDescription": "Exporte seus dados autorais (itens custom e histórico) para JSON. Itens oficiais do catálogo são referenciados por ID canônico.",
+  "profileDataSectionDescription": "Exporte ou importe treinos, itens personalizados e histórico neste aparelho.",
   "@profileDataSectionDescription": {
     "description": "Profile data section description"
+  },
+  "profileDataBackupLearnMoreTitle": "Detalhes do backup",
+  "@profileDataBackupLearnMoreTitle": {
+    "description": "Expansion title for technical backup details on profile data tab"
+  },
+  "profileDataBackupDetails": "O arquivo JSON inclui seus dados autorais. Itens oficiais do catálogo são referenciados por ID canônico.",
+  "@profileDataBackupDetails": {
+    "description": "Technical backup details shown in profile data tab expansion"
+  },
+  "profileDataConflictsSectionTitle": "Duplicados nos seus dados",
+  "@profileDataConflictsSectionTitle": {
+    "description": "Profile data section title for duplicate review"
+  },
+  "profileDataAccountSessionLabel": "Sessão",
+  "@profileDataAccountSessionLabel": {
+    "description": "Label for account session row on profile data tab"
+  },
+  "profileDataConflictStatusClear": "Nenhum duplicado detectado por enquanto.",
+  "@profileDataConflictStatusClear": {
+    "description": "Status text when no local duplicates are found"
   },
   "profileDataConflictSummaryTitle": "Status da central",
   "@profileDataConflictSummaryTitle": {

@@ -45,16 +45,15 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const Gap(AthlosSpacing.md),
-              Row(
+              Text(
+                l10n.conflictCenterDuplicatesFound(
+                  data.runtimeLocalReviews.length,
+                ),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const Gap(AthlosSpacing.sm),
+              AthlosStackedActions(
                 children: [
-                  Expanded(
-                    child: Text(
-                      l10n.conflictCenterDuplicatesFound(
-                        data.runtimeLocalReviews.length,
-                      ),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
                   OutlinedButton.icon(
                     onPressed: _isRescanning ? null : _runRuntimeScan,
                     icon: _isRescanning
@@ -429,32 +428,20 @@ class _CustomActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AthlosStackedActions(
       children: [
         FilledButton(
           onPressed: onMergeAttributes,
           child: Text(l10n.conflictCenterMergeAttributesAction),
         ),
-        const Gap(AthlosSpacing.xs),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.tonal(
-                onPressed: onKeepA,
-                child: Text(l10n.conflictCenterKeepAAction),
-              ),
-            ),
-            const Gap(AthlosSpacing.xs),
-            Expanded(
-              child: FilledButton.tonal(
-                onPressed: onKeepB,
-                child: Text(l10n.conflictCenterKeepBAction),
-              ),
-            ),
-          ],
+        FilledButton.tonal(
+          onPressed: onKeepA,
+          child: Text(l10n.conflictCenterKeepAAction),
         ),
-        const Gap(AthlosSpacing.xs),
+        FilledButton.tonal(
+          onPressed: onKeepB,
+          child: Text(l10n.conflictCenterKeepBAction),
+        ),
         OutlinedButton(
           onPressed: onNotDuplicate,
           child: Text(l10n.conflictCenterNotDuplicateAction),
