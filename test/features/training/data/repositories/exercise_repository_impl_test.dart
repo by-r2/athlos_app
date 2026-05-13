@@ -42,11 +42,10 @@ void main() {
           (
             muscle: TargetMuscle.pectoralisMajor,
             region: MuscleRegion.upper,
-            role: MuscleRole.primary
+            role: MuscleRole.primary,
           ),
         ],
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
       final loaded = (await repository.getById(id)).getOrThrow();
       expect(loaded, isNotNull);
@@ -63,15 +62,17 @@ void main() {
           muscleGroup: MuscleGroup.biceps,
           type: ExerciseType.strength,
         ),
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
-      final byName = (await repository.findByName('  ROSCA teste ')).getOrThrow();
+      final byName = (await repository.findByName(
+        '  ROSCA teste ',
+      )).getOrThrow();
       expect(byName, isNotNull);
       expect(byName!.id, id);
 
-      final byGroup = (await repository.getByMuscleGroup(MuscleGroup.biceps))
-          .getOrThrow();
+      final byGroup = (await repository.getByMuscleGroup(
+        MuscleGroup.biceps,
+      )).getOrThrow();
       expect(byGroup.any((e) => e.id == id), isTrue);
     });
 
@@ -82,23 +83,23 @@ void main() {
           name: 'Agachamento Teste',
           muscleGroup: MuscleGroup.quadriceps,
         ),
-      ))
-          .getOrThrow();
+      )).getOrThrow();
       final id2 = (await repository.create(
         const domain.Exercise(
           id: 0,
           name: 'Agachamento Hack Teste',
           muscleGroup: MuscleGroup.quadriceps,
         ),
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
       expect((await repository.addVariation(id1, id2)).isSuccess, isTrue);
       final variations = (await repository.getVariations(id1)).getOrThrow();
       expect(variations.any((e) => e.id == id2), isTrue);
 
       expect((await repository.removeVariation(id1, id2)).isSuccess, isTrue);
-      final variationsAfter = (await repository.getVariations(id1)).getOrThrow();
+      final variationsAfter = (await repository.getVariations(
+        id1,
+      )).getOrThrow();
       expect(variationsAfter.any((e) => e.id == id2), isFalse);
     });
   });

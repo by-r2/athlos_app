@@ -32,34 +32,34 @@ void main() {
       await db.close();
     });
 
-    test('start/logSet/getSets/saveSegments/getSegments/finish/delete',
-        () async {
-      final executionId =
-          (await repository.start(1, programId: programId)).getOrThrow();
-      expect(executionId, greaterThan(0));
+    test(
+      'start/logSet/getSets/saveSegments/getSegments/finish/delete',
+      () async {
+        final executionId = (await repository.start(
+          1,
+          programId: programId,
+        )).getOrThrow();
+        expect(executionId, greaterThan(0));
 
-      final setId = (await repository.logSet(
-        domain.ExecutionSet(
-          id: 0,
-          executionId: executionId,
-          exerciseId: 1,
-          setNumber: 1,
-          reps: 10,
-          weight: 50,
-          isCompleted: true,
-        ),
-      ))
-          .getOrThrow();
-      expect(setId, greaterThan(0));
+        final setId = (await repository.logSet(
+          domain.ExecutionSet(
+            id: 0,
+            executionId: executionId,
+            exerciseId: 1,
+            setNumber: 1,
+            reps: 10,
+            weight: 50,
+            isCompleted: true,
+          ),
+        )).getOrThrow();
+        expect(setId, greaterThan(0));
 
-      final sets = (await repository.getSets(executionId)).getOrThrow();
-      expect(sets, isNotEmpty);
-      expect(sets.first.reps, 10);
+        final sets = (await repository.getSets(executionId)).getOrThrow();
+        expect(sets, isNotEmpty);
+        expect(sets.first.reps, 10);
 
-      expect(
-        (await repository.saveSegments(
-          setId,
-          const [
+        expect(
+          (await repository.saveSegments(setId, const [
             domain.ExecutionSetSegment(
               id: 0,
               executionSetId: 0,
@@ -74,28 +74,26 @@ void main() {
               reps: 8,
               weight: 40,
             ),
-          ],
-        ))
-            .isSuccess,
-        isTrue,
-      );
-      final segments = (await repository.getSegments(setId)).getOrThrow();
-      expect(segments.length, 2);
-      expect(segments.first.segmentOrder, 1);
+          ])).isSuccess,
+          isTrue,
+        );
+        final segments = (await repository.getSegments(setId)).getOrThrow();
+        expect(segments.length, 2);
+        expect(segments.first.segmentOrder, 1);
 
-      expect((await repository.finish(executionId)).isSuccess, isTrue);
-      final lastFinished = (await repository.getLastFinished()).getOrThrow();
-      expect(lastFinished, isNotNull);
-      expect(lastFinished!.finishedAt, isNotNull);
-      expect(lastFinished.programId, programId);
+        expect((await repository.finish(executionId)).isSuccess, isTrue);
+        final lastFinished = (await repository.getLastFinished()).getOrThrow();
+        expect(lastFinished, isNotNull);
+        expect(lastFinished!.finishedAt, isNotNull);
+        expect(lastFinished.programId, programId);
 
-      expect((await repository.delete(executionId)).isSuccess, isTrue);
-      expect((await repository.getById(executionId)).getOrThrow(), isNull);
-    });
+        expect((await repository.delete(executionId)).isSuccess, isTrue);
+        expect((await repository.getById(executionId)).getOrThrow(), isNull);
+      },
+    );
 
     test('getLastTwoFinishedWithVolume calcula volume corretamente', () async {
-      final e1 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e1 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -109,8 +107,7 @@ void main() {
       );
       await repository.finish(e1);
 
-      final e2 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e2 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -124,8 +121,9 @@ void main() {
       );
       await repository.finish(e2);
 
-      final comparison =
-          (await repository.getLastTwoFinishedWithVolume(1)).getOrThrow();
+      final comparison = (await repository.getLastTwoFinishedWithVolume(
+        1,
+      )).getOrThrow();
       expect(comparison, isNotNull);
       final volumes = [comparison!.volumeLast, comparison.volumePrevious];
       expect(volumes, containsAll(<double>[480, 500]));
@@ -134,8 +132,7 @@ void main() {
     test('getLastTwoFinishedWithVolume soma drop-set segments', () async {
       // e1: 1 normal set (10 × 50 = 500) + 1 drop set with 2 segments
       //     (10 × 50 + 8 × 40 = 820), total = 1320.
-      final e1 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e1 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -157,32 +154,27 @@ void main() {
           weight: 50,
           isCompleted: true,
         ),
-      ))
-          .getOrThrow();
-      await repository.saveSegments(
-        dropSetId,
-        const [
-          domain.ExecutionSetSegment(
-            id: 0,
-            executionSetId: 0,
-            segmentOrder: 1,
-            reps: 10,
-            weight: 50,
-          ),
-          domain.ExecutionSetSegment(
-            id: 0,
-            executionSetId: 0,
-            segmentOrder: 2,
-            reps: 8,
-            weight: 40,
-          ),
-        ],
-      );
+      )).getOrThrow();
+      await repository.saveSegments(dropSetId, const [
+        domain.ExecutionSetSegment(
+          id: 0,
+          executionSetId: 0,
+          segmentOrder: 1,
+          reps: 10,
+          weight: 50,
+        ),
+        domain.ExecutionSetSegment(
+          id: 0,
+          executionSetId: 0,
+          segmentOrder: 2,
+          reps: 8,
+          weight: 40,
+        ),
+      ]);
       await repository.finish(e1);
 
       // e2: a single weighted set so a comparison can be computed.
-      final e2 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e2 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -196,8 +188,9 @@ void main() {
       );
       await repository.finish(e2);
 
-      final comparison =
-          (await repository.getLastTwoFinishedWithVolume(1)).getOrThrow();
+      final comparison = (await repository.getLastTwoFinishedWithVolume(
+        1,
+      )).getOrThrow();
       expect(comparison, isNotNull);
       final volumes = [comparison!.volumeLast, comparison.volumePrevious];
       expect(volumes, containsAll(<double>[1320, 500]));
@@ -205,8 +198,7 @@ void main() {
 
     test('getLastTwoFinishedWithVolume exclui sets de aquecimento', () async {
       // e1: 1 warmup (excluded) + 1 work set (counted).
-      final e1 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e1 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -232,8 +224,7 @@ void main() {
       );
       await repository.finish(e1);
 
-      final e2 =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final e2 = (await repository.start(1, programId: programId)).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -247,8 +238,9 @@ void main() {
       );
       await repository.finish(e2);
 
-      final comparison =
-          (await repository.getLastTwoFinishedWithVolume(1)).getOrThrow();
+      final comparison = (await repository.getLastTwoFinishedWithVolume(
+        1,
+      )).getOrThrow();
       expect(comparison, isNotNull);
       final volumes = [comparison!.volumeLast, comparison.volumePrevious];
       // e1 should be 600 (warmup excluded), not 900.
@@ -256,8 +248,10 @@ void main() {
     });
 
     test('getLastWeightsForExercises retorna ultimo peso concluido', () async {
-      final executionId =
-          (await repository.start(1, programId: programId)).getOrThrow();
+      final executionId = (await repository.start(
+        1,
+        programId: programId,
+      )).getOrThrow();
       await repository.logSet(
         domain.ExecutionSet(
           id: 0,
@@ -271,9 +265,10 @@ void main() {
       );
       await repository.finish(executionId);
 
-      final weights =
-          (await repository.getLastWeightsForExercises(const [1, 2]))
-              .getOrThrow();
+      final weights = (await repository.getLastWeightsForExercises(const [
+        1,
+        2,
+      ])).getOrThrow();
       expect(weights[1], 55.5);
       expect(weights.containsKey(2), isFalse);
     });
@@ -284,11 +279,9 @@ void main() {
         1,
         programId: programId,
         exerciseConfigSnapshot: snapshot,
-      ))
-          .getOrThrow();
+      )).getOrThrow();
 
-      final execution =
-          (await repository.getById(executionId)).getOrThrow();
+      final execution = (await repository.getById(executionId)).getOrThrow();
       expect(execution, isNotNull);
       expect(execution!.exerciseConfigSnapshot, snapshot);
     });

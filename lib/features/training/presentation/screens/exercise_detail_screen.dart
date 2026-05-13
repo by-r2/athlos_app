@@ -24,6 +24,7 @@ import '../../domain/enums/target_muscle.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/training_metrics_provider.dart';
+
 const _placeholderExercise = Exercise(
   id: 0,
   name: '',
@@ -73,117 +74,120 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-          appBar: AppBar(
-            title: Text(displayName),
-            actions: [
-              if (!displayExercise.isVerified) ...[
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: l10n.edit,
-                  onPressed: () => _showEditSheet(context, ref, displayExercise),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  tooltip: l10n.delete,
-                  onPressed: () =>
-                      _confirmDelete(context, ref, displayExercise, l10n),
-                ),
-              ],
-            ],
-          ),
-          body: Skeletonizer(
-            enabled: allExercisesAsync.isLoading,
-            child: ListView(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              children: [
-                if (displayExercise.description != null &&
-                    displayExercise.description!.isNotEmpty) ...[
-                  Text(
-                    displayExercise.description!,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Gap(AthlosSpacing.lg),
-              ],
-              _buildInfoSection(
-                context,
-                icon: Icons.sports_gymnastics,
-                title: l10n.exerciseDetailMuscleGroup,
-                value: localizedMuscleGroupName(displayExercise.muscleGroup, l10n),
-                colorScheme: colorScheme,
-                textTheme: textTheme,
+      appBar: AppBar(
+        title: Text(displayName),
+        actions: [
+          if (!displayExercise.isVerified) ...[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: l10n.edit,
+              onPressed: () => _showEditSheet(context, ref, displayExercise),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.delete_outline,
+                color: colorScheme.onSurfaceVariant,
               ),
+              tooltip: l10n.delete,
+              onPressed: () =>
+                  _confirmDelete(context, ref, displayExercise, l10n),
+            ),
+          ],
+        ],
+      ),
+      body: Skeletonizer(
+        enabled: allExercisesAsync.isLoading,
+        child: ListView(
+          padding: const EdgeInsets.all(AthlosSpacing.md),
+          children: [
+            if (displayExercise.description != null &&
+                displayExercise.description!.isNotEmpty) ...[
+              Text(
+                displayExercise.description!,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Gap(AthlosSpacing.lg),
+            ],
+            _buildInfoSection(
+              context,
+              icon: Icons.sports_gymnastics,
+              title: l10n.exerciseDetailMuscleGroup,
+              value: localizedMuscleGroupName(
+                displayExercise.muscleGroup,
+                l10n,
+              ),
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+            ),
+            const Gap(AthlosSpacing.md),
+            _buildInfoSection(
+              context,
+              icon: Icons.category,
+              title: l10n.exerciseDetailType,
+              value: displayExercise.type == ExerciseType.strength
+                  ? l10n.exerciseTypeStrength
+                  : l10n.exerciseTypeCardio,
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+            ),
+            if (displayExercise.movementPattern != null) ...[
               const Gap(AthlosSpacing.md),
               _buildInfoSection(
                 context,
-                icon: Icons.category,
-                title: l10n.exerciseDetailType,
-                value: displayExercise.type == ExerciseType.strength
-                    ? l10n.exerciseTypeStrength
-                    : l10n.exerciseTypeCardio,
+                icon: Icons.swap_horiz,
+                title: l10n.movementPatternLabel,
+                value: localizedMovementPattern(
+                  displayExercise.movementPattern!,
+                  l10n,
+                ),
                 colorScheme: colorScheme,
                 textTheme: textTheme,
               ),
-              if (displayExercise.movementPattern != null) ...[
-                const Gap(AthlosSpacing.md),
-                _buildInfoSection(
-                  context,
-                  icon: Icons.swap_horiz,
-                  title: l10n.movementPatternLabel,
-                  value: localizedMovementPattern(
-                    displayExercise.movementPattern!,
-                    l10n,
-                  ),
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                ),
-              ],
-              if (displayExercise.muscles.isNotEmpty) ...[
-                const Gap(AthlosSpacing.md),
-                _buildMusclesSection(
-                  context,
-                  muscles: displayExercise.muscles,
-                  l10n: l10n,
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                ),
-              ],
-              if (displayExercise.defaultLoadMode == LoadMode.bodyweight) ...[
-                const Gap(AthlosSpacing.md),
-                _buildInfoSection(
-                  context,
-                  icon: Icons.accessibility_new,
-                  title: l10n.bodyweightExercise,
-                  value: '',
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                ),
-              ],
-              if (displayExercise.isIsometric) ...[
-                const Gap(AthlosSpacing.md),
-                _buildInfoSection(
-                  context,
-                  icon: Icons.timer,
-                  title: l10n.isometricLabel,
-                  value: '',
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                ),
-              ],
-              const Gap(AthlosSpacing.lg),
-              _PRSection(exerciseId: exerciseId),
-              const Gap(AthlosSpacing.lg),
-              _VariationsSection(
-                exerciseId: exerciseId,
-                currentExerciseName: displayName,
+            ],
+            if (displayExercise.muscles.isNotEmpty) ...[
+              const Gap(AthlosSpacing.md),
+              _buildMusclesSection(
+                context,
+                muscles: displayExercise.muscles,
+                l10n: l10n,
+                colorScheme: colorScheme,
+                textTheme: textTheme,
               ),
             ],
-          ),
+            if (displayExercise.defaultLoadMode == LoadMode.bodyweight) ...[
+              const Gap(AthlosSpacing.md),
+              _buildInfoSection(
+                context,
+                icon: Icons.accessibility_new,
+                title: l10n.bodyweightExercise,
+                value: '',
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+              ),
+            ],
+            if (displayExercise.isIsometric) ...[
+              const Gap(AthlosSpacing.md),
+              _buildInfoSection(
+                context,
+                icon: Icons.timer,
+                title: l10n.isometricLabel,
+                value: '',
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+              ),
+            ],
+            const Gap(AthlosSpacing.lg),
+            _PRSection(exerciseId: exerciseId),
+            const Gap(AthlosSpacing.lg),
+            _VariationsSection(
+              exerciseId: exerciseId,
+              currentExerciseName: displayName,
+            ),
+          ],
         ),
+      ),
     );
   }
 
@@ -216,8 +220,10 @@ class ExerciseDetailScreen extends ConsumerWidget {
                   final regionName = localizedMuscleRegion(focus.region!, l10n);
                   return Padding(
                     padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                    child: Text(l10n.muscleWithRegion(muscleName, regionName),
-                        style: textTheme.bodyLarge),
+                    child: Text(
+                      l10n.muscleWithRegion(muscleName, regionName),
+                      style: textTheme.bodyLarge,
+                    ),
                   );
                 }
                 return Padding(
@@ -232,8 +238,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSheet(
-      BuildContext context, WidgetRef ref, Exercise exercise) {
+  void _showEditSheet(BuildContext context, WidgetRef ref, Exercise exercise) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -242,8 +247,12 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, Exercise exercise,
-      AppLocalizations l10n) {
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Exercise exercise,
+    AppLocalizations l10n,
+  ) {
     showAthlosDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -251,16 +260,13 @@ class ExerciseDetailScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deleteExerciseMessage(exercise.name)),
-          ],
+          children: [Text(l10n.deleteExerciseMessage(exercise.name))],
         ),
         actions: [
           AthlosStackedDialogActions(
             children: [
               TextButton(
-                style:
-                    AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                style: AthlosDialogButtonStyles.stackedGhost(dialogContext),
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
                   try {
@@ -275,7 +281,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                              AppLocalizations.of(context)!.genericError),
+                            AppLocalizations.of(context)!.genericError,
+                          ),
                         ),
                       );
                     }
@@ -348,8 +355,8 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   MovementPattern? _selectedMovementPattern;
   final List<({TargetMuscle muscle, MuscleRegion? region})> _primaryMuscles =
       [];
-  final List<({TargetMuscle muscle, MuscleRegion? region})>
-      _secondaryMuscles = [];
+  final List<({TargetMuscle muscle, MuscleRegion? region})> _secondaryMuscles =
+      [];
   bool _isSaving = false;
   bool _dirty = false;
 
@@ -357,8 +364,9 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.exercise.name);
-    _descriptionController =
-        TextEditingController(text: widget.exercise.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.exercise.description ?? '',
+    );
     _selectedGroup = widget.exercise.muscleGroup;
     _selectedType = widget.exercise.type;
     _isIsometric = widget.exercise.isIsometric;
@@ -395,12 +403,14 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   }
 
   List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
-      get _allMuscles => [
-            ..._primaryMuscles.map(
-                (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.primary)),
-            ..._secondaryMuscles.map(
-                (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.secondary)),
-          ];
+  get _allMuscles => [
+    ..._primaryMuscles.map(
+      (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.primary),
+    ),
+    ..._secondaryMuscles.map(
+      (m) => (muscle: m.muscle, region: m.region, role: MuscleRole.secondary),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -411,162 +421,164 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
       guardActive: _dirty,
       onConfirmLeave: confirmDiscardUnsavedEdits,
       child: Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) {
-          return Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: AthlosSpacing.sm),
-                  child: Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurfaceVariant.withAlpha(80),
-                      borderRadius: AthlosRadius.xsAll,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: AthlosSpacing.sm),
+                    child: Container(
+                      width: 32,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurfaceVariant.withAlpha(80),
+                        borderRadius: AthlosRadius.xsAll,
+                      ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
-                    AthlosSpacing.md,
-                    AthlosSpacing.sm,
-                    0,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.editExercise,
-                          style: textTheme.titleLarge,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _closeSheet(context),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AthlosSpacing.md,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AthlosSpacing.md,
+                      AthlosSpacing.md,
+                      AthlosSpacing.sm,
+                      0,
                     ),
-                    children: [
-                      const Gap(AthlosSpacing.sm),
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: l10n.exerciseNameLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        textCapitalization: TextCapitalization.sentences,
-                        onChanged: (_) => _touchDirty(),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return l10n.fieldRequired;
-                          }
-                          return null;
-                        },
-                      ),
-                      const Gap(AthlosSpacing.md),
-                      DropdownButtonFormField<MuscleGroup>(
-                        initialValue: _selectedGroup,
-                        decoration: InputDecoration(
-                          labelText: l10n.exerciseMuscleGroupLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        items: MuscleGroup.values.map((group) {
-                          return DropdownMenuItem(
-                            value: group,
-                            child:
-                                Text(localizedMuscleGroupName(group, l10n)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            _touchDirty();
-                            setState(() => _selectedGroup = value);
-                          }
-                        },
-                      ),
-                      const Gap(AthlosSpacing.md),
-                      SegmentedButton<ExerciseType>(
-                        segments: [
-                          ButtonSegment(
-                            value: ExerciseType.strength,
-                            label: Text(l10n.exerciseTypeStrength),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.editExercise,
+                            style: textTheme.titleLarge,
                           ),
-                          ButtonSegment(
-                            value: ExerciseType.cardio,
-                            label: Text(l10n.exerciseTypeCardio),
-                          ),
-                        ],
-                        selected: {_selectedType},
-                        onSelectionChanged: (v) {
-                          _touchDirty();
-                          setState(() {
-                            _selectedType = v.first;
-                            if (_selectedType == ExerciseType.cardio) {
-                              _isIsometric = false;
-                            }
-                          });
-                        },
-                      ),
-                      if (_selectedType == ExerciseType.strength) ...[
-                        const Gap(AthlosSpacing.sm),
-                        SwitchListTile(
-                          title: Text(l10n.isometricLabel),
-                          subtitle: Text(l10n.isometricHint),
-                          value: _isIsometric,
-                          onChanged: (v) {
-                            _touchDirty();
-                            setState(() => _isIsometric = v);
-                          },
-                          contentPadding: EdgeInsets.zero,
+                        ),
+                        IconButton(
+                          onPressed: () => _closeSheet(context),
+                          icon: const Icon(Icons.close),
                         ),
                       ],
-                      const Gap(AthlosSpacing.sm),
-                      _buildAdvancedSection(l10n, textTheme, colorScheme),
-                      const Gap(AthlosSpacing.xl),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AthlosSpacing.md),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _onSave,
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
-                            )
-                          : Text(l10n.save),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  const Divider(),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AthlosSpacing.md,
+                      ),
+                      children: [
+                        const Gap(AthlosSpacing.sm),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            labelText: l10n.exerciseNameLabel,
+                            border: const OutlineInputBorder(),
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                          onChanged: (_) => _touchDirty(),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return l10n.fieldRequired;
+                            }
+                            return null;
+                          },
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        DropdownButtonFormField<MuscleGroup>(
+                          initialValue: _selectedGroup,
+                          decoration: InputDecoration(
+                            labelText: l10n.exerciseMuscleGroupLabel,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: MuscleGroup.values.map((group) {
+                            return DropdownMenuItem(
+                              value: group,
+                              child: Text(
+                                localizedMuscleGroupName(group, l10n),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              _touchDirty();
+                              setState(() => _selectedGroup = value);
+                            }
+                          },
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        SegmentedButton<ExerciseType>(
+                          segments: [
+                            ButtonSegment(
+                              value: ExerciseType.strength,
+                              label: Text(l10n.exerciseTypeStrength),
+                            ),
+                            ButtonSegment(
+                              value: ExerciseType.cardio,
+                              label: Text(l10n.exerciseTypeCardio),
+                            ),
+                          ],
+                          selected: {_selectedType},
+                          onSelectionChanged: (v) {
+                            _touchDirty();
+                            setState(() {
+                              _selectedType = v.first;
+                              if (_selectedType == ExerciseType.cardio) {
+                                _isIsometric = false;
+                              }
+                            });
+                          },
+                        ),
+                        if (_selectedType == ExerciseType.strength) ...[
+                          const Gap(AthlosSpacing.sm),
+                          SwitchListTile(
+                            title: Text(l10n.isometricLabel),
+                            subtitle: Text(l10n.isometricHint),
+                            value: _isIsometric,
+                            onChanged: (v) {
+                              _touchDirty();
+                              setState(() => _isIsometric = v);
+                            },
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                        const Gap(AthlosSpacing.sm),
+                        _buildAdvancedSection(l10n, textTheme, colorScheme),
+                        const Gap(AthlosSpacing.xl),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _onSave,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.save),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 
@@ -578,7 +590,8 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
     return ExpansionTile(
       title: Text(l10n.advancedDetails),
       tilePadding: EdgeInsets.zero,
-      initiallyExpanded: _primaryMuscles.isNotEmpty ||
+      initiallyExpanded:
+          _primaryMuscles.isNotEmpty ||
           _secondaryMuscles.isNotEmpty ||
           _selectedMovementPattern != null,
       childrenPadding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
@@ -586,8 +599,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         _buildMuscleSection(
           label: l10n.primaryMusclesLabel,
           muscles: _primaryMuscles,
-          excludedMuscles:
-              _secondaryMuscles.map((m) => m.muscle).toSet(),
+          excludedMuscles: _secondaryMuscles.map((m) => m.muscle).toSet(),
           l10n: l10n,
           textTheme: textTheme,
           colorScheme: colorScheme,
@@ -596,8 +608,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         _buildMuscleSection(
           label: l10n.secondaryMusclesLabel,
           muscles: _secondaryMuscles,
-          excludedMuscles:
-              _primaryMuscles.map((m) => m.muscle).toSet(),
+          excludedMuscles: _primaryMuscles.map((m) => m.muscle).toSet(),
           l10n: l10n,
           textTheme: textTheme,
           colorScheme: colorScheme,
@@ -669,8 +680,9 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
       children: [
         Text(
           label,
-          style: textTheme.titleSmall
-              ?.copyWith(color: colorScheme.onSurfaceVariant),
+          style: textTheme.titleSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         const Gap(AthlosSpacing.xs),
         ...grouped.entries.map((entry) {
@@ -684,8 +696,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
               spacing: AthlosSpacing.xs,
               runSpacing: 0,
               children: groupMuscles.map((muscle) {
-                final isSelected =
-                    muscles.any((f) => f.muscle == muscle);
+                final isSelected = muscles.any((f) => f.muscle == muscle);
                 return FilterChip(
                   label: Text(
                     localizedTargetMuscle(muscle, l10n),
@@ -697,11 +708,9 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                     _touchDirty();
                     setState(() {
                       if (selected) {
-                        muscles
-                            .add((muscle: muscle, region: null));
+                        muscles.add((muscle: muscle, region: null));
                       } else {
-                        muscles.removeWhere(
-                            (f) => f.muscle == muscle);
+                        muscles.removeWhere((f) => f.muscle == muscle);
                       }
                     });
                   },
@@ -715,20 +724,17 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
   }
 
   List<Widget> _buildRegionDropdowns(AppLocalizations l10n) {
-    final all = [
-      ..._primaryMuscles,
-      ..._secondaryMuscles,
-    ];
-    final musclesWithRegions =
-        all.where((f) => f.muscle.validRegions.isNotEmpty).toList();
+    final all = [..._primaryMuscles, ..._secondaryMuscles];
+    final musclesWithRegions = all
+        .where((f) => f.muscle.validRegions.isNotEmpty)
+        .toList();
 
     if (musclesWithRegions.isEmpty) return [];
 
     return [
       const Gap(AthlosSpacing.md),
       ...musclesWithRegions.map((focus) {
-        final inPrimary =
-            _primaryMuscles.any((f) => f.muscle == focus.muscle);
+        final inPrimary = _primaryMuscles.any((f) => f.muscle == focus.muscle);
         final list = inPrimary ? _primaryMuscles : _secondaryMuscles;
         final idx = list.indexWhere((f) => f.muscle == focus.muscle);
         return Padding(
@@ -789,10 +795,9 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         isIsometric: _isIsometric,
       );
 
-      await ref.read(exerciseListProvider.notifier).updateExercise(
-            updated,
-            muscles: _allMuscles,
-          );
+      await ref
+          .read(exerciseListProvider.notifier)
+          .updateExercise(updated, muscles: _allMuscles);
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -800,9 +805,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     } finally {
@@ -890,9 +893,7 @@ class _VariationsSection extends ConsumerWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     onTap: () {
-                      context.push(
-                        '${RoutePaths.trainingExercises}/${v.id}',
-                      );
+                      context.push('${RoutePaths.trainingExercises}/${v.id}');
                     },
                   );
                 }).toList(),
@@ -923,16 +924,16 @@ class _PRSection extends ConsumerWidget {
       data: (pr) {
         if (pr == null) return const SizedBox.shrink();
         final e1rmStr = pr.best1RM.toStringAsFixed(1);
-        final weightStr =
-            pr.weight % 1 == 0 ? pr.weight.toInt().toString() : pr.weight.toStringAsFixed(1);
+        final weightStr = pr.weight % 1 == 0
+            ? pr.weight.toInt().toString()
+            : pr.weight.toStringAsFixed(1);
         return Card(
           color: colorScheme.primaryContainer,
           child: Padding(
             padding: const EdgeInsets.all(AthlosSpacing.md),
             child: Row(
               children: [
-                Icon(Icons.emoji_events,
-                    color: colorScheme.primary, size: 28),
+                Icon(Icons.emoji_events, color: colorScheme.primary, size: 28),
                 const Gap(AthlosSpacing.md),
                 Expanded(
                   child: Column(
@@ -954,16 +955,19 @@ class _PRSection extends ConsumerWidget {
                       Text(
                         l10n.prBestSet(weightStr, pr.reps),
                         style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer
-                              .withValues(alpha: 0.7),
+                          color: colorScheme.onPrimaryContainer.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.show_chart,
-                      color: colorScheme.onPrimaryContainer),
+                  icon: Icon(
+                    Icons.show_chart,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
                   tooltip: l10n.loadChartTitle,
                   onPressed: () => context.push(
                     RoutePaths.trainingExerciseLoadChart(exerciseId),

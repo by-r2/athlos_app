@@ -35,24 +35,36 @@ void main() {
     });
 
     test('seed sets default_load_mode and literature load factors', () async {
-      final pushUp = await db.customSelect(
-        "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
-        "WHERE name = 'pushUp' LIMIT 1",
-      ).getSingle();
+      final pushUp = await db
+          .customSelect(
+            "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
+            "WHERE name = 'pushUp' LIMIT 1",
+          )
+          .getSingle();
       expect(pushUp.read<String>('default_load_mode'), 'bodyweight');
-      expect(pushUp.read<double?>('bodyweight_load_factor'), closeTo(0.64, 0.001));
+      expect(
+        pushUp.read<double?>('bodyweight_load_factor'),
+        closeTo(0.64, 0.001),
+      );
 
-      final pullUp = await db.customSelect(
-        "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
-        "WHERE name = 'pullUp' LIMIT 1",
-      ).getSingle();
+      final pullUp = await db
+          .customSelect(
+            "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
+            "WHERE name = 'pullUp' LIMIT 1",
+          )
+          .getSingle();
       expect(pullUp.read<String>('default_load_mode'), 'bodyweight');
-      expect(pullUp.read<double?>('bodyweight_load_factor'), closeTo(1.00, 0.001));
+      expect(
+        pullUp.read<double?>('bodyweight_load_factor'),
+        closeTo(1.00, 0.001),
+      );
 
-      final benchPress = await db.customSelect(
-        "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
-        "WHERE name = 'benchPress' LIMIT 1",
-      ).getSingle();
+      final benchPress = await db
+          .customSelect(
+            "SELECT default_load_mode, bodyweight_load_factor FROM exercises "
+            "WHERE name = 'benchPress' LIMIT 1",
+          )
+          .getSingle();
       expect(benchPress.read<String>('default_load_mode'), 'weighted');
       expect(benchPress.read<double?>('bodyweight_load_factor'), isNull);
     });

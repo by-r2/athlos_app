@@ -71,8 +71,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final exercisesAsync = ref.watch(exerciseListProvider);
 
     final executions = executionsAsync.value;
-    final execution =
-        executions?.where((e) => e.id == executionId).firstOrNull;
+    final execution = executions?.where((e) => e.id == executionId).firstOrNull;
 
     if (executionsAsync.hasError) {
       return Scaffold(
@@ -91,8 +90,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final workoutAsync = execution != null
         ? ref.watch(workoutByIdProvider(execution.workoutId))
         : null;
-    final workoutName =
-        workoutAsync?.value?.name ?? l10n.unknownWorkout;
+    final workoutName = workoutAsync?.value?.name ?? l10n.unknownWorkout;
 
     final exerciseConfigAsync = execution != null
         ? ref.watch(executionExerciseConfigProvider(execution))
@@ -118,12 +116,9 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final prSetIdsPerExercise = <int, Set<int>>{};
     final allExercises = exercisesAsync.value ?? <Exercise>[];
     final exerciseMapLocal = {for (final e in allExercises) e.id: e};
-    final profileWeight =
-        ref.watch(latestBodyWeightProvider).value;
+    final profileWeight = ref.watch(latestBodyWeightProvider).value;
     final historicProfileWeight = execution != null
-        ? ref
-            .watch(profileBodyWeightAtProvider(execution.startedAt))
-            .value
+        ? ref.watch(profileBodyWeightAtProvider(execution.startedAt)).value
         : null;
     for (final exId in sets.map((s) => s.exerciseId).toSet()) {
       final pr = ref.watch(exercisePRProvider(exId)).value;
@@ -140,16 +135,13 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
             exercise: ex,
           ),
           setWeight: s.weight,
-          bodyWeight: s.bodyWeightSnapshot ??
-              historicProfileWeight ??
-              profileWeight,
+          bodyWeight:
+              s.bodyWeightSnapshot ?? historicProfileWeight ?? profileWeight,
           loadFactor: ex.bodyweightLoadFactor,
         );
         final e1rm = estimated1RM(weight: load, reps: s.reps);
         if (e1rm != null && e1rm >= pr.best1RM) {
-          prSetIdsPerExercise
-              .putIfAbsent(exId, () => {})
-              .add(s.id);
+          prSetIdsPerExercise.putIfAbsent(exId, () => {}).add(s.id);
         }
       }
     }
@@ -202,14 +194,11 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
                 execution: execution ?? _placeholderExecution,
                 sets: sets,
                 workoutName: workoutName,
-                exerciseById:
-                    exercisesAsync.hasValue ? exerciseMapLocal : null,
-                workoutExerciseByExerciseId:
-                    workoutExerciseByExerciseId.isEmpty
-                        ? null
-                        : workoutExerciseByExerciseId,
-                profileBodyWeightOnExecutionDate:
-                    historicProfileWeight,
+                exerciseById: exercisesAsync.hasValue ? exerciseMapLocal : null,
+                workoutExerciseByExerciseId: workoutExerciseByExerciseId.isEmpty
+                    ? null
+                    : workoutExerciseByExerciseId,
+                profileBodyWeightOnExecutionDate: historicProfileWeight,
                 latestBodyWeight: profileWeight,
               ),
               _ExecutionDetailBody(
@@ -218,8 +207,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
                 exercisesAsync: exercisesAsync,
                 unilateralMap: unilateralMap,
                 workoutExerciseByExerciseId: workoutExerciseByExerciseId,
-                profileBodyWeightOnExecutionDate:
-                    historicProfileWeight,
+                profileBodyWeightOnExecutionDate: historicProfileWeight,
                 latestBodyWeight: profileWeight,
                 prSetIdsPerExercise: prSetIdsPerExercise,
                 colorScheme: colorScheme,
@@ -265,8 +253,9 @@ class _ExecutionShareSummaryTabState extends State<_ExecutionShareSummaryTab> {
     await shareRepaintBoundaryAsPng(
       context: context,
       boundaryKey: widget.captureKey,
-      shareText: AppLocalizations.of(context)!
-          .workoutShareSummaryShareText(widget.workoutName),
+      shareText: AppLocalizations.of(
+        context,
+      )!.workoutShareSummaryShareText(widget.workoutName),
       fileName: 'athlos_workout_${widget.execution.id}.png',
     );
   }
@@ -334,12 +323,10 @@ class _ExecutionDetailBody extends StatelessWidget {
     final totalVolume = computeTotalVolume(
       sets,
       exerciseById: exerciseMap.isEmpty ? null : exerciseMap,
-      workoutExerciseByExerciseId:
-          workoutExerciseByExerciseId.isEmpty
-              ? null
-              : workoutExerciseByExerciseId,
-      profileBodyWeightOnExecutionDate:
-          profileBodyWeightOnExecutionDate,
+      workoutExerciseByExerciseId: workoutExerciseByExerciseId.isEmpty
+          ? null
+          : workoutExerciseByExerciseId,
+      profileBodyWeightOnExecutionDate: profileBodyWeightOnExecutionDate,
       latestBodyWeight: latestBodyWeight,
     );
     int totalCompletedSets = 0;
@@ -350,10 +337,10 @@ class _ExecutionDetailBody extends StatelessWidget {
     }
 
     final locale = Localizations.localeOf(context).toString();
-    final dateStr =
-        DateFormat.yMMMd(locale).add_Hm().format(execution.startedAt);
-    final durationStr =
-        formatWorkoutTotalDuration(execution.duration, l10n);
+    final dateStr = DateFormat.yMMMd(
+      locale,
+    ).add_Hm().format(execution.startedAt);
+    final durationStr = formatWorkoutTotalDuration(execution.duration, l10n);
 
     return CustomScrollView(
       slivers: [
@@ -365,21 +352,32 @@ class _ExecutionDetailBody extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.calendar_today,
-                        size: 16, color: colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: AthlosSpacing.xs),
-                    Text(dateStr,
-                        style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant)),
+                    Text(
+                      dateStr,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     if (durationStr != null) ...[
                       const SizedBox(width: AthlosSpacing.md),
-                      Icon(Icons.timer_outlined,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant),
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 16,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: AthlosSpacing.xs),
-                      Text(durationStr,
-                          style: textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant)),
+                      Text(
+                        durationStr,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -392,7 +390,9 @@ class _ExecutionDetailBody extends StatelessWidget {
                       child: _SummaryCard(
                         icon: Icons.check_circle_outline,
                         label: l10n.setsCompletedOf(
-                            totalCompletedSets, totalPlannedSets),
+                          totalCompletedSets,
+                          totalPlannedSets,
+                        ),
                         color: colorScheme.primary,
                         colorScheme: colorScheme,
                         textTheme: textTheme,
@@ -402,8 +402,7 @@ class _ExecutionDetailBody extends StatelessWidget {
                     Expanded(
                       child: _SummaryCard(
                         icon: Icons.fitness_center,
-                        label: l10n.volumeLabel(
-                            totalVolume.toStringAsFixed(0)),
+                        label: l10n.volumeLabel(totalVolume.toStringAsFixed(0)),
                         color: colorScheme.tertiary,
                         colorScheme: colorScheme,
                         textTheme: textTheme,
@@ -420,12 +419,14 @@ class _ExecutionDetailBody extends StatelessWidget {
 
         // Per-exercise breakdown
         ...exerciseIds.map((exId) {
-          final exerciseSets =
-              sets.where((s) => s.exerciseId == exId).toList();
+          final exerciseSets = sets.where((s) => s.exerciseId == exId).toList();
           final ex = exerciseMap[exId];
           final name = ex != null
-              ? localizedExerciseName(ex.name,
-                  isVerified: ex.isVerified, l10n: l10n)
+              ? localizedExerciseName(
+                  ex.name,
+                  isVerified: ex.isVerified,
+                  l10n: l10n,
+                )
               : l10n.unknownExerciseId(exId);
           final group = ex != null
               ? localizedMuscleGroupName(ex.muscleGroup, l10n)
@@ -433,15 +434,14 @@ class _ExecutionDetailBody extends StatelessWidget {
 
           final prSetIds = prSetIdsPerExercise[exId] ?? {};
 
-          final wasUnilateral = exerciseSets
-                  .any((s) => s.isUnilateral == true) ||
+          final wasUnilateral =
+              exerciseSets.any((s) => s.isUnilateral == true) ||
               (exerciseSets.every((s) => s.isUnilateral == null) &&
                   (unilateralMap[exId] ?? false));
 
           return SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.md),
+              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
               child: _ExerciseBreakdown(
                 exerciseName: name,
                 muscleGroup: group,
@@ -458,8 +458,7 @@ class _ExecutionDetailBody extends StatelessWidget {
           );
         }),
 
-        const SliverPadding(
-            padding: EdgeInsets.only(bottom: AthlosSpacing.xl)),
+        const SliverPadding(padding: EdgeInsets.only(bottom: AthlosSpacing.xl)),
       ],
     );
   }
@@ -511,6 +510,7 @@ class _ExerciseBreakdown extends StatelessWidget {
   final bool isUnilateral;
   final bool isIsometric;
   final List<ExecutionSet> sets;
+
   /// When null (legacy session), falls back to [ExecutionSet.plannedReps].
   final WorkoutExercise? workoutExercise;
   final Set<int> prSetIds;
@@ -546,9 +546,12 @@ class _ExerciseBreakdown extends StatelessWidget {
                 children: [
                   if (muscleGroup.isNotEmpty)
                     Flexible(
-                      child: Text(muscleGroup,
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: colorScheme.onSurfaceVariant)),
+                      child: Text(
+                        muscleGroup,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   if (isUnilateral) ...[
                     if (muscleGroup.isNotEmpty)
@@ -559,16 +562,19 @@ class _ExerciseBreakdown extends StatelessWidget {
                         vertical: AthlosSpacing.xxs,
                       ),
                       decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer
-                            .withValues(alpha: 0.5),
+                        color: colorScheme.secondaryContainer.withValues(
+                          alpha: 0.5,
+                        ),
                         borderRadius: AthlosRadius.fullAll,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.swap_horiz,
-                              size: 10,
-                              color: colorScheme.onSecondaryContainer),
+                          Icon(
+                            Icons.swap_horiz,
+                            size: 10,
+                            color: colorScheme.onSecondaryContainer,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             l10n.unilateralLabel,
@@ -587,63 +593,91 @@ class _ExerciseBreakdown extends StatelessWidget {
 
             // Header
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
+              padding: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
               child: Row(
                 children: [
                   SizedBox(
-                      width: 40,
-                      child: Text(l10n.setsLabel,
-                          style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant))),
+                    width: 40,
+                    child: Text(
+                      l10n.setsLabel,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                   if (_isCardio) ...[
                     Expanded(
-                        child: Text(l10n.durationLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      child: Text(
+                        l10n.durationLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                     SizedBox(
-                        width: 80,
-                        child: Text(l10n.distanceLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      width: 80,
+                      child: Text(
+                        l10n.distanceLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ] else if (isIsometric) ...[
                     Expanded(
-                        child: Text(l10n.durationLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      child: Text(
+                        l10n.durationLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                     SizedBox(
-                        width: 60,
-                        child: Text(l10n.weightColumnLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      width: 60,
+                      child: Text(
+                        l10n.weightColumnLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ] else ...[
                     Expanded(
-                        child: Text(l10n.repsLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      child: Text(
+                        l10n.repsLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                     SizedBox(
-                        width: 60,
-                        child: Text(l10n.weightColumnLabel,
-                            style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant))),
+                      width: 60,
+                      child: Text(
+                        l10n.weightColumnLabel,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ],
                   const SizedBox(width: AthlosSpacing.lg),
                 ],
               ),
             ),
 
-            ...sets.map((s) => _SetRow(
-                  setEntry: s,
-                  isCardio: _isCardio,
-                  isIsometric: isIsometric,
-                  isPR: prSetIds.contains(s.id),
-                  colorScheme: colorScheme,
-                  textTheme: textTheme,
-                  l10n: l10n,
-                )),
+            ...sets.map(
+              (s) => _SetRow(
+                setEntry: s,
+                isCardio: _isCardio,
+                isIsometric: isIsometric,
+                isPR: prSetIds.contains(s.id),
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                l10n: l10n,
+              ),
+            ),
             Builder(
-              builder: (ctx) =>
-                  _feedbackChip(ctx) ?? const SizedBox.shrink(),
+              builder: (ctx) => _feedbackChip(ctx) ?? const SizedBox.shrink(),
             ),
           ],
         ),
@@ -657,8 +691,9 @@ class _ExerciseBreakdown extends StatelessWidget {
   Widget? _feedbackChip(BuildContext context) {
     if (_usesDuration) return null;
 
-    final workingSets =
-        sets.where((s) => s.isCompleted && !s.isWarmup).toList();
+    final workingSets = sets
+        .where((s) => s.isCompleted && !s.isWarmup)
+        .toList();
     if (workingSets.isEmpty) return null;
 
     final fallbackPlanned = workingSets.first.plannedReps ?? 0;
@@ -759,9 +794,13 @@ class _SetRow extends StatelessWidget {
             child: Text('${setEntry.setNumber}', style: textTheme.bodyMedium),
           ),
           Expanded(
-            child: Text(durationStr,
-                style: textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600, color: statusColor)),
+            child: Text(
+              durationStr,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: statusColor,
+              ),
+            ),
           ),
           SizedBox(
             width: 60,
@@ -803,9 +842,12 @@ class _SetRow extends StatelessWidget {
             child: Text('${setEntry.setNumber}', style: textTheme.bodyMedium),
           ),
           Expanded(
-            child: Text(durationStr,
-                style: textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)),
+            child: Text(
+              durationStr,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           SizedBox(
             width: 80,
@@ -830,9 +872,15 @@ class _SetRow extends StatelessWidget {
     final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
     final planned = setEntry.plannedReps ?? 0;
     final statusColor = setEntry.isCompleted
-        ? (repsDeviationColor(colorScheme, customColors, setEntry.reps ?? 0,
-                planned, planned, false) ??
-            colorScheme.primary)
+        ? (repsDeviationColor(
+                colorScheme,
+                customColors,
+                setEntry.reps ?? 0,
+                planned,
+                planned,
+                false,
+              ) ??
+              colorScheme.primary)
         : colorScheme.onSurfaceVariant;
     final diff = (setEntry.reps ?? 0) - (setEntry.plannedReps ?? 0);
 
@@ -891,13 +939,16 @@ class _SetRow extends StatelessWidget {
               SizedBox(
                 width: 24,
                 child: isPR
-                    ? Icon(Icons.emoji_events,
-                        size: 18, color: colorScheme.tertiary)
+                    ? Icon(
+                        Icons.emoji_events,
+                        size: 18,
+                        color: colorScheme.tertiary,
+                      )
                     : Icon(
                         setEntry.isCompleted
                             ? (diff.abs() <= 1
-                                ? Icons.check_circle
-                                : Icons.warning)
+                                  ? Icons.check_circle
+                                  : Icons.warning)
                             : Icons.radio_button_unchecked,
                         size: 18,
                         color: statusColor,
@@ -915,13 +966,17 @@ class _SetRow extends StatelessWidget {
                 : '-';
             return Padding(
               padding: const EdgeInsets.only(
-                  left: AthlosSpacing.lg,
-                  top: AthlosSpacing.xs,
-                  bottom: AthlosSpacing.xs),
+                left: AthlosSpacing.lg,
+                top: AthlosSpacing.xs,
+                bottom: AthlosSpacing.xs,
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.arrow_downward,
-                      size: 12, color: colorScheme.tertiary),
+                  Icon(
+                    Icons.arrow_downward,
+                    size: 12,
+                    color: colorScheme.tertiary,
+                  ),
                   const SizedBox(width: AthlosSpacing.xs),
                   SizedBox(
                     width: 16,
@@ -930,16 +985,18 @@ class _SetRow extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${seg.reps}',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: colorScheme.tertiary),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.tertiary,
+                      ),
                     ),
                   ),
                   SizedBox(
                     width: 60,
                     child: Text(
                       segWeightStr,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: colorScheme.tertiary),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.tertiary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AthlosSpacing.lg),
@@ -956,21 +1013,19 @@ class _SetRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.swap_horiz,
-                    size: 12, color: colorScheme.secondary),
+                Icon(Icons.swap_horiz, size: 12, color: colorScheme.secondary),
                 const SizedBox(width: AthlosSpacing.xs),
                 Text(
                   '${l10n.leftAbbr}: ${setEntry.leftReps ?? "-"}×${_fmtWeight(setEntry.leftWeight)}  '
                   '${l10n.rightAbbr}: ${setEntry.rightReps ?? "-"}×${_fmtWeight(setEntry.rightWeight)}',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.secondary),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.secondary,
+                  ),
                 ),
               ],
             ),
           ),
-
       ],
     );
   }
-
 }

@@ -73,8 +73,7 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
                 builder: (innerCtx) => SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    style:
-                        AthlosDialogButtonStyles.stackedFilled(innerCtx),
+                    style: AthlosDialogButtonStyles.stackedFilled(innerCtx),
                     onPressed: () => _showRecordDialog(context, ref),
                     child: Text(l10n.bodyMetricsRecordWeight),
                   ),
@@ -174,8 +173,7 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: AthlosSpacing.xs),
                     FilledButton(
-                      style:
-                          AthlosDialogButtonStyles.stackedFilled(innerCtx),
+                      style: AthlosDialogButtonStyles.stackedFilled(innerCtx),
                       onPressed: () => _showRecordDialog(context, ref),
                       child: Text(l10n.bodyMetricsRecordWeight),
                     ),

@@ -14,13 +14,7 @@ import '../tables/exercises_table.dart';
 
 part 'exercise_dao.g.dart';
 
-@DriftAccessor(
-  tables: [
-    Exercises,
-    ExerciseVariations,
-    ExerciseTargetMuscles,
-  ],
-)
+@DriftAccessor(tables: [Exercises, ExerciseVariations, ExerciseTargetMuscles])
 class ExerciseDao extends DatabaseAccessor<AppDatabase>
     with _$ExerciseDaoMixin {
   ExerciseDao(super.db);
@@ -35,10 +29,10 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     final all = await select(exercises).get();
     for (final row in all) {
       if (ExerciseNameMatch.collidesWithCanonicalRow(
-            name,
-            canonicalName: row.name,
-            isVerified: row.isVerified,
-          )) {
+        name,
+        canonicalName: row.name,
+        isVerified: row.isVerified,
+      )) {
         return row.id;
       }
     }
@@ -115,8 +109,7 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
   Future<List<Exercise>> getByMuscleGroup(MuscleGroup group) =>
       (select(exercises)..where((e) => e.muscleGroup.equalsValue(group))).get();
 
-  Future<int> create(ExercisesCompanion entry) =>
-      into(exercises).insert(entry);
+  Future<int> create(ExercisesCompanion entry) => into(exercises).insert(entry);
 
   Future<void> updateById(int id, ExercisesCompanion entry) =>
       (update(exercises)..where((e) => e.id.equals(id))).write(entry);
@@ -126,18 +119,17 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
 
   // --- Muscle targeting relations ---
 
-  Future<List<ExerciseTargetMuscle>> getMuscleFoci(int exerciseId) =>
-      (select(exerciseTargetMuscles)
-            ..where((e) => e.exerciseId.equals(exerciseId)))
-          .get();
+  Future<List<ExerciseTargetMuscle>> getMuscleFoci(int exerciseId) => (select(
+    exerciseTargetMuscles,
+  )..where((e) => e.exerciseId.equals(exerciseId))).get();
 
   Future<void> setMuscleFoci(
     int exerciseId,
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})> foci,
   ) async {
-    await (delete(exerciseTargetMuscles)
-          ..where((e) => e.exerciseId.equals(exerciseId)))
-        .go();
+    await (delete(
+      exerciseTargetMuscles,
+    )..where((e) => e.exerciseId.equals(exerciseId))).go();
     for (final focus in foci) {
       await into(exerciseTargetMuscles).insert(
         ExerciseTargetMusclesCompanion(
@@ -158,8 +150,7 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
         exerciseVariations,
         exerciseVariations.variationId.equalsExp(exercises.id),
       ),
-    ])
-      ..where(exerciseVariations.exerciseId.equals(exerciseId));
+    ])..where(exerciseVariations.exerciseId.equals(exerciseId));
     return query.map((row) => row.readTable(exercises)).get();
   }
 
@@ -172,9 +163,10 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
       );
 
   Future<void> removeVariation(int exerciseId, int variationId) =>
-      (delete(exerciseVariations)
-            ..where((e) =>
+      (delete(exerciseVariations)..where(
+            (e) =>
                 e.exerciseId.equals(exerciseId) &
-                e.variationId.equals(variationId)))
+                e.variationId.equals(variationId),
+          ))
           .go();
 }

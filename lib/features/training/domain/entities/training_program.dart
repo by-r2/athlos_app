@@ -45,21 +45,19 @@ class TrainingProgram {
     bool? isInDeload,
     DeloadConfig? Function()? deloadConfig,
     DateTime? Function()? archivedAt,
-  }) =>
-      TrainingProgram(
-        id: id,
-        name: name ?? this.name,
-        focus: focus ?? this.focus,
-        durationMode: durationMode ?? this.durationMode,
-        durationValue: durationValue ?? this.durationValue,
-        defaultRestSeconds: defaultRestSeconds != null
-            ? defaultRestSeconds()
-            : this.defaultRestSeconds,
-        isActive: isActive ?? this.isActive,
-        isInDeload: isInDeload ?? this.isInDeload,
-        deloadConfig:
-            deloadConfig != null ? deloadConfig() : this.deloadConfig,
-        createdAt: createdAt,
-        archivedAt: archivedAt != null ? archivedAt() : this.archivedAt,
-      );
+  }) => TrainingProgram(
+    id: id,
+    name: name ?? this.name,
+    focus: focus ?? this.focus,
+    durationMode: durationMode ?? this.durationMode,
+    durationValue: durationValue ?? this.durationValue,
+    defaultRestSeconds: defaultRestSeconds != null
+        ? defaultRestSeconds()
+        : this.defaultRestSeconds,
+    isActive: isActive ?? this.isActive,
+    isInDeload: isInDeload ?? this.isInDeload,
+    deloadConfig: deloadConfig != null ? deloadConfig() : this.deloadConfig,
+    createdAt: createdAt,
+    archivedAt: archivedAt != null ? archivedAt() : this.archivedAt,
+  );
 }

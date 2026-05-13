@@ -36,8 +36,8 @@ class ThemeModeNotifier extends _$ThemeModeNotifier {
   }
 
   IconData get icon => switch (state) {
-        ThemeMode.light => Icons.light_mode,
-        ThemeMode.dark => Icons.dark_mode,
-        ThemeMode.system => Icons.brightness_auto,
-      };
+    ThemeMode.light => Icons.light_mode,
+    ThemeMode.dark => Icons.dark_mode,
+    ThemeMode.system => Icons.brightness_auto,
+  };
 }

@@ -17,10 +17,7 @@ void main() {
 
       expect(result.isSuccess, isFalse);
       expect(result.isFailure, isTrue);
-      expect(
-        () => result.getOrThrow(),
-        throwsA(isA<DatabaseException>()),
-      );
+      expect(() => result.getOrThrow(), throwsA(isA<DatabaseException>()));
     });
   });
 }

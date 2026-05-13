@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/auth/presentation/providers/auth_notifier.dart';
+import '../../features/auth/presentation/providers/auth_prompt_notifier.dart';
+import '../../features/auth/presentation/screens/account_prompt_screen.dart';
+import '../../features/auth/presentation/screens/auth_email_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/conflict_center_screen.dart';
@@ -19,6 +23,7 @@ import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import 'app_entry_decision.dart';
 import 'athlos_router_pages.dart';
 import 'route_paths.dart';
 
@@ -30,6 +35,8 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
+  ref.listen(authProvider, (_, _) => refreshNotifier.value++);
+  ref.listen(localAccessProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
@@ -38,23 +45,20 @@ GoRouter appRouter(Ref ref) {
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final hasProfileAsync = ref.read(hasProfileProvider);
+      final authAsync = ref.read(authProvider);
+      final hasLocalAccess = ref.read(localAccessProvider);
       final location = state.matchedLocation;
-      final isOnSplash = location == RoutePaths.splash;
-      final isOnSetup = location == RoutePaths.profileSetup;
-
-      if (hasProfileAsync.isLoading) {
-        return isOnSplash ? null : RoutePaths.splash;
-      }
-
-      if (isOnSplash) {
-        final hasProfile = hasProfileAsync.value ?? false;
-        return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
-      }
-
       final hasProfile = hasProfileAsync.value ?? false;
 
-      if (!hasProfile && !isOnSetup) return RoutePaths.profileSetup;
-      if (hasProfile && isOnSetup) return RoutePaths.hub;
+      final redirect = resolveAppEntryRedirect(
+        location: location,
+        isAuthLoading: authAsync.isLoading,
+        isProfileLoading: hasProfileAsync.isLoading,
+        hasAuthUser: authAsync.value != null,
+        hasLocalAccess: hasLocalAccess,
+        hasProfile: hasProfile,
+      );
+      if (redirect != null) return redirect;
 
       if (!hasRestoredModule && hasProfile && location == RoutePaths.hub) {
         hasRestoredModule = true;
@@ -67,12 +71,30 @@ GoRouter appRouter(Ref ref) {
       // Splash — shown while async state resolves
       GoRoute(
         path: RoutePaths.splash,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const SplashScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const SplashScreen()),
       ),
 
+      // Account rollout prompt
+      GoRoute(
+        path: RoutePaths.authPrompt,
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const AccountPromptScreen()),
+      ),
+      GoRoute(
+        path: RoutePaths.authSignIn,
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const AuthEmailScreen.signIn(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.authSignUp,
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const AuthEmailScreen.signUp(),
+        ),
+      ),
       // Hub (Olympus) — main entry point
       GoRoute(
         path: RoutePaths.hub,
@@ -117,10 +139,8 @@ GoRouter appRouter(Ref ref) {
       // Workout routes (pushed on top of training shell)
       GoRoute(
         path: RoutePaths.trainingWorkoutNew,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const WorkoutFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const WorkoutFormScreen()),
       ),
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId',
@@ -190,10 +210,8 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: RoutePaths.trainingPRHistory,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const PRHistoryScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const PRHistoryScreen()),
       ),
       GoRoute(
         path: RoutePaths.trainingVolumeTrend,

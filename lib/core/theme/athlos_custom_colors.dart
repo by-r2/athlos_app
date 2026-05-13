@@ -5,10 +5,7 @@ class AthlosCustomColors extends ThemeExtension<AthlosCustomColors> {
   final Color warning;
   final Color onWarning;
 
-  const AthlosCustomColors({
-    required this.warning,
-    required this.onWarning,
-  });
+  const AthlosCustomColors({required this.warning, required this.onWarning});
 
   static const light = AthlosCustomColors(
     warning: Color(0xFFE8A317),
@@ -33,6 +30,20 @@ class AthlosCustomColors extends ThemeExtension<AthlosCustomColors> {
     return AthlosCustomColors(
       warning: Color.lerp(warning, other.warning, t)!,
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
+    );
+  }
+
+  /// Warning callout for duplicate-review status banners.
+  ({Color background, Color foreground, Color icon}) duplicateWarningCallout(
+    ColorScheme colorScheme,
+  ) {
+    return (
+      background: Color.alphaBlend(
+        warning.withValues(alpha: 0.18),
+        colorScheme.surfaceContainerHigh,
+      ),
+      foreground: colorScheme.onSurface,
+      icon: warning,
     );
   }
 }

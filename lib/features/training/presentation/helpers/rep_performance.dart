@@ -66,9 +66,7 @@ bool workSetsQualifyForSuggestedWeightIncrease({
   final workSets = latestSetsForExercise.where((s) => !s.isWarmup).toList();
   if (workSets.isEmpty) return false;
   if (!workSets.every((s) => s.isCompleted)) return false;
-  return workSets.every(
-    (s) => s.reps != null && s.reps! >= maxReps,
-  );
+  return workSets.every((s) => s.reps != null && s.reps! >= maxReps);
 }
 
 /// Next nominal bar/plate suggestion (minimum +0.25 kg) after all sets hit caps.
@@ -163,9 +161,6 @@ Color? repsDeviationColor(
         color: custom.warning,
       );
     case LoadAdviceBand.weightTooLightSevere:
-      return (
-        message: l10n.executionFeedbackWeightTooLight,
-        color: cs.error,
-      );
+      return (message: l10n.executionFeedbackWeightTooLight, color: cs.error);
   }
 }

@@ -57,26 +57,25 @@ class ActiveExecution extends _$ActiveExecution {
     final executionId = result.getOrThrow();
 
     final exerciseIds = exercises.map((e) => e.exerciseId).toList();
-    final weightsResult =
-        await repo.getLastWeightsForExercises(exerciseIds);
+    final weightsResult = await repo.getLastWeightsForExercises(exerciseIds);
     final lastWeights = weightsResult.getOrThrow();
 
-    final reduceVol = deloadConfig != null &&
+    final reduceVol =
+        deloadConfig != null &&
         (deloadConfig.strategy == DeloadStrategy.reduceVolume ||
             deloadConfig.strategy == DeloadStrategy.reduceBoth);
-    final reduceInt = deloadConfig != null &&
+    final reduceInt =
+        deloadConfig != null &&
         (deloadConfig.strategy == DeloadStrategy.reduceIntensity ||
             deloadConfig.strategy == DeloadStrategy.reduceBoth);
 
-    final rulesByExercise = {
-      for (final r in progressionRules) r.exerciseId: r,
-    };
+    final rulesByExercise = {for (final r in progressionRules) r.exerciseId: r};
 
     final exerciseSets = <int, List<SetEntry>>{};
     for (final ex in exercises) {
       var lastWeight = lastWeights[ex.exerciseId];
-      final isCardio = ex.duration != null &&
-          !isometricExerciseIds.contains(ex.exerciseId);
+      final isCardio =
+          ex.duration != null && !isometricExerciseIds.contains(ex.exerciseId);
       final isIsometric = isometricExerciseIds.contains(ex.exerciseId);
       final usesDuration = isCardio || isIsometric;
       var repsTarget = usesDuration ? null : ex.targetReps;
@@ -85,8 +84,7 @@ class ActiveExecution extends _$ActiveExecution {
       if (deloadConfig == null) {
         final rule = rulesByExercise[ex.exerciseId];
         if (rule != null && lastWeight != null) {
-          final shouldApply =
-              await _evaluateCondition(repo, rule, ex);
+          final shouldApply = await _evaluateCondition(repo, rule, ex);
           if (shouldApply) {
             switch (rule.type) {
               case ProgressionType.incrementWeight:
@@ -140,10 +138,12 @@ class ActiveExecution extends _$ActiveExecution {
   ) async {
     if (rule.condition == null) return true;
 
-    final setsResult =
-        await repo.getLastCompletedSetsForExercise(rule.exerciseId);
-    final lastSets =
-        setsResult.isSuccess ? setsResult.getOrThrow() : <ExecutionSet>[];
+    final setsResult = await repo.getLastCompletedSetsForExercise(
+      rule.exerciseId,
+    );
+    final lastSets = setsResult.isSuccess
+        ? setsResult.getOrThrow()
+        : <ExecutionSet>[];
     if (lastSets.isEmpty) return false;
 
     switch (rule.condition!) {
@@ -157,12 +157,10 @@ class ActiveExecution extends _$ActiveExecution {
 
       case ProgressionCondition.rpeBelow:
         final threshold = rule.conditionValue ?? 8;
-        final rpeSets =
-            lastSets.where((s) => s.rpe != null).toList();
+        final rpeSets = lastSets.where((s) => s.rpe != null).toList();
         if (rpeSets.isEmpty) return false;
         final avgRpe =
-            rpeSets.map((s) => s.rpe!).reduce((a, b) => a + b) /
-                rpeSets.length;
+            rpeSets.map((s) => s.rpe!).reduce((a, b) => a + b) / rpeSets.length;
         return avgRpe < threshold;
     }
   }
@@ -202,8 +200,12 @@ class ActiveExecution extends _$ActiveExecution {
   }
 
   /// Add a drop segment to a set (in-memory only, persisted on complete).
-  void addDropSegment(int exerciseId, int setNumber,
-      {required int reps, double? weight}) {
+  void addDropSegment(
+    int exerciseId,
+    int setNumber, {
+    required int reps,
+    double? weight,
+  }) {
     final current = state;
     if (current == null) return;
 
@@ -333,13 +335,15 @@ class ActiveExecution extends _$ActiveExecution {
     );
 
     final domainSegments = effectiveSegments
-        .map((s) => ExecutionSetSegment(
-              id: 0,
-              executionSetId: 0,
-              segmentOrder: 0,
-              reps: s.reps,
-              weight: s.weight,
-            ))
+        .map(
+          (s) => ExecutionSetSegment(
+            id: 0,
+            executionSetId: 0,
+            segmentOrder: 0,
+            reps: s.reps,
+            weight: s.weight,
+          ),
+        )
         .toList();
 
     final useCase = ref.read(completeSetUseCaseProvider);
@@ -388,8 +392,9 @@ class ActiveExecution extends _$ActiveExecution {
           latestSetsForExercise: latestExerciseSets,
           maxReps: maxReps,
         )) {
-      final catalogResult =
-          await ref.read(exerciseRepositoryProvider).getById(exerciseId);
+      final catalogResult = await ref
+          .read(exerciseRepositoryProvider)
+          .getById(exerciseId);
       final fraction = switch (catalogResult) {
         Success(:final value) when value != null =>
           progressionLoadIncreaseFraction(value),
@@ -452,7 +457,9 @@ class ActiveExecution extends _$ActiveExecution {
 
       exerciseSets[ex.exerciseId] = List.generate(totalSets, (i) {
         final setNum = i + 1;
-        final existing = completed.where((s) => s.setNumber == setNum).firstOrNull;
+        final existing = completed
+            .where((s) => s.setNumber == setNum)
+            .firstOrNull;
         if (existing != null) {
           final isIso = isometricExerciseIds.contains(ex.exerciseId);
           final usesDur = (ex.duration != null) || isIso;
@@ -514,19 +521,23 @@ class ActiveExecution extends _$ActiveExecution {
   }
 
   String _buildExerciseConfigSnapshot(List<WorkoutExercise> exercises) {
-    final list = exercises.map((e) => {
-      'exerciseId': e.exerciseId,
-      'sets': e.sets,
-      'minReps': e.minReps,
-      'maxReps': e.maxReps,
-      'rest': e.rest,
-      'duration': e.duration,
-      'order': e.order,
-      'groupId': e.groupId,
-      'isAmrap': e.isAmrap,
-      'isUnilateral': e.isUnilateral,
-      if (e.notes != null) 'notes': e.notes,
-    }).toList();
+    final list = exercises
+        .map(
+          (e) => {
+            'exerciseId': e.exerciseId,
+            'sets': e.sets,
+            'minReps': e.minReps,
+            'maxReps': e.maxReps,
+            'rest': e.rest,
+            'duration': e.duration,
+            'order': e.order,
+            'groupId': e.groupId,
+            'isAmrap': e.isAmrap,
+            'isUnilateral': e.isUnilateral,
+            if (e.notes != null) 'notes': e.notes,
+          },
+        )
+        .toList();
     return jsonEncode(list);
   }
 }

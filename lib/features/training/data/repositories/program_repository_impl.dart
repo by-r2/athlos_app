@@ -50,18 +50,20 @@ class ProgramRepositoryImpl implements ProgramRepository {
   Future<Result<int>> create(TrainingProgram program) async {
     try {
       final dc = program.deloadConfig;
-      final id = await _dao.create(ProgramsCompanion.insert(
-        name: program.name,
-        focus: program.focus.name,
-        durationMode: program.durationMode.name,
-        durationValue: program.durationValue,
-        defaultRestSeconds: Value(program.defaultRestSeconds),
-        isActive: Value(program.isActive),
-        deloadFrequency: Value(dc?.frequency),
-        deloadStrategy: Value(dc?.strategy.name),
-        deloadVolumeMultiplier: Value(dc?.volumeMultiplier),
-        deloadIntensityMultiplier: Value(dc?.intensityMultiplier),
-      ));
+      final id = await _dao.create(
+        ProgramsCompanion.insert(
+          name: program.name,
+          focus: program.focus.name,
+          durationMode: program.durationMode.name,
+          durationValue: program.durationValue,
+          defaultRestSeconds: Value(program.defaultRestSeconds),
+          isActive: Value(program.isActive),
+          deloadFrequency: Value(dc?.frequency),
+          deloadStrategy: Value(dc?.strategy.name),
+          deloadVolumeMultiplier: Value(dc?.volumeMultiplier),
+          deloadIntensityMultiplier: Value(dc?.intensityMultiplier),
+        ),
+      );
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create program: $e'));
@@ -131,8 +133,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
       await _dao.setDeloadActive(programId, active: active);
       return const Success(null);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to set deload status: $e'));
+      return Failure(DatabaseException('Failed to set deload status: $e'));
     }
   }
 
@@ -142,24 +143,23 @@ class ProgramRepositoryImpl implements ProgramRepository {
       final count = await _dao.getSessionCount(programId);
       return Success(count);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to count program sessions: $e'));
+      return Failure(DatabaseException('Failed to count program sessions: $e'));
     }
   }
 
   TrainingProgram _toDomain(Program row) => TrainingProgram(
-        id: row.id,
-        name: row.name,
-        focus: ProgramFocus.values.byName(row.focus),
-        durationMode: DurationMode.values.byName(row.durationMode),
-        durationValue: row.durationValue,
-        defaultRestSeconds: row.defaultRestSeconds,
-        isActive: row.isActive,
-        isInDeload: row.isInDeload,
-        deloadConfig: _deloadFromRow(row),
-        createdAt: row.createdAt,
-        archivedAt: row.archivedAt,
-      );
+    id: row.id,
+    name: row.name,
+    focus: ProgramFocus.values.byName(row.focus),
+    durationMode: DurationMode.values.byName(row.durationMode),
+    durationValue: row.durationValue,
+    defaultRestSeconds: row.defaultRestSeconds,
+    isActive: row.isActive,
+    isInDeload: row.isInDeload,
+    deloadConfig: _deloadFromRow(row),
+    createdAt: row.createdAt,
+    archivedAt: row.archivedAt,
+  );
 
   DeloadConfig? _deloadFromRow(Program row) {
     final strategy = row.deloadStrategy;

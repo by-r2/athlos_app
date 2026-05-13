@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/theme/athlos_custom_colors.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -32,71 +35,40 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.conflictCenterTitle)),
       body: asyncSnapshot.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(child: Text(l10n.conflictCenterLoadError)),
+        loading: () => Skeletonizer(
+          enabled: true,
+          child: _ConflictCenterBody(
+            l10n: l10n,
+            reviews: const <BackupPendingReview>[],
+            isRescanning: false,
+            processingReviews: const <String>{},
+            onRescan: null,
+            onNotDuplicate: (_) {},
+            onConfirmDuplicate: (_) {},
+            onKeepA: (_) {},
+            onKeepB: (_) {},
+            onMergeAttributes: (_) {},
+          ),
+        ),
+        error: (_, _) => _ConflictCenterErrorState(
+          message: l10n.conflictCenterLoadError,
+          retryLabel: l10n.conflictCenterRetryAction,
+          onRetry: () => ref.invalidate(backupConflictCenterProvider),
+        ),
         data: (data) => RefreshIndicator(
           onRefresh: () async =>
               ref.refresh(backupConflictCenterProvider.future),
-          child: ListView(
-            padding: const EdgeInsets.all(AthlosSpacing.md),
-            children: [
-              Text(
-                l10n.conflictCenterDescription,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const Gap(AthlosSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.conflictCenterDuplicatesFound(
-                        data.runtimeLocalReviews.length,
-                      ),
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _isRescanning ? null : _runRuntimeScan,
-                    icon: _isRescanning
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.refresh, size: 18),
-                    label: Text(l10n.conflictCenterRescanAction),
-                  ),
-                ],
-              ),
-              const Gap(AthlosSpacing.md),
-              if (data.runtimeLocalReviews.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AthlosSpacing.xl,
-                    ),
-                    child: Text(
-                      l10n.conflictCenterEmptyState,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                for (final review in data.runtimeLocalReviews) ...[
-                  _DuplicateCard(
-                    review: review,
-                    isProcessing: _processingReviews.contains(review.reviewId),
-                    onNotDuplicate: () => _handleNotDuplicate(review),
-                    onConfirmDuplicate: () => _handleConfirmDuplicate(review),
-                    onKeepA: () => _handleKeep(review, review.leftEntityId!),
-                    onKeepB: () => _handleKeep(review, review.rightEntityId!),
-                    onMergeAttributes: () => _handleMergeAttributes(review),
-                  ),
-                  const Gap(AthlosSpacing.sm),
-                ],
-            ],
+          child: _ConflictCenterBody(
+            l10n: l10n,
+            reviews: data.runtimeLocalReviews,
+            isRescanning: _isRescanning,
+            processingReviews: _processingReviews,
+            onRescan: _isRescanning ? null : _runRuntimeScan,
+            onNotDuplicate: _handleNotDuplicate,
+            onConfirmDuplicate: _handleConfirmDuplicate,
+            onKeepA: (review) => _handleKeep(review, review.leftEntityId!),
+            onKeepB: (review) => _handleKeep(review, review.rightEntityId!),
+            onMergeAttributes: _handleMergeAttributes,
           ),
         ),
       ),
@@ -216,6 +188,243 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
   }
 }
 
+class _ConflictCenterBody extends StatelessWidget {
+  const _ConflictCenterBody({
+    required this.l10n,
+    required this.reviews,
+    required this.isRescanning,
+    required this.processingReviews,
+    required this.onRescan,
+    required this.onNotDuplicate,
+    required this.onConfirmDuplicate,
+    required this.onKeepA,
+    required this.onKeepB,
+    required this.onMergeAttributes,
+  });
+
+  final AppLocalizations l10n;
+  final List<BackupPendingReview> reviews;
+  final bool isRescanning;
+  final Set<String> processingReviews;
+  final VoidCallback? onRescan;
+  final void Function(BackupPendingReview review) onNotDuplicate;
+  final void Function(BackupPendingReview review) onConfirmDuplicate;
+  final void Function(BackupPendingReview review) onKeepA;
+  final void Function(BackupPendingReview review) onKeepB;
+  final void Function(BackupPendingReview review) onMergeAttributes;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      children: [
+        _ConflictCenterSectionHeader(title: l10n.conflictCenterOverviewSectionTitle),
+        const Gap(AthlosSpacing.xs),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AthlosSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.conflictCenterDescription,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const Gap(AthlosSpacing.md),
+                _ConflictCenterStatusBanner(duplicateCount: reviews.length),
+                const Gap(AthlosSpacing.md),
+                AthlosStackedActions(
+                  spacing: AthlosSpacing.sm,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: onRescan,
+                      icon: isRescanning
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh, size: 18),
+                      label: Text(l10n.conflictCenterRescanAction),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (reviews.isNotEmpty) ...[
+          const Gap(AthlosSpacing.md),
+          _ConflictCenterSectionHeader(
+            title: l10n.conflictCenterReviewsSectionTitle,
+          ),
+          const Gap(AthlosSpacing.xs),
+          Text(
+            l10n.conflictCenterReviewHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Gap(AthlosSpacing.sm),
+          for (final review in reviews) ...[
+            _DuplicateCard(
+              review: review,
+              isProcessing: processingReviews.contains(review.reviewId),
+              onNotDuplicate: () => onNotDuplicate(review),
+              onConfirmDuplicate: () => onConfirmDuplicate(review),
+              onKeepA: () => onKeepA(review),
+              onKeepB: () => onKeepB(review),
+              onMergeAttributes: () => onMergeAttributes(review),
+            ),
+            const Gap(AthlosSpacing.sm),
+          ],
+        ],
+        const Gap(AthlosSpacing.lg),
+      ],
+    );
+  }
+}
+
+class _ConflictCenterErrorState extends StatelessWidget {
+  const _ConflictCenterErrorState({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ConflictCenterStatusSurface(
+              backgroundColor: colorScheme.errorContainer,
+              foregroundColor: colorScheme.onErrorContainer,
+              icon: Icons.error_outline,
+              message: message,
+            ),
+            const Gap(AthlosSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: Text(retryLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConflictCenterSectionHeader extends StatelessWidget {
+  const _ConflictCenterSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Text(
+      title,
+      style: textTheme.titleSmall?.copyWith(
+        color: colorScheme.primary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _ConflictCenterStatusBanner extends StatelessWidget {
+  const _ConflictCenterStatusBanner({required this.duplicateCount});
+
+  final int duplicateCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
+
+    if (duplicateCount == 0) {
+      return _ConflictCenterStatusSurface(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        foregroundColor: colorScheme.onSurfaceVariant,
+        iconColor: colorScheme.primary,
+        icon: Icons.check_circle_outline,
+        message: l10n.conflictCenterEmptyState,
+      );
+    }
+
+    final warningStyle = customColors.duplicateWarningCallout(colorScheme);
+
+    return _ConflictCenterStatusSurface(
+      backgroundColor: warningStyle.background,
+      foregroundColor: warningStyle.foreground,
+      iconColor: warningStyle.icon,
+      icon: Icons.warning_amber_rounded,
+      message: l10n.conflictCenterDuplicatesFound(duplicateCount),
+    );
+  }
+}
+
+class _ConflictCenterStatusSurface extends StatelessWidget {
+  const _ConflictCenterStatusSurface({
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.icon,
+    required this.message,
+    this.iconColor,
+  });
+
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final IconData icon;
+  final String message;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: AthlosRadius.mdAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: iconColor ?? foregroundColor),
+          const Gap(AthlosSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: textTheme.bodyMedium?.copyWith(color: foregroundColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DuplicateCard extends StatelessWidget {
   final BackupPendingReview review;
   final bool isProcessing;
@@ -261,17 +470,28 @@ class _DuplicateCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.conflictCenterCardTitle(
-                _entityLabel(review.entityType, l10n),
-              ),
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.compare_arrows_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                const Gap(AthlosSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.conflictCenterCardTitle(
+                      _entityLabel(review.entityType, l10n),
+                    ),
+                    style: textTheme.titleSmall?.copyWith(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const Gap(AthlosSpacing.md),
-
             _ItemRow(
               label: 'A',
               name: labelA,
@@ -289,15 +509,15 @@ class _DuplicateCard extends StatelessWidget {
               textTheme: textTheme,
               l10n: l10n,
             ),
-
             const Gap(AthlosSpacing.sm),
-            Text(
-              l10n.conflictCenterSimilarity(similarityPercent),
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            _ConflictCenterStatusSurface(
+              backgroundColor: colorScheme.surfaceContainerHigh,
+              foregroundColor: colorScheme.onSurfaceVariant,
+              icon: Icons.percent,
+              message: l10n.conflictCenterSimilarity(similarityPercent),
             ),
-
+            const Gap(AthlosSpacing.md),
+            const Divider(height: 1),
             const Gap(AthlosSpacing.md),
             if (isProcessing)
               const Center(
@@ -346,40 +566,48 @@ class _ItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 14,
-          backgroundColor: colorScheme.primaryContainer,
-          child: Text(
-            label,
-            style: textTheme.labelMedium?.copyWith(
-              color: colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: AthlosRadius.mdAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Text(
+              label,
+              style: textTheme.labelMedium?.copyWith(
+                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        const Gap(AthlosSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(name, style: textTheme.bodyLarge),
-              Text(
-                isVerified
-                    ? l10n.conflictCenterVerifiedBadge
-                    : l10n.conflictCenterCustomBadge,
-                style: textTheme.bodySmall?.copyWith(
-                  color: isVerified
-                      ? colorScheme.tertiary
-                      : colorScheme.onSurfaceVariant,
+          const Gap(AthlosSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: textTheme.bodyLarge),
+                Text(
+                  isVerified
+                      ? l10n.conflictCenterVerifiedBadge
+                      : l10n.conflictCenterCustomBadge,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: isVerified
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -398,6 +626,7 @@ class _VerifiedActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AthlosStackedActions(
+      spacing: AthlosSpacing.sm,
       children: [
         OutlinedButton(
           onPressed: onNotDuplicate,
@@ -429,32 +658,21 @@ class _CustomActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AthlosStackedActions(
+      spacing: AthlosSpacing.sm,
       children: [
         FilledButton(
           onPressed: onMergeAttributes,
           child: Text(l10n.conflictCenterMergeAttributesAction),
         ),
-        const Gap(AthlosSpacing.xs),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.tonal(
-                onPressed: onKeepA,
-                child: Text(l10n.conflictCenterKeepAAction),
-              ),
-            ),
-            const Gap(AthlosSpacing.xs),
-            Expanded(
-              child: FilledButton.tonal(
-                onPressed: onKeepB,
-                child: Text(l10n.conflictCenterKeepBAction),
-              ),
-            ),
-          ],
+        FilledButton.tonal(
+          onPressed: onKeepA,
+          child: Text(l10n.conflictCenterKeepAAction),
         ),
-        const Gap(AthlosSpacing.xs),
+        FilledButton.tonal(
+          onPressed: onKeepB,
+          child: Text(l10n.conflictCenterKeepBAction),
+        ),
         OutlinedButton(
           onPressed: onNotDuplicate,
           child: Text(l10n.conflictCenterNotDuplicateAction),

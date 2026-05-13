@@ -42,7 +42,7 @@ extension ResultX<T> on Result<T> {
   /// state = AsyncData(result.getOrThrow());
   /// ```
   T getOrThrow() => switch (this) {
-        Success(:final value) => value,
-        Failure(:final exception) => throw exception,
-      };
+    Success(:final value) => value,
+    Failure(:final exception) => throw exception,
+  };
 }

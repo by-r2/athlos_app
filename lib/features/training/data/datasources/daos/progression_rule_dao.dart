@@ -10,27 +10,25 @@ class ProgressionRuleDao extends DatabaseAccessor<AppDatabase>
     with _$ProgressionRuleDaoMixin {
   ProgressionRuleDao(super.db);
 
-  Future<List<ProgressionRule>> getByProgram(int programId) =>
-      (select(progressionRules)
-            ..where((r) => r.programId.equals(programId)))
-          .get();
+  Future<List<ProgressionRule>> getByProgram(int programId) => (select(
+    progressionRules,
+  )..where((r) => r.programId.equals(programId))).get();
 
   Future<ProgressionRule?> getByProgramAndExercise(
     int programId,
     int exerciseId,
   ) =>
-      (select(progressionRules)
-            ..where((r) =>
-                r.programId.equals(programId) &
-                r.exerciseId.equals(exerciseId)))
+      (select(progressionRules)..where(
+            (r) =>
+                r.programId.equals(programId) & r.exerciseId.equals(exerciseId),
+          ))
           .getSingleOrNull();
 
   Future<int> create(ProgressionRulesCompanion entry) =>
       into(progressionRules).insert(entry);
 
   Future<void> updateRule(int id, ProgressionRulesCompanion entry) =>
-      (update(progressionRules)..where((r) => r.id.equals(id)))
-          .write(entry);
+      (update(progressionRules)..where((r) => r.id.equals(id))).write(entry);
 
   Future<void> deleteRule(int id) =>
       (delete(progressionRules)..where((r) => r.id.equals(id))).go();
@@ -39,9 +37,9 @@ class ProgressionRuleDao extends DatabaseAccessor<AppDatabase>
     int programId,
     List<ProgressionRulesCompanion> entries,
   ) async {
-    await (delete(progressionRules)
-          ..where((r) => r.programId.equals(programId)))
-        .go();
+    await (delete(
+      progressionRules,
+    )..where((r) => r.programId.equals(programId))).go();
     if (entries.isNotEmpty) {
       await batch((b) => b.insertAll(progressionRules, entries));
     }

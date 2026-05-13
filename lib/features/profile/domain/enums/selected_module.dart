@@ -1,5 +1,2 @@
 /// Available app modules.
-enum AppModule {
-  training,
-  diet,
-}
+enum AppModule { training, diet }

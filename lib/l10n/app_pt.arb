@@ -59,13 +59,33 @@
   "@profileDataTab": {
     "description": "Profile tab label for data backup/import category"
   },
-  "profileDataSectionTitle": "Backup local (dados do usuário)",
+  "profileDataSectionTitle": "Guardar e restaurar",
   "@profileDataSectionTitle": {
     "description": "Profile data section title for local backup"
   },
-  "profileDataSectionDescription": "Exporte seus dados autorais (itens custom e histórico) para JSON. Itens oficiais do catálogo são referenciados por ID canônico.",
+  "profileDataSectionDescription": "Exporte ou importe treinos, itens personalizados e histórico neste aparelho.",
   "@profileDataSectionDescription": {
     "description": "Profile data section description"
+  },
+  "profileDataBackupLearnMoreTitle": "Detalhes do backup",
+  "@profileDataBackupLearnMoreTitle": {
+    "description": "Expansion title for technical backup details on profile data tab"
+  },
+  "profileDataBackupDetails": "O arquivo JSON inclui seus dados autorais. Itens oficiais do catálogo são referenciados por ID canônico.",
+  "@profileDataBackupDetails": {
+    "description": "Technical backup details shown in profile data tab expansion"
+  },
+  "profileDataConflictsSectionTitle": "Duplicados nos seus dados",
+  "@profileDataConflictsSectionTitle": {
+    "description": "Profile data section title for duplicate review"
+  },
+  "profileDataAccountSessionLabel": "Sessão",
+  "@profileDataAccountSessionLabel": {
+    "description": "Label for account session row on profile data tab"
+  },
+  "profileDataConflictStatusClear": "Nenhum duplicado detectado por enquanto.",
+  "@profileDataConflictStatusClear": {
+    "description": "Status text when no local duplicates are found"
   },
   "profileDataConflictSummaryTitle": "Status da central",
   "@profileDataConflictSummaryTitle": {
@@ -338,6 +358,22 @@
   "conflictCenterDescription": "Itens que parecem duplicados no seu dispositivo. Revise cada caso e decida.",
   "@conflictCenterDescription": {
     "description": "Conflict center screen description"
+  },
+  "conflictCenterOverviewSectionTitle": "Situação atual",
+  "@conflictCenterOverviewSectionTitle": {
+    "description": "Section title for conflict center overview card"
+  },
+  "conflictCenterReviewsSectionTitle": "Casos para revisar",
+  "@conflictCenterReviewsSectionTitle": {
+    "description": "Section title for pending duplicate reviews"
+  },
+  "conflictCenterReviewHint": "Escolha uma opção em cada card abaixo.",
+  "@conflictCenterReviewHint": {
+    "description": "Hint shown before duplicate review cards"
+  },
+  "conflictCenterRetryAction": "Tentar novamente",
+  "@conflictCenterRetryAction": {
+    "description": "Retry action when conflict center fails to load"
   },
   "conflictCenterLoadError": "Não foi possível carregar a central de conflitos.",
   "@conflictCenterLoadError": {
@@ -2706,5 +2742,172 @@
   "navigateAwayChironStayAction": "Continuar",
   "@navigateAwayChironStayAction": {
     "description": "Stay on Chiron sheet"
+  },
+  "authPromptTitle": "Bem-vindo",
+  "@authPromptTitle": {
+    "description": "Title for the account prompt after updating to auth-enabled version"
+  },
+  "authPromptSubtitle": "Entre, crie sua conta ou continue usando offline.",
+  "@authPromptSubtitle": {
+    "description": "Subtitle explaining cloud account benefits and local data migration"
+  },
+  "authPromptBackupBenefit": "Guarde seus treinos na sua conta.",
+  "@authPromptBackupBenefit": {
+    "description": "Account prompt benefit: backup"
+  },
+  "authPromptSecurityBenefit": "Entre com segurança usando e-mail e senha.",
+  "@authPromptSecurityBenefit": {
+    "description": "Account prompt benefit: security"
+  },
+  "authPromptSyncBenefit": "Continue usando offline se preferir.",
+  "@authPromptSyncBenefit": {
+    "description": "Account prompt benefit: gradual sync"
+  },
+  "authCreateAccountAction": "Criar conta",
+  "@authCreateAccountAction": {
+    "description": "Action to create an account"
+  },
+  "authOpenAccountAction": "Entrar ou criar conta",
+  "@authOpenAccountAction": {
+    "description": "Action that opens the account flow where users can sign in or create an account"
+  },
+  "authSignInAction": "Entrar",
+  "@authSignInAction": {
+    "description": "Action to sign in"
+  },
+  "authSignInWithGoogleAction": "Entrar com Google",
+  "@authSignInWithGoogleAction": {
+    "description": "Action to start Google sign-in"
+  },
+  "authContinueLocalAction": "Continuar offline",
+  "@authContinueLocalAction": {
+    "description": "Temporary action to keep using local mode"
+  },
+  "authOfflineModeMessage": "Você está sem internet, acessando no modo offline.",
+  "@authOfflineModeMessage": {
+    "description": "Message shown when auth cannot be offered because there is no internet connection"
+  },
+  "authSignInTitle": "Entrar na conta",
+  "@authSignInTitle": {
+    "description": "Sign-in screen title"
+  },
+  "authSignUpTitle": "Criar conta",
+  "@authSignUpTitle": {
+    "description": "Sign-up screen title"
+  },
+  "authSignInEmailSubtitle": "Use o e-mail e senha da sua conta Athlos.",
+  "@authSignInEmailSubtitle": {
+    "description": "Subtitle for the email sign-in form"
+  },
+  "authSignUpEmailSubtitle": "Crie uma conta com e-mail e senha. Você ainda pode usar seus dados locais no aparelho.",
+  "@authSignUpEmailSubtitle": {
+    "description": "Subtitle for the email sign-up form"
+  },
+  "authSignUpChatGreeting": "Vamos criar sua conta em poucos passos.",
+  "@authSignUpChatGreeting": {
+    "description": "Chat-style sign-up greeting"
+  },
+  "authSignUpChatAskEmail": "Qual e-mail você quer usar para entrar?",
+  "@authSignUpChatAskEmail": {
+    "description": "Chat-style sign-up email question"
+  },
+  "authSignUpChatAskPassword": "Agora crie uma senha com pelo menos 6 caracteres.",
+  "@authSignUpChatAskPassword": {
+    "description": "Chat-style sign-up password question"
+  },
+  "authSignUpChatReady": "Tudo pronto. Posso criar sua conta agora.",
+  "@authSignUpChatReady": {
+    "description": "Chat-style sign-up ready message"
+  },
+  "authSignUpChatCreating": "Criando sua conta...",
+  "@authSignUpChatCreating": {
+    "description": "Chat-style message while creating an account"
+  },
+  "authSignUpChatSuccess": "Conta criada com sucesso. Vou te levar para o app.",
+  "@authSignUpChatSuccess": {
+    "description": "Chat-style success message after creating an account"
+  },
+  "authSignUpChatGoToLogin": "Conta criada. Agora entre com seu e-mail e senha.",
+  "@authSignUpChatGoToLogin": {
+    "description": "Chat-style message shown when signup created an account without an active session"
+  },
+  "authEmailLabel": "E-mail",
+  "@authEmailLabel": {
+    "description": "Email input label"
+  },
+  "authInvalidEmail": "Informe um e-mail válido.",
+  "@authInvalidEmail": {
+    "description": "Validation message for invalid email"
+  },
+  "authPasswordLabel": "Senha",
+  "@authPasswordLabel": {
+    "description": "Password input label"
+  },
+  "authPasswordMinHint": "Use pelo menos 6 caracteres.",
+  "@authPasswordMinHint": {
+    "description": "Password minimum length hint"
+  },
+  "authPasswordHiddenMessage": "••••••",
+  "@authPasswordHiddenMessage": {
+    "description": "Masked password text shown in chat bubbles"
+  },
+  "authNoAccountAction": "Ainda não tenho conta",
+  "@authNoAccountAction": {
+    "description": "Navigation action from sign-in to sign-up"
+  },
+  "authHaveAccountAction": "Já tenho conta",
+  "@authHaveAccountAction": {
+    "description": "Navigation action from sign-up to sign-in"
+  },
+  "authGenericError": "Não foi possível concluir a autenticação agora.",
+  "@authGenericError": {
+    "description": "Generic auth error shown to users"
+  },
+  "authInvalidCredentials": "E-mail ou senha inválidos.",
+  "@authInvalidCredentials": {
+    "description": "Auth error shown for invalid credentials"
+  },
+  "authEmailNotConfirmed": "Confirme seu e-mail antes de entrar.",
+  "@authEmailNotConfirmed": {
+    "description": "Auth error shown when email confirmation is required"
+  },
+  "authAccountAlreadyExists": "Já existe uma conta com esse e-mail. Tente entrar.",
+  "@authAccountAlreadyExists": {
+    "description": "Auth error shown when trying to create an account with an existing email"
+  },
+  "authNetworkError": "Não foi possível falar com o servidor. Verifique sua conexão e tente novamente.",
+  "@authNetworkError": {
+    "description": "Auth error shown for network failures"
+  },
+  "authGoogleStarted": "Conclua o login no navegador.",
+  "@authGoogleStarted": {
+    "description": "Message after starting OAuth"
+  },
+  "authLogoutAction": "Sair da conta",
+  "@authLogoutAction": {
+    "description": "Sign-out action"
+  },
+  "authAccountSectionTitle": "Conta e nuvem",
+  "@authAccountSectionTitle": {
+    "description": "Profile data tab section title for account/cloud state"
+  },
+  "authCheckingSession": "Verificando sessão da conta...",
+  "@authCheckingSession": {
+    "description": "Message shown while the app checks whether the user is signed in"
+  },
+  "authSignedInAs": "Conectado como {email}",
+  "@authSignedInAs": {
+    "description": "Signed-in account label",
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "authNotSignedIn": "Você ainda está usando dados locais neste aparelho.",
+  "@authNotSignedIn": {
+    "description": "Not signed-in account label"
+  },
+  "authSupabaseNotConfigured": "Supabase não está configurado neste build.",
+  "@authSupabaseNotConfigured": {
+    "description": "Development/configuration error when Supabase env vars are missing"
   }
 }

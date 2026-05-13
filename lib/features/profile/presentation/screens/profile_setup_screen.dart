@@ -8,6 +8,7 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_durations.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
@@ -237,8 +238,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         _weightCtrl.text = _weight != null ? _weight.toString() : '';
         _bodyFatCtrl.text = _bodyFatPercent != null
             ? (_bodyFatPercent! % 1 == 0
-                ? _bodyFatPercent!.toInt().toString()
-                : _bodyFatPercent!.toStringAsFixed(1))
+                  ? _bodyFatPercent!.toInt().toString()
+                  : _bodyFatPercent!.toStringAsFixed(1))
             : '';
         _heightCtrl.text = _height != null ? _height.toString() : '';
         _ageCtrl.text = _age != null ? _age.toString() : '';
@@ -282,15 +283,16 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final a = int.tryParse(_ageCtrl.text.trim());
 
     if (bf != null && w == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.setupChatBodyFatNeedsWeight)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.setupChatBodyFatNeedsWeight)));
       return;
     }
 
     String bfBubble(double value) {
-      final s =
-          value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+      final s = value % 1 == 0
+          ? value.toInt().toString()
+          : value.toStringAsFixed(1);
       return l10n.bodyMetricsDashboardBodyFat(s);
     }
 
@@ -536,10 +538,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           );
 
       if (_weight != null) {
-        await ref.read(bodyMetricListProvider.notifier).add(
-              weight: _weight!,
-              bodyFatPercent: _bodyFatPercent,
-            );
+        await ref
+            .read(bodyMetricListProvider.notifier)
+            .add(weight: _weight!, bodyFatPercent: _bodyFatPercent);
       }
 
       await _ensureDefaultProgram();
@@ -605,64 +606,66 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         if (ctx.mounted) ctx.pop();
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileSetupTitle),
-        automaticallyImplyLeading: false,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
-          child: LinearProgressIndicator(
-            value: _setupProgressFraction,
-            minHeight: 2,
-            backgroundColor:
-                colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-            color: colorScheme.primary.withValues(alpha: 0.38),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _persist,
-            child: Text(l10n.skip),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                reverse: true,
-                padding: const EdgeInsets.fromLTRB(
-                  AthlosSpacing.md,
-                  AthlosSpacing.sm + 120,
-                  AthlosSpacing.md,
-                  AthlosSpacing.sm,
-                ),
-                itemCount: _entries.length,
-                itemBuilder: (context, index) {
-                  final entryIndex = _entries.length - 1 - index;
-                  final entry = _entries[entryIndex];
-                  return _ChatBubbleItem(
-                    key: ValueKey(entryIndex),
-                    entry: entry,
-                    isEditing: _editingIndex == entryIndex,
-                    onTap:
-                        entry.isUser &&
-                            entry.inputStep != null &&
-                            !_isSaving &&
-                            (_editingIndex == null ||
-                                _editingIndex == entryIndex)
-                        ? () => _startEditing(entryIndex)
-                        : null,
-                  );
-                },
+        appBar: AppBar(
+          title: Text(l10n.profileSetupTitle),
+          automaticallyImplyLeading: false,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(2),
+            child: LinearProgressIndicator(
+              value: _setupProgressFraction,
+              minHeight: 2,
+              backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.55,
               ),
+              color: colorScheme.primary.withValues(alpha: 0.38),
             ),
-            _SetupInputBar(step: _activeInputStep, state: this),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isSaving ? null : _persist,
+              child: Text(l10n.skip),
+            ),
           ],
         ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  padding: const EdgeInsets.fromLTRB(
+                    AthlosSpacing.md,
+                    AthlosSpacing.sm + 120,
+                    AthlosSpacing.md,
+                    AthlosSpacing.sm,
+                  ),
+                  itemCount: _entries.length,
+                  itemBuilder: (context, index) {
+                    final entryIndex = _entries.length - 1 - index;
+                    final entry = _entries[entryIndex];
+                    return AthlosChatBubble(
+                      key: ValueKey(entryIndex),
+                      text: entry.text,
+                      isUser: entry.isUser,
+                      isEditing: _editingIndex == entryIndex,
+                      onTap:
+                          entry.isUser &&
+                              entry.inputStep != null &&
+                              !_isSaving &&
+                              (_editingIndex == null ||
+                                  _editingIndex == entryIndex)
+                          ? () => _startEditing(entryIndex)
+                          : null,
+                    );
+                  },
+                ),
+              ),
+              _SetupInputBar(step: _activeInputStep, state: this),
+            ],
+          ),
+        ),
       ),
-    ),
     );
   }
 
@@ -691,91 +694,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   String _experienceDescription(ExperienceLevel e, AppLocalizations l10n) =>
       localizedExperienceLevelDescription(e, l10n);
-}
-
-/// Renders a single chat bubble (WhatsApp/Telegram style).
-class _ChatBubbleItem extends StatelessWidget {
-  final _ChatEntry entry;
-  final VoidCallback? onTap;
-  final bool isEditing;
-
-  const _ChatBubbleItem({
-    super.key,
-    required this.entry,
-    this.onTap,
-    this.isEditing = false,
-  });
-
-  static const _bubbleRadius = 18.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final borderColor = isEditing ? colorScheme.primary : Colors.transparent;
-    final bubble = Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AthlosSpacing.md,
-        vertical: AthlosSpacing.smd,
-      ),
-      decoration: BoxDecoration(
-        color: entry.isUser
-            ? colorScheme.primaryContainer
-            : colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(_bubbleRadius),
-          topRight: const Radius.circular(_bubbleRadius),
-          bottomLeft: Radius.circular(entry.isUser ? _bubbleRadius : 4),
-          bottomRight: Radius.circular(entry.isUser ? 4 : _bubbleRadius),
-        ),
-        border: Border.all(color: borderColor),
-      ),
-      child: Text(
-        entry.text,
-        style: textTheme.bodyMedium?.copyWith(
-          color: entry.isUser
-              ? colorScheme.onPrimaryContainer
-              : colorScheme.onSurface,
-        ),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-      child: Row(
-        mainAxisAlignment: entry.isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!entry.isUser) _buildAvatar(context),
-          if (!entry.isUser) const Gap(AthlosSpacing.xs),
-          Flexible(
-            child: onTap == null
-                ? bubble
-                : Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(_bubbleRadius),
-                      onTap: onTap,
-                      child: bubble,
-                    ),
-                  ),
-          ),
-          if (entry.isUser) const Gap(AthlosSpacing.xs),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAvatar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: colorScheme.primaryContainer,
-      child: Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
-    );
-  }
 }
 
 /// Fixed bottom bar with the current step input (WhatsApp/Telegram style).
@@ -903,17 +821,16 @@ class _BodyInput extends StatelessWidget {
     InputDecoration bodyFieldDecoration({
       required String labelText,
       String? suffixText,
-    }) =>
-        InputDecoration(
-          labelText: labelText,
-          suffixText: suffixText,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AthlosSpacing.smd,
-            vertical: AthlosSpacing.smd,
-          ),
-          border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
-        );
+    }) => InputDecoration(
+      labelText: labelText,
+      suffixText: suffixText,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AthlosSpacing.smd,
+        vertical: AthlosSpacing.smd,
+      ),
+      border: OutlineInputBorder(borderRadius: AthlosRadius.mdAll),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -957,10 +874,7 @@ class _BodyInput extends StatelessWidget {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
         const Gap(AthlosSpacing.sm),
-        FilledButton(
-          onPressed: state._onBodySubmitted,
-          child: Text(l10n.next),
-        ),
+        FilledButton(onPressed: state._onBodySubmitted, child: Text(l10n.next)),
       ],
     );
   }

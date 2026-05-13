@@ -74,13 +74,11 @@ class ExerciseNameMatch {
       final surfaces = _surfacesForScoring(e, displayLabel);
 
       final score = surfaces
-          .map(
-            (s) {
-              final rowNorm = normalize(s);
-              if (rowNorm.isEmpty) return 0;
-              return _similarityScore(input, inputTokens, rowNorm);
-            },
-          )
+          .map((s) {
+            final rowNorm = normalize(s);
+            if (rowNorm.isEmpty) return 0;
+            return _similarityScore(input, inputTokens, rowNorm);
+          })
           .fold<int>(0, (best, next) => next > best ? next : best);
 
       if (score <= 0) continue;

@@ -25,7 +25,9 @@ void showChironSheet(BuildContext context, {String? initialMessage}) {
     useSafeArea: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AthlosRadius.lg)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AthlosRadius.lg),
+      ),
     ),
     builder: (_) => _ChironSheet(initialMessage: initialMessage),
   );
@@ -109,7 +111,8 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    final shouldConfirmLeave = chatState.isStreaming ||
+    final shouldConfirmLeave =
+        chatState.isStreaming ||
         _controller.text.trim().isNotEmpty ||
         chatState.messages.isNotEmpty;
 
@@ -117,72 +120,74 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
       guardActive: shouldConfirmLeave,
       onConfirmLeave: confirmLeaveChironAssistant,
       child: Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: Column(
-          children: [
-            _buildHandle(colorScheme),
-            _buildHeader(l10n, chatState, colorScheme),
-            const Divider(height: 1),
-            Expanded(
-              child: chatState.messages.isEmpty
-                  ? _buildEmptyState(l10n, colorScheme, textTheme)
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: ListView.separated(
-                            controller: _scrollController,
-                            reverse: true,
-                            padding: const EdgeInsets.all(AthlosSpacing.md),
-                            itemCount: chatState.messages.length,
-                            separatorBuilder: (context, index) =>
-                                const Gap(AthlosSpacing.sm),
-                            itemBuilder: (context, index) {
-                              final reverseIndex =
-                                  chatState.messages.length - 1 - index;
-                              final message =
-                                  chatState.messages[reverseIndex];
-                              final isNewest = index == 0;
-                              final isLastError = isNewest &&
-                                  !chatState.isStreaming &&
-                                  chatState.hasError;
-                              return ChironMessageBubble(
-                                key: ValueKey(reverseIndex),
-                                message: message,
-                                isStreaming:
-                                    isNewest && chatState.isStreaming,
-                                isError: isLastError,
-                              );
-                            },
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.85,
+          child: Column(
+            children: [
+              _buildHandle(colorScheme),
+              _buildHeader(l10n, chatState, colorScheme),
+              const Divider(height: 1),
+              Expanded(
+                child: chatState.messages.isEmpty
+                    ? _buildEmptyState(l10n, colorScheme, textTheme)
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: ListView.separated(
+                              controller: _scrollController,
+                              reverse: true,
+                              padding: const EdgeInsets.all(AthlosSpacing.md),
+                              itemCount: chatState.messages.length,
+                              separatorBuilder: (context, index) =>
+                                  const Gap(AthlosSpacing.sm),
+                              itemBuilder: (context, index) {
+                                final reverseIndex =
+                                    chatState.messages.length - 1 - index;
+                                final message =
+                                    chatState.messages[reverseIndex];
+                                final isNewest = index == 0;
+                                final isLastError =
+                                    isNewest &&
+                                    !chatState.isStreaming &&
+                                    chatState.hasError;
+                                return ChironMessageBubble(
+                                  key: ValueKey(reverseIndex),
+                                  message: message,
+                                  isStreaming:
+                                      isNewest && chatState.isStreaming,
+                                  isError: isLastError,
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        if (chatState.isStreaming) ...[
-                          if (chatState.lastResponseToolFeedback.isNotEmpty)
+                          if (chatState.isStreaming) ...[
+                            if (chatState.lastResponseToolFeedback.isNotEmpty)
+                              _buildToolFeedbackChips(
+                                l10n,
+                                colorScheme,
+                                chatState.lastResponseToolFeedback,
+                              ),
+                            _buildThinkingIndicator(l10n, colorScheme),
+                          ] else if (chatState.lastResponseToolFeedback.any(
+                            _isMutationTool,
+                          ))
                             _buildToolFeedbackChips(
                               l10n,
                               colorScheme,
-                              chatState.lastResponseToolFeedback,
+                              chatState.lastResponseToolFeedback
+                                  .where(_isMutationTool)
+                                  .toList(),
                             ),
-                          _buildThinkingIndicator(l10n, colorScheme),
-                        ] else if (chatState.lastResponseToolFeedback
-                            .any(_isMutationTool))
-                          _buildToolFeedbackChips(
-                            l10n,
-                            colorScheme,
-                            chatState.lastResponseToolFeedback
-                                .where(_isMutationTool)
-                                .toList(),
-                          ),
-                      ],
-                    ),
-            ),
-            _buildInputBar(l10n, colorScheme, chatState.isStreaming),
-          ],
+                        ],
+                      ),
+              ),
+              _buildInputBar(l10n, colorScheme, chatState.isStreaming),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -207,13 +212,14 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
               (f) => Chip(
                 label: Text(
                   _toolFeedbackLabel(l10n, f.toolName),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.primary,
-                  ),
+                  style: TextStyle(fontSize: 12, color: colorScheme.primary),
                 ),
-                side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
-                backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                side: BorderSide(
+                  color: colorScheme.primary.withValues(alpha: 0.5),
+                ),
+                backgroundColor: colorScheme.primaryContainer.withValues(
+                  alpha: 0.5,
+                ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: AthlosSpacing.sm,
                   vertical: AthlosSpacing.xxs,
@@ -227,10 +233,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
     );
   }
 
-  static const _readOnlyTools = {
-    'requestExtendedHistory',
-    'getTrainingState',
-  };
+  static const _readOnlyTools = {'requestExtendedHistory', 'getTrainingState'};
 
   static bool _isMutationTool(ChironToolFeedback f) =>
       f.success && !_readOnlyTools.contains(f.toolName);
@@ -421,9 +424,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
     return Container(
       padding: const EdgeInsets.all(AthlosSpacing.sm),
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant),
-        ),
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
       ),
       child: SafeArea(
         top: false,

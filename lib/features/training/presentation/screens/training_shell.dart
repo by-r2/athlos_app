@@ -40,30 +40,28 @@ ShellRoute trainingShellRoute() {
       GoRoute(
         path: RoutePaths.trainingHome,
         pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-              state,
-              const _TrainingRootTabBackGuard(child: TrainingHomeScreen()),
-            ),
+          state,
+          const _TrainingRootTabBackGuard(child: TrainingHomeScreen()),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkouts,
         pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-              state,
-              const _TrainingRootTabBackGuard(child: TrainingWorkoutsScreen()),
-            ),
+          state,
+          const _TrainingRootTabBackGuard(child: TrainingWorkoutsScreen()),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingHistory,
         pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-              state,
-              const _TrainingRootTabBackGuard(child: TrainingHistoryScreen()),
-            ),
+          state,
+          const _TrainingRootTabBackGuard(child: TrainingHistoryScreen()),
+        ),
       ),
       GoRoute(
         path: RoutePaths.trainingWorkoutCatalog,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const WorkoutCatalogScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const WorkoutCatalogScreen()),
       ),
       GoRoute(
         path: RoutePaths.trainingExercises,
@@ -74,17 +72,13 @@ ShellRoute trainingShellRoute() {
       ),
       GoRoute(
         path: RoutePaths.trainingPrograms,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const ProgramListScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const ProgramListScreen()),
       ),
       GoRoute(
         path: RoutePaths.trainingProgramNew,
-        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
-          state,
-          const ProgramFormScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            AthlosRouterPages.fadeThrough(state, const ProgramFormScreen()),
       ),
       GoRoute(
         path: '${RoutePaths.trainingPrograms}/:programId',

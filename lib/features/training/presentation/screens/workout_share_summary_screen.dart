@@ -66,8 +66,9 @@ class _WorkoutShareSummaryScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final executionsAsync = ref.watch(workoutExecutionListProvider);
-    final setsAsync =
-        ref.watch(executionSetsWithSegmentsProvider(widget.executionId));
+    final setsAsync = ref.watch(
+      executionSetsWithSegmentsProvider(widget.executionId),
+    );
 
     WorkoutExecution? execution;
     for (final e in executionsAsync.value ?? const <WorkoutExecution>[]) {
@@ -93,16 +94,14 @@ class _WorkoutShareSummaryScreenState
 
     final workoutTitle = execution != null
         ? ref.watch(workoutByIdProvider(execution.workoutId)).value?.name ??
-            l10n.unknownWorkout
+              l10n.unknownWorkout
         : l10n.unknownWorkout;
 
     final exercisesAsync = ref.watch(exerciseListProvider);
     final exerciseById =
         exercisesAsync.hasValue && (exercisesAsync.value?.isNotEmpty ?? false)
-            ? {
-                for (final e in exercisesAsync.value!) e.id: e,
-              }
-            : null;
+        ? {for (final e in exercisesAsync.value!) e.id: e}
+        : null;
 
     final exerciseConfigAsync = execution != null
         ? ref.watch(executionExerciseConfigProvider(execution))
@@ -124,9 +123,7 @@ class _WorkoutShareSummaryScreenState
     final isLoading = executionsAsync.isLoading || setsAsync.isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.workoutShareSummaryTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.workoutShareSummaryTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AthlosSpacing.md),
@@ -145,10 +142,9 @@ class _WorkoutShareSummaryScreenState
                       exerciseById: exerciseById,
                       workoutExerciseByExerciseId:
                           workoutExerciseByExerciseId.isEmpty
-                              ? null
-                              : workoutExerciseByExerciseId,
-                      profileBodyWeightOnExecutionDate:
-                          historicProfileWeight,
+                          ? null
+                          : workoutExerciseByExerciseId,
+                      profileBodyWeightOnExecutionDate: historicProfileWeight,
                       latestBodyWeight: latestBw,
                     ),
                   ),

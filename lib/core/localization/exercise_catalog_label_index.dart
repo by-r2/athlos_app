@@ -15,8 +15,9 @@ ExerciseCatalogLabelIndex? _exerciseCatalogLabelIndex;
 /// Singleton index of verified exercise synonyms (canonical name + camelCase hint
 /// + every loaded locale string).
 ExerciseCatalogLabelIndex get exerciseCatalogLabelIndex =>
-    _exerciseCatalogLabelIndex ??=
-        ExerciseCatalogLabelIndex.build(kExerciseCatalogLocalizationLocales);
+    _exerciseCatalogLabelIndex ??= ExerciseCatalogLabelIndex.build(
+      kExerciseCatalogLocalizationLocales,
+    );
 
 /// Pre-computed synonyms and reverse lookup for verified catalog exercises.
 class ExerciseCatalogLabelIndex {

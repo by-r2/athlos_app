@@ -44,10 +44,7 @@ class ExerciseList extends _$ExerciseList {
       description: description,
       isIsometric: isIsometric,
     );
-    final result = await repo.create(
-      exercise,
-      muscles: muscles,
-    );
+    final result = await repo.create(exercise, muscles: muscles);
     result.getOrThrow();
     ref.invalidateSelf();
   }
@@ -59,10 +56,7 @@ class ExerciseList extends _$ExerciseList {
     muscles,
   }) async {
     final repo = ref.read(exerciseRepositoryProvider);
-    final result = await repo.update(
-      exercise,
-      muscles: muscles,
-    );
+    final result = await repo.update(exercise, muscles: muscles);
     result.getOrThrow();
     ref.invalidateSelf();
   }
@@ -105,4 +99,3 @@ Future<List<ExerciseMuscleFocus>> exerciseMuscleFoci(
   final result = await repo.getMuscleFoci(exerciseId);
   return result.getOrThrow();
 }
-

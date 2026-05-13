@@ -34,13 +34,10 @@ void main() {
     });
 
     test('setSteps/getSteps preserva ordem', () async {
-      final result = await repository.setSteps(
-        const [
-          TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 10),
-          TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 20),
-        ],
-        programId,
-      );
+      final result = await repository.setSteps(const [
+        TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 10),
+        TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 20),
+      ], programId);
       expect(result.isSuccess, isTrue);
 
       final loaded = (await repository.getSteps(programId)).getOrThrow();
@@ -70,14 +67,11 @@ void main() {
     });
 
     test('removeWorkoutFromCycle remove e reindexa', () async {
-      await repository.setSteps(
-        const [
-          TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 1),
-          TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 2),
-          TrainingCycleStep(id: 0, orderIndex: 2, workoutId: 3),
-        ],
-        programId,
-      );
+      await repository.setSteps(const [
+        TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 1),
+        TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 2),
+        TrainingCycleStep(id: 0, orderIndex: 2, workoutId: 3),
+      ], programId);
 
       expect(
         (await repository.removeWorkoutFromCycle(1, programId)).isSuccess,
@@ -93,13 +87,10 @@ void main() {
     });
 
     test('removeWorkoutFromAllCycles remove de todos os programas', () async {
-      await repository.setSteps(
-        const [
-          TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 1),
-          TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 2),
-        ],
-        programId,
-      );
+      await repository.setSteps(const [
+        TrainingCycleStep(id: 0, orderIndex: 0, workoutId: 1),
+        TrainingCycleStep(id: 0, orderIndex: 1, workoutId: 2),
+      ], programId);
 
       expect(
         (await repository.removeWorkoutFromAllCycles(1)).isSuccess,

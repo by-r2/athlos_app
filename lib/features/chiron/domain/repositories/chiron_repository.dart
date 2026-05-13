@@ -2,11 +2,12 @@ import '../entities/chiron_message.dart';
 
 /// Callback when a tool is invoked during a response. [resultData] contains
 /// the tool return (e.g. workoutId for createWorkout).
-typedef ChironToolInvokedCallback = void Function(
-  String toolName,
-  bool success,
-  Map<String, dynamic>? resultData,
-);
+typedef ChironToolInvokedCallback =
+    void Function(
+      String toolName,
+      bool success,
+      Map<String, dynamic>? resultData,
+    );
 
 /// Repository for the Chiron AI assistant.
 ///

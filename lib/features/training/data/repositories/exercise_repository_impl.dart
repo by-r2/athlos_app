@@ -53,8 +53,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       if (id == null) return const Success(null);
       return getById(id);
     } on Exception catch (e) {
-      return Failure(
-          DatabaseException('Failed to find exercise by name: $e'));
+      return Failure(DatabaseException('Failed to find exercise by name: $e'));
     }
   }
 
@@ -66,13 +65,15 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       return getById(id);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to find exercise by name (fuzzy): $e'));
+        DatabaseException('Failed to find exercise by name (fuzzy): $e'),
+      );
     }
   }
 
   @override
   Future<Result<List<domain.Exercise>>> getByMuscleGroup(
-      MuscleGroup group) async {
+    MuscleGroup group,
+  ) async {
     try {
       final rows = await _dao.getByMuscleGroup(group);
       final results = <domain.Exercise>[];
@@ -83,7 +84,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       return Success(results);
     } on Exception catch (e) {
       return Failure(
-          DatabaseException('Failed to load exercises by muscle group: $e'));
+        DatabaseException('Failed to load exercises by muscle group: $e'),
+      );
     }
   }
 
@@ -104,7 +106,8 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
 
   @override
   Future<Result<List<domain.ExerciseMuscleFocus>>> getMuscleFoci(
-      int exerciseId) async {
+    int exerciseId,
+  ) async {
     try {
       return Success(await _loadMuscleFoci(exerciseId));
     } on Exception catch (e) {
@@ -115,8 +118,15 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   @override
   Future<Result<int>> create(
     domain.Exercise exercise, {
-    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>
-        muscles = const [],
+    List<
+          ({
+            domain_muscle.TargetMuscle muscle,
+            domain_region.MuscleRegion? region,
+            domain_role.MuscleRole role,
+          })
+        >
+        muscles =
+        const [],
   }) async {
     try {
       final conflictId = await _dao.findIdByConflictingName(exercise.name);
@@ -151,8 +161,14 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   @override
   Future<Result<void>> update(
     domain.Exercise exercise, {
-    List<({domain_muscle.TargetMuscle muscle, domain_region.MuscleRegion? region, domain_role.MuscleRole role})>?
-        muscles,
+    List<
+      ({
+        domain_muscle.TargetMuscle muscle,
+        domain_region.MuscleRegion? region,
+        domain_role.MuscleRole role,
+      })
+    >?
+    muscles,
   }) async {
     try {
       await _dao.updateById(
@@ -209,29 +225,34 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   Future<List<domain.ExerciseMuscleFocus>> _loadMuscleFoci(
-      int exerciseId) async {
+    int exerciseId,
+  ) async {
     final rows = await _dao.getMuscleFoci(exerciseId);
     return rows
-        .map((r) =>
-            domain.ExerciseMuscleFocus(r.targetMuscle, r.muscleRegion, r.role))
+        .map(
+          (r) => domain.ExerciseMuscleFocus(
+            r.targetMuscle,
+            r.muscleRegion,
+            r.role,
+          ),
+        )
         .toList();
   }
 
   domain.Exercise _toDomain(
     dynamic row,
     List<domain.ExerciseMuscleFocus> muscles,
-  ) =>
-      domain.Exercise(
-        id: row.id as int,
-        name: row.name as String,
-        muscleGroup: row.muscleGroup as MuscleGroup,
-        type: row.type as ExerciseType,
-        movementPattern: row.movementPattern as MovementPattern?,
-        description: row.description as String?,
-        isVerified: row.isVerified as bool,
-        defaultLoadMode: row.defaultLoadMode as LoadMode,
-        bodyweightLoadFactor: row.bodyweightLoadFactor as double?,
-        isIsometric: row.isIsometric as bool,
-        muscles: muscles,
-      );
+  ) => domain.Exercise(
+    id: row.id as int,
+    name: row.name as String,
+    muscleGroup: row.muscleGroup as MuscleGroup,
+    type: row.type as ExerciseType,
+    movementPattern: row.movementPattern as MovementPattern?,
+    description: row.description as String?,
+    isVerified: row.isVerified as bool,
+    defaultLoadMode: row.defaultLoadMode as LoadMode,
+    bodyweightLoadFactor: row.bodyweightLoadFactor as double?,
+    isIsometric: row.isIsometric as bool,
+    muscles: muscles,
+  );
 }

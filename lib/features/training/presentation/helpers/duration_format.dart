@@ -21,10 +21,7 @@ String formatDuration(int totalSeconds) {
 /// Total workout elapsed time for history and execution detail (includes seconds).
 ///
 /// Returns `null` when [duration] is `null`.
-String? formatWorkoutTotalDuration(
-  Duration? duration,
-  AppLocalizations l10n,
-) {
+String? formatWorkoutTotalDuration(Duration? duration, AppLocalizations l10n) {
   if (duration == null) return null;
 
   final totalSeconds = duration.inSeconds;

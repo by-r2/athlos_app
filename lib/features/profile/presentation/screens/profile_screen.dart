@@ -12,13 +12,19 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/theme/athlos_component_sizes.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../auth/presentation/providers/auth_prompt_notifier.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -60,6 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   _EditingTab _editingTab = _EditingTab.none;
   bool _isExporting = false;
   bool _isImporting = false;
+  bool _isSigningOut = false;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -123,24 +130,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   String _snapshotOverviewEdit() => [
-        _nameController.text,
-        _heightController.text,
-        _ageController.text,
-        _injuriesController.text,
-        _bioController.text,
-        _selectedGender?.name ?? 'null',
-      ].join('\u001e');
+    _nameController.text,
+    _heightController.text,
+    _ageController.text,
+    _injuriesController.text,
+    _bioController.text,
+    _selectedGender?.name ?? 'null',
+  ].join('\u001e');
 
   String _snapshotTrainingEdit() => [
-        _selectedGoal?.name ?? 'null',
-        _selectedAesthetic?.name ?? 'null',
-        _selectedStyle?.name ?? 'null',
-        _selectedExperience?.name ?? 'null',
-        '${_trainingFrequency ?? -1}',
-        '${_availableWorkoutMinutes ?? -1}',
-        _workoutMinutesController.text,
-        '${_trainsAtGym ?? -1}',
-      ].join('\u001e');
+    _selectedGoal?.name ?? 'null',
+    _selectedAesthetic?.name ?? 'null',
+    _selectedStyle?.name ?? 'null',
+    _selectedExperience?.name ?? 'null',
+    '${_trainingFrequency ?? -1}',
+    '${_availableWorkoutMinutes ?? -1}',
+    _workoutMinutesController.text,
+    '${_trainsAtGym ?? -1}',
+  ].join('\u001e');
 
   bool get _isProfileEditDirty {
     if (_editingTab == _EditingTab.overview && _overviewEditBaseline != null) {
@@ -177,8 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final isEditing = _editingTab != _EditingTab.none;
 
     return ConfirmNavigationScope(
-      guardActive:
-          _editingTab != _EditingTab.none && _isProfileEditDirty,
+      guardActive: _editingTab != _EditingTab.none && _isProfileEditDirty,
       onConfirmLeave: confirmDiscardUnsavedEdits,
       onLeaveConfirmed: (_) {
         if (!mounted) return;
@@ -189,45 +195,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         });
       },
       child: DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.profile),
-          actions: [const AppBarMenu()],
-          bottom: isEditing
-              ? null
-              : TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(text: l10n.profileOverviewTab),
-                    Tab(text: l10n.profileTrainingPreferencesTab),
-                    Tab(text: l10n.profileEquipmentTab),
-                    Tab(text: l10n.profileDataTab),
+        length: 4,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.profile),
+            actions: [const AppBarMenu()],
+            bottom: isEditing
+                ? null
+                : TabBar(
+                    isScrollable: true,
+                    tabs: [
+                      Tab(text: l10n.profileOverviewTab),
+                      Tab(text: l10n.profileTrainingPreferencesTab),
+                      Tab(text: l10n.profileEquipmentTab),
+                      Tab(text: l10n.profileDataTab),
+                    ],
+                  ),
+          ),
+          body: profileAsync.hasError
+              ? Center(child: Text(l10n.genericError))
+              : isEditing
+              ? _editingTab == _EditingTab.overview
+                    ? _buildOverviewEditView(resolved, l10n)
+                    : _buildTrainingEditView(resolved, l10n)
+              : TabBarView(
+                  children: [
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildOverviewCategory(resolved, l10n),
+                    ),
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildTrainingPreferencesCategory(resolved, l10n),
+                    ),
+                    const OwnedEquipmentList(),
+                    Skeletonizer(
+                      enabled: profileAsync.isLoading,
+                      child: _buildDataCategory(l10n),
+                    ),
                   ],
                 ),
         ),
-        body: profileAsync.hasError
-            ? Center(child: Text(l10n.genericError))
-            : isEditing
-            ? _editingTab == _EditingTab.overview
-                  ? _buildOverviewEditView(resolved, l10n)
-                  : _buildTrainingEditView(resolved, l10n)
-            : TabBarView(
-                children: [
-                  Skeletonizer(
-                    enabled: profileAsync.isLoading,
-                    child: _buildOverviewCategory(resolved, l10n),
-                  ),
-                  Skeletonizer(
-                    enabled: profileAsync.isLoading,
-                    child: _buildTrainingPreferencesCategory(resolved, l10n),
-                  ),
-                  const OwnedEquipmentList(),
-                  _buildDataCategory(l10n),
-                ],
-              ),
       ),
-    ),
     );
   }
 
@@ -430,86 +439,201 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildDataCategory(AppLocalizations l10n) {
     final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AthlosSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SectionHeader(title: l10n.profileDataSectionTitle),
-          const Gap(AthlosSpacing.xs),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.profileDataSectionDescription,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  Text(
-                    l10n.profileDataConflictSummaryTitle,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const Gap(AthlosSpacing.xs),
-                  conflictCenterAsync.when(
-                    loading: () => Text(l10n.profileDataConflictSummaryLoading),
-                    error: (_, _) => Text(l10n.profileDataConflictSummaryError),
-                    data: (summary) => Text(
-                      l10n.profileDataLocalConflictSummary(
-                        summary.localDuplicateCount,
-                      ),
+    final authAsync = ref.watch(authProvider);
+    final authUser = authAsync.value;
+    final isDataLoading = authAsync.isLoading || conflictCenterAsync.isLoading;
+
+    return Skeletonizer(
+      enabled: isDataLoading,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SectionHeader(title: l10n.authAccountSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AthlosSpacing.sm,
+                  horizontal: AthlosSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileTile(
+                      icon: authUser != null
+                          ? Icons.verified_user_outlined
+                          : Icons.account_circle_outlined,
+                      label: l10n.profileDataAccountSessionLabel,
+                      value: authUser?.email ?? l10n.authNotSignedIn,
                     ),
-                  ),
-                  const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.profileDataConflictSummaryLocalHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  FilledButton.icon(
-                    onPressed: () => context.push(RoutePaths.profileConflicts),
-                    icon: const Icon(Icons.rule_folder_outlined),
-                    label: Text(l10n.conflictCenterOpenAction),
-                  ),
-                  const Gap(AthlosSpacing.sm),
-                  FilledButton.icon(
-                    onPressed: _isImporting ? null : () => _importData(l10n),
-                    icon: _isImporting
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          )
-                        : const Icon(Icons.download),
-                    label: Text(l10n.profileDataImportAction),
-                  ),
-                  const Gap(AthlosSpacing.sm),
-                  OutlinedButton.icon(
-                    onPressed: _isExporting ? null : () => _exportData(l10n),
-                    icon: _isExporting
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : const Icon(Icons.upload_file),
-                    label: Text(l10n.profileDataExportAction),
-                  ),
-                ],
+                    const Gap(AthlosSpacing.md),
+                    if (authUser == null)
+                      FilledButton.icon(
+                        onPressed: authAsync.isLoading
+                            ? null
+                            : () => context.push(RoutePaths.authPrompt),
+                        icon: const Icon(Icons.login),
+                        label: Text(l10n.authOpenAccountAction),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: _isSigningOut || authAsync.isLoading
+                            ? null
+                            : () => _signOut(l10n),
+                        icon: _isSigningOut
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.logout),
+                        label: Text(l10n.authLogoutAction),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            const Gap(AthlosSpacing.md),
+            _SectionHeader(title: l10n.profileDataSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.profileDataSectionDescription,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0),
+                      ),
+                      child: ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        title: Text(
+                          l10n.profileDataBackupLearnMoreTitle,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        children: [
+                          Text(
+                            l10n.profileDataBackupDetails,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    AthlosStackedActions(
+                      spacing: AthlosSpacing.sm,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _isImporting
+                              ? null
+                              : () => _importData(l10n),
+                          icon: _isImporting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
+                                )
+                              : const Icon(Icons.download),
+                          label: Text(l10n.profileDataImportAction),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _isExporting
+                              ? null
+                              : () => _exportData(l10n),
+                          icon: _isExporting
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_file),
+                          label: Text(l10n.profileDataExportAction),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Gap(AthlosSpacing.md),
+            _SectionHeader(title: l10n.profileDataConflictsSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileConflictStatusBanner(
+                      conflictCenterAsync: conflictCenterAsync,
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    Text(
+                      l10n.profileDataConflictSummaryLocalHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    _ProfileDataNavRow(
+                      icon: Icons.rule_folder_outlined,
+                      title: l10n.conflictCenterTitle,
+                      subtitle: l10n.tapToOpen,
+                      onTap: () => context.push(RoutePaths.profileConflicts),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Gap(AthlosSpacing.lg),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _signOut(AppLocalizations l10n) async {
+    setState(() => _isSigningOut = true);
+    try {
+      await ref.read(authProvider.notifier).signOut();
+      await ref.read(localAccessProvider.notifier).reset();
+      if (!mounted) return;
+      context.go(RoutePaths.authPrompt);
+    } on Exception {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
+    } finally {
+      if (mounted) setState(() => _isSigningOut = false);
+    }
   }
 
   Future<void> _importData(AppLocalizations l10n) async {
@@ -975,6 +1099,159 @@ class _ProfileTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileConflictStatusBanner extends StatelessWidget {
+  const _ProfileConflictStatusBanner({required this.conflictCenterAsync});
+
+  final AsyncValue<ConflictCenterViewData> conflictCenterAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
+
+    return conflictCenterAsync.when(
+      loading: () => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        foregroundColor: colorScheme.onSurfaceVariant,
+        icon: Icons.hourglass_empty_outlined,
+        message: l10n.profileDataConflictSummaryLoading,
+      ),
+      error: (_, _) => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.errorContainer,
+        foregroundColor: colorScheme.onErrorContainer,
+        icon: Icons.error_outline,
+        message: l10n.profileDataConflictSummaryError,
+      ),
+      data: (summary) {
+        final duplicateCount = summary.localDuplicateCount;
+        if (duplicateCount == 0) {
+          return _ProfileConflictStatusSurface(
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            foregroundColor: colorScheme.onSurfaceVariant,
+            iconColor: colorScheme.primary,
+            icon: Icons.check_circle_outline,
+            message: l10n.profileDataConflictStatusClear,
+          );
+        }
+
+        final warningStyle = customColors.duplicateWarningCallout(colorScheme);
+
+        return _ProfileConflictStatusSurface(
+          backgroundColor: warningStyle.background,
+          foregroundColor: warningStyle.foreground,
+          iconColor: warningStyle.icon,
+          icon: Icons.warning_amber_rounded,
+          message: l10n.profileDataLocalConflictSummary(duplicateCount),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileConflictStatusSurface extends StatelessWidget {
+  const _ProfileConflictStatusSurface({
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.icon,
+    required this.message,
+    this.iconColor,
+  });
+
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final IconData icon;
+  final String message;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: AthlosRadius.mdAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: iconColor ?? foregroundColor),
+          const Gap(AthlosSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: textTheme.bodyMedium?.copyWith(color: foregroundColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDataNavRow extends StatelessWidget {
+  const _ProfileDataNavRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Material(
+      color: colorScheme.surfaceContainerHigh,
+      borderRadius: AthlosRadius.mdAll,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ListTile(
+          minTileHeight: AthlosComponentSizes.listItemMinHeight,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AthlosSpacing.md,
+            vertical: AthlosSpacing.xs,
+          ),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: AthlosRadius.mdAll,
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, size: 22, color: colorScheme.onPrimaryContainer),
+          ),
+          title: Text(
+            title,
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_right_rounded,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

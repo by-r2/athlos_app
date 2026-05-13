@@ -12,8 +12,8 @@ class ChironMessage {
   });
 
   ChironMessage copyWith({String? content}) => ChironMessage(
-        role: role,
-        content: content ?? this.content,
-        createdAt: createdAt,
-      );
+    role: role,
+    content: content ?? this.content,
+    createdAt: createdAt,
+  );
 }

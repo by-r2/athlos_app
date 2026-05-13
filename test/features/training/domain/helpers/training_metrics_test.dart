@@ -19,23 +19,22 @@ ExecutionSet _set({
   double? leftWeight,
   double? rightWeight,
   List<ExecutionSetSegment> segments = const [],
-}) =>
-    ExecutionSet(
-      id: id,
-      executionId: 1,
-      exerciseId: 1,
-      setNumber: id,
-      reps: reps,
-      weight: weight,
-      isCompleted: isCompleted,
-      isWarmup: isWarmup,
-      isUnilateral: isUnilateral,
-      leftReps: leftReps,
-      rightReps: rightReps,
-      leftWeight: leftWeight,
-      rightWeight: rightWeight,
-      segments: segments,
-    );
+}) => ExecutionSet(
+  id: id,
+  executionId: 1,
+  exerciseId: 1,
+  setNumber: id,
+  reps: reps,
+  weight: weight,
+  isCompleted: isCompleted,
+  isWarmup: isWarmup,
+  isUnilateral: isUnilateral,
+  leftReps: leftReps,
+  rightReps: rightReps,
+  leftWeight: leftWeight,
+  rightWeight: rightWeight,
+  segments: segments,
+);
 
 void main() {
   group('computeSetVolume', () {
@@ -51,10 +50,7 @@ void main() {
     });
 
     test('returns 0 for warmup sets', () {
-      expect(
-        computeSetVolume(_set(reps: 10, weight: 50, isWarmup: true)),
-        0,
-      );
+      expect(computeSetVolume(_set(reps: 10, weight: 50, isWarmup: true)), 0);
     });
 
     test('treats null weight as 0', () {
@@ -133,59 +129,47 @@ void main() {
       expect(computeSetVolume(set), 0);
     });
 
-    test('unilateral sums left arm and right arm tonnage when isUnilateral is true',
-        () {
-      expect(
-        computeSetVolume(
-          _set(
-            isUnilateral: true,
-            reps: 12,
-            weight: 20,
-            leftReps: 12,
-            rightReps: 10,
-            leftWeight: 20,
-            rightWeight: 20,
+    test(
+      'unilateral sums left arm and right arm tonnage when isUnilateral is true',
+      () {
+        expect(
+          computeSetVolume(
+            _set(
+              isUnilateral: true,
+              reps: 12,
+              weight: 20,
+              leftReps: 12,
+              rightReps: 10,
+              leftWeight: 20,
+              rightWeight: 20,
+            ),
           ),
-        ),
-        12 * 20 + 10 * 20,
-      );
-    });
+          12 * 20 + 10 * 20,
+        );
+      },
+    );
 
     test('explicit bilateral ignores per-side reps for volume totals', () {
       expect(
         computeSetVolume(
-          _set(
-            isUnilateral: false,
-            reps: 10,
-            weight: 50,
-            leftReps: 999,
-          ),
+          _set(isUnilateral: false, reps: 10, weight: 50, leftReps: 999),
         ),
         500,
       );
     });
 
-    test(
-        'legacy rows infer per-side volume when reps exist on either side '
-        '(isUnilateral null)',
-        () {
+    test('legacy rows infer per-side volume when reps exist on either side '
+        '(isUnilateral null)', () {
       expect(
         computeSetVolume(
-          _set(
-            reps: 10,
-            weight: 20,
-            leftReps: 10,
-            rightReps: 10,
-          ),
+          _set(reps: 10, weight: 20, leftReps: 10, rightReps: 10),
         ),
         400,
       );
     });
 
-    test(
-        'unilateral with drop-set segments scales second arm tonnage '
-        'by rightReps over left total reps',
-        () {
+    test('unilateral with drop-set segments scales second arm tonnage '
+        'by rightReps over left total reps', () {
       final set = _set(
         isUnilateral: true,
         reps: 10,
@@ -353,11 +337,7 @@ void main() {
 
     test('weighted mode returns null when setWeight is null', () {
       expect(
-        effectiveLoad(
-          mode: LoadMode.weighted,
-          setWeight: null,
-          bodyWeight: 75,
-        ),
+        effectiveLoad(mode: LoadMode.weighted, setWeight: null, bodyWeight: 75),
         null,
       );
     });
@@ -449,10 +429,7 @@ void main() {
     );
 
     test('uses exercise default when no overrides', () {
-      expect(
-        resolveLoadMode(exercise: exercise),
-        LoadMode.bodyweight,
-      );
+      expect(resolveLoadMode(exercise: exercise), LoadMode.bodyweight);
     });
 
     test('workout exercise override beats catalog default', () {
@@ -490,7 +467,11 @@ void main() {
         loadModeOverride: LoadMode.bodyweight,
       );
       expect(
-        resolveLoadMode(set: persistedSet, workoutExercise: wx, exercise: exercise),
+        resolveLoadMode(
+          set: persistedSet,
+          workoutExercise: wx,
+          exercise: exercise,
+        ),
         LoadMode.bodyweight,
       );
       expect(

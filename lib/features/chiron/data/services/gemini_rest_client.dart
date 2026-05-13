@@ -3,10 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GeminiApiException implements Exception {
-  GeminiApiException({
-    required this.message,
-    this.statusCode,
-  });
+  GeminiApiException({required this.message, this.statusCode});
 
   final String message;
   final int? statusCode;
@@ -54,16 +51,16 @@ class GeminiRestClient {
     double? temperature,
     int? thinkingBudget,
   }) async {
-    final uri = Uri.parse('$_baseUrl/$modelId:generateContent').replace(
-      queryParameters: {'key': _apiKey},
-    );
+    final uri = Uri.parse(
+      '$_baseUrl/$modelId:generateContent',
+    ).replace(queryParameters: {'key': _apiKey});
     final body = <String, dynamic>{
       'contents': contents,
       'systemInstruction': _systemInstructionContent(systemInstruction),
     };
     if (toolDeclarations.isNotEmpty) {
       body['tools'] = [
-        {'functionDeclarations': toolDeclarations}
+        {'functionDeclarations': toolDeclarations},
       ];
     }
 
@@ -75,22 +72,23 @@ class GeminiRestClient {
       generationConfig['temperature'] = temperature;
     }
     if (thinkingBudget != null) {
-      generationConfig['thinkingConfig'] = {
-        'thinkingBudget': thinkingBudget,
-      };
+      generationConfig['thinkingConfig'] = {'thinkingBudget': thinkingBudget};
     }
     if (generationConfig.isNotEmpty) {
       body['generationConfig'] = generationConfig;
     }
 
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(
-      const Duration(seconds: 60),
-      onTimeout: () => throw GeminiApiException(message: 'generateContent timeout'),
-    );
+    final response = await http
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(
+          const Duration(seconds: 60),
+          onTimeout: () =>
+              throw GeminiApiException(message: 'generateContent timeout'),
+        );
 
     final json = jsonDecode(response.body) as Map<String, dynamic>?;
     if (response.statusCode != 200) {
@@ -108,8 +106,8 @@ class GeminiRestClient {
   Map<String, dynamic> _systemInstructionContent(String text) {
     return {
       'parts': [
-        {'text': text}
-      ]
+        {'text': text},
+      ],
     };
   }
 }
@@ -121,12 +119,13 @@ class GeminiResponseParse {
     List<GeminiFunctionCall>? functionCalls,
     this.thoughtSignature,
     List<Map<String, dynamic>>? modelParts,
-  })  : functionCalls = functionCalls ?? [],
-        modelParts = modelParts ?? [];
+  }) : functionCalls = functionCalls ?? [],
+       modelParts = modelParts ?? [];
 
   final String? text;
   final List<GeminiFunctionCall> functionCalls;
   final String? thoughtSignature;
+
   /// Raw parts from the model turn (to append to contents when sending back).
   final List<Map<String, dynamic>> modelParts;
 }
@@ -180,10 +179,7 @@ GeminiResponseParse parseGenerateContentResponse(Map<String, dynamic> json) {
         final name = fc['name'] as String?;
         final args = fc['args'] as Map<String, dynamic>?;
         if (name != null) {
-          functionCalls.add(GeminiFunctionCall(
-            name: name,
-            args: args ?? {},
-          ));
+          functionCalls.add(GeminiFunctionCall(name: name, args: args ?? {}));
         }
       }
       // thoughtSignature can be on the same part as functionCall (Gemini 3).
@@ -222,10 +218,7 @@ List<Map<String, dynamic>> buildFunctionResponseParts({
   }
   for (final e in nameToResponse) {
     parts.add({
-      'functionResponse': {
-        'name': e.key,
-        'response': e.value,
-      }
+      'functionResponse': {'name': e.key, 'response': e.value},
     });
   }
   return parts;
@@ -242,13 +235,15 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateBio',
       'description':
           'Append NEW information to the user bio. '
-              'Check the existing "History" field in User Profile context — '
-              'do NOT repeat information that is already there. '
-              'Only add genuinely new facts the user shared. '
-              'Bio is auto-trimmed to 500 chars (oldest entries dropped).',
+          'Check the existing "History" field in User Profile context — '
+          'do NOT repeat information that is already there. '
+          'Only add genuinely new facts the user shared. '
+          'Bio is auto-trimmed to 500 chars (oldest entries dropped).',
       'parameters': _schema(
         properties: {
-          'bio': _propString('New text to append (only info not already in bio)'),
+          'bio': _propString(
+            'New text to append (only info not already in bio)',
+          ),
         },
         required: ['bio'],
       ),
@@ -257,9 +252,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'setInjuries',
       'description':
           'Set the full injuries/limitations text, replacing any previous value. '
-              'Read existing injuries from context first, then write the '
-              'complete updated text (add new, remove recovered, keep current). '
-              'Pass empty string to clear all injuries.',
+          'Read existing injuries from context first, then write the '
+          'complete updated text (add new, remove recovered, keep current). '
+          'Pass empty string to clear all injuries.',
       'parameters': _schema(
         properties: {
           'injuries': _propString(
@@ -276,10 +271,11 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
           'Set user experience level. Ask naturally if missing from context.',
       'parameters': _schema(
         properties: {
-          'level': _propEnum(
-            ['beginner', 'intermediate', 'advanced'],
-            'Experience level',
-          ),
+          'level': _propEnum([
+            'beginner',
+            'intermediate',
+            'advanced',
+          ], 'Experience level'),
         },
         required: ['level'],
       ),
@@ -288,15 +284,12 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateGender',
       'description':
           'Set user gender. Influences workout planning: '
-              'female → prioritize legs/glutes, proportional volume; '
-              'male → classic splits (push/pull/legs). '
-              'Ask naturally if missing.',
+          'female → prioritize legs/glutes, proportional volume; '
+          'male → classic splits (push/pull/legs). '
+          'Ask naturally if missing.',
       'parameters': _schema(
         properties: {
-          'gender': _propEnum(
-            ['male', 'female'],
-            'Gender: male or female',
-          ),
+          'gender': _propEnum(['male', 'female'], 'Gender: male or female'),
         },
         required: ['gender'],
       ),
@@ -305,11 +298,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateTrainingFrequency',
       'description':
           'Set weekly training frequency (1-7 days). '
-              'Ask naturally if missing from context.',
+          'Ask naturally if missing from context.',
       'parameters': _schema(
-        properties: {
-          'daysPerWeek': _propInteger('Days per week (1-7)'),
-        },
+        properties: {'daysPerWeek': _propInteger('Days per week (1-7)')},
         required: ['daysPerWeek'],
       ),
     },
@@ -317,8 +308,8 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateTrainsAtGym',
       'description':
           'Set whether the user trains at a gym. '
-              'If true, assume standard gym equipment when building workouts. '
-              'Ask naturally if missing from context.',
+          'If true, assume standard gym equipment when building workouts. '
+          'Ask naturally if missing from context.',
       'parameters': _schema(
         properties: {
           'trainsAtGym': {
@@ -333,11 +324,13 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateAvailableMinutes',
       'description':
           'Set how many minutes the user has per workout session. '
-              'Used to size workouts appropriately. '
-              'Ask naturally if missing from context.',
+          'Used to size workouts appropriately. '
+          'Ask naturally if missing from context.',
       'parameters': _schema(
         properties: {
-          'minutes': _propInteger('Minutes available per session (e.g. 45, 60, 90)'),
+          'minutes': _propInteger(
+            'Minutes available per session (e.g. 45, 60, 90)',
+          ),
         },
         required: ['minutes'],
       ),
@@ -346,9 +339,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'registerEquipment',
       'description':
           'Register equipment the user owns (home training). '
-              'Call once per piece of equipment. '
-              'Only for home users (Trains at gym: No). '
-              'Gym users already have standard equipment — skip.',
+          'Call once per piece of equipment. '
+          'Only for home users (Trains at gym: No). '
+          'Gym users already have standard equipment — skip.',
       'parameters': _schema(
         properties: {
           'equipmentName': _propString(
@@ -360,12 +353,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
     },
     {
       'name': 'removeEquipment',
-      'description':
-          'Remove equipment the user no longer has.',
+      'description': 'Remove equipment the user no longer has.',
       'parameters': _schema(
-        properties: {
-          'equipmentName': _propString('Equipment name to remove'),
-        },
+        properties: {'equipmentName': _propString('Equipment name to remove')},
         required: ['equipmentName'],
       ),
     },
@@ -373,10 +363,10 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'createWorkout',
       'description':
           'Create a new workout with ordered exercises from the catalog. '
-              'Use exercise names from the Catalog section in context. '
-              'Does NOT update the cycle — you MUST call setCycle after '
-              'with all active workouts, then getTrainingState to verify. '
-              'To modify an existing workout, use updateWorkout instead.',
+          'Use exercise names from the Catalog section in context. '
+          'Does NOT update the cycle — you MUST call setCycle after '
+          'with all active workouts, then getTrainingState to verify. '
+          'To modify an existing workout, use updateWorkout instead.',
       'parameters': _schema(
         properties: {
           'name': _propString('Workout name'),
@@ -430,10 +420,10 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'updateWorkout',
       'description':
           'Update an existing workout: rename, change description, '
-              'and/or replace the full exercise list. '
-              'Use workout ID from Active Workouts in context (id=X). '
-              'When changing exercises, send the COMPLETE new list — '
-              'it replaces all existing exercises.',
+          'and/or replace the full exercise list. '
+          'Use workout ID from Active Workouts in context (id=X). '
+          'When changing exercises, send the COMPLETE new list — '
+          'it replaces all existing exercises.',
       'parameters': _schema(
         properties: {
           'workoutId': _propInteger('Workout ID to update (from context)'),
@@ -484,9 +474,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'archiveWorkout',
       'description':
           'Archive a workout — removes from active list but keeps history. '
-              'Use workout ID from Active Workouts in context (id=X). '
-              'Does NOT update the cycle — you MUST call setCycle after '
-              'without this workout, then getTrainingState to verify.',
+          'Use workout ID from Active Workouts in context (id=X). '
+          'Does NOT update the cycle — you MUST call setCycle after '
+          'without this workout, then getTrainingState to verify.',
       'parameters': _schema(
         properties: {
           'workoutId': _propInteger('Workout ID to archive (from context)'),
@@ -498,9 +488,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'setCycle',
       'description':
           'Define the workout cycle (routine order). '
-              'Call after creating/archiving workouts. '
-              'Each step is { workoutId: N }. Include only active workout IDs. '
-              'Replaces the full cycle. Always call getTrainingState after.',
+          'Call after creating/archiving workouts. '
+          'Each step is { workoutId: N }. Include only active workout IDs. '
+          'Replaces the full cycle. Always call getTrainingState after.',
       'parameters': _schema(
         properties: {
           'steps': {
@@ -521,20 +511,17 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'getTrainingState',
       'description':
           'Read current state: active workouts and cycle order. '
-              'Call at the end of any workout/cycle change to verify '
-              'everything was applied correctly. Compare with intended '
-              'result and report discrepancies to the user.',
-      'parameters': _schema(
-        properties: {},
-        required: [],
-      ),
+          'Call at the end of any workout/cycle change to verify '
+          'everything was applied correctly. Compare with intended '
+          'result and report discrepancies to the user.',
+      'parameters': _schema(properties: {}, required: []),
     },
     {
       'name': 'setProgressionRules',
       'description':
           'Replace all progression rules for a program. Each rule defines '
-              'auto-progression for one exercise (e.g. add weight or reps). '
-              'Call getTrainingState first to get the programId.',
+          'auto-progression for one exercise (e.g. add weight or reps). '
+          'Call getTrainingState first to get the programId.',
       'parameters': _schema(
         properties: {
           'programId': {'type': 'integer', 'description': 'ID of the program'},
@@ -578,19 +565,21 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'createProgram',
       'description':
           'Create a training program (mesocycle) and activate it. '
-              'Archives any currently active program. '
-              'Optionally sets the workout cycle for the new program.',
+          'Archives any currently active program. '
+          'Optionally sets the workout cycle for the new program.',
       'parameters': _schema(
         properties: {
           'name': _propString('Program name (e.g. "PPL Hipertrofia")'),
-          'focus': _propEnum(
-            ['hypertrophy', 'strength', 'endurance', 'custom'],
-            'Training focus',
-          ),
-          'durationMode': _propEnum(
-            ['sessions', 'rotations'],
-            'How duration is measured',
-          ),
+          'focus': _propEnum([
+            'hypertrophy',
+            'strength',
+            'endurance',
+            'custom',
+          ], 'Training focus'),
+          'durationMode': _propEnum([
+            'sessions',
+            'rotations',
+          ], 'How duration is measured'),
           'durationValue': _propInteger('Number of sessions or rotations'),
           'defaultRestSeconds': _propInteger(
             'Default rest between sets in seconds (auto-set from focus if omitted)',
@@ -609,11 +598,9 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'archiveProgram',
       'description':
           'Archive a program. Preserves execution history. '
-              'Call getTrainingState first to get the programId.',
+          'Call getTrainingState first to get the programId.',
       'parameters': _schema(
-        properties: {
-          'programId': _propInteger('ID of the program to archive'),
-        },
+        properties: {'programId': _propInteger('ID of the program to archive')},
         required: ['programId'],
       ),
     },
@@ -621,8 +608,8 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'setDeloadActive',
       'description':
           'Activate or deactivate deload for a program. '
-              'When active, execution targets are reduced per the deload config. '
-              'Call getTrainingState first to check current deload status.',
+          'When active, execution targets are reduced per the deload config. '
+          'Call getTrainingState first to check current deload status.',
       'parameters': _schema(
         properties: {
           'programId': _propInteger('Program ID'),
@@ -638,19 +625,16 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'getWeeklyVolume',
       'description':
           'Get total completed sets per muscle group for the last 7 days. '
-              'Use to check if user is under/over volume.',
-      'parameters': _schema(
-        properties: {},
-        required: [],
-      ),
+          'Use to check if user is under/over volume.',
+      'parameters': _schema(properties: {}, required: []),
     },
     {
       'name': 'getEstimated1RM',
       'description':
           'Get the estimated 1RM for a specific exercise. '
-              'Calculated from execution history using the Epley formula. '
-              'For bodyweight exercises, includes body weight in the calculation. '
-              'Use for percentage-based programming (e.g. "use 75% of 1RM").',
+          'Calculated from execution history using the Epley formula. '
+          'For bodyweight exercises, includes body weight in the calculation. '
+          'Use for percentage-based programming (e.g. "use 75% of 1RM").',
       'parameters': _schema(
         properties: {
           'exerciseId': _propInteger(
@@ -664,13 +648,10 @@ List<Map<String, dynamic>> getChironToolDeclarations() {
       'name': 'requestExtendedHistory',
       'description':
           'Load extended workout/execution history for long-term '
-              'trend analysis, evolution, or cross-session comparisons. '
-              'Call before answering when the available context seems '
-              'too short for the question asked.',
-      'parameters': _schema(
-        properties: {},
-        required: [],
-      ),
+          'trend analysis, evolution, or cross-session comparisons. '
+          'Call before answering when the available context seems '
+          'too short for the question asked.',
+      'parameters': _schema(properties: {}, required: []),
     },
   ];
 }
@@ -679,11 +660,7 @@ Map<String, dynamic> _schema({
   required Map<String, dynamic> properties,
   required List<String> required,
 }) {
-  return {
-    'type': 'object',
-    'properties': properties,
-    'required': required,
-  };
+  return {'type': 'object', 'properties': properties, 'required': required};
 }
 
 Map<String, dynamic> _propString(String description, {bool? nullable}) {
@@ -699,9 +676,5 @@ Map<String, dynamic> _propInteger(String description, {bool? nullable}) {
 }
 
 Map<String, dynamic> _propEnum(List<String> values, String description) {
-  return {
-    'type': 'string',
-    'description': description,
-    'enum': values,
-  };
+  return {'type': 'string', 'description': description, 'enum': values};
 }

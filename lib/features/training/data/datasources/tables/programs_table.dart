@@ -14,7 +14,6 @@ class Programs extends Table {
   TextColumn get deloadStrategy => text().nullable()();
   RealColumn get deloadVolumeMultiplier => real().nullable()();
   RealColumn get deloadIntensityMultiplier => real().nullable()();
-  DateTimeColumn get createdAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get archivedAt => dateTime().nullable()();
 }

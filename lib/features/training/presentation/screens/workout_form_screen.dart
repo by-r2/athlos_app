@@ -44,8 +44,11 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     super.dispose();
   }
 
-  void _loadExistingWorkout(Workout workout, List<WorkoutExercise> exercises,
-      List<Exercise> allExercises) {
+  void _loadExistingWorkout(
+    Workout workout,
+    List<WorkoutExercise> exercises,
+    List<Exercise> allExercises,
+  ) {
     if (_hasLoadedExisting) return;
     _hasLoadedExisting = true;
 
@@ -57,19 +60,21 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     for (final we in exercises) {
       final exercise = exerciseMap[we.exerciseId];
       if (exercise != null) {
-        _entries.add(WorkoutExerciseEntry(
-          exercise: exercise,
-          sets: we.sets,
-          minReps: we.minReps,
-          maxReps: we.maxReps,
-          isAmrap: we.isAmrap,
-          rest: we.rest,
-          duration: we.duration,
-          groupId: we.groupId,
-          isUnilateral: we.isUnilateral,
-          loadModeOverride: we.loadModeOverride,
-          notes: we.notes,
-        ));
+        _entries.add(
+          WorkoutExerciseEntry(
+            exercise: exercise,
+            sets: we.sets,
+            minReps: we.minReps,
+            maxReps: we.maxReps,
+            isAmrap: we.isAmrap,
+            rest: we.rest,
+            duration: we.duration,
+            groupId: we.groupId,
+            isUnilateral: we.isUnilateral,
+            loadModeOverride: we.loadModeOverride,
+            notes: we.notes,
+          ),
+        );
         if (we.groupId != null && we.groupId! >= _nextGroupId) {
           _nextGroupId = we.groupId! + 1;
         }
@@ -128,20 +133,20 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     try {
       _markDirty();
       setState(() {
-        _entries.add(WorkoutExerciseEntry(
-          exercise: exercise,
-          minReps: exercise.isCardio ? null : 12,
-          maxReps: exercise.isCardio ? null : 12,
-          duration: exercise.isCardio ? 300 : null,
-        ));
+        _entries.add(
+          WorkoutExerciseEntry(
+            exercise: exercise,
+            minReps: exercise.isCardio ? null : 12,
+            maxReps: exercise.isCardio ? null : 12,
+            duration: exercise.isCardio ? 300 : null,
+          ),
+        );
         _expandedExerciseIndex = _entries.length - 1;
       });
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     }
@@ -151,9 +156,9 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_entries.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.workoutNeedsExercises)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.workoutNeedsExercises)));
       return;
     }
 
@@ -163,56 +168,61 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       final exercises = _entries
           .asMap()
           .entries
-          .map((e) => WorkoutExercise(
-                workoutId: widget.workoutId ?? 0,
-                exerciseId: e.value.exercise.id,
-                order: e.key,
-                sets: e.value.sets,
-                minReps: e.value.minReps,
-                maxReps: e.value.maxReps,
-                isAmrap: e.value.isAmrap,
-                rest: e.value.rest,
-                duration: e.value.duration,
-                groupId: e.value.groupId,
-                isUnilateral: e.value.isUnilateral,
-                loadModeOverride: e.value.loadModeOverride,
-                notes: e.value.notes,
-              ))
+          .map(
+            (e) => WorkoutExercise(
+              workoutId: widget.workoutId ?? 0,
+              exerciseId: e.value.exercise.id,
+              order: e.key,
+              sets: e.value.sets,
+              minReps: e.value.minReps,
+              maxReps: e.value.maxReps,
+              isAmrap: e.value.isAmrap,
+              rest: e.value.rest,
+              duration: e.value.duration,
+              groupId: e.value.groupId,
+              isUnilateral: e.value.isUnilateral,
+              loadModeOverride: e.value.loadModeOverride,
+              notes: e.value.notes,
+            ),
+          )
           .toList();
 
       if (widget.isEditing) {
-        final existing =
-            await ref.read(workoutByIdProvider(widget.workoutId!).future);
+        final existing = await ref.read(
+          workoutByIdProvider(widget.workoutId!).future,
+        );
         if (existing != null) {
-          await ref.read(workoutListProvider.notifier).updateWorkout(
-            workout: Workout(
-              id: existing.id,
+          await ref
+              .read(workoutListProvider.notifier)
+              .updateWorkout(
+                workout: Workout(
+                  id: existing.id,
+                  name: _nameController.text.trim(),
+                  description: _descController.text.trim().isEmpty
+                      ? null
+                      : _descController.text.trim(),
+                  createdAt: existing.createdAt,
+                ),
+                exercises: exercises,
+              );
+        }
+      } else {
+        await ref
+            .read(workoutListProvider.notifier)
+            .createWorkout(
               name: _nameController.text.trim(),
               description: _descController.text.trim().isEmpty
                   ? null
                   : _descController.text.trim(),
-              createdAt: existing.createdAt,
-            ),
-            exercises: exercises,
-          );
-        }
-      } else {
-        await ref.read(workoutListProvider.notifier).createWorkout(
-          name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
-          exercises: exercises,
-        );
+              exercises: exercises,
+            );
       }
 
       if (mounted) context.pop();
     } on Exception catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.genericError),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
         );
       }
     } finally {
@@ -265,13 +275,14 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     if (widget.isEditing && !_hasLoadedExisting) {
-      final workoutAsync =
-          ref.watch(workoutByIdProvider(widget.workoutId!));
-      final exercisesAsync =
-          ref.watch(workoutExercisesProvider(widget.workoutId!));
+      final workoutAsync = ref.watch(workoutByIdProvider(widget.workoutId!));
+      final exercisesAsync = ref.watch(
+        workoutExercisesProvider(widget.workoutId!),
+      );
       final allExercisesAsync = ref.watch(exerciseListProvider);
 
-      final allReady = workoutAsync.hasValue &&
+      final allReady =
+          workoutAsync.hasValue &&
           exercisesAsync.hasValue &&
           allExercisesAsync.hasValue;
 
@@ -304,166 +315,166 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
         if (ctx.mounted) ctx.pop();
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isEditing ? l10n.editWorkout : l10n.createWorkout),
-        actions: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(AthlosSpacing.md),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+        appBar: AppBar(
+          title: Text(widget.isEditing ? l10n.editWorkout : l10n.createWorkout),
+          actions: [
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(AthlosSpacing.md),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.check),
+                onPressed: _save,
+                tooltip: l10n.save,
               ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _save,
-              tooltip: l10n.save,
-            ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.workoutNameLabel,
-                    ),
-                    onChanged: (_) => _markDirty(),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-                  ),
-                  const SizedBox(height: AthlosSpacing.sm),
-                  TextFormField(
-                    controller: _descController,
-                    decoration: InputDecoration(
-                      labelText: l10n.workoutNotesTitle,
-                      hintText: l10n.workoutDescriptionHint,
-                    ),
-                    maxLines: 2,
-                    onChanged: (_) => _markDirty(),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.exercisesInWorkout,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  TextButton.icon(
-                    onPressed: _addExercise,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.addExerciseShort),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _entries.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.fitness_center_outlined,
-                            size: 48,
-                            color: colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(height: AthlosSpacing.sm),
-                          Text(
-                            l10n.emptyWorkoutExercises,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ReorderableListView.builder(
-                      itemCount: _entries.length,
-                      onReorder: _reorderExercises,
-                      itemBuilder: (context, index) {
-                        final entry = _entries[index];
-                        final isLast = index == _entries.length - 1;
-                        final isLinkedToNext = !isLast &&
-                            entry.groupId != null &&
-                            entry.groupId ==
-                                _entries[index + 1].groupId;
-                        final isLinkedToPrevious = index > 0 &&
-                            entry.groupId != null &&
-                            entry.groupId ==
-                                _entries[index - 1].groupId;
-
-                        final groupColorIndex =
-                            entry.groupId != null
-                                ? _groupColorIndexMap[entry.groupId]
-                                : null;
-
-                        final groupColor = groupColorIndex != null
-                            ? supersetColorFor(groupColorIndex, colorScheme)
-                            : null;
-
-                        return Column(
-                          key: ValueKey('${entry.exercise.id}_$index'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            WorkoutExerciseTile(
-                              entry: entry,
-                              index: index,
-                              isExpanded: _expandedExerciseIndex == index,
-                              isLinkedToNext: isLinkedToNext,
-                              isLinkedToPrevious: isLinkedToPrevious,
-                              groupColorIndex: groupColorIndex,
-                              onToggleExpand: () =>
-                                  _toggleExpandedExercise(index),
-                              onRemove: () => _removeExercise(index),
-                              onChanged: (_) {
-                                _markDirty();
-                                setState(() {
-                                  final gid = entry.groupId;
-                                  if (gid == null) return;
-                                  final rest = entry.rest;
-                                  for (final e in _entries) {
-                                    if (e.groupId == gid) {
-                                      e.rest = rest;
-                                    }
-                                  }
-                                });
-                              },
-                            ),
-                            if (!isLast)
-                              _SupersetBetweenTilesButton(
-                                isLinked: isLinkedToNext,
-                                onTap: () => _toggleSupersetLink(index),
-                                linkedColor: groupColor,
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
           ],
         ),
+        body: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: l10n.workoutNameLabel,
+                      ),
+                      onChanged: (_) => _markDirty(),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? l10n.fieldRequired
+                          : null,
+                    ),
+                    const SizedBox(height: AthlosSpacing.sm),
+                    TextFormField(
+                      controller: _descController,
+                      decoration: InputDecoration(
+                        labelText: l10n.workoutNotesTitle,
+                        hintText: l10n.workoutDescriptionHint,
+                      ),
+                      maxLines: 2,
+                      onChanged: (_) => _markDirty(),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AthlosSpacing.md,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.exercisesInWorkout,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    TextButton.icon(
+                      onPressed: _addExercise,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.addExerciseShort),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _entries.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.fitness_center_outlined,
+                              size: 48,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
+                            const SizedBox(height: AthlosSpacing.sm),
+                            Text(
+                              l10n.emptyWorkoutExercises,
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ReorderableListView.builder(
+                        itemCount: _entries.length,
+                        onReorder: _reorderExercises,
+                        itemBuilder: (context, index) {
+                          final entry = _entries[index];
+                          final isLast = index == _entries.length - 1;
+                          final isLinkedToNext =
+                              !isLast &&
+                              entry.groupId != null &&
+                              entry.groupId == _entries[index + 1].groupId;
+                          final isLinkedToPrevious =
+                              index > 0 &&
+                              entry.groupId != null &&
+                              entry.groupId == _entries[index - 1].groupId;
+
+                          final groupColorIndex = entry.groupId != null
+                              ? _groupColorIndexMap[entry.groupId]
+                              : null;
+
+                          final groupColor = groupColorIndex != null
+                              ? supersetColorFor(groupColorIndex, colorScheme)
+                              : null;
+
+                          return Column(
+                            key: ValueKey('${entry.exercise.id}_$index'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              WorkoutExerciseTile(
+                                entry: entry,
+                                index: index,
+                                isExpanded: _expandedExerciseIndex == index,
+                                isLinkedToNext: isLinkedToNext,
+                                isLinkedToPrevious: isLinkedToPrevious,
+                                groupColorIndex: groupColorIndex,
+                                onToggleExpand: () =>
+                                    _toggleExpandedExercise(index),
+                                onRemove: () => _removeExercise(index),
+                                onChanged: (_) {
+                                  _markDirty();
+                                  setState(() {
+                                    final gid = entry.groupId;
+                                    if (gid == null) return;
+                                    final rest = entry.rest;
+                                    for (final e in _entries) {
+                                      if (e.groupId == gid) {
+                                        e.rest = rest;
+                                      }
+                                    }
+                                  });
+                                },
+                              ),
+                              if (!isLast)
+                                _SupersetBetweenTilesButton(
+                                  isLinked: isLinkedToNext,
+                                  onTap: () => _toggleSupersetLink(index),
+                                  linkedColor: groupColor,
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
-    ),
     );
   }
 }
@@ -518,10 +529,11 @@ class _SupersetBetweenTilesButton extends StatelessWidget {
                 Text(
                   isLinked ? l10n.unlinkSuperset : l10n.linkSuperset,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color:
-                            isLinked ? activeColor : colorScheme.onSurfaceVariant,
-                        fontWeight: isLinked ? FontWeight.w600 : null,
-                      ),
+                    color: isLinked
+                        ? activeColor
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: isLinked ? FontWeight.w600 : null,
+                  ),
                 ),
               ],
             ),

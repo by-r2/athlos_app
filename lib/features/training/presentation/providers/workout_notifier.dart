@@ -172,9 +172,7 @@ Workout? nextWorkout(Ref ref) {
   final activeWorkouts = workoutsAsync.value;
   if (activeWorkouts == null || activeWorkouts.isEmpty) return null;
 
-  final ordered = activeWorkouts
-      .where((w) => w.sortOrder != null)
-      .toList()
+  final ordered = activeWorkouts.where((w) => w.sortOrder != null).toList()
     ..sort((a, b) => a.sortOrder!.compareTo(b.sortOrder!));
   if (ordered.isEmpty) return activeWorkouts.first;
 

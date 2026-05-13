@@ -7,10 +7,7 @@ import 'package:athlos_app/features/training/domain/helpers/load_progression_rul
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Exercise ex({
-    MuscleGroup mg = MuscleGroup.chest,
-    MovementPattern? mp,
-  }) =>
+  Exercise ex({MuscleGroup mg = MuscleGroup.chest, MovementPattern? mp}) =>
       Exercise(id: 1, name: 't', muscleGroup: mg, movementPattern: mp);
 
   test('hinge pattern uses larger increment', () {

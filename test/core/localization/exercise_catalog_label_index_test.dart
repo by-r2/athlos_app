@@ -8,11 +8,17 @@ void main() {
 
   group('ExerciseCatalogLabelIndex', () {
     test('tryResolveCanonicalStrict maps PT ARB label to canonical key', () {
-      expect(index.tryResolveCanonicalStrict('Supino Reto com Barra'), 'benchPress');
+      expect(
+        index.tryResolveCanonicalStrict('Supino Reto com Barra'),
+        'benchPress',
+      );
     });
 
     test('tryResolveCanonicalStrict is accent-insensitive', () {
-      expect(index.tryResolveCanonicalStrict('Supíno Reto com Barra'), 'benchPress');
+      expect(
+        index.tryResolveCanonicalStrict('Supíno Reto com Barra'),
+        'benchPress',
+      );
     });
 
     test('matchesContainsQuery matches substring across synonyms', () {

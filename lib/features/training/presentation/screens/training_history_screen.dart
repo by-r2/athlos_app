@@ -46,14 +46,14 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
   int? _selectedWorkoutId;
   String? _lastWorkoutIdParam;
 
-  int get _historyActiveFilterCount =>
-      _selectedWorkoutId != null ? 1 : 0;
+  int get _historyActiveFilterCount => _selectedWorkoutId != null ? 1 : 0;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final workoutIdParam =
-        GoRouterState.of(context).uri.queryParameters['workoutId'];
+    final workoutIdParam = GoRouterState.of(
+      context,
+    ).uri.queryParameters['workoutId'];
     if (workoutIdParam == _lastWorkoutIdParam) return;
 
     _lastWorkoutIdParam = workoutIdParam;
@@ -90,9 +90,7 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
   ) {
     if (executions == null) return null;
     if (_selectedWorkoutId == null) return executions;
-    return executions
-        .where((e) => e.workoutId == _selectedWorkoutId)
-        .toList();
+    return executions.where((e) => e.workoutId == _selectedWorkoutId).toList();
   }
 
   @override
@@ -103,10 +101,7 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
     final workoutsAsync = ref.watch(workoutListProvider);
     final archivedAsync = ref.watch(archivedWorkoutListProvider);
 
-    final allWorkouts = [
-      ...?workoutsAsync.value,
-      ...?archivedAsync.value,
-    ];
+    final allWorkouts = [...?workoutsAsync.value, ...?archivedAsync.value];
     final workoutById = {for (final w in allWorkouts) w.id: w};
 
     if (executionsAsync.hasError) {
@@ -119,7 +114,8 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
 
     final reallyNoExecutions =
         !isLoading && executions != null && executions.isEmpty;
-    final hasNoMatches = !isLoading &&
+    final hasNoMatches =
+        !isLoading &&
         executions != null &&
         executions.isNotEmpty &&
         (filteredExecutions?.isEmpty ?? true);
@@ -188,26 +184,25 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
                   hint: l10n.emptyHistoryHint,
                 )
               : hasNoMatches
-                  ? _HistoryNoMatchesState(
-                      title: l10n.trainingHistoryNoMatches,
-                      hint: l10n.trainingHistoryNoMatchesHint,
-                    )
-                  : Skeletonizer(
-                      enabled: isLoading,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AthlosSpacing.sm,
-                          vertical: AthlosSpacing.sm,
-                        ),
-                        itemCount: resolvedExecutions.length,
-                        itemBuilder: (context, index) => _ExecutionCard(
-                          key: ValueKey(resolvedExecutions[index].id),
-                          execution: resolvedExecutions[index],
-                          workout: workoutById[
-                              resolvedExecutions[index].workoutId],
-                        ),
-                      ),
+              ? _HistoryNoMatchesState(
+                  title: l10n.trainingHistoryNoMatches,
+                  hint: l10n.trainingHistoryNoMatchesHint,
+                )
+              : Skeletonizer(
+                  enabled: isLoading,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AthlosSpacing.sm,
+                      vertical: AthlosSpacing.sm,
                     ),
+                    itemCount: resolvedExecutions.length,
+                    itemBuilder: (context, index) => _ExecutionCard(
+                      key: ValueKey(resolvedExecutions[index].id),
+                      execution: resolvedExecutions[index],
+                      workout: workoutById[resolvedExecutions[index].workoutId],
+                    ),
+                  ),
+                ),
         ),
       ],
     );
@@ -218,10 +213,7 @@ class _HistoryNoMatchesState extends StatelessWidget {
   final String title;
   final String hint;
 
-  const _HistoryNoMatchesState({
-    required this.title,
-    required this.hint,
-  });
+  const _HistoryNoMatchesState({required this.title, required this.hint});
 
   @override
   Widget build(BuildContext context) {
@@ -266,10 +258,7 @@ class _HistoryEmptyState extends StatelessWidget {
   final String title;
   final String hint;
 
-  const _HistoryEmptyState({
-    required this.title,
-    required this.hint,
-  });
+  const _HistoryEmptyState({required this.title, required this.hint});
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +325,8 @@ class _ExecutionCard extends ConsumerWidget {
         vertical: AthlosSpacing.xs,
       ),
       child: InkWell(
-        onTap: () => context.push('${RoutePaths.trainingHistory}/${execution.id}'),
+        onTap: () =>
+            context.push('${RoutePaths.trainingHistory}/${execution.id}'),
         borderRadius: AthlosRadius.mdAll,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -348,59 +338,61 @@ class _ExecutionCard extends ConsumerWidget {
               vertical: AthlosSpacing.sm,
             ),
             child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: colorScheme.primaryContainer,
-                child: Text(
-                  workoutName.isNotEmpty ? workoutName[0].toUpperCase() : '?',
-                  style: textTheme.titleSmall?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primaryContainer,
+                  child: Text(
+                    workoutName.isNotEmpty ? workoutName[0].toUpperCase() : '?',
+                    style: textTheme.titleSmall?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AthlosSpacing.md),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AthlosTruncatedText(
-                      workoutName,
-                      style: textTheme.titleSmall,
-                      maxLines: 1,
-                    ),
-                    const SizedBox(height: AthlosSpacing.xs),
-                    Text(
-                      durationStr != null ? '$dateStr  •  $durationStr' : dateStr,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                const SizedBox(width: AthlosSpacing.md),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AthlosTruncatedText(
+                        workoutName,
+                        style: textTheme.titleSmall,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: AthlosSpacing.xs),
+                      Text(
+                        durationStr != null
+                            ? '$dateStr  •  $durationStr'
+                            : dateStr,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _confirmDelete(context, ref);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.delete_outline,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(l10n.delete),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ],
                 ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    _confirmDelete(context, ref);
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_outline,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(l10n.delete),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
             ),
           ),
         ),
@@ -418,9 +410,7 @@ class _ExecutionCard extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.deleteExecutionMessage),
-          ],
+          children: [Text(l10n.deleteExecutionMessage)],
         ),
         actions: [
           AthlosStackedDialogActions(
@@ -479,5 +469,4 @@ class _ExecutionCard extends ConsumerWidget {
     }
     return '$dateStr, $timeStr';
   }
-
 }

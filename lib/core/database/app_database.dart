@@ -10,6 +10,7 @@ import 'exercise_migration_maps.dart';
 import 'tables/catalog_governance_applied_rules_table.dart';
 import 'tables/catalog_governance_events_table.dart';
 import 'tables/local_duplicate_feedback_table.dart';
+import 'tables/sync_records_table.dart';
 import '../../features/profile/data/datasources/daos/body_metric_dao.dart';
 import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/tables/body_metrics_table.dart';
@@ -67,6 +68,7 @@ const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
     CatalogGovernanceEvents,
     CatalogGovernanceAppliedRules,
     LocalDuplicateFeedback,
+    SyncRecords,
     UserProfiles,
     BodyMetrics,
   ],
@@ -95,7 +97,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 35;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -668,9 +670,7 @@ class AppDatabase extends _$AppDatabase {
           FROM exercises
         ''');
         await customStatement('DROP TABLE exercises');
-        await customStatement(
-          'ALTER TABLE exercises_tmp RENAME TO exercises',
-        );
+        await customStatement('ALTER TABLE exercises_tmp RENAME TO exercises');
       }
 
       if (from < 35) {
@@ -745,6 +745,16 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'ALTER TABLE workout_executions_tmp RENAME TO workout_executions',
         );
+      }
+
+      if (from < 36) {
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN remote_user_id TEXT',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN last_synced_at INTEGER',
+        );
+        await m.createTable(syncRecords);
       }
     },
   );

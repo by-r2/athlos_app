@@ -24,19 +24,23 @@ void main() {
       expect(names.contains('load_mode_override'), isTrue);
     });
 
-    test('execution_sets.notes and workout_executions.notes are removed', () async {
-      final setColumns = await db
-          .customSelect("PRAGMA table_info('execution_sets')")
-          .get();
-      final setNames = setColumns.map((r) => r.read<String>('name')).toSet();
-      expect(setNames.contains('notes'), isFalse);
+    test(
+      'execution_sets.notes and workout_executions.notes are removed',
+      () async {
+        final setColumns = await db
+            .customSelect("PRAGMA table_info('execution_sets')")
+            .get();
+        final setNames = setColumns.map((r) => r.read<String>('name')).toSet();
+        expect(setNames.contains('notes'), isFalse);
 
-      final executionColumns = await db
-          .customSelect("PRAGMA table_info('workout_executions')")
-          .get();
-      final executionNames =
-          executionColumns.map((r) => r.read<String>('name')).toSet();
-      expect(executionNames.contains('notes'), isFalse);
-    });
+        final executionColumns = await db
+            .customSelect("PRAGMA table_info('workout_executions')")
+            .get();
+        final executionNames = executionColumns
+            .map((r) => r.read<String>('name'))
+            .toSet();
+        expect(executionNames.contains('notes'), isFalse);
+      },
+    );
   });
 }

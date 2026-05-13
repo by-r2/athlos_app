@@ -39,8 +39,7 @@ class UserProfiles extends Table {
   TextColumn get goal => textEnum<TrainingGoal>().nullable()();
   TextColumn get bodyAesthetic => textEnum<BodyAesthetic>().nullable()();
   TextColumn get trainingStyle => textEnum<TrainingStyle>().nullable()();
-  TextColumn get experienceLevel =>
-      textEnum<ExperienceLevel>().nullable()();
+  TextColumn get experienceLevel => textEnum<ExperienceLevel>().nullable()();
 
   /// Gender for personalized recommendations.
   TextColumn get gender => textEnum<Gender>().nullable()();
@@ -74,8 +73,7 @@ class UserProfiles extends Table {
       integer().withDefault(const Constant(0))();
 
   /// Best ever cycle streak.
-  IntColumn get bestCycleStreak =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get bestCycleStreak => integer().withDefault(const Constant(0))();
 
   /// Consecutive weeks hitting weekly session target (Mon–Sun).
   IntColumn get currentFrequencyStreak =>
@@ -88,4 +86,10 @@ class UserProfiles extends Table {
   /// Bump when streak algorithm changes; 0 triggers one recompute from history.
   IntColumn get trainingStreaksSchema =>
       integer().withDefault(const Constant(0))();
+
+  /// Supabase Auth user id linked to this local profile cache.
+  TextColumn get remoteUserId => text().nullable()();
+
+  /// Last successful profile sync with the remote account.
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
 }

@@ -127,74 +127,78 @@ void main() {
       );
     });
 
-    test('exportBackup inclui equipamentos e user_equipments vazios na carga',
-        () async {
-      await db.customInsert(
-        'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
-        variables: [
-          const Variable<String>('U'),
-          Variable<String>(jsonEncode(['haltere'])),
-        ],
-      );
+    test(
+      'exportBackup inclui equipamentos e user_equipments vazios na carga',
+      () async {
+        await db.customInsert(
+          'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
+          variables: [
+            const Variable<String>('U'),
+            Variable<String>(jsonEncode(['haltere'])),
+          ],
+        );
 
-      final exportResult = await repository.exportBackup();
-      final exportData = exportResult.getOrThrow();
-      final parsed = jsonDecode(exportData.jsonContent) as Map<String, dynamic>;
-      final tables = parsed['tables'] as Map<String, dynamic>;
+        final exportResult = await repository.exportBackup();
+        final exportData = exportResult.getOrThrow();
+        final parsed =
+            jsonDecode(exportData.jsonContent) as Map<String, dynamic>;
+        final tables = parsed['tables'] as Map<String, dynamic>;
 
-      expect(tables['equipments'], isEmpty);
-      expect(tables['exercise_equipments'], isEmpty);
-      expect(tables['user_equipments'], isEmpty);
+        expect(tables['equipments'], isEmpty);
+        expect(tables['exercise_equipments'], isEmpty);
+        expect(tables['user_equipments'], isEmpty);
 
-      final profiles = (tables['user_profiles'] as List).cast<Map>();
-      expect(profiles, isNotEmpty);
-      expect(profiles.first['owned_equipment_names'], contains('haltere'));
-    });
+        final profiles = (tables['user_profiles'] as List).cast<Map>();
+        expect(profiles, isNotEmpty);
+        expect(profiles.first['owned_equipment_names'], contains('haltere'));
+      },
+    );
 
     test(
       'importBackup merge de backup legado: user_equipments vira owned_equipment_names',
       () async {
-      await db.customInsert(
-        'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
-        variables: [
-          const Variable<String>('U'),
-          const Variable<String>('[]'),
-        ],
-      );
-
-      final jsonContent = jsonEncode(
-        _payloadWithTables({
-          'equipments': [
-            {
-              'id': 1,
-              'name': 'barbell',
-              'category': 'freeWeights',
-              'is_verified': 1,
-            },
+        await db.customInsert(
+          'INSERT INTO "user_profiles" ("name", "owned_equipment_names") VALUES (?, ?)',
+          variables: [
+            const Variable<String>('U'),
+            const Variable<String>('[]'),
           ],
-          'user_equipments': [
-            {'equipment_id': 1},
-          ],
-        }),
-      );
+        );
 
-      final result = await repository.importBackup(
-        BackupImportRequest(
-          jsonContent: jsonContent,
-          conflictResolutions: const {},
-        ),
-      );
+        final jsonContent = jsonEncode(
+          _payloadWithTables({
+            'equipments': [
+              {
+                'id': 1,
+                'name': 'barbell',
+                'category': 'freeWeights',
+                'is_verified': 1,
+              },
+            ],
+            'user_equipments': [
+              {'equipment_id': 1},
+            ],
+          }),
+        );
 
-      expect(result.isSuccess, isTrue);
+        final result = await repository.importBackup(
+          BackupImportRequest(
+            jsonContent: jsonContent,
+            conflictResolutions: const {},
+          ),
+        );
 
-      final rows = await db
-          .customSelect('SELECT owned_equipment_names FROM user_profiles')
-          .get();
-      final raw = rows.first.data['owned_equipment_names'] as String?;
-      expect(raw, isNotNull);
-      final decoded = (jsonDecode(raw!) as List).cast<String>();
-      expect(decoded, contains('barbell'));
-    });
+        expect(result.isSuccess, isTrue);
+
+        final rows = await db
+            .customSelect('SELECT owned_equipment_names FROM user_profiles')
+            .get();
+        final raw = rows.first.data['owned_equipment_names'] as String?;
+        expect(raw, isNotNull);
+        final decoded = (jsonDecode(raw!) as List).cast<String>();
+        expect(decoded, contains('barbell'));
+      },
+    );
 
     test(
       'previewImport omitido missing_canonical quando nome backup e pre-v30',
@@ -386,54 +390,52 @@ void main() {
             .get();
         final benchPressId = benchRows.first.data['id'] as int;
 
-        final countBeforeRows =
-            await db.customSelect('SELECT COUNT(*) AS c FROM exercises').get();
+        final countBeforeRows = await db
+            .customSelect('SELECT COUNT(*) AS c FROM exercises')
+            .get();
         final countBefore = countBeforeRows.first.data['c'] as int;
 
-        final payload = _payloadWithTables(
-          {
-            'exercises': [
-              {
-                'id': 77,
-                'catalog_remote_id': '',
-                'name': 'flatBarbellBenchPress',
-                'muscle_group': 'chest',
-                'type': 'strength',
-                'movement_pattern': 'push',
-                'description': null,
-                'is_verified': 1,
-                'is_bodyweight': 0,
-                'is_isometric': 0,
-              },
-            ],
-            'workouts': [
-              {
-                'id': 3,
-                'name': 'Treino legado',
-                'description': null,
-                'sort_order': 0,
-                'is_archived': 0,
-              },
-            ],
-            'workout_exercises': [
-              {
-                'workout_id': 3,
-                'exercise_id': 77,
-                'order': 1,
-                'sets': 3,
-                'min_reps': 8,
-                'max_reps': 10,
-                'is_amrap': 0,
-                'rest': 120,
-                'duration': null,
-                'group_id': null,
-                'is_unilateral': 0,
-                'notes': null,
-              },
-            ],
-          },
-          databaseSchemaVersion: 29,
-        );
+        final payload = _payloadWithTables({
+          'exercises': [
+            {
+              'id': 77,
+              'catalog_remote_id': '',
+              'name': 'flatBarbellBenchPress',
+              'muscle_group': 'chest',
+              'type': 'strength',
+              'movement_pattern': 'push',
+              'description': null,
+              'is_verified': 1,
+              'is_bodyweight': 0,
+              'is_isometric': 0,
+            },
+          ],
+          'workouts': [
+            {
+              'id': 3,
+              'name': 'Treino legado',
+              'description': null,
+              'sort_order': 0,
+              'is_archived': 0,
+            },
+          ],
+          'workout_exercises': [
+            {
+              'workout_id': 3,
+              'exercise_id': 77,
+              'order': 1,
+              'sets': 3,
+              'min_reps': 8,
+              'max_reps': 10,
+              'is_amrap': 0,
+              'rest': 120,
+              'duration': null,
+              'group_id': null,
+              'is_unilateral': 0,
+              'notes': null,
+            },
+          ],
+        }, databaseSchemaVersion: 29);
 
         final result = await repository.importBackup(
           BackupImportRequest(
@@ -444,8 +446,9 @@ void main() {
         expect(result.isSuccess, isTrue);
         expect(result.getOrThrow().failedCount, 0);
 
-        final countAfterRows =
-            await db.customSelect('SELECT COUNT(*) AS c FROM exercises').get();
+        final countAfterRows = await db
+            .customSelect('SELECT COUNT(*) AS c FROM exercises')
+            .get();
         expect(countAfterRows.first.data['c'], countBefore);
 
         final ghostNameRows = await db
@@ -469,25 +472,22 @@ void main() {
       () async {
         await seedExercises(db);
 
-        final payload = _payloadWithTables(
-          {
-            'exercises': [
-              {
-                'id': 900,
-                'catalog_remote_id': '',
-                'name': 'meuExercicioCustomizado',
-                'muscle_group': 'chest',
-                'type': 'strength',
-                'movement_pattern': 'push',
-                'description': null,
-                'is_verified': 0,
-                'is_bodyweight': 0,
-                'is_isometric': 0,
-              },
-            ],
-          },
-          databaseSchemaVersion: 30,
-        );
+        final payload = _payloadWithTables({
+          'exercises': [
+            {
+              'id': 900,
+              'catalog_remote_id': '',
+              'name': 'meuExercicioCustomizado',
+              'muscle_group': 'chest',
+              'type': 'strength',
+              'movement_pattern': 'push',
+              'description': null,
+              'is_verified': 0,
+              'is_bodyweight': 0,
+              'is_isometric': 0,
+            },
+          ],
+        }, databaseSchemaVersion: 30);
 
         final result = await repository.importBackup(
           BackupImportRequest(

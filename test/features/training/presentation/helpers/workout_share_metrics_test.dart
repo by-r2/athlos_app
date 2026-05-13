@@ -10,18 +10,17 @@ ExecutionSet _set({
   bool isCompleted = true,
   bool isWarmup = false,
   List<ExecutionSetSegment> segments = const [],
-}) =>
-    ExecutionSet(
-      id: id,
-      executionId: 1,
-      exerciseId: 1,
-      setNumber: id,
-      reps: reps,
-      weight: weight,
-      isCompleted: isCompleted,
-      isWarmup: isWarmup,
-      segments: segments,
-    );
+}) => ExecutionSet(
+  id: id,
+  executionId: 1,
+  exerciseId: 1,
+  setNumber: id,
+  reps: reps,
+  weight: weight,
+  isCompleted: isCompleted,
+  isWarmup: isWarmup,
+  segments: segments,
+);
 
 void main() {
   group('computeWorkoutShareMetrics', () {
