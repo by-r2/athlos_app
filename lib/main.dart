@@ -57,7 +57,7 @@ class _AthlosAppState extends ConsumerState<AthlosApp> {
       onResume: () {
         if (!isSupabaseConfigured) return;
         unawaited(
-          ref.read(userDataSyncCoordinatorProvider).retryPendingProfileSync(),
+          ref.read(userDataSyncCoordinatorProvider).retryPendingUserDataSync(),
         );
       },
     );

@@ -15,4 +15,10 @@ abstract interface class BodyMetricRepository {
   Future<Result<int>> create(BodyMetric metric);
   Future<Result<void>> update(BodyMetric metric);
   Future<Result<void>> delete(int id);
+
+  /// Reconciles the local timeline with the authenticated remote account.
+  Future<Result<void>> reconcileOnAuth();
+
+  /// Pushes pending or failed local entries to the remote account.
+  Future<Result<void>> pushPendingLocalChanges();
 }

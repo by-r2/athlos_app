@@ -11,6 +11,7 @@ import 'tables/catalog_governance_applied_rules_table.dart';
 import 'tables/catalog_governance_events_table.dart';
 import 'tables/local_duplicate_feedback_table.dart';
 import 'tables/sync_records_table.dart';
+import 'daos/sync_record_dao.dart';
 import '../../features/profile/data/datasources/daos/body_metric_dao.dart';
 import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/tables/body_metrics_table.dart';
@@ -81,6 +82,7 @@ const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
     CycleStepDao,
     UserProfileDao,
     BodyMetricDao,
+    SyncRecordDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -97,7 +99,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 37;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -755,6 +757,15 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE user_profiles ADD COLUMN last_synced_at INTEGER',
         );
         await m.createTable(syncRecords);
+      }
+
+      if (from < 37) {
+        await customStatement(
+          'ALTER TABLE body_metrics ADD COLUMN remote_id TEXT',
+        );
+        await customStatement(
+          'ALTER TABLE body_metrics ADD COLUMN last_synced_at INTEGER',
+        );
       }
     },
   );

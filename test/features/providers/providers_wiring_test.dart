@@ -37,6 +37,8 @@ void main() {
 
       expect(container.read(userProfileDaoProvider), isNotNull);
       expect(container.read(userProfileRepositoryProvider), isNotNull);
+      expect(container.read(bodyMetricRepositoryProvider), isNotNull);
+      expect(container.read(syncRecordDaoProvider), isNotNull);
 
       expect(container.read(localBackupRepositoryProvider), isNotNull);
       expect(container.read(exportLocalBackupUseCaseProvider), isNotNull);

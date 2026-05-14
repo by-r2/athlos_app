@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../errors/result.dart';
 import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/profile/data/repositories/profile_providers.dart';
+import '../../features/profile/presentation/providers/body_metric_notifier.dart';
+import '../../features/profile/presentation/providers/body_metrics_dashboard_provider.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 
 part 'user_data_sync_coordinator.g.dart';
@@ -14,19 +16,38 @@ class UserDataSyncCoordinator {
 
   final Ref _ref;
 
-  Future<void> reconcileProfileOnSessionChange() async {
-    final repository = _ref.read(userProfileRepositoryProvider);
-    final result = await repository.reconcileOnAuth();
-    result.getOrThrow();
+  Future<void> reconcileOnSessionChange() async {
+    final profileRepository = _ref.read(userProfileRepositoryProvider);
+    final profileResult = await profileRepository.reconcileOnAuth();
+    profileResult.getOrThrow();
+
+    final bodyMetricRepository = _ref.read(bodyMetricRepositoryProvider);
+    final bodyMetricResult = await bodyMetricRepository.reconcileOnAuth();
+    bodyMetricResult.getOrThrow();
+
     _ref.invalidate(profileProvider);
     _ref.invalidate(hasProfileProvider);
+    _invalidateBodyMetricProviders();
   }
 
-  Future<void> retryPendingProfileSync() async {
-    final repository = _ref.read(userProfileRepositoryProvider);
-    final result = await repository.pushPendingLocalChanges();
-    result.getOrThrow();
+  Future<void> retryPendingUserDataSync() async {
+    final profileRepository = _ref.read(userProfileRepositoryProvider);
+    final profileResult = await profileRepository.pushPendingLocalChanges();
+    profileResult.getOrThrow();
+
+    final bodyMetricRepository = _ref.read(bodyMetricRepositoryProvider);
+    final bodyMetricResult =
+        await bodyMetricRepository.pushPendingLocalChanges();
+    bodyMetricResult.getOrThrow();
+
     _ref.invalidate(profileProvider);
+    _invalidateBodyMetricProviders();
+  }
+
+  void _invalidateBodyMetricProviders() {
+    _ref.invalidate(bodyMetricListProvider);
+    _ref.invalidate(bodyMetricsDashboardProvider);
+    _ref.invalidate(latestBodyWeightProvider);
   }
 }
 
@@ -42,9 +63,7 @@ void userProfileCloudSyncListener(Ref ref) {
     if (previousUser?.id == nextUser?.id) return;
 
     unawaited(
-      ref
-          .read(userDataSyncCoordinatorProvider)
-          .reconcileProfileOnSessionChange(),
+      ref.read(userDataSyncCoordinatorProvider).reconcileOnSessionChange(),
     );
   });
 }
