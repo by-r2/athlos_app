@@ -92,4 +92,7 @@ class UserProfiles extends Table {
 
   /// Last successful profile sync with the remote account.
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  /// Last local mutation timestamp used for dirty sync detection.
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

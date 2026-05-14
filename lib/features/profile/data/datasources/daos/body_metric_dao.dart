@@ -51,6 +51,13 @@ class BodyMetricDao extends DatabaseAccessor<AppDatabase>
     ),
   );
 
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(bodyMetrics)..where((m) => m.id.equals(id))).write(
+      BodyMetricsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
   Future<BodyMetric?> getByRemoteId(String remoteId) =>
       (select(bodyMetrics)..where((m) => m.remoteId.equals(remoteId)))
           .getSingleOrNull();

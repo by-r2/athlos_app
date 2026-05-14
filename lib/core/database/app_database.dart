@@ -99,12 +99,16 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 37;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS sync_records_table_remote_id_idx '
+        'ON sync_records(table_name, remote_id)',
+      );
       await seedExercises(this);
       if (_shouldSeedDevData) await seedDevData(this);
     },
@@ -765,6 +769,22 @@ class AppDatabase extends _$AppDatabase {
         );
         await customStatement(
           'ALTER TABLE body_metrics ADD COLUMN last_synced_at INTEGER',
+        );
+      }
+
+      if (from < 38) {
+        await customStatement(
+          'ALTER TABLE user_profiles ADD COLUMN local_updated_at INTEGER',
+        );
+        await customStatement(
+          'ALTER TABLE body_metrics ADD COLUMN local_updated_at INTEGER',
+        );
+        await customStatement(
+          'ALTER TABLE sync_records ADD COLUMN last_pushed_at INTEGER',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS sync_records_table_remote_id_idx '
+          'ON sync_records(table_name, remote_id)',
         );
       }
     },

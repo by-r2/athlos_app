@@ -26,6 +26,18 @@ class SyncRecordDao extends DatabaseAccessor<AppDatabase>
       (select(syncRecords)..where((r) => r.syncId.equals(syncId)))
           .getSingleOrNull();
 
+  Future<SyncRecord?> getByRemoteId({
+    required String tableName,
+    required String remoteId,
+  }) =>
+      (select(syncRecords)
+            ..where(
+              (r) =>
+                  r.entityTableName.equals(tableName) &
+                  r.remoteId.equals(remoteId),
+            ))
+          .getSingleOrNull();
+
   Future<List<SyncRecord>> listForTable(
     String tableName, {
     String? status,
@@ -47,6 +59,15 @@ class SyncRecordDao extends DatabaseAccessor<AppDatabase>
             ))
           .get();
 
+  Future<List<SyncRecord>> listTombstones(String tableName) =>
+      (select(syncRecords)
+            ..where(
+              (r) =>
+                  r.entityTableName.equals(tableName) &
+                  r.deletedAt.isNotNull(),
+            ))
+          .get();
+
   Future<void> upsertRecord({
     required String tableName,
     required int localId,
@@ -55,6 +76,7 @@ class SyncRecordDao extends DatabaseAccessor<AppDatabase>
     String? remoteUserId,
     required String status,
     DateTime? deletedAt,
+    DateTime? lastPushedAt,
   }) async {
     final existing = await getByLocalId(tableName: tableName, localId: localId);
     final now = DateTime.now();
@@ -81,6 +103,7 @@ class SyncRecordDao extends DatabaseAccessor<AppDatabase>
         remoteUserId: Value(remoteUserId),
         status: Value(status),
         deletedAt: Value(deletedAt),
+        lastPushedAt: Value(lastPushedAt),
         updatedAt: Value(now),
       ),
     );

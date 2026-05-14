@@ -10,4 +10,6 @@ class BodyMetrics extends Table {
   TextColumn get remoteId => text().nullable()();
 
   DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

@@ -1,8 +1,12 @@
 import 'package:athlos_app/core/database/app_database.dart';
+import 'package:athlos_app/core/database/daos/sync_record_dao.dart';
 import 'package:athlos_app/core/errors/result.dart';
+import 'package:athlos_app/core/sync/sync_record_store.dart';
+import 'package:athlos_app/core/sync/user_owned_singleton_sync_engine.dart';
 import 'package:athlos_app/features/profile/data/datasources/daos/user_profile_dao.dart';
 import 'package:athlos_app/features/profile/data/datasources/user_profile_remote_sync_gateway.dart';
 import 'package:athlos_app/features/profile/data/repositories/user_profile_repository_impl.dart';
+import 'package:athlos_app/features/profile/data/sync/user_profile_sync_adapter.dart';
 import 'package:athlos_app/features/profile/domain/entities/user_profile.dart'
     as domain;
 import 'package:athlos_app/features/profile/domain/enums/selected_module.dart';
@@ -14,13 +18,20 @@ void main() {
     late AppDatabase db;
     late UserProfileDao dao;
     late _FakeRemoteGateway remote;
+    late UserOwnedSingletonSyncEngine<domain.UserProfile> syncEngine;
     late UserProfileRepositoryImpl repository;
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       dao = UserProfileDao(db);
       remote = _FakeRemoteGateway();
-      repository = UserProfileRepositoryImpl(dao, remoteDataSource: remote);
+      final store = SyncRecordStore(SyncRecordDao(db));
+      final adapter = UserProfileSyncAdapter(dao, remoteGateway: remote);
+      syncEngine = UserOwnedSingletonSyncEngine(
+        adapter: adapter,
+        store: store,
+      );
+      repository = UserProfileRepositoryImpl(dao, syncEngine);
       await db.customSelect('SELECT 1').get();
     });
 
@@ -76,7 +87,7 @@ void main() {
       expect(loaded.lastActiveModule, AppModule.diet);
     });
 
-    test('pull remoto preserva streaks quando nao ha perfil local', () async {
+    test('reconcileOnAuth preserva streaks quando nao ha perfil local', () async {
       remote.currentUserId = 'user-1';
       remote.profile = domain.UserProfile(
         id: 0,
@@ -91,7 +102,7 @@ void main() {
         lastSyncedAt: DateTime.utc(2026, 5, 10, 12),
       );
 
-      final loaded = (await repository.get()).getOrThrow()!;
+      final loaded = (await repository.reconcileOnAuth()).getOrThrow()!;
 
       expect(loaded.name, 'Remoto');
       expect(loaded.currentCycleStreak, 4);
@@ -166,13 +177,11 @@ void main() {
     });
 
     test('reconcileOnAuth falha quando perfil pertence a outra conta', () async {
-      remote.currentUserId = 'user-2';
       final localId = (await repository.create(
         const domain.UserProfile(
           id: 0,
           name: 'Local',
           lastActiveModule: AppModule.training,
-          remoteUserId: 'user-1',
         ),
       )).getOrThrow();
       await dao.markSynced(
@@ -180,6 +189,8 @@ void main() {
         remoteUserId: 'user-1',
         syncedAt: DateTime.utc(2026, 5, 10, 12),
       );
+
+      remote.currentUserId = 'user-2';
 
       final result = await repository.reconcileOnAuth();
 

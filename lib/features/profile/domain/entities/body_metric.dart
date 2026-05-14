@@ -6,6 +6,7 @@ class BodyMetric {
   final DateTime recordedAt;
   final String? remoteId;
   final DateTime? lastSyncedAt;
+  final DateTime? localUpdatedAt;
 
   const BodyMetric({
     required this.id,
@@ -14,6 +15,7 @@ class BodyMetric {
     required this.recordedAt,
     this.remoteId,
     this.lastSyncedAt,
+    this.localUpdatedAt,
   });
 
   BodyMetric copyWith({
@@ -23,6 +25,7 @@ class BodyMetric {
     DateTime? recordedAt,
     String? Function()? remoteId,
     DateTime? Function()? lastSyncedAt,
+    DateTime? Function()? localUpdatedAt,
   }) => BodyMetric(
     id: id ?? this.id,
     weight: weight ?? this.weight,
@@ -31,5 +34,7 @@ class BodyMetric {
     recordedAt: recordedAt ?? this.recordedAt,
     remoteId: remoteId != null ? remoteId() : this.remoteId,
     lastSyncedAt: lastSyncedAt != null ? lastSyncedAt() : this.lastSyncedAt,
+    localUpdatedAt:
+        localUpdatedAt != null ? localUpdatedAt() : this.localUpdatedAt,
   );
 }

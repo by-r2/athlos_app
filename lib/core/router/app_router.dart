@@ -36,7 +36,7 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
-  ref.watch(userProfileCloudSyncListenerProvider);
+  ref.watch(userDataCloudSyncListenerProvider);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
   ref.listen(localAccessProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);

@@ -1,9 +1,12 @@
 import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/database/daos/sync_record_dao.dart';
 import 'package:athlos_app/core/errors/result.dart';
+import 'package:athlos_app/core/sync/sync_record_store.dart';
+import 'package:athlos_app/core/sync/user_owned_collection_sync_engine.dart';
 import 'package:athlos_app/features/profile/data/datasources/body_metric_remote_sync_gateway.dart';
 import 'package:athlos_app/features/profile/data/datasources/daos/body_metric_dao.dart';
 import 'package:athlos_app/features/profile/data/repositories/body_metric_repository_impl.dart';
+import 'package:athlos_app/features/profile/data/sync/body_metric_sync_adapter.dart';
 import 'package:athlos_app/features/profile/domain/entities/body_metric.dart'
     as domain;
 import 'package:drift/drift.dart';
@@ -16,18 +19,23 @@ void main() {
     late BodyMetricDao dao;
     late SyncRecordDao syncRecordDao;
     late _FakeRemoteGateway remote;
+    late BodyMetricSyncAdapter adapter;
+    late UserOwnedCollectionSyncEngine<domain.BodyMetric> syncEngine;
+    late SyncRecordStore syncStore;
     late BodyMetricRepositoryImpl repository;
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       dao = BodyMetricDao(db);
       syncRecordDao = SyncRecordDao(db);
+      syncStore = SyncRecordStore(syncRecordDao);
       remote = _FakeRemoteGateway();
-      repository = BodyMetricRepositoryImpl(
-        dao,
-        syncRecordDao,
-        remoteGateway: remote,
+      adapter = BodyMetricSyncAdapter(dao, remoteGateway: remote);
+      syncEngine = UserOwnedCollectionSyncEngine(
+        adapter: adapter,
+        store: syncStore,
       );
+      repository = BodyMetricRepositoryImpl(dao, syncStore, syncEngine);
       await db.customSelect('SELECT 1').get();
     });
 

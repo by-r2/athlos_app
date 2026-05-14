@@ -1,5 +1,6 @@
 import 'package:athlos_app/core/data/repositories/local_backup_providers.dart';
 import 'package:athlos_app/core/database/app_database.dart';
+import 'package:athlos_app/core/sync/sync_providers.dart';
 import 'package:athlos_app/features/profile/data/repositories/profile_providers.dart';
 import 'package:athlos_app/features/training/data/repositories/training_providers.dart';
 import 'package:drift/native.dart';
@@ -39,6 +40,7 @@ void main() {
       expect(container.read(userProfileRepositoryProvider), isNotNull);
       expect(container.read(bodyMetricRepositoryProvider), isNotNull);
       expect(container.read(syncRecordDaoProvider), isNotNull);
+      expect(container.read(userOwnedSyncRunnerProvider), isNotNull);
 
       expect(container.read(localBackupRepositoryProvider), isNotNull);
       expect(container.read(exportLocalBackupUseCaseProvider), isNotNull);
