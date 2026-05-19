@@ -31,7 +31,7 @@ void main() async {
   );
 
   if (isSupabaseConfigured) {
-    container.read(catalogSyncServiceProvider).sync();
+    await container.read(catalogSyncServiceProvider).sync();
   }
 
   runApp(

@@ -754,33 +754,47 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 36) {
-        await customStatement(
-          'ALTER TABLE user_profiles ADD COLUMN remote_user_id TEXT',
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'remote_user_id',
+          definition: 'TEXT',
         );
-        await customStatement(
-          'ALTER TABLE user_profiles ADD COLUMN last_synced_at INTEGER',
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'last_synced_at',
+          definition: 'INTEGER',
         );
-        await m.createTable(syncRecords);
+        await _createTableIfNotExists(m, syncRecords);
       }
 
       if (from < 37) {
-        await customStatement(
-          'ALTER TABLE body_metrics ADD COLUMN remote_id TEXT',
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'remote_id',
+          definition: 'TEXT',
         );
-        await customStatement(
-          'ALTER TABLE body_metrics ADD COLUMN last_synced_at INTEGER',
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'last_synced_at',
+          definition: 'INTEGER',
         );
       }
 
       if (from < 38) {
-        await customStatement(
-          'ALTER TABLE user_profiles ADD COLUMN local_updated_at INTEGER',
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'local_updated_at',
+          definition: 'INTEGER',
         );
-        await customStatement(
-          'ALTER TABLE body_metrics ADD COLUMN local_updated_at INTEGER',
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'local_updated_at',
+          definition: 'INTEGER',
         );
-        await customStatement(
-          'ALTER TABLE sync_records ADD COLUMN last_pushed_at INTEGER',
+        await _addColumnIfNotExists(
+          table: 'sync_records',
+          column: 'last_pushed_at',
+          definition: 'INTEGER',
         );
         await customStatement(
           'CREATE INDEX IF NOT EXISTS sync_records_table_remote_id_idx '
@@ -789,6 +803,30 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+
+  Future<bool> _tableHasColumn(String table, String column) async {
+    final rows = await customSelect("PRAGMA table_info('$table')").get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  Future<void> _addColumnIfNotExists({
+    required String table,
+    required String column,
+    required String definition,
+  }) async {
+    if (await _tableHasColumn(table, column)) return;
+    await customStatement('ALTER TABLE $table ADD COLUMN $column $definition');
+  }
+
+  Future<void> _createTableIfNotExists(Migrator m, TableInfo table) async {
+    final tableName = table.actualTableName;
+    final exists = await customSelect(
+      "SELECT 1 AS present FROM sqlite_master "
+      "WHERE type = 'table' AND name = '$tableName' LIMIT 1",
+    ).getSingleOrNull();
+    if (exists != null) return;
+    await m.createTable(table);
+  }
 }
 
 @Riverpod(keepAlive: true)
