@@ -1,14 +1,18 @@
+import 'sync_record_store.dart';
 import 'sync_trigger.dart';
 import 'user_owned_sync_registry.dart';
 
 /// Runs registered user-owned sync engines in a stable order.
 class UserOwnedSyncRunner {
-  UserOwnedSyncRunner(this._registry);
+  UserOwnedSyncRunner(this._registry, {SyncRecordStore? store})
+    : _store = store;
 
   final UserOwnedSyncRegistry _registry;
+  final SyncRecordStore? _store;
   DateTime? _lastResumeSyncAt;
 
   static const Duration resumeDebounce = Duration(seconds: 30);
+  static const int syncPasses = 5;
 
   Future<void> synchronizeAuthenticatedUserData({
     required SyncTrigger trigger,
@@ -23,8 +27,15 @@ class UserOwnedSyncRunner {
       _lastResumeSyncAt = now;
     }
 
-    for (final target in _registry.targets) {
-      await target.synchronize();
+    final store = _store;
+    if (store != null) {
+      await store.resetFailedToPending();
+    }
+
+    for (var pass = 0; pass < syncPasses; pass++) {
+      for (final target in _registry.targets) {
+        await target.synchronize();
+      }
     }
   }
 

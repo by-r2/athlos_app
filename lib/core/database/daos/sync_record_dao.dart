@@ -109,6 +109,15 @@ class SyncRecordDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Resets failed rows so the next sync pass can retry them.
+  Future<int> resetFailedToPending({String? tableName}) async {
+    final query = update(syncRecords)..where((r) => r.status.equals('failed'));
+    if (tableName != null) {
+      query.where((r) => r.entityTableName.equals(tableName));
+    }
+    return query.write(const SyncRecordsCompanion(status: Value('pending')));
+  }
+
   Future<void> deleteByLocalId({
     required String tableName,
     required int localId,

@@ -42,22 +42,33 @@ WorkoutRepository workoutRepository(Ref ref) => WorkoutRepositoryImpl(
 WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>
     WorkoutExecutionRepositoryImpl(
       ref.watch(workoutExecutionDaoProvider),
+      ref.watch(userOwnedSyncRunnerProvider),
+      ref.watch(syncRecordStoreProvider),
       exerciseRepository: ref.watch(exerciseRepositoryProvider),
       workoutRepository: ref.watch(workoutRepositoryProvider),
       bodyMetricRepository: ref.watch(bodyMetricRepositoryProvider),
     );
 
 @riverpod
-CycleRepository cycleRepository(Ref ref) =>
-    CycleRepositoryImpl(ref.watch(cycleStepDaoProvider));
+CycleRepository cycleRepository(Ref ref) => CycleRepositoryImpl(
+  ref.watch(cycleStepDaoProvider),
+  ref.watch(userOwnedSyncRunnerProvider),
+);
 
 @riverpod
-ProgramRepository programRepository(Ref ref) =>
-    ProgramRepositoryImpl(ref.watch(programDaoProvider));
+ProgramRepository programRepository(Ref ref) => ProgramRepositoryImpl(
+  ref.watch(programDaoProvider),
+  ref.watch(userOwnedSyncRunnerProvider),
+  ref.watch(syncRecordStoreProvider),
+);
 
 @riverpod
 ProgressionRuleRepository progressionRuleRepository(Ref ref) =>
-    ProgressionRuleRepositoryImpl(ref.watch(progressionRuleDaoProvider));
+    ProgressionRuleRepositoryImpl(
+      ref.watch(progressionRuleDaoProvider),
+      ref.watch(userOwnedSyncRunnerProvider),
+      ref.watch(syncRecordStoreProvider),
+    );
 
 // --- Use Cases ---
 

@@ -1,5 +1,9 @@
 import 'package:athlos_app/core/database/app_database.dart';
+import 'package:athlos_app/core/database/daos/sync_record_dao.dart';
 import 'package:athlos_app/core/errors/result.dart';
+import 'package:athlos_app/core/sync/sync_record_store.dart';
+import 'package:athlos_app/core/sync/user_owned_sync_registry.dart';
+import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/cycle_step_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/cycle_repository_impl.dart';
 import 'package:athlos_app/features/training/domain/entities/cycle_step.dart';
@@ -14,7 +18,10 @@ void main() {
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
-      repository = CycleRepositoryImpl(CycleStepDao(db));
+      repository = CycleRepositoryImpl(
+        CycleStepDao(db),
+        UserOwnedSyncRunner(UserOwnedSyncRegistry([])),
+      );
       await db.customSelect('SELECT 1').get();
 
       await db.customInsert(

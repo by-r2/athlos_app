@@ -286,7 +286,7 @@ class UserWorkoutSyncAdapter
     if (item['is_catalog_reference'] == true) {
       final catalogId = item['exercise_remote_id'] as String?;
       if (catalogId != null) {
-        final row = await _exerciseDao.getByCatalogRemoteId(catalogId);
+        final row = await _exerciseDao.getFirstByCatalogRemoteId(catalogId);
         if (row != null) return row.id;
       }
       return null;
@@ -294,7 +294,7 @@ class UserWorkoutSyncAdapter
 
     final remoteId = item['exercise_remote_id'] as String?;
     if (remoteId != null) {
-      final byRemote = await _exerciseDao.getByRemoteId(remoteId);
+      final byRemote = await _exerciseDao.getFirstByRemoteId(remoteId);
       if (byRemote != null) return byRemote.id;
       final record = await _syncStore.getByRemoteId(
         tableName: TrainingSyncTableNames.userExercises,

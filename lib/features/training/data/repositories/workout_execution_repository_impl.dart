@@ -3,6 +3,10 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/sync_record_store.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/sync_id.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/execution_comparison.dart';
 import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../domain/entities/execution_set.dart' as domain;
@@ -16,19 +20,35 @@ import '../../domain/repositories/workout_repository.dart';
 import '../datasources/daos/workout_execution_dao.dart';
 
 class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
-  final WorkoutExecutionDao _dao;
-  final ExerciseRepository? _exerciseRepository;
-  final WorkoutRepository? _workoutRepository;
-  final BodyMetricRepository? _bodyMetricRepository;
-
   WorkoutExecutionRepositoryImpl(
-    this._dao, {
+    this._dao,
+    this._syncRunner,
+    this._syncStore, {
     ExerciseRepository? exerciseRepository,
     WorkoutRepository? workoutRepository,
     BodyMetricRepository? bodyMetricRepository,
   }) : _exerciseRepository = exerciseRepository,
        _workoutRepository = workoutRepository,
        _bodyMetricRepository = bodyMetricRepository;
+
+  final WorkoutExecutionDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final SyncRecordStore _syncStore;
+  final ExerciseRepository? _exerciseRepository;
+  final WorkoutRepository? _workoutRepository;
+  final BodyMetricRepository? _bodyMetricRepository;
+
+  Future<void> _syncExecution(int executionId) async {
+    await _dao.markExecutionLocalDirty(executionId);
+    await _syncRunner.synchronizeTable(
+      TrainingSyncTableNames.userWorkoutExecutions,
+    );
+  }
+
+  Future<void> _syncSet(int setId) async {
+    await _dao.markSetLocalDirty(setId);
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExecutionSets);
+  }
 
   @override
   Future<Result<List<domain.WorkoutExecution>>> getAll() async {
@@ -240,6 +260,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           exerciseConfigSnapshot: Value(exerciseConfigSnapshot),
         ),
       );
+      await _syncExecution(id);
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to start execution: $e'));
@@ -250,6 +271,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   Future<Result<void>> finish(int executionId) async {
     try {
       await _dao.finish(executionId);
+      await _syncExecution(executionId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to finish execution: $e'));
@@ -259,7 +281,26 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   @override
   Future<Result<void>> delete(int id) async {
     try {
+      final row = await _dao.getById(id);
+      final record = await _syncStore.getByLocalId(
+        tableName: TrainingSyncTableNames.userWorkoutExecutions,
+        localId: id,
+      );
+      final remoteId = record?.remoteId ?? row?.remoteId;
+      final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
+      if (remoteId != null || record != null) {
+        await _syncStore.markTombstone(
+          tableName: TrainingSyncTableNames.userWorkoutExecutions,
+          localId: id,
+          syncId: syncId,
+          remoteId: remoteId,
+          remoteUserId: record?.remoteUserId,
+        );
+      }
       await _dao.deleteById(id);
+      await _syncRunner.synchronizeTable(
+        TrainingSyncTableNames.userWorkoutExecutions,
+      );
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete execution $id: $e'));
@@ -302,6 +343,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isUnilateral: Value(set.isUnilateral),
         ),
       );
+      await _syncSet(id);
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to log set: $e'));
@@ -330,6 +372,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isUnilateral: Value(set.isUnilateral),
         ),
       );
+      await _syncSet(set.id);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update set: $e'));
@@ -560,6 +603,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
             )
             .toList(),
       );
+      await _syncSet(executionSetId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to save segments: $e'));

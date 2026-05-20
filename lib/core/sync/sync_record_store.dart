@@ -32,6 +32,9 @@ class SyncRecordStore {
   Future<List<SyncRecord>> listTombstones(String tableName) =>
       _dao.listTombstones(tableName);
 
+  Future<int> resetFailedToPending({String? tableName}) =>
+      _dao.resetFailedToPending(tableName: tableName);
+
   Future<void> upsert({
     required String tableName,
     required int localId,

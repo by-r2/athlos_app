@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../database/app_database.dart';
+import '../../database/exercise_canonical_merge.dart';
 import '../../database/exercise_migration_maps.dart';
 import '../../localization/domain_label_resolver.dart';
 import '../../localization/exercise_catalog_label_index.dart';
@@ -164,6 +165,16 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
       final loserId = resolvedWinnerId == leftEntityId
           ? rightEntityId
           : leftEntityId;
+      final loserRow = resolvedWinnerId == leftEntityId ? right : left;
+
+      if (_asBool(loserRow['is_verified'])) {
+        return const Failure(
+          ValidationException(
+            'Cannot remove a verified catalog entry. '
+            'Keep the catalog item and delete the custom copy instead.',
+          ),
+        );
+      }
 
       await _db.transaction(() async {
         if (decision == RuntimeDuplicateDecision.mergeAttributes &&
@@ -1969,52 +1980,17 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
     required int winnerId,
   }) async {
     if (loserId == winnerId) return;
-    final loserRows = await _db
-        .customSelect('SELECT is_verified FROM $tableName WHERE id = $loserId')
-        .get();
-    if (loserRows.isEmpty) return;
-    final loserIsVerified = _asBool(loserRows.first.data['is_verified']);
-    if (loserIsVerified) {
-      // Safety rule: verified entries are never auto-deleted.
+
+    if (tableName == _tableExercises) {
+      await mergeExerciseLoserIntoWinner(
+        _db,
+        winnerId: winnerId,
+        loserId: loserId,
+      );
       return;
     }
 
-    if (tableName == _tableExercises) {
-      await _db.customStatement(
-        'DELETE FROM $_tableWorkoutExercises WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM $_tableWorkoutExercises we2 WHERE we2.workout_id = $_tableWorkoutExercises.workout_id AND we2.exercise_id = $winnerId)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableWorkoutExercises SET exercise_id = ? WHERE exercise_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExecutionSets SET exercise_id = ? WHERE exercise_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customStatement(
-        'DELETE FROM $_tableExerciseVariations WHERE exercise_id = $loserId AND EXISTS (SELECT 1 FROM $_tableExerciseVariations ev2 WHERE ev2.exercise_id = $winnerId AND ev2.variation_id = $_tableExerciseVariations.variation_id)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExerciseVariations SET exercise_id = ? WHERE exercise_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customStatement(
-        'DELETE FROM $_tableExerciseVariations WHERE variation_id = $loserId AND EXISTS (SELECT 1 FROM $_tableExerciseVariations ev2 WHERE ev2.exercise_id = $_tableExerciseVariations.exercise_id AND ev2.variation_id = $winnerId)',
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExerciseVariations SET variation_id = ? WHERE variation_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-      await _db.customUpdate(
-        'UPDATE $_tableExerciseTargetMuscles SET exercise_id = ? WHERE exercise_id = ?',
-        variables: [Variable<int>(winnerId), Variable<int>(loserId)],
-      );
-    }
-
-    await _db.customUpdate(
-      'DELETE FROM $tableName WHERE id = ?',
-      variables: [Variable<int>(loserId)],
-    );
+    await _db.customStatement('DELETE FROM $tableName WHERE id = $loserId');
   }
 
   Future<void> _enqueueGovernanceEvent({

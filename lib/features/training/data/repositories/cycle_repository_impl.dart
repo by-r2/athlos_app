@@ -1,14 +1,25 @@
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/cycle_step.dart';
 import '../../domain/repositories/cycle_repository.dart';
 import '../datasources/daos/cycle_step_dao.dart';
 
 class CycleRepositoryImpl implements CycleRepository {
-  CycleRepositoryImpl(this._dao);
+  CycleRepositoryImpl(this._dao, this._syncRunner);
 
   final CycleStepDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+
+  Future<void> _syncCycleSteps(int programId) async {
+    final steps = await _dao.getAllOrdered(programId);
+    for (final step in steps) {
+      await _dao.markLocalDirty(step.id);
+    }
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.userCycleSteps);
+  }
 
   @override
   Future<Result<List<TrainingCycleStep>>> getSteps(int programId) async {
@@ -34,6 +45,7 @@ class CycleRepositoryImpl implements CycleRepository {
         );
       }).toList();
       await _dao.replaceAll(companions, programId);
+      await _syncCycleSteps(programId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to save cycle steps: $e'));
@@ -56,6 +68,7 @@ class CycleRepositoryImpl implements CycleRepository {
         );
       }).toList();
       await _dao.replaceAll(reindexed, programId);
+      await _syncCycleSteps(programId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -68,6 +81,7 @@ class CycleRepositoryImpl implements CycleRepository {
   Future<Result<void>> removeWorkoutFromAllCycles(int workoutId) async {
     try {
       await _dao.removeWorkoutFromAll(workoutId);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userCycleSteps);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -98,6 +112,7 @@ class CycleRepositoryImpl implements CycleRepository {
         ),
       );
       await _dao.replaceAll(companions, programId);
+      await _syncCycleSteps(programId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(

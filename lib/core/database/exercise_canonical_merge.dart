@@ -15,7 +15,8 @@ Future<int?> _exerciseIdByName(GeneratedDatabase db, String name) async {
   return rows.first.data['id'] as int?;
 }
 
-Future<void> _mergeOneExerciseIntoAnother(
+/// Reassigns FKs from [loserId] to [winnerId], then deletes the loser exercise.
+Future<void> mergeExerciseLoserIntoWinner(
   GeneratedDatabase db, {
   required int winnerId,
   required int loserId,
@@ -88,7 +89,7 @@ Future<void> applyExerciseCanonicalMerges(GeneratedDatabase db) async {
     final loserId = await _exerciseIdByName(db, loser);
     final keeperId = await _exerciseIdByName(db, keeper);
     if (loserId == null || keeperId == null) continue;
-    await _mergeOneExerciseIntoAnother(
+    await mergeExerciseLoserIntoWinner(
       db,
       winnerId: keeperId,
       loserId: loserId,

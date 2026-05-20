@@ -53,11 +53,18 @@ UserOwnedSyncRegistry userOwnedSyncRegistry(Ref ref) => UserOwnedSyncRegistry([
   ref.watch(bodyMetricCollectionSyncEngineProvider),
   ref.watch(userExerciseCollectionSyncEngineProvider),
   ref.watch(userWorkoutCollectionSyncEngineProvider),
+  ref.watch(userProgramCollectionSyncEngineProvider),
+  ref.watch(userProgressionRuleCollectionSyncEngineProvider),
+  ref.watch(userCycleStepCollectionSyncEngineProvider),
+  ref.watch(userWorkoutExecutionCollectionSyncEngineProvider),
+  ref.watch(userExecutionSetCollectionSyncEngineProvider),
 ]);
 
 @Riverpod(keepAlive: true)
-UserOwnedSyncRunner userOwnedSyncRunner(Ref ref) =>
-    UserOwnedSyncRunner(ref.watch(userOwnedSyncRegistryProvider));
+UserOwnedSyncRunner userOwnedSyncRunner(Ref ref) => UserOwnedSyncRunner(
+  ref.watch(userOwnedSyncRegistryProvider),
+  store: ref.watch(syncRecordStoreProvider),
+);
 
 @Riverpod(keepAlive: true)
 SyncRecordDao syncRecordDao(Ref ref) =>

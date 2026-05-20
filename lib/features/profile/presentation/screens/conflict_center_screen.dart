@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -40,6 +42,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
           child: _ConflictCenterBody(
             l10n: l10n,
             reviews: const <BackupPendingReview>[],
+            lastAnalyzedAt: DateTime.now(),
             isRescanning: false,
             processingReviews: const <String>{},
             onRescan: null,
@@ -61,6 +64,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
           child: _ConflictCenterBody(
             l10n: l10n,
             reviews: data.runtimeLocalReviews,
+            lastAnalyzedAt: data.lastAnalyzedAt,
             isRescanning: _isRescanning,
             processingReviews: _processingReviews,
             onRescan: _isRescanning ? null : _runRuntimeScan,
@@ -171,15 +175,17 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
         winnerId: winnerId,
         mergedAttributes: mergedAttributes,
       );
-      result.getOrThrow();
-      ref.invalidate(backupConflictCenterProvider);
-      await ref.read(backupConflictCenterProvider.future);
-    } on Exception {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.profileDataImportError)));
+      switch (result) {
+        case Success():
+          ref.invalidate(backupConflictCenterProvider);
+          await ref.read(backupConflictCenterProvider.future);
+        case Failure(:final exception):
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_resolveErrorMessage(exception, l10n))),
+          );
+      }
     } finally {
       if (mounted) {
         setState(() => _processingReviews.remove(review.reviewId));
@@ -192,6 +198,7 @@ class _ConflictCenterBody extends StatelessWidget {
   const _ConflictCenterBody({
     required this.l10n,
     required this.reviews,
+    this.lastAnalyzedAt,
     required this.isRescanning,
     required this.processingReviews,
     required this.onRescan,
@@ -204,6 +211,7 @@ class _ConflictCenterBody extends StatelessWidget {
 
   final AppLocalizations l10n;
   final List<BackupPendingReview> reviews;
+  final DateTime? lastAnalyzedAt;
   final bool isRescanning;
   final Set<String> processingReviews;
   final VoidCallback? onRescan;
@@ -232,6 +240,11 @@ class _ConflictCenterBody extends StatelessWidget {
                 ),
                 const Gap(AthlosSpacing.md),
                 _ConflictCenterStatusBanner(duplicateCount: reviews.length),
+                const Gap(AthlosSpacing.md),
+                _ConflictCenterLastAnalysisRow(
+                  l10n: l10n,
+                  lastAnalyzedAt: lastAnalyzedAt,
+                ),
                 const Gap(AthlosSpacing.md),
                 AthlosStackedActions(
                   spacing: AthlosSpacing.sm,
@@ -346,6 +359,47 @@ class _ConflictCenterSectionHeader extends StatelessWidget {
         fontWeight: FontWeight.w600,
       ),
     );
+  }
+}
+
+class _ConflictCenterLastAnalysisRow extends StatelessWidget {
+  const _ConflictCenterLastAnalysisRow({
+    required this.l10n,
+    required this.lastAnalyzedAt,
+  });
+
+  final AppLocalizations l10n;
+  final DateTime? lastAnalyzedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final analyzedAt = lastAnalyzedAt;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.conflictCenterLastAnalysisLabel,
+          style: textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const Gap(AthlosSpacing.xs),
+        Text(
+          analyzedAt != null
+              ? _formatAnalysisTimestamp(context, analyzedAt)
+              : l10n.conflictCenterNeverAnalyzed,
+          style: textTheme.titleSmall,
+        ),
+      ],
+    );
+  }
+
+  String _formatAnalysisTimestamp(BuildContext context, DateTime instant) {
+    final locale = Localizations.localeOf(context).toString();
+    return intl.DateFormat('dd/MM/yyyy HH:mm', locale).format(instant.toLocal());
   }
 }
 
@@ -688,6 +742,24 @@ String _entityLabel(BackupConflictType type, AppLocalizations l10n) {
     BackupConflictType.equipment => l10n.profileEquipmentTab,
     BackupConflictType.exercise => l10n.tabExercises,
     BackupConflictType.workout => l10n.tabTraining,
+  };
+}
+
+String _resolveErrorMessage(AppException exception, AppLocalizations l10n) {
+  if (exception is ValidationException) {
+    final message = exception.message;
+    if (message.contains('Cannot merge two verified')) {
+      return l10n.conflictCenterResolveBothVerified;
+    }
+    if (message.contains('Cannot remove a verified catalog')) {
+      return l10n.conflictCenterResolveVerifiedProtected;
+    }
+    return message;
+  }
+  return switch (exception) {
+    NotFoundException() => l10n.conflictCenterResolveNotFound,
+    DatabaseException(:final message) => message,
+    _ => l10n.conflictCenterResolveError,
   };
 }
 

@@ -459,6 +459,14 @@
   "@conflictCenterRescanAction": {
     "description": "Action to rerun duplicate scan"
   },
+  "conflictCenterLastAnalysisLabel": "Última análise",
+  "@conflictCenterLastAnalysisLabel": {
+    "description": "Label for last duplicate scan timestamp in Conflict Center"
+  },
+  "conflictCenterNeverAnalyzed": "Ainda não analisado",
+  "@conflictCenterNeverAnalyzed": {
+    "description": "Shown when duplicate scan has never completed"
+  },
   "conflictCenterEmptyState": "Nenhum duplicado encontrado.",
   "@conflictCenterEmptyState": {
     "description": "Empty state when no duplicates"
@@ -492,6 +500,22 @@
   "conflictCenterConfirmDuplicateAction": "Está duplicado",
   "@conflictCenterConfirmDuplicateAction": {
     "description": "Action to confirm duplicate when one side is verified (verified wins)"
+  },
+  "conflictCenterResolveError": "Não foi possível aplicar esta decisão. Tente novamente.",
+  "@conflictCenterResolveError": {
+    "description": "Generic error when resolving a duplicate in Conflict Center"
+  },
+  "conflictCenterResolveNotFound": "Um dos itens já não existe. Reanalise os duplicados.",
+  "@conflictCenterResolveNotFound": {
+    "description": "Error when duplicate pair entities are missing locally"
+  },
+  "conflictCenterResolveBothVerified": "Dois itens verificados do catálogo não podem ser fundidos aqui.",
+  "@conflictCenterResolveBothVerified": {
+    "description": "Error when user tries to merge two verified catalog entries"
+  },
+  "conflictCenterResolveVerifiedProtected": "O item verificado do catálogo não pode ser removido. Mantenha o verificado e apague a cópia personalizada.",
+  "@conflictCenterResolveVerifiedProtected": {
+    "description": "Error when merge would delete a verified catalog row"
   },
   "conflictCenterKeepAAction": "Manter A",
   "@conflictCenterKeepAAction": {

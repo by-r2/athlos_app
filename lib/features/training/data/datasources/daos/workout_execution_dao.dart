@@ -47,6 +47,9 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
         WorkoutExecutionsCompanion(finishedAt: Value(DateTime.now())),
       );
 
+  Future<void> updateExecution(int id, WorkoutExecutionsCompanion entry) =>
+      (update(workoutExecutions)..where((e) => e.id.equals(id))).write(entry);
+
   /// Returns unfinished executions whose workout still exists.
   /// Used to offer resume/discard on app launch.
   Future<List<WorkoutExecution>> getDangling() =>

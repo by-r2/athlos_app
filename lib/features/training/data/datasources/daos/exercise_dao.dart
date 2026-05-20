@@ -139,14 +139,22 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  Future<Exercise?> getByRemoteId(String remoteId) =>
-      (select(exercises)..where((e) => e.remoteId.equals(remoteId)))
+  Future<Exercise?> getFirstByRemoteId(String remoteId) =>
+      (select(exercises)
+            ..where((e) => e.remoteId.equals(remoteId))
+            ..limit(1))
           .getSingleOrNull();
 
-  Future<Exercise?> getByCatalogRemoteId(String catalogRemoteId) =>
+  Future<Exercise?> getFirstByCatalogRemoteId(String catalogRemoteId) =>
+      (select(exercises)
+            ..where((e) => e.catalogRemoteId.equals(catalogRemoteId))
+            ..limit(1))
+          .getSingleOrNull();
+
+  Future<List<Exercise>> getAllByCatalogRemoteId(String catalogRemoteId) =>
       (select(exercises)
             ..where((e) => e.catalogRemoteId.equals(catalogRemoteId)))
-          .getSingleOrNull();
+          .get();
 
   // --- Muscle targeting relations ---
 

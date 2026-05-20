@@ -49,6 +49,9 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase>
   Future<int> insertStep(CycleStepsCompanion entry) =>
       into(cycleSteps).insert(entry);
 
+  Future<void> updateStep(int id, CycleStepsCompanion entry) =>
+      (update(cycleSteps)..where((s) => s.id.equals(id))).write(entry);
+
   Future<List<CycleStep>> getAll() => select(cycleSteps).get();
 
   Future<void> markSynced({

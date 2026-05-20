@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 import '../database/app_database.dart';
 import '../errors/app_exception.dart';
 import 'sync_conflict_policy.dart';
+import 'sync_deferred_exception.dart';
 import 'sync_record_store.dart';
 import 'sync_status.dart';
 import 'user_owned_collection_sync_adapter.dart';
@@ -83,7 +86,20 @@ class UserOwnedCollectionSyncEngine<T> implements UserOwnedSyncTarget {
           lastSyncedAt: local.lastSyncedAt,
           localUpdatedAt: local.localUpdatedAt,
         )) {
-          await _adapter.updateLocalFromRemote(localId, remote, remoteUserId);
+          try {
+            await _adapter.updateLocalFromRemote(
+              localId,
+              remote,
+              remoteUserId,
+            );
+          } on Exception catch (e) {
+            if (kDebugMode) {
+              debugPrint(
+                '[Sync] pull failed ${_adapter.tableName}#$localId: $e',
+              );
+            }
+            continue;
+          }
           await _markReconciledFromRemote(
             localId: localId,
             remoteId: remoteId,
@@ -111,13 +127,24 @@ class UserOwnedCollectionSyncEngine<T> implements UserOwnedSyncTarget {
       if (localByRemoteId.containsKey(remoteId)) continue;
 
       processedRemoteIds.add(remoteId);
-      final insertedLocalId = await _adapter.insertFromRemote(remote, remoteUserId);
-      await _markReconciledFromRemote(
-        localId: insertedLocalId,
-        remoteId: remoteId,
-        remoteUserId: remoteUserId,
-        record: null,
-      );
+      try {
+        final insertedLocalId = await _adapter.insertFromRemote(
+          remote,
+          remoteUserId,
+        );
+        await _markReconciledFromRemote(
+          localId: insertedLocalId,
+          remoteId: remoteId,
+          remoteUserId: remoteUserId,
+          record: null,
+        );
+      } on Exception catch (e) {
+        if (kDebugMode) {
+          debugPrint(
+            '[Sync] insert failed ${_adapter.tableName} remote=$remoteId: $e',
+          );
+        }
+      }
     }
   }
 
@@ -236,7 +263,26 @@ class UserOwnedCollectionSyncEngine<T> implements UserOwnedSyncTarget {
         status: SyncStatus.synced,
         lastPushedAt: syncedAt,
       );
-    } on Exception {
+    } on SyncDeferredException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Sync] deferred ${_adapter.tableName}#${local.localId}: $e',
+        );
+      }
+      await _store.upsert(
+        tableName: _adapter.tableName,
+        localId: local.localId,
+        syncId: syncId,
+        remoteId: effectiveRemoteId,
+        remoteUserId: remoteUserId,
+        status: SyncStatus.pending,
+      );
+    } on Exception catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Sync] failed ${_adapter.tableName}#${local.localId}: $e',
+        );
+      }
       await _store.upsert(
         tableName: _adapter.tableName,
         localId: local.localId,

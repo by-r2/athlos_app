@@ -3,6 +3,10 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/sync_record_store.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/sync_id.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/progression_rule.dart' as domain;
 import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_frequency.dart';
@@ -11,9 +15,29 @@ import '../../domain/repositories/progression_rule_repository.dart';
 import '../datasources/daos/progression_rule_dao.dart';
 
 class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
-  ProgressionRuleRepositoryImpl(this._dao);
+  ProgressionRuleRepositoryImpl(
+    this._dao,
+    this._syncRunner,
+    this._syncStore,
+  );
 
   final ProgressionRuleDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final SyncRecordStore _syncStore;
+
+  Future<void> _syncRules({int? ruleId, int? programId}) async {
+    if (ruleId != null) {
+      await _dao.markLocalDirty(ruleId);
+    } else if (programId != null) {
+      final rows = await _dao.getByProgram(programId);
+      for (final row in rows) {
+        await _dao.markLocalDirty(row.id);
+      }
+    }
+    await _syncRunner.synchronizeTable(
+      TrainingSyncTableNames.userProgressionRules,
+    );
+  }
 
   @override
   Future<Result<List<domain.ProgressionRule>>> getByProgram(
@@ -44,6 +68,7 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   Future<Result<int>> create(domain.ProgressionRule rule) async {
     try {
       final id = await _dao.create(_toCompanion(rule));
+      await _syncRules(ruleId: id);
       return Success(id);
     } on Exception catch (e) {
       return Failure(
@@ -56,6 +81,7 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   Future<Result<void>> update(domain.ProgressionRule rule) async {
     try {
       await _dao.updateRule(rule.id, _toUpdateCompanion(rule));
+      await _syncRules(ruleId: rule.id);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -67,7 +93,32 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   @override
   Future<Result<void>> delete(int ruleId) async {
     try {
+      ProgressionRule? existing;
+      for (final row in await _dao.getAll()) {
+        if (row.id == ruleId) {
+          existing = row;
+          break;
+        }
+      }
+      final record = await _syncStore.getByLocalId(
+        tableName: TrainingSyncTableNames.userProgressionRules,
+        localId: ruleId,
+      );
+      final remoteId = record?.remoteId ?? existing?.remoteId;
+      final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
+      if (remoteId != null || record != null) {
+        await _syncStore.markTombstone(
+          tableName: TrainingSyncTableNames.userProgressionRules,
+          localId: ruleId,
+          syncId: syncId,
+          remoteId: remoteId,
+          remoteUserId: record?.remoteUserId,
+        );
+      }
       await _dao.deleteRule(ruleId);
+      await _syncRunner.synchronizeTable(
+        TrainingSyncTableNames.userProgressionRules,
+      );
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -96,6 +147,7 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
           )
           .toList();
       await _dao.replaceAllForProgram(programId, companions);
+      await _syncRules(programId: programId);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
