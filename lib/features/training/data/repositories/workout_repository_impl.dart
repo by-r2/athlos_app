@@ -3,15 +3,25 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/sync_record_store.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/sync_id.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/workout.dart' as domain;
 import '../../domain/entities/workout_exercise.dart' as domain;
 import '../../domain/repositories/workout_repository.dart';
 import '../datasources/daos/workout_dao.dart';
 
 class WorkoutRepositoryImpl implements WorkoutRepository {
-  final WorkoutDao _dao;
+  WorkoutRepositoryImpl(
+    this._dao,
+    this._syncRunner,
+    this._syncStore,
+  );
 
-  WorkoutRepositoryImpl(this._dao);
+  final WorkoutDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final SyncRecordStore _syncStore;
 
   @override
   Future<Result<List<domain.Workout>>> getAll() async {
@@ -87,6 +97,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
             )
             .toList(),
       );
+      await _dao.markLocalDirty(id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create workout: $e'));
@@ -128,6 +140,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
             )
             .toList(),
       );
+      await _dao.markLocalDirty(workout.id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update workout: $e'));
@@ -137,7 +151,24 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   @override
   Future<Result<void>> delete(int id) async {
     try {
+      final row = await _dao.getById(id);
+      final record = await _syncStore.getByLocalId(
+        tableName: TrainingSyncTableNames.userWorkouts,
+        localId: id,
+      );
+      final remoteId = record?.remoteId ?? row?.remoteId;
+      final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
+      if (remoteId != null || record != null) {
+        await _syncStore.markTombstone(
+          tableName: TrainingSyncTableNames.userWorkouts,
+          localId: id,
+          syncId: syncId,
+          remoteId: remoteId,
+          remoteUserId: record?.remoteUserId,
+        );
+      }
       await _dao.deleteById(id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete workout $id: $e'));
@@ -148,6 +179,9 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Result<void>> archive(int id) async {
     try {
       await _dao.archive(id);
+      await _dao.markLocalDirty(id);
+      await _dao.markLocalDirty(id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to archive workout $id: $e'));
@@ -158,6 +192,9 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Result<void>> unarchive(int id) async {
     try {
       await _dao.unarchive(id);
+      await _dao.markLocalDirty(id);
+      await _dao.markLocalDirty(id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to unarchive workout $id: $e'));
@@ -171,6 +208,8 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       if (newId == null) {
         return Failure(NotFoundException('Workout $id not found'));
       }
+      await _dao.markLocalDirty(newId);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userWorkouts);
       return Success(newId);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to duplicate workout $id: $e'));

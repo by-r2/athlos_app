@@ -83,6 +83,75 @@
   "@profileDataAccountSessionLabel": {
     "description": "Label for account session row on profile data tab"
   },
+  "profileDataCloudSyncSectionTitle": "Sincronização na nuvem",
+  "@profileDataCloudSyncSectionTitle": {
+    "description": "Profile data section title for cloud sync status"
+  },
+  "profileDataCloudSyncUnavailable": "Entre na sua conta com internet para sincronizar automaticamente.",
+  "@profileDataCloudSyncUnavailable": {
+    "description": "Cloud sync status when user is not signed in or Supabase is not configured"
+  },
+  "profileDataCloudSyncClear": "Dados sincronizados com a nuvem.",
+  "@profileDataCloudSyncClear": {
+    "description": "Cloud sync status when there are no pending or failed records"
+  },
+  "profileDataCloudSyncPending": "Pendente na nuvem: {count}",
+  "@profileDataCloudSyncPending": {
+    "description": "Cloud sync status when records are pending upload",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "profileDataCloudSyncFailed": "Falha na sincronização: {count}",
+  "@profileDataCloudSyncFailed": {
+    "description": "Cloud sync status when records failed to sync",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "profileDataCloudSyncLastSynced": "Última sincronização: {when}",
+  "@profileDataCloudSyncLastSynced": {
+    "description": "Label showing last successful cloud sync time",
+    "placeholders": {
+      "when": { "type": "String" }
+    }
+  },
+  "profileDataCloudSyncNeverSynced": "Ainda não sincronizado com a nuvem.",
+  "@profileDataCloudSyncNeverSynced": {
+    "description": "Shown when the user has never completed a cloud sync"
+  },
+  "profileDataCloudSyncLastSuccessLabel": "Última sincronização bem-sucedida",
+  "@profileDataCloudSyncLastSuccessLabel": {
+    "description": "Label above the last successful sync timestamp"
+  },
+  "profileDataCloudSyncLastAttemptLabel": "Última tentativa",
+  "@profileDataCloudSyncLastAttemptLabel": {
+    "description": "Label above the last sync attempt timestamp"
+  },
+  "profileDataCloudSyncSuccessSnack": "Sincronização concluída com sucesso.",
+  "@profileDataCloudSyncSuccessSnack": {
+    "description": "Snackbar after manual sync succeeds"
+  },
+  "profileDataCloudSyncFailedSnack": "Sincronização incompleta ({failed} falha(s), {pending} pendente(s)).",
+  "@profileDataCloudSyncFailedSnack": {
+    "description": "Snackbar after manual sync leaves failures or pending items",
+    "placeholders": {
+      "failed": { "type": "int" },
+      "pending": { "type": "int" }
+    }
+  },
+  "profileDataCloudSyncOfflineSnack": "Sem ligação à internet. Tente novamente quando estiver online.",
+  "@profileDataCloudSyncOfflineSnack": {
+    "description": "Snackbar when manual sync is requested while offline"
+  },
+  "profileDataCloudSyncRetryAction": "Sincronizar agora",
+  "@profileDataCloudSyncRetryAction": {
+    "description": "Button to trigger manual cloud sync retry"
+  },
+  "profileDataCloudSyncRetryError": "Não foi possível sincronizar agora. Verifique a internet e tente de novo.",
+  "@profileDataCloudSyncRetryError": {
+    "description": "Snackbar when manual cloud sync retry fails"
+  },
   "profileDataConflictStatusClear": "Nenhum duplicado detectado por enquanto.",
   "@profileDataConflictStatusClear": {
     "description": "Status text when no local duplicates are found"

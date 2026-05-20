@@ -48,4 +48,29 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase>
 
   Future<int> insertStep(CycleStepsCompanion entry) =>
       into(cycleSteps).insert(entry);
+
+  Future<List<CycleStep>> getAll() => select(cycleSteps).get();
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(cycleSteps)..where((s) => s.id.equals(id))).write(
+        CycleStepsCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(cycleSteps)..where((s) => s.id.equals(id))).write(
+      CycleStepsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<CycleStep?> getByRemoteId(String remoteId) =>
+      (select(cycleSteps)..where((s) => s.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }

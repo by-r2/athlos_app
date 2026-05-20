@@ -13,14 +13,13 @@ The app is designed as a **hub-based** system: a central screen (the Hub) provid
 ## Current Implementation Snapshot
 
 - Local-first remains the default runtime mode (Drift on-device), with optional Supabase catalog sync.
-- Backup is implemented as JSON **export/import with merge** (not destructive restore). Export and Import live in **Profile > Dados**.
-- Import conflict handling is item-by-item for workouts/catalog and field-by-field for profile data.
+- **Cloud sync** (Supabase) backs up profile, body metrics, and training data for signed-in users. **Profile > Dados** shows sync status and retry.
 - **Conflict Center** (Profile > Dados > Central de Conflitos) handles runtime duplicate detection for local data:
   - **Local x Verified** pair: user can mark "not duplicate" (suppressed) or "confirmed duplicate" (verified item wins; local is remapped and deleted).
   - **Local x Local** pair: user can mark "not duplicate", "keep A", "keep B", or **attribute-by-attribute merge** (user picks each field, associations are unified, loser is remapped and deleted).
 - Global catalog governance (verified x verified conflicts, rule application across devices) is **out of scope for this project** and will be handled in a separate maintenance project.
 - The local database `schemaVersion` is defined in `lib/core/database/app_database.dart` (history: [release.md](./release.md#database-migrations-drift)). Exercise catalog maintenance: [catalog_exercises.md](./catalog_exercises.md).
-- Automated tests are in place for core backup flows (including duplicate resolution: suppression, confirmDuplicate, mergeAttributes), training/profile repositories, use cases, provider wiring, and error/result contracts.
+- Automated tests cover duplicate resolution (Conflict Center), training/profile repositories, sync engines, provider wiring, and error/result contracts.
 
 ## Modules
 

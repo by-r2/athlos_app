@@ -117,6 +117,37 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
   Future<void> deleteById(int id) =>
       (delete(exercises)..where((e) => e.id.equals(id))).go();
 
+  Future<List<Exercise>> getUserCreated() =>
+      (select(exercises)..where((e) => e.isVerified.equals(false))).get();
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(exercises)..where((e) => e.id.equals(id))).write(
+        ExercisesCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(exercises)..where((e) => e.id.equals(id))).write(
+      ExercisesCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<Exercise?> getByRemoteId(String remoteId) =>
+      (select(exercises)..where((e) => e.remoteId.equals(remoteId)))
+          .getSingleOrNull();
+
+  Future<Exercise?> getByCatalogRemoteId(String catalogRemoteId) =>
+      (select(exercises)
+            ..where((e) => e.catalogRemoteId.equals(catalogRemoteId)))
+          .getSingleOrNull();
+
   // --- Muscle targeting relations ---
 
   Future<List<ExerciseTargetMuscle>> getMuscleFoci(int exerciseId) => (select(

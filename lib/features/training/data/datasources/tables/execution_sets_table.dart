@@ -60,4 +60,10 @@ class ExecutionSets extends Table {
   /// Whether the set was performed unilaterally (one side at a time).
   /// Null means the template default was used (legacy data).
   BoolColumn get isUnilateral => boolean().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

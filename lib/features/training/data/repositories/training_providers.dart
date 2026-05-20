@@ -1,6 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/sync/sync_providers.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../../profile/data/repositories/profile_providers.dart';
 import '../../domain/repositories/cycle_repository.dart';
 import '../../domain/repositories/exercise_repository.dart';
@@ -9,12 +12,7 @@ import '../../domain/repositories/progression_rule_repository.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/repositories/workout_repository.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
-import '../datasources/daos/cycle_step_dao.dart';
-import '../datasources/daos/exercise_dao.dart';
-import '../datasources/daos/program_dao.dart';
-import '../datasources/daos/progression_rule_dao.dart';
-import '../datasources/daos/workout_dao.dart';
-import '../datasources/daos/workout_execution_dao.dart';
+import '../training_dao_providers.dart';
 import 'cycle_repository_impl.dart';
 import 'exercise_repository_impl.dart';
 import 'program_repository_impl.dart';
@@ -24,38 +22,21 @@ import 'workout_repository_impl.dart';
 
 part 'training_providers.g.dart';
 
-// --- DAOs ---
-
-@riverpod
-ExerciseDao exerciseDao(Ref ref) => ExerciseDao(ref.watch(appDatabaseProvider));
-
-@riverpod
-WorkoutDao workoutDao(Ref ref) => WorkoutDao(ref.watch(appDatabaseProvider));
-
-@riverpod
-WorkoutExecutionDao workoutExecutionDao(Ref ref) =>
-    WorkoutExecutionDao(ref.watch(appDatabaseProvider));
-
-@riverpod
-CycleStepDao cycleStepDao(Ref ref) =>
-    CycleStepDao(ref.watch(appDatabaseProvider));
-
-@riverpod
-ProgramDao programDao(Ref ref) => ProgramDao(ref.watch(appDatabaseProvider));
-
-@riverpod
-ProgressionRuleDao progressionRuleDao(Ref ref) =>
-    ProgressionRuleDao(ref.watch(appDatabaseProvider));
-
 // --- Repositories ---
 
 @riverpod
-ExerciseRepository exerciseRepository(Ref ref) =>
-    ExerciseRepositoryImpl(ref.watch(exerciseDaoProvider));
+ExerciseRepository exerciseRepository(Ref ref) => ExerciseRepositoryImpl(
+  ref.watch(exerciseDaoProvider),
+  ref.watch(userOwnedSyncRunnerProvider),
+  ref.watch(syncRecordStoreProvider),
+);
 
 @riverpod
-WorkoutRepository workoutRepository(Ref ref) =>
-    WorkoutRepositoryImpl(ref.watch(workoutDaoProvider));
+WorkoutRepository workoutRepository(Ref ref) => WorkoutRepositoryImpl(
+  ref.watch(workoutDaoProvider),
+  ref.watch(userOwnedSyncRunnerProvider),
+  ref.watch(syncRecordStoreProvider),
+);
 
 @riverpod
 WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>

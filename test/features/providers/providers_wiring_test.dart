@@ -3,6 +3,7 @@ import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/sync/sync_providers.dart';
 import 'package:athlos_app/features/profile/data/repositories/profile_providers.dart';
 import 'package:athlos_app/features/training/data/repositories/training_providers.dart';
+import 'package:athlos_app/features/training/data/training_dao_providers.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,12 +44,7 @@ void main() {
       expect(container.read(userOwnedSyncRunnerProvider), isNotNull);
 
       expect(container.read(localBackupRepositoryProvider), isNotNull);
-      expect(container.read(exportLocalBackupUseCaseProvider), isNotNull);
-      expect(
-        container.read(previewLocalBackupImportUseCaseProvider),
-        isNotNull,
-      );
-      expect(container.read(importLocalBackupUseCaseProvider), isNotNull);
+      expect(container.read(scanRuntimeLocalDuplicatesUseCaseProvider), isNotNull);
     });
   });
 }

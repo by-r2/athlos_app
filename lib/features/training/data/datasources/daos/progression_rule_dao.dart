@@ -44,4 +44,29 @@ class ProgressionRuleDao extends DatabaseAccessor<AppDatabase>
       await batch((b) => b.insertAll(progressionRules, entries));
     }
   }
+
+  Future<List<ProgressionRule>> getAll() => select(progressionRules).get();
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(progressionRules)..where((r) => r.id.equals(id))).write(
+        ProgressionRulesCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(progressionRules)..where((r) => r.id.equals(id))).write(
+      ProgressionRulesCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<ProgressionRule?> getByRemoteId(String remoteId) =>
+      (select(progressionRules)..where((r) => r.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }

@@ -10,4 +10,10 @@ class CycleSteps extends Table {
   IntColumn get programId => integer().references(Programs, #id)();
   IntColumn get orderIndex => integer()();
   IntColumn get workoutId => integer().references(Workouts, #id)();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

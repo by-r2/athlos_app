@@ -99,7 +99,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 38;
+  int get schemaVersion => 39;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -801,8 +801,45 @@ class AppDatabase extends _$AppDatabase {
           'ON sync_records(table_name, remote_id)',
         );
       }
+
+      if (from < 39) {
+        for (final table in [
+          'exercises',
+          'workouts',
+          'programs',
+          'workout_executions',
+          'execution_sets',
+          'progression_rules',
+          'cycle_steps',
+        ]) {
+          if (!await _tableExists(table)) continue;
+          await _addColumnIfNotExists(
+            table: table,
+            column: 'remote_id',
+            definition: 'TEXT',
+          );
+          await _addColumnIfNotExists(
+            table: table,
+            column: 'last_synced_at',
+            definition: 'INTEGER',
+          );
+          await _addColumnIfNotExists(
+            table: table,
+            column: 'local_updated_at',
+            definition: 'INTEGER',
+          );
+        }
+      }
     },
   );
+
+  Future<bool> _tableExists(String table) async {
+    final row = await customSelect(
+      "SELECT 1 AS present FROM sqlite_master "
+      "WHERE type = 'table' AND name = '$table' LIMIT 1",
+    ).getSingleOrNull();
+    return row != null;
+  }
 
   Future<bool> _tableHasColumn(String table, String column) async {
     final rows = await customSelect("PRAGMA table_info('$table')").get();

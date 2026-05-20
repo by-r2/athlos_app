@@ -1,16 +1,11 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../../core/data/repositories/local_backup_providers.dart';
-import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_dialog.dart';
@@ -32,11 +27,13 @@ import '../../domain/enums/gender.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 import '../helpers/profile_l10n.dart';
-import '../helpers/backup_import_flow.dart';
 import '../../domain/entities/body_metric.dart';
 import '../providers/body_metric_notifier.dart';
+import '../../../../core/providers/network_connectivity_provider.dart';
+import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../providers/conflict_center_provider.dart';
 import '../providers/profile_notifier.dart';
+import '../providers/user_cloud_sync_status_provider.dart';
 import '../widgets/aesthetic_selector.dart';
 import '../widgets/experience_selector.dart';
 import '../widgets/owned_equipment_list.dart';
@@ -64,8 +61,6 @@ enum _EditingTab { none, overview, training }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   _EditingTab _editingTab = _EditingTab.none;
-  bool _isExporting = false;
-  bool _isImporting = false;
   bool _isSigningOut = false;
 
   final _formKey = GlobalKey<FormState>();
@@ -497,91 +492,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
             const Gap(AthlosSpacing.md),
-            _SectionHeader(title: l10n.profileDataSectionTitle),
-            const Gap(AthlosSpacing.xs),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AthlosSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l10n.profileDataSectionDescription,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const Gap(AthlosSpacing.sm),
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        dividerColor: Theme.of(
-                          context,
-                        ).colorScheme.surface.withValues(alpha: 0),
-                      ),
-                      child: ExpansionTile(
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: EdgeInsets.zero,
-                        title: Text(
-                          l10n.profileDataBackupLearnMoreTitle,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        children: [
-                          Text(
-                            l10n.profileDataBackupDetails,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Gap(AthlosSpacing.md),
-                    AthlosStackedActions(
-                      spacing: AthlosSpacing.sm,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: _isImporting
-                              ? null
-                              : () => _importData(l10n),
-                          icon: _isImporting
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                  ),
-                                )
-                              : const Icon(Icons.download),
-                          label: Text(l10n.profileDataImportAction),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _isExporting
-                              ? null
-                              : () => _exportData(l10n),
-                          icon: _isExporting
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                )
-                              : const Icon(Icons.upload_file),
-                          label: Text(l10n.profileDataExportAction),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const _CloudSyncStatusCard(),
             const Gap(AthlosSpacing.md),
             _SectionHeader(title: l10n.profileDataConflictsSectionTitle),
             const Gap(AthlosSpacing.xs),
@@ -633,48 +544,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
     } finally {
       if (mounted) setState(() => _isSigningOut = false);
-    }
-  }
-
-  Future<void> _importData(AppLocalizations l10n) async {
-    setState(() => _isImporting = true);
-    try {
-      await runBackupImportFlow(
-        context: context,
-        ref: ref,
-        l10n: l10n,
-        loggerName: 'ProfileScreen',
-      );
-      ref.invalidate(backupConflictCenterProvider);
-    } finally {
-      if (mounted) setState(() => _isImporting = false);
-    }
-  }
-
-  Future<void> _exportData(AppLocalizations l10n) async {
-    setState(() => _isExporting = true);
-    try {
-      final useCase = ref.read(exportLocalBackupUseCaseProvider);
-      final result = await useCase();
-      final exportData = result.getOrThrow();
-
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/${exportData.fileName}');
-      await file.writeAsString(exportData.jsonContent);
-
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: l10n.profileDataExportShareText,
-        ),
-      );
-    } on Exception catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.profileDataExportError)));
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -1471,6 +1340,223 @@ class _BodyMetricsSection extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CloudSyncStatusCard extends ConsumerStatefulWidget {
+  const _CloudSyncStatusCard();
+
+  @override
+  ConsumerState<_CloudSyncStatusCard> createState() =>
+      _CloudSyncStatusCardState();
+}
+
+class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
+  var _isRetrying = false;
+
+  Future<void> _retryCloudSync(AppLocalizations l10n) async {
+    if (!ref.read(isNetworkAvailableForSyncProvider)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileDataCloudSyncOfflineSnack)),
+      );
+      return;
+    }
+
+    setState(() => _isRetrying = true);
+    try {
+      await ref.read(userDataSyncCoordinatorProvider).retryPendingUserDataSync();
+      if (!mounted) return;
+
+      final status = await ref.read(userCloudSyncStatusProvider.future);
+      if (!mounted) return;
+
+      ref.invalidate(userCloudSyncStatusProvider);
+
+      final messenger = ScaffoldMessenger.of(context);
+      if (status.isUpToDate) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.profileDataCloudSyncSuccessSnack)),
+        );
+      } else if (status.hasFailed || status.hasPending) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.profileDataCloudSyncFailedSnack(
+                status.failedCount,
+                status.pendingCount,
+              ),
+            ),
+          ),
+        );
+      }
+    } on Exception catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileDataCloudSyncRetryError)),
+      );
+    } finally {
+      if (mounted) setState(() => _isRetrying = false);
+    }
+  }
+
+  String _formatSyncTimestamp(BuildContext context, DateTime instant) {
+    final locale = Localizations.localeOf(context).toString();
+    return intl.DateFormat('dd/MM/yyyy HH:mm', locale).format(instant.toLocal());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final syncStatusAsync = ref.watch(userCloudSyncStatusProvider);
+    final isOnline = ref.watch(isNetworkAvailableForSyncProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(title: l10n.profileDataCloudSyncSectionTitle),
+        const Gap(AthlosSpacing.xs),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AthlosSpacing.md),
+            child: syncStatusAsync.when(
+              loading: () => const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (_, _) => Text(
+                l10n.profileDataCloudSyncRetryError,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              data: (status) {
+                if (!status.isAvailable) {
+                  return Text(
+                    l10n.profileDataCloudSyncUnavailable,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  );
+                }
+
+                final colorScheme = Theme.of(context).colorScheme;
+                final textTheme = Theme.of(context).textTheme;
+                final statusColor = !isOnline
+                    ? colorScheme.onSurfaceVariant
+                    : status.hasFailed
+                    ? colorScheme.error
+                    : status.hasPending
+                    ? colorScheme.tertiary
+                    : status.isUpToDate
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant;
+                final statusIcon = !isOnline
+                    ? Icons.cloud_off_outlined
+                    : status.hasFailed
+                    ? Icons.cloud_off
+                    : status.hasPending
+                    ? Icons.cloud_sync
+                    : status.isUpToDate
+                    ? Icons.cloud_done_outlined
+                    : Icons.cloud_outlined;
+                final statusLabel = !isOnline
+                    ? l10n.profileDataCloudSyncUnavailable
+                    : status.hasFailed
+                    ? l10n.profileDataCloudSyncFailed(status.failedCount)
+                    : status.hasPending
+                    ? l10n.profileDataCloudSyncPending(status.pendingCount)
+                    : status.isUpToDate
+                    ? l10n.profileDataCloudSyncClear
+                    : l10n.profileDataCloudSyncNeverSynced;
+
+                final lastSuccess = status.lastSuccessfulSyncAt;
+                final lastAttempt = status.lastAttemptAt;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(statusIcon, color: statusColor, size: 22),
+                        const Gap(AthlosSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            statusLabel,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: statusColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Gap(AthlosSpacing.md),
+                    if (lastSuccess != null) ...[
+                      Text(
+                        l10n.profileDataCloudSyncLastSuccessLabel,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Gap(AthlosSpacing.xs),
+                      Text(
+                        _formatSyncTimestamp(context, lastSuccess),
+                        style: textTheme.titleSmall,
+                      ),
+                    ] else
+                      Text(
+                        l10n.profileDataCloudSyncNeverSynced,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    if (lastAttempt != null &&
+                        lastSuccess != null &&
+                        lastAttempt.difference(lastSuccess).inSeconds.abs() > 2) ...[
+                      const Gap(AthlosSpacing.sm),
+                      Text(
+                        l10n.profileDataCloudSyncLastAttemptLabel,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Gap(AthlosSpacing.xs),
+                      Text(
+                        _formatSyncTimestamp(context, lastAttempt),
+                        style: textTheme.bodySmall,
+                      ),
+                    ],
+                    if (!isOnline) ...[
+                      const Gap(AthlosSpacing.sm),
+                      Text(
+                        l10n.profileDataCloudSyncUnavailable,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const Gap(AthlosSpacing.md),
+                    OutlinedButton.icon(
+                      onPressed: _isRetrying || !isOnline
+                          ? null
+                          : () => _retryCloudSync(l10n),
+                      icon: _isRetrying
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.cloud_sync),
+                      label: Text(l10n.profileDataCloudSyncRetryAction),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

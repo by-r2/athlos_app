@@ -314,4 +314,56 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
     await deleteSegments(executionSetId);
     await insertSegments(entries);
   }
+
+  Future<List<WorkoutExecution>> getAllForSync() =>
+      select(workoutExecutions).get();
+
+  Future<List<ExecutionSet>> getAllSetsForSync() =>
+      select(executionSets).get();
+
+  Future<void> markExecutionSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(workoutExecutions)..where((e) => e.id.equals(id))).write(
+        WorkoutExecutionsCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markExecutionLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(workoutExecutions)..where((e) => e.id.equals(id))).write(
+      WorkoutExecutionsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<WorkoutExecution?> getExecutionByRemoteId(String remoteId) =>
+      (select(workoutExecutions)..where((e) => e.remoteId.equals(remoteId)))
+          .getSingleOrNull();
+
+  Future<void> markSetSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(executionSets)..where((s) => s.id.equals(id))).write(
+        ExecutionSetsCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markSetLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(executionSets)..where((s) => s.id.equals(id))).write(
+      ExecutionSetsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<ExecutionSet?> getSetByRemoteId(String remoteId) =>
+      (select(executionSets)..where((s) => s.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }

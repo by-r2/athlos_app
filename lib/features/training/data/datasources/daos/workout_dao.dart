@@ -117,4 +117,27 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
       await into(workoutExercises).insert(entry);
     }
   }
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(workouts)..where((w) => w.id.equals(id))).write(
+        WorkoutsCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(workouts)..where((w) => w.id.equals(id))).write(
+      WorkoutsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<Workout?> getByRemoteId(String remoteId) =>
+      (select(workouts)..where((w) => w.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }

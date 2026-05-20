@@ -6,6 +6,7 @@ import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/user_profile_remote_data_source.dart';
 import '../../features/profile/data/sync/body_metric_sync_adapter.dart';
 import '../../features/profile/data/sync/user_profile_sync_adapter.dart';
+import '../../features/training/data/sync/training_sync_providers.dart';
 import '../database/app_database.dart';
 import '../database/daos/sync_record_dao.dart';
 import 'sync_record_store.dart';
@@ -50,6 +51,8 @@ UserOwnedSingletonSyncEngine userProfileSingletonSyncEngine(Ref ref) =>
 UserOwnedSyncRegistry userOwnedSyncRegistry(Ref ref) => UserOwnedSyncRegistry([
   ref.watch(userProfileSingletonSyncEngineProvider),
   ref.watch(bodyMetricCollectionSyncEngineProvider),
+  ref.watch(userExerciseCollectionSyncEngineProvider),
+  ref.watch(userWorkoutCollectionSyncEngineProvider),
 ]);
 
 @Riverpod(keepAlive: true)

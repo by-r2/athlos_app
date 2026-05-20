@@ -3,6 +3,10 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/sync_record_store.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/sync_id.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/exercise.dart' as domain;
 import '../../domain/enums/exercise_type.dart';
 import '../../domain/enums/load_mode.dart';
@@ -15,9 +19,15 @@ import '../../domain/repositories/exercise_repository.dart';
 import '../datasources/daos/exercise_dao.dart';
 
 class ExerciseRepositoryImpl implements ExerciseRepository {
-  final ExerciseDao _dao;
+  ExerciseRepositoryImpl(
+    this._dao,
+    this._syncRunner,
+    this._syncStore,
+  );
 
-  ExerciseRepositoryImpl(this._dao);
+  final ExerciseDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final SyncRecordStore _syncStore;
 
   @override
   Future<Result<List<domain.Exercise>>> getAll() async {
@@ -152,6 +162,10 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       if (muscles.isNotEmpty) {
         await _dao.setMuscleFoci(id, muscles);
       }
+      if (!exercise.isVerified) {
+        await _dao.markLocalDirty(id);
+        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
+      }
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create exercise: $e'));
@@ -188,6 +202,10 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
       if (muscles != null) {
         await _dao.setMuscleFoci(exercise.id, muscles);
       }
+      if (!exercise.isVerified) {
+        await _dao.markLocalDirty(exercise.id);
+        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
+      }
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update exercise: $e'));
@@ -197,7 +215,28 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   @override
   Future<Result<void>> delete(int id) async {
     try {
-      await _dao.deleteById(id);
+      final row = await _dao.getById(id);
+      if (row != null && !row.isVerified) {
+        final record = await _syncStore.getByLocalId(
+          tableName: TrainingSyncTableNames.userExercises,
+          localId: id,
+        );
+        final remoteId = record?.remoteId ?? row.remoteId;
+        final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
+        if (remoteId != null || record != null) {
+          await _syncStore.markTombstone(
+            tableName: TrainingSyncTableNames.userExercises,
+            localId: id,
+            syncId: syncId,
+            remoteId: remoteId,
+            remoteUserId: record?.remoteUserId,
+          );
+        }
+        await _dao.deleteById(id);
+        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
+      } else {
+        await _dao.deleteById(id);
+      }
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete exercise $id: $e'));

@@ -3,4 +3,5 @@ enum SyncTrigger {
   sessionChange,
   resume,
   mutation,
+  connectivity,
 }

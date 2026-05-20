@@ -35,7 +35,7 @@ void main() {
       final versionRow = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(versionRow.data['user_version'], 38);
+      expect(versionRow.data['user_version'], 39);
 
       final profileColumns = await db
           .customSelect("PRAGMA table_info('user_profiles')")

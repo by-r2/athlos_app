@@ -16,4 +16,10 @@ class Programs extends Table {
   RealColumn get deloadIntensityMultiplier => real().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get archivedAt => dateTime().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

@@ -34,4 +34,10 @@ class Exercises extends Table {
   /// True for isometric exercises measured in duration rather than reps
   /// (plank, wall sit, dead hang, L-sit, etc.).
   BoolColumn get isIsometric => boolean().withDefault(const Constant(false))();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

@@ -13,4 +13,10 @@ class ProgressionRules extends Table {
   TextColumn get frequency => text()();
   TextColumn get condition => text().nullable()();
   RealColumn get conditionValue => real().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

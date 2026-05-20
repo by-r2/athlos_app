@@ -14,4 +14,10 @@ class WorkoutExecutions extends Table {
   /// Preserves the template state so history remains accurate even if the
   /// workout is edited later.
   TextColumn get exerciseConfigSnapshot => text().nullable()();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

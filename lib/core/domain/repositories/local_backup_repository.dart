@@ -1,13 +1,8 @@
 import '../../errors/result.dart';
 import '../entities/local_backup_models.dart';
 
+/// Runtime duplicate detection and resolution (Conflict Center).
 abstract interface class LocalBackupRepository {
-  Future<Result<BackupExportData>> exportBackup();
-
-  Future<Result<BackupImportPreview>> previewImport(String jsonContent);
-
-  Future<Result<BackupImportReport>> importBackup(BackupImportRequest request);
-
   Future<Result<List<BackupPendingReview>>> scanRuntimeLocalDuplicates();
 
   Future<Result<void>> resolveRuntimeDuplicate({

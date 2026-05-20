@@ -70,4 +70,27 @@ class ProgramDao extends DatabaseAccessor<AppDatabase> with _$ProgramDaoMixin {
     final row = await query.getSingle();
     return row.read(count) ?? 0;
   }
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) =>
+      (update(programs)..where((p) => p.id.equals(id))).write(
+        ProgramsCompanion(
+          remoteId: Value(remoteId),
+          lastSyncedAt: Value(syncedAt),
+        ),
+      );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(programs)..where((p) => p.id.equals(id))).write(
+      ProgramsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<Program?> getByRemoteId(String remoteId) =>
+      (select(programs)..where((p) => p.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }
