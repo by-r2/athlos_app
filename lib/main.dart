@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'core/providers/last_module_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/services/catalog_sync_service.dart';
 import 'core/services/supabase_config.dart';
+import 'core/services/user_data_sync_coordinator.dart';
 import 'core/theme/athlos_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
 
@@ -29,7 +31,7 @@ void main() async {
   );
 
   if (isSupabaseConfigured) {
-    container.read(catalogSyncServiceProvider).sync();
+    await container.read(catalogSyncServiceProvider).sync();
   }
 
   runApp(
@@ -52,6 +54,12 @@ class _AthlosAppState extends ConsumerState<AthlosApp> {
     super.initState();
     _appLifecycleListener = AppLifecycleListener(
       onExitRequested: () async => AppExitResponse.cancel,
+      onResume: () {
+        if (!isSupabaseConfigured) return;
+        unawaited(
+          ref.read(userDataSyncCoordinatorProvider).retryPendingUserDataSync(),
+        );
+      },
     );
   }
 

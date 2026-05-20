@@ -28,6 +28,9 @@ class BodyMetricDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  Future<BodyMetric?> getById(int id) =>
+      (select(bodyMetrics)..where((m) => m.id.equals(id))).getSingleOrNull();
+
   Future<int> create(BodyMetricsCompanion entry) =>
       into(bodyMetrics).insert(entry);
 
@@ -36,4 +39,26 @@ class BodyMetricDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deleteMetric(int id) =>
       (delete(bodyMetrics)..where((m) => m.id.equals(id))).go();
+
+  Future<void> markSynced({
+    required int id,
+    required String remoteId,
+    required DateTime syncedAt,
+  }) => (update(bodyMetrics)..where((m) => m.id.equals(id))).write(
+    BodyMetricsCompanion(
+      remoteId: Value(remoteId),
+      lastSyncedAt: Value(syncedAt),
+    ),
+  );
+
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(bodyMetrics)..where((m) => m.id.equals(id))).write(
+      BodyMetricsCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
+  Future<BodyMetric?> getByRemoteId(String remoteId) =>
+      (select(bodyMetrics)..where((m) => m.remoteId.equals(remoteId)))
+          .getSingleOrNull();
 }

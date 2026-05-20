@@ -29,6 +29,13 @@ class UserProfileDao extends DatabaseAccessor<AppDatabase>
     ),
   );
 
+  Future<void> markLocalDirty(int id) {
+    final now = DateTime.now().toUtc();
+    return (update(userProfiles)..where((p) => p.id.equals(id))).write(
+      UserProfilesCompanion(localUpdatedAt: Value(now)),
+    );
+  }
+
   Future<bool> hasProfile() async {
     final count =
         await (selectOnly(userProfiles)..addColumns([userProfiles.id.count()]))

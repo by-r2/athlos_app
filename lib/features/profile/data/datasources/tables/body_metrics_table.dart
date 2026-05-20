@@ -6,4 +6,10 @@ class BodyMetrics extends Table {
   RealColumn get weight => real()();
   RealColumn get bodyFatPercent => real().nullable()();
   DateTimeColumn get recordedAt => dateTime().withDefault(currentDateAndTime)();
+
+  TextColumn get remoteId => text().nullable()();
+
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
+
+  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
 }

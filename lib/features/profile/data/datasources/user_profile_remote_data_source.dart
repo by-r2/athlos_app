@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/services/supabase_config.dart';
 import '../../domain/entities/user_profile.dart';
+import 'user_profile_remote_sync_gateway.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
 import '../../domain/enums/gender.dart';
@@ -10,7 +11,7 @@ import '../../domain/enums/selected_module.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 
-class UserProfileRemoteDataSource {
+class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
   static const _table = 'user_profiles';
 
   supabase.SupabaseClient? get _client =>

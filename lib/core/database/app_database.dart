@@ -11,6 +11,7 @@ import 'tables/catalog_governance_applied_rules_table.dart';
 import 'tables/catalog_governance_events_table.dart';
 import 'tables/local_duplicate_feedback_table.dart';
 import 'tables/sync_records_table.dart';
+import 'daos/sync_record_dao.dart';
 import '../../features/profile/data/datasources/daos/body_metric_dao.dart';
 import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/tables/body_metrics_table.dart';
@@ -81,6 +82,7 @@ const _skipDevSeed = bool.fromEnvironment('SKIP_DEV_SEED');
     CycleStepDao,
     UserProfileDao,
     BodyMetricDao,
+    SyncRecordDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -97,12 +99,16 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS sync_records_table_remote_id_idx '
+        'ON sync_records(table_name, remote_id)',
+      );
       await seedExercises(this);
       if (_shouldSeedDevData) await seedDevData(this);
     },
@@ -748,16 +754,79 @@ class AppDatabase extends _$AppDatabase {
       }
 
       if (from < 36) {
-        await customStatement(
-          'ALTER TABLE user_profiles ADD COLUMN remote_user_id TEXT',
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'remote_user_id',
+          definition: 'TEXT',
+        );
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'last_synced_at',
+          definition: 'INTEGER',
+        );
+        await _createTableIfNotExists(m, syncRecords);
+      }
+
+      if (from < 37) {
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'remote_id',
+          definition: 'TEXT',
+        );
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'last_synced_at',
+          definition: 'INTEGER',
+        );
+      }
+
+      if (from < 38) {
+        await _addColumnIfNotExists(
+          table: 'user_profiles',
+          column: 'local_updated_at',
+          definition: 'INTEGER',
+        );
+        await _addColumnIfNotExists(
+          table: 'body_metrics',
+          column: 'local_updated_at',
+          definition: 'INTEGER',
+        );
+        await _addColumnIfNotExists(
+          table: 'sync_records',
+          column: 'last_pushed_at',
+          definition: 'INTEGER',
         );
         await customStatement(
-          'ALTER TABLE user_profiles ADD COLUMN last_synced_at INTEGER',
+          'CREATE INDEX IF NOT EXISTS sync_records_table_remote_id_idx '
+          'ON sync_records(table_name, remote_id)',
         );
-        await m.createTable(syncRecords);
       }
     },
   );
+
+  Future<bool> _tableHasColumn(String table, String column) async {
+    final rows = await customSelect("PRAGMA table_info('$table')").get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  Future<void> _addColumnIfNotExists({
+    required String table,
+    required String column,
+    required String definition,
+  }) async {
+    if (await _tableHasColumn(table, column)) return;
+    await customStatement('ALTER TABLE $table ADD COLUMN $column $definition');
+  }
+
+  Future<void> _createTableIfNotExists(Migrator m, TableInfo table) async {
+    final tableName = table.actualTableName;
+    final exists = await customSelect(
+      "SELECT 1 AS present FROM sqlite_master "
+      "WHERE type = 'table' AND name = '$tableName' LIMIT 1",
+    ).getSingleOrNull();
+    if (exists != null) return;
+    await m.createTable(table);
+  }
 }
 
 @Riverpod(keepAlive: true)
