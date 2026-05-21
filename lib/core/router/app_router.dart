@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/auth/presentation/providers/auth_notifier.dart';
+import '../../features/auth/presentation/providers/auth_password_recovery_listener.dart';
 import '../../features/auth/presentation/screens/account_prompt_screen.dart';
 import '../../features/auth/presentation/screens/auth_email_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
@@ -38,12 +39,15 @@ GoRouter appRouter(Ref ref) {
   final refreshNotifier = ValueNotifier<int>(0);
   ref.watch(userDataCloudSyncConnectivityListenerProvider);
   ref.watch(sessionBootstrapListenerProvider);
+  ref.watch(authPasswordRecoveryListenerProvider);
+  final navigatorKey = ref.read(passwordRecoveryNavigatorKeyProvider);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
   ref.listen(sessionBootstrapProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: RoutePaths.splash,
     refreshListenable: refreshNotifier,
     redirect: (context, state) {

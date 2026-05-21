@@ -98,5 +98,13 @@ class _StubAuthRepository implements AuthRepository {
       const Success(null);
 
   @override
+  Future<Result<void>> sendPasswordResetEmail({required String email}) async =>
+      const Success(null);
+
+  @override
+  Future<Result<void>> updatePassword({required String newPassword}) async =>
+      const Success(null);
+
+  @override
   Future<Result<void>> signOut() async => const Success(null);
 }

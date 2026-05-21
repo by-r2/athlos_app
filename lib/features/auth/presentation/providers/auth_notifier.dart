@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/app_exception.dart';
@@ -17,9 +18,12 @@ class AuthNotifier extends _$AuthNotifier {
   Future<AuthUser?> build() async {
     final repository = ref.watch(authRepositoryProvider);
     final result = await repository.currentUser();
-    final subscription = repository.authStateChanges().listen((user) {
-      state = AsyncData(user);
-    });
+    final subscription = repository.authStateChanges().listen(
+      (user) => state = AsyncData(user),
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('[Auth] authStateChanges error: $error');
+      },
+    );
     ref.onDispose(subscription.cancel);
 
     return result.getOrThrow();

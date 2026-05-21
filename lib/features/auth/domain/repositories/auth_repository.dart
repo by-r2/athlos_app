@@ -19,5 +19,9 @@ abstract interface class AuthRepository {
 
   Future<Result<void>> signInWithSocialProvider(SocialAuthProvider provider);
 
+  Future<Result<void>> sendPasswordResetEmail({required String email});
+
+  Future<Result<void>> updatePassword({required String newPassword});
+
   Future<Result<void>> signOut();
 }

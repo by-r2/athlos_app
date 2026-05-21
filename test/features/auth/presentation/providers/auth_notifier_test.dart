@@ -188,6 +188,14 @@ class _FakeAuthRepository implements AuthRepository {
   ) async => const Success(null);
 
   @override
+  Future<Result<void>> sendPasswordResetEmail({required String email}) async =>
+      const Success(null);
+
+  @override
+  Future<Result<void>> updatePassword({required String newPassword}) async =>
+      const Success(null);
+
+  @override
   Future<Result<void>> signOut() async {
     _currentUser = null;
     _controller.add(null);

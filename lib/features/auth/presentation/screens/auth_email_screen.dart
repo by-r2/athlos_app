@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/errors/result.dart';
 import '../../../../core/providers/internet_connection_provider.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/supabase_config.dart';
@@ -12,6 +13,7 @@ import '../../../../core/theme/athlos_durations.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../data/repositories/auth_providers.dart';
 import '../../domain/entities/auth_error_code.dart';
 import '../providers/auth_notifier.dart';
 import '../widgets/athlos_auth_scaffold.dart';
@@ -103,6 +105,16 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
     if (error is NetworkException) return l10n.authNetworkError;
     if (error is AppException) return l10n.authGenericError;
     return l10n.authGenericError;
+  }
+
+  void _showForgotPasswordDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _ForgotPasswordDialog(
+        initialEmail: _emailController.text.trim(),
+        ref: ref,
+      ),
+    );
   }
 
   Future<void> _submitSignIn() async {
@@ -409,21 +421,37 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
                 onFieldSubmitted: (_) => _submitSignIn(),
               ),
               const Gap(AthlosSpacing.xl),
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submitSignIn,
-                child: _isSubmitting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(l10n.authSignInAction),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _isSubmitting ? null : _submitSignIn,
+                  child: _isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(l10n.authSignInAction),
+                ),
               ),
               const Gap(AthlosSpacing.sm),
-              TextButton(
-                onPressed: _isSubmitting
-                    ? null
-                    : () => context.go(RoutePaths.authSignUp),
-                child: Text(l10n.authNoAccountAction),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => _showForgotPasswordDialog(),
+                  child: Text(l10n.authForgotPasswordAction),
+                ),
+              ),
+              const Gap(AthlosSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => context.go(RoutePaths.authSignUp),
+                  child: Text(l10n.authNoAccountAction),
+                ),
               ),
             ],
           ),
@@ -592,6 +620,119 @@ class _SignUpInputBar extends StatelessWidget {
                   ],
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class _ForgotPasswordDialog extends StatefulWidget {
+  const _ForgotPasswordDialog({
+    required this.initialEmail,
+    required this.ref,
+  });
+
+  final String initialEmail;
+  final WidgetRef ref;
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  late final TextEditingController _emailController;
+  bool _isSending = false;
+  bool _sent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendResetEmail() async {
+    final l10n = AppLocalizations.of(context)!;
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) return;
+
+    setState(() => _isSending = true);
+    try {
+      final result = await widget.ref
+          .read(authRepositoryProvider)
+          .sendPasswordResetEmail(email: email);
+      result.getOrThrow();
+      if (!mounted) return;
+      setState(() => _sent = true);
+    } on Object catch (error) {
+      debugPrint('[ForgotPassword] error: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.authForgotPasswordError)),
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_sent) {
+      return AlertDialog(
+        title: Text(l10n.authForgotPasswordTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.authForgotPasswordSuccess),
+            const Gap(AthlosSpacing.lg),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AlertDialog(
+      title: Text(l10n.authForgotPasswordTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.authForgotPasswordDescription),
+          const Gap(AthlosSpacing.md),
+          TextField(
+            controller: _emailController,
+            enabled: !_isSending,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: InputDecoration(labelText: l10n.authEmailLabel),
+            onSubmitted: (_) => _sendResetEmail(),
+          ),
+          const Gap(AthlosSpacing.lg),
+          FilledButton(
+            onPressed: _isSending ? null : _sendResetEmail,
+            child: _isSending
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(l10n.authForgotPasswordSendAction),
+          ),
+          const Gap(AthlosSpacing.sm),
+          TextButton(
+            onPressed: _isSending ? null : () => Navigator.of(context).pop(),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../../../core/errors/app_exception.dart';
@@ -120,6 +121,47 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
       return Failure(AuthAppException(_mapAuthException(e)));
     } on Exception catch (e) {
       return Failure(NetworkException('Failed to start social sign-in: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> sendPasswordResetEmail({required String email}) async {
+    final client = _client;
+    if (client == null) {
+      return const Failure(AuthAppException(AuthErrorCode.generic));
+    }
+
+    try {
+      await client.auth.resetPasswordForEmail(
+        _normalizeEmail(email),
+        redirectTo: supabaseRedirectUrl,
+      );
+      return const Success(null);
+    } on supabase.AuthException catch (e) {
+      debugPrint('[Auth] resetPassword AuthException: ${e.message} | code: ${e.statusCode}');
+      return Failure(AuthAppException(_mapAuthException(e)));
+    } on Exception catch (e) {
+      debugPrint('[Auth] resetPassword Exception: $e');
+      return Failure(NetworkException('Failed to send password reset: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> updatePassword({required String newPassword}) async {
+    final client = _client;
+    if (client == null) {
+      return const Failure(AuthAppException(AuthErrorCode.generic));
+    }
+
+    try {
+      await client.auth.updateUser(
+        supabase.UserAttributes(password: newPassword),
+      );
+      return const Success(null);
+    } on supabase.AuthException catch (e) {
+      return Failure(AuthAppException(_mapAuthException(e)));
+    } on Exception catch (e) {
+      return Failure(NetworkException('Failed to update password: $e'));
     }
   }
 

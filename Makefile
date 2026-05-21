@@ -14,6 +14,7 @@ SEED ?= 1
 DART_DEFINES = \
 	--dart-define=SUPABASE_URL=$(SUPABASE_URL) \
 	--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY) \
+	--dart-define=SUPABASE_REDIRECT_URL=$(or $(SUPABASE_REDIRECT_URL),athlos://auth-callback) \
 	--dart-define=GEMINI_API_KEY=$(GEMINI_API_KEY)
 
 _SEED_DEFINE = $(if $(filter 0,$(SEED)),--dart-define=SKIP_DEV_SEED=true)
