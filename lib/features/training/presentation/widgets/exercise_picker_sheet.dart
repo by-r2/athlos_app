@@ -30,13 +30,20 @@ Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => DraggableScrollableSheet(
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.85,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) =>
-            _ExercisePickerBody(scrollController: scrollController),
+        builder: (context, scrollController) => Material(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AthlosRadius.lg),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: _ExercisePickerBody(scrollController: scrollController),
+        ),
       ),
     );
 
