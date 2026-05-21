@@ -5,7 +5,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../providers/network_connectivity_provider.dart';
 import '../../features/profile/presentation/providers/user_cloud_sync_status_provider.dart';
-import 'account_data_isolation_service.dart';
 import 'cloud_sync_prefs.dart';
 import '../services/supabase_config.dart';
 import '../sync/sync_trigger.dart';
@@ -13,7 +12,6 @@ import '../sync/sync_providers.dart';
 import '../../features/profile/presentation/providers/body_metric_notifier.dart';
 import '../../features/profile/presentation/providers/body_metrics_dashboard_provider.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
-import '../../features/auth/domain/entities/auth_user.dart';
 import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/training/presentation/providers/active_execution_notifier.dart';
 import '../../features/training/presentation/providers/exercise_notifier.dart';
@@ -78,39 +76,6 @@ class UserDataSyncCoordinator {
 @Riverpod(keepAlive: true)
 UserDataSyncCoordinator userDataSyncCoordinator(Ref ref) =>
     UserDataSyncCoordinator(ref);
-
-@Riverpod(keepAlive: true)
-void userDataCloudSyncListener(Ref ref) {
-  ref.watch(networkConnectivityProvider);
-  ref.listen(authProvider, (previous, next) {
-    final previousUser = previous?.value;
-    final nextUser = next.value;
-    if (previousUser?.id == nextUser?.id) return;
-
-    unawaited(_onAuthSessionChanged(ref, previousUser, nextUser));
-  });
-}
-
-Future<void> _onAuthSessionChanged(
-  Ref ref,
-  AuthUser? previousUser,
-  AuthUser? nextUser,
-) async {
-  try {
-    if (nextUser != null) {
-      final isolation = ref.read(accountDataIsolationServiceProvider);
-      if (await isolation.hasOrphanedUserData()) {
-        await isolation.claimOrphanedData(nextUser.id);
-        await isolation.markAllDirtyForUser(nextUser.id);
-      }
-      await isolation.purgeStaleProfiles(nextUser.id);
-    }
-
-    await ref.read(userDataSyncCoordinatorProvider).reconcileOnSessionChange();
-  } on Exception catch (e) {
-    debugPrint('[UserDataSync] session change handling failed: $e');
-  }
-}
 
 @Riverpod(keepAlive: true)
 void userDataCloudSyncConnectivityListener(Ref ref) {

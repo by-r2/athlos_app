@@ -4,6 +4,7 @@ String? resolveAppEntryRedirect({
   required String location,
   required bool isAuthLoading,
   required bool isProfileLoading,
+  required bool isSessionBootstrapping,
   required bool hasAuthUser,
   required bool hasProfile,
 }) {
@@ -16,6 +17,10 @@ String? resolveAppEntryRedirect({
 
   if (isAuthLoading || isProfileLoading) {
     return isOnSplash || isOnAuthRoute ? null : RoutePaths.splash;
+  }
+
+  if (isSessionBootstrapping) {
+    return isOnSplash ? null : RoutePaths.splash;
   }
 
   if (isOnSplash) {

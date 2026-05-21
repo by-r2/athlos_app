@@ -22,6 +22,7 @@ import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import '../providers/session_bootstrap_provider.dart';
 import '../services/user_data_sync_coordinator.dart';
 import 'app_entry_decision.dart';
 import 'athlos_router_pages.dart';
@@ -35,10 +36,11 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
-  ref.watch(userDataCloudSyncListenerProvider);
   ref.watch(userDataCloudSyncConnectivityListenerProvider);
+  ref.watch(sessionBootstrapListenerProvider);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
+  ref.listen(sessionBootstrapProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
@@ -48,13 +50,18 @@ GoRouter appRouter(Ref ref) {
       final hasProfileAsync = ref.read(hasProfileProvider);
       final authAsync = ref.read(authProvider);
       final location = state.matchedLocation;
-      final hasProfile = hasProfileAsync.value ?? false;
+      final hasAuthUser = authAsync.value != null;
+      final isSessionBootstrapping =
+          hasAuthUser && !ref.read(sessionBootstrapProvider);
+      final hasProfile =
+          !isSessionBootstrapping && (hasProfileAsync.value ?? false);
 
       final redirect = resolveAppEntryRedirect(
         location: location,
         isAuthLoading: authAsync.isLoading,
         isProfileLoading: hasProfileAsync.isLoading,
-        hasAuthUser: authAsync.value != null,
+        isSessionBootstrapping: isSessionBootstrapping,
+        hasAuthUser: hasAuthUser,
         hasProfile: hasProfile,
       );
       if (redirect != null) return redirect;
