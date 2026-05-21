@@ -329,7 +329,7 @@ class TrainingSyncStore {
           ..where((seg) => seg.executionSetId.equals(setId)))
         .go();
     for (final segment in segments) {
-      await _db.into(_db.executionSetSegments).insert(segment);
+      await _db.into(_db.executionSetSegments).insertOnConflictUpdate(segment);
     }
   }
 
