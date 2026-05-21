@@ -343,8 +343,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       subtitle: l10n.appTitle,
       showBackButton: true,
       onBackPressed: _goBack,
-      heroHeightFactor: 0.3,
-      symbolSize: 108,
+      preset: AthlosAuthHeroPreset.flow,
       child: AthlosAuthCheckingPanel(message: l10n.authCheckingSession),
     );
   }
@@ -352,11 +351,11 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
   Widget _buildOfflineAuth(AppLocalizations l10n) {
     return AthlosAuthScaffold(
       title: l10n.appTitle,
-      subtitle: l10n.authPromptSubtitle,
+      tagline: l10n.authPromptTagline,
+      brandTitle: true,
       showBackButton: true,
       onBackPressed: _goBack,
-      heroHeightFactor: 0.34,
-      symbolSize: 116,
+      preset: AthlosAuthHeroPreset.welcome,
       child: AthlosAuthOfflinePanel(message: l10n.authRequiresInternetMessage),
     );
   }
@@ -367,8 +366,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       subtitle: l10n.appTitle,
       showBackButton: true,
       onBackPressed: _goBack,
-      heroHeightFactor: 0.31,
-      symbolSize: 112,
+      preset: AthlosAuthHeroPreset.flow,
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -441,8 +439,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       subtitle: l10n.appTitle,
       showBackButton: true,
       onBackPressed: _goBack,
-      heroHeightFactor: 0.25,
-      symbolSize: 88,
+      preset: AthlosAuthHeroPreset.chat,
       panelPadding: EdgeInsets.zero,
       child: Column(
         children: [
@@ -451,7 +448,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
               controller: _chatScrollController,
               padding: const EdgeInsets.fromLTRB(
                 AthlosSpacing.md,
-                AthlosSpacing.xl,
+                AthlosSpacing.md,
                 AthlosSpacing.md,
                 AthlosSpacing.sm,
               ),
@@ -459,7 +456,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
               itemBuilder: (context, index) {
                 final entry = _chatEntries[index];
                 return AthlosChatBubble(
-                  key: ValueKey(index),
+                  key: ValueKey('signup-chat-$index'),
                   text: entry.text,
                   isUser: entry.isUser,
                   isEditing: _editingIndex == index,
@@ -582,13 +579,13 @@ class _SignUpInputBar extends StatelessWidget {
                       ),
                     ),
                     const Gap(AthlosSpacing.sm),
-                    IconButton.filledTonal(
+                    IconButton.filled(
                       onPressed: isSubmitting
                           ? null
                           : () => onSubmitted(controller.text),
                       style: IconButton.styleFrom(
                         backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onSurface,
+                        foregroundColor: colorScheme.onPrimary,
                       ),
                       icon: const Icon(Icons.send, size: 20),
                     ),

@@ -2592,25 +2592,13 @@
   "@navigateAwayChironStayAction": {
     "description": "Stay on Chiron sheet"
   },
-  "authPromptTitle": "Bem-vindo",
-  "@authPromptTitle": {
-    "description": "Title for the account prompt after updating to auth-enabled version"
+  "authPromptTagline": "Treine como um herói",
+  "@authPromptTagline": {
+    "description": "Brand tagline on auth welcome hero"
   },
-  "authPromptSubtitle": "Entre, crie sua conta ou continue usando offline.",
-  "@authPromptSubtitle": {
-    "description": "Subtitle explaining cloud account benefits and local data migration"
-  },
-  "authPromptBackupBenefit": "Guarde seus treinos na sua conta.",
-  "@authPromptBackupBenefit": {
-    "description": "Account prompt benefit: backup"
-  },
-  "authPromptSecurityBenefit": "Entre com segurança usando e-mail e senha.",
-  "@authPromptSecurityBenefit": {
-    "description": "Account prompt benefit: security"
-  },
-  "authPromptSyncBenefit": "Continue usando offline se preferir.",
-  "@authPromptSyncBenefit": {
-    "description": "Account prompt benefit: gradual sync"
+  "authPromptMessage": "Entre ou crie sua conta para continuar.",
+  "@authPromptMessage": {
+    "description": "Short message on account prompt panel above actions"
   },
   "authCreateAccountAction": "Criar conta",
   "@authCreateAccountAction": {
@@ -2630,11 +2618,11 @@
   },
   "authContinueLocalAction": "Continuar offline",
   "@authContinueLocalAction": {
-    "description": "Temporary action to keep using local mode"
+    "description": "Deprecated: local-only mode removed"
   },
-  "authOfflineModeMessage": "Você está sem internet, acessando no modo offline.",
+  "authOfflineModeMessage": "Sem conexão com a internet no momento.",
   "@authOfflineModeMessage": {
-    "description": "Message shown when auth cannot be offered because there is no internet connection"
+    "description": "Deprecated: shown when device has no connectivity"
   },
   "authRequiresInternetMessage": "Conecte-se à internet para entrar ou criar uma conta.",
   "@authRequiresInternetMessage": {
@@ -2652,11 +2640,11 @@
   "@authSignInEmailSubtitle": {
     "description": "Subtitle for the email sign-in form"
   },
-  "authSignUpEmailSubtitle": "Crie uma conta com e-mail e senha. Você ainda pode usar seus dados locais no aparelho.",
+  "authSignUpEmailSubtitle": "Crie sua conta com e-mail e senha. Os dados deste aparelho serão vinculados a ela.",
   "@authSignUpEmailSubtitle": {
     "description": "Subtitle for the email sign-up form"
   },
-  "authSignUpChatGreeting": "Vamos criar sua conta em poucos passos.",
+  "authSignUpChatGreeting": "Vamos criar sua conta. Seus treinos deste aparelho serão salvos nela.",
   "@authSignUpChatGreeting": {
     "description": "Chat-style sign-up greeting"
   },
@@ -2772,7 +2760,7 @@
       "email": { "type": "String" }
     }
   },
-  "authNotSignedIn": "Você ainda está usando dados locais neste aparelho.",
+  "authNotSignedIn": "Nenhuma sessão ativa.",
   "@authNotSignedIn": {
     "description": "Not signed-in account label"
   },

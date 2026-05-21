@@ -51,81 +51,77 @@ class AccountPromptScreen extends ConsumerWidget {
     final isBusy = authState.isLoading;
 
     return internetState.when(
-      loading: () => AthlosAuthScaffold(
-        title: l10n.appTitle,
-        subtitle: l10n.authPromptSubtitle,
-        heroHeightFactor: 0.38,
-        symbolSize: 132,
+      loading: () => _authScaffold(
+        l10n,
         child: AthlosAuthCheckingPanel(message: l10n.authCheckingSession),
       ),
-      error: (_, _) => AthlosAuthScaffold(
-        title: l10n.appTitle,
-        subtitle: l10n.authPromptSubtitle,
-        heroHeightFactor: 0.38,
-        symbolSize: 132,
+      error: (_, _) => _authScaffold(
+        l10n,
         child: AthlosAuthOfflinePanel(message: l10n.authRequiresInternetMessage),
       ),
       data: (hasInternet) {
         if (!hasInternet) {
-          return AthlosAuthScaffold(
-            title: l10n.appTitle,
-            subtitle: l10n.authPromptSubtitle,
-            heroHeightFactor: 0.38,
-            symbolSize: 132,
+          return _authScaffold(
+            l10n,
             child: AthlosAuthOfflinePanel(
               message: l10n.authRequiresInternetMessage,
             ),
           );
         }
 
-        return AthlosAuthScaffold(
-          title: l10n.appTitle,
-          subtitle: l10n.authPromptSubtitle,
-          heroHeightFactor: 0.37,
-          symbolSize: 132,
+        return _authScaffold(
+          l10n,
           child: _AuthChoicePanel(
-            title: l10n.authPromptTitle,
-            benefits: [
-              l10n.authPromptBackupBenefit,
-              l10n.authPromptSecurityBenefit,
-              l10n.authPromptSyncBenefit,
-            ],
+            message: l10n.authPromptMessage,
             signInLabel: l10n.authSignInAction,
             createAccountLabel: l10n.authCreateAccountAction,
             googleTooltip: l10n.authSignInWithGoogleAction,
             isBusy: isBusy,
             onSignIn: () => context.push(RoutePaths.authSignIn),
             onCreateAccount: () => context.push(RoutePaths.authSignUp),
-            onGoogle: () => _signInWithGoogle(context, ref),
+            onGoogle: isGoogleSignInEnabled
+                ? () => _signInWithGoogle(context, ref)
+                : null,
           ),
         );
       },
+    );
+  }
+
+  Widget _authScaffold(
+    AppLocalizations l10n, {
+    required Widget child,
+  }) {
+    return AthlosAuthScaffold(
+      title: l10n.appTitle,
+      tagline: l10n.authPromptTagline,
+      brandTitle: true,
+      preset: AthlosAuthHeroPreset.welcome,
+      child: child,
     );
   }
 }
 
 class _AuthChoicePanel extends StatelessWidget {
   const _AuthChoicePanel({
-    required this.title,
-    required this.benefits,
+    required this.message,
     required this.signInLabel,
     required this.createAccountLabel,
     required this.googleTooltip,
     required this.isBusy,
     required this.onSignIn,
     required this.onCreateAccount,
-    required this.onGoogle,
+    this.onGoogle,
   });
 
-  final String title;
-  final List<String> benefits;
+  final String message;
   final String signInLabel;
   final String createAccountLabel;
   final String googleTooltip;
   final bool isBusy;
   final VoidCallback onSignIn;
   final VoidCallback onCreateAccount;
-  final VoidCallback onGoogle;
+  final VoidCallback? onGoogle;
 
   @override
   Widget build(BuildContext context) {
@@ -136,33 +132,13 @@ class _AuthChoicePanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          title,
-          style: textTheme.headlineSmall?.copyWith(
-            color: colorScheme.onSurface,
-            fontWeight: FontWeight.w800,
+          message,
+          style: textTheme.bodyLarge?.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
-        const Gap(AthlosSpacing.xl),
-        for (final benefit in benefits) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.check_circle_outline, color: colorScheme.primary),
-              const Gap(AthlosSpacing.sm),
-              Expanded(
-                child: Text(
-                  benefit,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Gap(AthlosSpacing.sm),
-        ],
-        const Gap(AthlosSpacing.md),
+        const Gap(AthlosSpacing.lg),
         FilledButton(
           onPressed: isBusy ? null : onSignIn,
           child: Text(signInLabel),
@@ -172,27 +148,29 @@ class _AuthChoicePanel extends StatelessWidget {
           onPressed: isBusy ? null : onCreateAccount,
           child: Text(createAccountLabel),
         ),
-        const Gap(AthlosSpacing.md),
-        Center(
-          child: Tooltip(
-            message: googleTooltip,
-            child: IconButton(
-              onPressed: isBusy ? null : onGoogle,
-              style: IconButton.styleFrom(
-                fixedSize: const Size(56, 56),
-                backgroundColor: Colors.transparent,
-                foregroundColor: colorScheme.onSurface,
-                disabledBackgroundColor: Colors.transparent,
-              ),
-              icon: SvgPicture.asset(
-                AthlosAssets.googleLogo,
-                width: 24,
-                height: 24,
-                semanticsLabel: googleTooltip,
+        if (onGoogle != null) ...[
+          const Gap(AthlosSpacing.md),
+          Center(
+            child: Tooltip(
+              message: googleTooltip,
+              child: IconButton(
+                onPressed: isBusy ? null : onGoogle,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(56, 56),
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: colorScheme.onSurface,
+                  disabledBackgroundColor: Colors.transparent,
+                ),
+                icon: SvgPicture.asset(
+                  AthlosAssets.googleLogo,
+                  width: 24,
+                  height: 24,
+                  semanticsLabel: googleTooltip,
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
