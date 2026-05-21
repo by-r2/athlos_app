@@ -31,11 +31,13 @@ Manages app state and dependency injection in a single package. Swapping `LocalD
 
 Type-safe ORM for SQLite with code generation. Native support for relations (essential for Athlos entities), built-in migration system to update the schema without data loss, and generates reusable SQL for the future PostgreSQL migration.
 
-### Supabase (catalog sync in local-first phase)
+### Supabase (catalog + authenticated user sync)
 
-Even in the local-first phase, Supabase is available for catalog data sync (seed updates, verified item references). Global catalog governance (verified x verified conflict resolution, rule propagation across devices) is **deferred to a separate maintenance project** and is not part of the current app scope.
+Supabase provides verified catalog pull, catalog governance, and **authenticated user-owned sync** (profile, body metrics, training data). Drift remains the on-device cache; Postgres is the source of truth when signed in and online.
 
-- Does not replace local Drift as the source of truth for personal workout/profile history in 1.x.
+- **Without an account:** all personal data stays on-device only.
+- **With an account:** sync runs after login, app resume, mutations, and when connectivity returns. Manual JSON export/import remains available as a safety net until cloud sync is fully validated.
+- Global catalog governance (verified × verified) is **deferred to a separate maintenance project**.
 
 ### go_router (navigation)
 

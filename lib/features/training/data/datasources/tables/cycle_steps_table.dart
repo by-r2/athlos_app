@@ -3,11 +3,16 @@ import 'package:drift/drift.dart';
 import 'programs_table.dart';
 import 'workouts_table.dart';
 
-/// A single step in the training cycle (ordered workout reference).
-/// Every step belongs to a program — there is no free cycle.
 class CycleSteps extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  IntColumn get programId => integer().references(Programs, #id)();
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get programId => text().references(Programs, #id)();
   IntColumn get orderIndex => integer()();
-  IntColumn get workoutId => integer().references(Workouts, #id)();
+  TextColumn get workoutId => text().references(Workouts, #id)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }

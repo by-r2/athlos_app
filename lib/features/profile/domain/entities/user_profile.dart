@@ -7,7 +7,7 @@ import '../enums/training_style.dart';
 
 /// User profile with personal data and preferences.
 class UserProfile {
-  final int id;
+  final String id;
 
   /// Display name chosen by the user.
   final String? name;
@@ -60,15 +60,6 @@ class UserProfile {
   /// Version of streak algorithm; 0 means history should be materialized once.
   final int trainingStreaksSchema;
 
-  /// Supabase Auth user id linked to this local profile cache.
-  final String? remoteUserId;
-
-  /// Last time the local profile was successfully written to the cloud.
-  final DateTime? lastSyncedAt;
-
-  /// Last local mutation timestamp used for dirty sync detection.
-  final DateTime? localUpdatedAt;
-
   const UserProfile({
     required this.id,
     this.name,
@@ -91,13 +82,10 @@ class UserProfile {
     this.currentFrequencyStreak = 0,
     this.bestFrequencyStreak = 0,
     this.trainingStreaksSchema = 0,
-    this.remoteUserId,
-    this.lastSyncedAt,
-    this.localUpdatedAt,
   });
 
   UserProfile copyWith({
-    int? id,
+    String? id,
     String? Function()? name,
     double? Function()? height,
     int? Function()? age,
@@ -118,9 +106,6 @@ class UserProfile {
     int? currentFrequencyStreak,
     int? bestFrequencyStreak,
     int? trainingStreaksSchema,
-    String? Function()? remoteUserId,
-    DateTime? Function()? lastSyncedAt,
-    DateTime? Function()? localUpdatedAt,
   }) => UserProfile(
     id: id ?? this.id,
     name: name != null ? name() : this.name,
@@ -150,9 +135,5 @@ class UserProfile {
         currentFrequencyStreak ?? this.currentFrequencyStreak,
     bestFrequencyStreak: bestFrequencyStreak ?? this.bestFrequencyStreak,
     trainingStreaksSchema: trainingStreaksSchema ?? this.trainingStreaksSchema,
-    remoteUserId: remoteUserId != null ? remoteUserId() : this.remoteUserId,
-    lastSyncedAt: lastSyncedAt != null ? lastSyncedAt() : this.lastSyncedAt,
-    localUpdatedAt:
-        localUpdatedAt != null ? localUpdatedAt() : this.localUpdatedAt,
   );
 }

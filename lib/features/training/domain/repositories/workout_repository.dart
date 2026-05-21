@@ -7,13 +7,13 @@ abstract interface class WorkoutRepository {
   Future<Result<List<Workout>>> getAll();
   Future<Result<List<Workout>>> getActive();
   Future<Result<List<Workout>>> getArchived();
-  Future<Result<Workout?>> getById(int id);
-  Future<Result<int>> create(Workout workout, List<WorkoutExercise> exercises);
+  Future<Result<Workout?>> getById(String id);
+  Future<Result<String>> create(Workout workout, List<WorkoutExercise> exercises);
   Future<Result<void>> update(Workout workout, List<WorkoutExercise> exercises);
-  Future<Result<void>> delete(int id);
-  Future<Result<void>> archive(int id);
-  Future<Result<void>> unarchive(int id);
-  Future<Result<int>> duplicate(int id, {required String nameSuffix});
-  Future<Result<void>> reorder(List<int> orderedIds);
-  Future<Result<List<WorkoutExercise>>> getExercises(int workoutId);
+  Future<Result<void>> delete(String id);
+  Future<Result<void>> archive(String id);
+  Future<Result<void>> unarchive(String id);
+  Future<Result<String>> duplicate(String id, {required String nameSuffix});
+  Future<Result<void>> reorder(List<String> orderedIds);
+  Future<Result<List<WorkoutExercise>>> getExercises(String workoutId);
 }

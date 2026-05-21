@@ -68,6 +68,15 @@ class AthlosTheme {
         elevation: AthlosElevation.none,
       ),
       scaffoldBackgroundColor: colorScheme.surface,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AthlosRadius.lg),
+          ),
+        ),
+      ),
       dialogTheme: DialogThemeData(
         // Lateral and bottom of the actions pane; content↔actions gap is Material.
         actionsPadding: const EdgeInsets.fromLTRB(

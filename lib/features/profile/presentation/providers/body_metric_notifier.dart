@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/utils/uuid.dart';
 import '../../data/repositories/profile_providers.dart';
 import '../../domain/entities/body_metric.dart';
 
@@ -23,7 +24,7 @@ class BodyMetricList extends _$BodyMetricList {
   }) async {
     final repo = ref.read(bodyMetricRepositoryProvider);
     final metric = BodyMetric(
-      id: 0,
+      id: generateUuidV4(),
       weight: weight,
       bodyFatPercent: bodyFatPercent,
       recordedAt: recordedAt ?? DateTime.now(),
@@ -33,7 +34,7 @@ class BodyMetricList extends _$BodyMetricList {
     if (ref.mounted) ref.invalidateSelf();
   }
 
-  Future<void> remove(int id) async {
+  Future<void> remove(String id) async {
     final repo = ref.read(bodyMetricRepositoryProvider);
     final result = await repo.delete(id);
     result.getOrThrow();

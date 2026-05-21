@@ -3,20 +3,30 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/uuid.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/workout.dart' as domain;
 import '../../domain/entities/workout_exercise.dart' as domain;
 import '../../domain/repositories/workout_repository.dart';
 import '../datasources/daos/workout_dao.dart';
 
 class WorkoutRepositoryImpl implements WorkoutRepository {
-  final WorkoutDao _dao;
+  WorkoutRepositoryImpl(this._dao, this._syncRunner, this._userId);
 
-  WorkoutRepositoryImpl(this._dao);
+  final WorkoutDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final String _userId;
+
+  Future<void> _syncWorkoutTables() async {
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.workouts);
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.workoutExercises);
+  }
 
   @override
   Future<Result<List<domain.Workout>>> getAll() async {
     try {
-      final rows = await _dao.getAll();
+      final rows = await _dao.getAll(_userId);
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load workouts: $e'));
@@ -26,7 +36,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   @override
   Future<Result<List<domain.Workout>>> getActive() async {
     try {
-      final rows = await _dao.getActive();
+      final rows = await _dao.getActive(_userId);
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load active workouts: $e'));
@@ -36,7 +46,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   @override
   Future<Result<List<domain.Workout>>> getArchived() async {
     try {
-      final rows = await _dao.getArchived();
+      final rows = await _dao.getArchived(_userId);
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load archived workouts: $e'));
@@ -44,7 +54,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<domain.Workout?>> getById(int id) async {
+  Future<Result<domain.Workout?>> getById(String id) async {
     try {
       final row = await _dao.getById(id);
       return Success(row != null ? _toDomain(row) : null);
@@ -54,40 +64,25 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<int>> create(
+  Future<Result<String>> create(
     domain.Workout workout,
     List<domain.WorkoutExercise> exercises,
   ) async {
     try {
-      final id = await _dao.create(
+      await _dao.create(
         WorkoutsCompanion.insert(
+          id: workout.id,
+          userId: _userId,
           name: workout.name,
           description: Value(workout.description),
         ),
       );
       await _dao.setExercises(
-        id,
-        exercises
-            .map(
-              (e) => WorkoutExercisesCompanion.insert(
-                workoutId: id,
-                exerciseId: e.exerciseId,
-                order: e.order,
-                sets: e.sets,
-                minReps: Value(e.minReps),
-                maxReps: Value(e.maxReps),
-                isAmrap: Value(e.isAmrap),
-                rest: Value(e.rest),
-                duration: Value(e.duration),
-                groupId: Value(e.groupId),
-                isUnilateral: Value(e.isUnilateral),
-                loadModeOverride: Value(e.loadModeOverride),
-                notes: Value(e.notes),
-              ),
-            )
-            .toList(),
+        workout.id,
+        exercises.map(_workoutExerciseToCompanion).toList(),
       );
-      return Success(id);
+      await _syncWorkoutTables();
+      return Success(workout.id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create workout: $e'));
     }
@@ -108,26 +103,9 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       );
       await _dao.setExercises(
         workout.id,
-        exercises
-            .map(
-              (e) => WorkoutExercisesCompanion.insert(
-                workoutId: workout.id,
-                exerciseId: e.exerciseId,
-                order: e.order,
-                sets: e.sets,
-                minReps: Value(e.minReps),
-                maxReps: Value(e.maxReps),
-                isAmrap: Value(e.isAmrap),
-                rest: Value(e.rest),
-                duration: Value(e.duration),
-                groupId: Value(e.groupId),
-                isUnilateral: Value(e.isUnilateral),
-                loadModeOverride: Value(e.loadModeOverride),
-                notes: Value(e.notes),
-              ),
-            )
-            .toList(),
+        exercises.map(_workoutExerciseToCompanion).toList(),
       );
+      await _syncWorkoutTables();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update workout: $e'));
@@ -135,9 +113,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<void>> delete(int id) async {
+  Future<Result<void>> delete(String id) async {
     try {
       await _dao.deleteById(id);
+      await _syncWorkoutTables();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete workout $id: $e'));
@@ -145,9 +124,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<void>> archive(int id) async {
+  Future<Result<void>> archive(String id) async {
     try {
       await _dao.archive(id);
+      await _syncWorkoutTables();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to archive workout $id: $e'));
@@ -155,9 +135,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<void>> unarchive(int id) async {
+  Future<Result<void>> unarchive(String id) async {
     try {
       await _dao.unarchive(id);
+      await _syncWorkoutTables();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to unarchive workout $id: $e'));
@@ -165,12 +146,22 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<int>> duplicate(int id, {required String nameSuffix}) async {
+  Future<Result<String>> duplicate(
+    String id, {
+    required String nameSuffix,
+  }) async {
     try {
-      final newId = await _dao.duplicate(id, nameSuffix: nameSuffix);
+      final newId = await _dao.duplicate(
+        id,
+        newId: generateUuidV4(),
+        userId: _userId,
+        nameSuffix: nameSuffix,
+        generateId: generateUuidV4,
+      );
       if (newId == null) {
         return Failure(NotFoundException('Workout $id not found'));
       }
+      await _syncWorkoutTables();
       return Success(newId);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to duplicate workout $id: $e'));
@@ -178,9 +169,10 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
-  Future<Result<void>> reorder(List<int> orderedIds) async {
+  Future<Result<void>> reorder(List<String> orderedIds) async {
     try {
       await _dao.reorder(orderedIds);
+      await _syncWorkoutTables();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to reorder workouts: $e'));
@@ -189,31 +181,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
 
   @override
   Future<Result<List<domain.WorkoutExercise>>> getExercises(
-    int workoutId,
+    String workoutId,
   ) async {
     try {
       final rows = await _dao.getExercises(workoutId);
-      return Success(
-        rows
-            .map(
-              (row) => domain.WorkoutExercise(
-                workoutId: row.workoutId,
-                exerciseId: row.exerciseId,
-                order: row.order,
-                sets: row.sets,
-                minReps: row.minReps,
-                maxReps: row.maxReps,
-                isAmrap: row.isAmrap,
-                rest: row.rest,
-                duration: row.duration,
-                groupId: row.groupId,
-                isUnilateral: row.isUnilateral,
-                loadModeOverride: row.loadModeOverride,
-                notes: row.notes,
-              ),
-            )
-            .toList(),
-      );
+      return Success(rows.map(_workoutExerciseToDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load workout exercises: $e'));
     }
@@ -226,5 +198,43 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     sortOrder: row.sortOrder,
     isArchived: row.isArchived,
     createdAt: row.createdAt,
+  );
+
+  domain.WorkoutExercise _workoutExerciseToDomain(WorkoutExercise row) =>
+      domain.WorkoutExercise(
+        id: row.id,
+        workoutId: row.workoutId,
+        exerciseId: row.exerciseId,
+        sortOrder: row.sortOrder,
+        sets: row.sets,
+        minReps: row.minReps,
+        maxReps: row.maxReps,
+        isAmrap: row.isAmrap,
+        restSeconds: row.restSeconds,
+        durationSeconds: row.durationSeconds,
+        groupId: row.groupId,
+        isUnilateral: row.isUnilateral,
+        loadModeOverride: row.loadModeOverride,
+        notes: row.notes,
+      );
+
+  WorkoutExercisesCompanion _workoutExerciseToCompanion(
+    domain.WorkoutExercise e,
+  ) => WorkoutExercisesCompanion.insert(
+    id: e.id,
+    userId: _userId,
+    workoutId: e.workoutId,
+    exerciseId: e.exerciseId,
+    sortOrder: e.sortOrder,
+    sets: Value(e.sets),
+    minReps: Value(e.minReps),
+    maxReps: Value(e.maxReps),
+    isAmrap: Value(e.isAmrap),
+    restSeconds: Value(e.restSeconds),
+    durationSeconds: Value(e.durationSeconds),
+    groupId: Value(e.groupId),
+    isUnilateral: Value(e.isUnilateral),
+    loadModeOverride: Value(e.loadModeOverride),
+    notes: Value(e.notes),
   );
 }

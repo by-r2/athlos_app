@@ -1,6 +1,8 @@
 import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/errors/app_exception.dart';
+import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
 import 'package:athlos_app/core/errors/result.dart';
+import 'package:athlos_app/core/utils/uuid.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/workout_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/workout_repository_impl.dart';
 import 'package:athlos_app/features/training/domain/entities/workout.dart'
@@ -17,7 +19,11 @@ void main() {
 
     setUp(() async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
-      repository = WorkoutRepositoryImpl(WorkoutDao(db));
+      repository = WorkoutRepositoryImpl(
+        WorkoutDao(db),
+        UserOwnedSyncRunner.disabled(),
+        'test-user-id',
+      );
       await db.customSelect('SELECT 1').get();
     });
 
@@ -26,33 +32,35 @@ void main() {
     });
 
     test('create/getExercises/update/archive/unarchive/delete', () async {
+      final workoutUuid = generateUuidV4();
       final createResult = await repository.create(
         domain.Workout(
-          id: 0,
+          id: workoutUuid,
           name: 'Treino Repo',
           description: 'descricao',
           createdAt: DateTime.now(),
         ),
-        const [
+        [
           domain.WorkoutExercise(
-            workoutId: 0,
-            exerciseId: 1,
-            order: 0,
+            id: generateUuidV4(),
+            workoutId: workoutUuid,
+            exerciseId: 'ex-1',
+            sortOrder: 0,
             sets: 3,
             minReps: 10,
             maxReps: 10,
-            rest: 60,
+            restSeconds: 60,
           ),
         ],
       );
       final workoutId = createResult.getOrThrow();
-      expect(workoutId, greaterThan(0));
+      expect(workoutId, workoutUuid);
 
       final exercises1 = (await repository.getExercises(
         workoutId,
       )).getOrThrow();
       expect(exercises1.length, 1);
-      expect(exercises1.first.exerciseId, 1);
+      expect(exercises1.first.exerciseId, 'ex-1');
 
       final updateResult = await repository.update(
         domain.Workout(
@@ -61,15 +69,16 @@ void main() {
           description: 'nova',
           createdAt: DateTime.now(),
         ),
-        const [
+        [
           domain.WorkoutExercise(
-            workoutId: 0,
-            exerciseId: 2,
-            order: 0,
+            id: generateUuidV4(),
+            workoutId: workoutId,
+            exerciseId: 'ex-2',
+            sortOrder: 0,
             sets: 4,
             minReps: 8,
             maxReps: 12,
-            rest: 90,
+            restSeconds: 90,
           ),
         ],
       );
@@ -81,7 +90,7 @@ void main() {
       final exercises2 = (await repository.getExercises(
         workoutId,
       )).getOrThrow();
-      expect(exercises2.single.exerciseId, 2);
+      expect(exercises2.single.exerciseId, 'ex-2');
 
       expect((await repository.archive(workoutId)).isSuccess, isTrue);
       expect(
@@ -104,19 +113,30 @@ void main() {
     });
 
     test('duplicate retorna NotFound quando id nao existe', () async {
-      final result = await repository.duplicate(999999, nameSuffix: '(copy)');
+      final result = await repository.duplicate(
+        'non-existent-uuid',
+        nameSuffix: '(copy)',
+      );
       expect(result.isFailure, isTrue);
-      final failure = result as Failure<int>;
+      final failure = result as Failure<String>;
       expect(failure.exception, isA<NotFoundException>());
     });
 
     test('duplicate e reorder funcionam', () async {
       final id1 = (await repository.create(
-        domain.Workout(id: 0, name: 'A', createdAt: DateTime.now()),
+        domain.Workout(
+          id: generateUuidV4(),
+          name: 'A',
+          createdAt: DateTime.now(),
+        ),
         const [],
       )).getOrThrow();
       final id2 = (await repository.create(
-        domain.Workout(id: 0, name: 'B', createdAt: DateTime.now()),
+        domain.Workout(
+          id: generateUuidV4(),
+          name: 'B',
+          createdAt: DateTime.now(),
+        ),
         const [],
       )).getOrThrow();
 

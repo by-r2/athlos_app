@@ -15,3 +15,6 @@ const supabaseRedirectUrl = String.fromEnvironment(
 
 bool get isSupabaseConfigured =>
     supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+/// Google OAuth in Supabase + Google Cloud Console. Flip when provider is ready.
+const isGoogleSignInEnabled = false;

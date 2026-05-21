@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/progression_rule.dart' as domain;
 import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_frequency.dart';
@@ -11,13 +13,21 @@ import '../../domain/repositories/progression_rule_repository.dart';
 import '../datasources/daos/progression_rule_dao.dart';
 
 class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
-  ProgressionRuleRepositoryImpl(this._dao);
+  ProgressionRuleRepositoryImpl(this._dao, this._syncRunner, this._userId);
 
   final ProgressionRuleDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final String _userId;
+
+  Future<void> _syncRules() async {
+    await _syncRunner.synchronizeTable(
+      TrainingSyncTableNames.progressionRules,
+    );
+  }
 
   @override
   Future<Result<List<domain.ProgressionRule>>> getByProgram(
-    int programId,
+    String programId,
   ) async {
     try {
       final rows = await _dao.getByProgram(programId);
@@ -29,8 +39,8 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
 
   @override
   Future<Result<domain.ProgressionRule?>> getByProgramAndExercise(
-    int programId,
-    int exerciseId,
+    String programId,
+    String exerciseId,
   ) async {
     try {
       final row = await _dao.getByProgramAndExercise(programId, exerciseId);
@@ -41,10 +51,11 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   }
 
   @override
-  Future<Result<int>> create(domain.ProgressionRule rule) async {
+  Future<Result<String>> create(domain.ProgressionRule rule) async {
     try {
-      final id = await _dao.create(_toCompanion(rule));
-      return Success(id);
+      await _dao.create(_toCompanion(rule));
+      await _syncRules();
+      return Success(rule.id);
     } on Exception catch (e) {
       return Failure(
         DatabaseException('Failed to create progression rule: $e'),
@@ -56,6 +67,7 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   Future<Result<void>> update(domain.ProgressionRule rule) async {
     try {
       await _dao.updateRule(rule.id, _toUpdateCompanion(rule));
+      await _syncRules();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -65,9 +77,10 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
   }
 
   @override
-  Future<Result<void>> delete(int ruleId) async {
+  Future<Result<void>> delete(String ruleId) async {
     try {
       await _dao.deleteRule(ruleId);
+      await _syncRules();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -78,24 +91,13 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
 
   @override
   Future<Result<void>> replaceAllForProgram(
-    int programId,
+    String programId,
     List<domain.ProgressionRule> rules,
   ) async {
     try {
-      final companions = rules
-          .map(
-            (r) => ProgressionRulesCompanion.insert(
-              programId: programId,
-              exerciseId: r.exerciseId,
-              type: r.type.name,
-              value: r.value,
-              frequency: r.frequency.name,
-              condition: Value(r.condition?.name),
-              conditionValue: Value(r.conditionValue),
-            ),
-          )
-          .toList();
+      final companions = rules.map(_toCompanion).toList();
       await _dao.replaceAllForProgram(programId, companions);
+      await _syncRules();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(
@@ -120,6 +122,8 @@ class ProgressionRuleRepositoryImpl implements ProgressionRuleRepository {
 
   ProgressionRulesCompanion _toCompanion(domain.ProgressionRule rule) =>
       ProgressionRulesCompanion.insert(
+        id: rule.id,
+        userId: _userId,
         programId: rule.programId,
         exerciseId: rule.exerciseId,
         type: rule.type.name,

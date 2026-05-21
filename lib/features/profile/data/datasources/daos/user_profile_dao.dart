@@ -10,29 +10,28 @@ class UserProfileDao extends DatabaseAccessor<AppDatabase>
     with _$UserProfileDaoMixin {
   UserProfileDao(super.db);
 
-  Future<UserProfile?> get() => select(userProfiles).getSingleOrNull();
+  Future<UserProfile?> get() =>
+      (select(userProfiles)..limit(1)).getSingleOrNull();
 
-  Future<int> create(UserProfilesCompanion entry) =>
-      into(userProfiles).insert(entry);
+  Future<UserProfile?> getById(String id) => (select(userProfiles)
+        ..where((p) => p.id.equals(id)))
+      .getSingleOrNull();
 
-  Future<void> updateById(int id, UserProfilesCompanion entry) =>
-      (update(userProfiles)..where((p) => p.id.equals(id))).write(entry);
+  Future<UserProfile?> getDirty() => (select(userProfiles)
+        ..where((p) => p.isDirty.equals(true))
+        ..limit(1))
+      .getSingleOrNull();
 
-  Future<void> markSynced({
-    required int id,
-    required String remoteUserId,
-    required DateTime syncedAt,
-  }) => (update(userProfiles)..where((p) => p.id.equals(id))).write(
-    UserProfilesCompanion(
-      remoteUserId: Value(remoteUserId),
-      lastSyncedAt: Value(syncedAt),
-    ),
-  );
+  Future<void> upsert(UserProfilesCompanion entry) =>
+      into(userProfiles).insertOnConflictUpdate(entry);
 
-  Future<void> markLocalDirty(int id) {
+  Future<void> updateById(String id, UserProfilesCompanion entry) {
     final now = DateTime.now().toUtc();
     return (update(userProfiles)..where((p) => p.id.equals(id))).write(
-      UserProfilesCompanion(localUpdatedAt: Value(now)),
+      entry.copyWith(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
     );
   }
 
@@ -43,4 +42,8 @@ class UserProfileDao extends DatabaseAccessor<AppDatabase>
             .getSingle();
     return (count ?? 0) > 0;
   }
+
+  Future<void> markClean(String id) =>
+      (update(userProfiles)..where((p) => p.id.equals(id)))
+          .write(const UserProfilesCompanion(isDirty: Value(false)));
 }

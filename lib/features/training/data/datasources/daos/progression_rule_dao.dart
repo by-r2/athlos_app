@@ -10,38 +10,79 @@ class ProgressionRuleDao extends DatabaseAccessor<AppDatabase>
     with _$ProgressionRuleDaoMixin {
   ProgressionRuleDao(super.db);
 
-  Future<List<ProgressionRule>> getByProgram(int programId) => (select(
-    progressionRules,
-  )..where((r) => r.programId.equals(programId))).get();
+  Future<void> _markDirty(String id) {
+    final now = DateTime.now().toUtc();
+    return (update(progressionRules)..where((r) => r.id.equals(id))).write(
+      ProgressionRulesCompanion(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<List<ProgressionRule>> getByProgram(String programId) =>
+      (select(progressionRules)
+            ..where(
+              (r) =>
+                  r.programId.equals(programId) & r.deletedAt.isNull(),
+            ))
+          .get();
 
   Future<ProgressionRule?> getByProgramAndExercise(
-    int programId,
-    int exerciseId,
+    String programId,
+    String exerciseId,
   ) =>
-      (select(progressionRules)..where(
-            (r) =>
-                r.programId.equals(programId) & r.exerciseId.equals(exerciseId),
-          ))
+      (select(progressionRules)
+            ..where(
+              (r) =>
+                  r.programId.equals(programId) &
+                  r.exerciseId.equals(exerciseId) &
+                  r.deletedAt.isNull(),
+            ))
           .getSingleOrNull();
 
-  Future<int> create(ProgressionRulesCompanion entry) =>
-      into(progressionRules).insert(entry);
+  Future<void> create(ProgressionRulesCompanion entry) async {
+    await into(progressionRules).insert(entry);
+    await _markDirty(entry.id.value);
+  }
 
-  Future<void> updateRule(int id, ProgressionRulesCompanion entry) =>
-      (update(progressionRules)..where((r) => r.id.equals(id))).write(entry);
+  Future<void> updateRule(String id, ProgressionRulesCompanion entry) async {
+    await (update(progressionRules)..where((r) => r.id.equals(id)))
+        .write(entry);
+    await _markDirty(id);
+  }
 
-  Future<void> deleteRule(int id) =>
-      (delete(progressionRules)..where((r) => r.id.equals(id))).go();
+  Future<void> deleteRule(String id) {
+    final now = DateTime.now().toUtc();
+    return (update(progressionRules)..where((r) => r.id.equals(id))).write(
+      ProgressionRulesCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 
   Future<void> replaceAllForProgram(
-    int programId,
+    String programId,
     List<ProgressionRulesCompanion> entries,
   ) async {
-    await (delete(
-      progressionRules,
-    )..where((r) => r.programId.equals(programId))).go();
-    if (entries.isNotEmpty) {
-      await batch((b) => b.insertAll(progressionRules, entries));
+    final now = DateTime.now().toUtc();
+    await (update(progressionRules)
+          ..where((r) => r.programId.equals(programId)))
+        .write(
+      ProgressionRulesCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+    for (final entry in entries) {
+      await into(progressionRules).insert(entry);
+      await _markDirty(entry.id.value);
     }
   }
+
+  Future<List<ProgressionRule>> getAll() =>
+      (select(progressionRules)..where((r) => r.deletedAt.isNull())).get();
 }

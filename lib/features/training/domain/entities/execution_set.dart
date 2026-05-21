@@ -3,9 +3,9 @@ import '../enums/load_mode.dart';
 
 /// A single set performed during a workout execution.
 class ExecutionSet {
-  final int id;
-  final int executionId;
-  final int exerciseId;
+  final String id;
+  final String executionId;
+  final String exerciseId;
   final int setNumber;
 
   /// Snapshot of planned reps from the workout template. Null for cardio.
@@ -21,10 +21,10 @@ class ExecutionSet {
   final double? weight;
 
   /// Actual duration performed in seconds. Used for cardio exercises.
-  final int? duration;
+  final int? durationSeconds;
 
   /// Actual distance covered in meters. Used for cardio exercises.
-  final double? distance;
+  final double? distanceMeters;
 
   final bool isCompleted;
 
@@ -69,8 +69,8 @@ class ExecutionSet {
     this.plannedWeight,
     this.reps,
     this.weight,
-    this.duration,
-    this.distance,
+    this.durationSeconds,
+    this.distanceMeters,
     this.isCompleted = false,
     this.isWarmup = false,
     this.rpe,

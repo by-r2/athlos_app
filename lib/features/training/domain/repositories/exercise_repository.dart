@@ -8,7 +8,7 @@ import '../enums/target_muscle.dart';
 /// Contract for exercise data operations.
 abstract interface class ExerciseRepository {
   Future<Result<List<Exercise>>> getAll();
-  Future<Result<Exercise?>> getById(int id);
+  Future<Result<Exercise?>> getById(String id);
 
   /// Case-insensitive lookup by exercise name. Returns the first match or null.
   Future<Result<Exercise?>> findByName(String name);
@@ -16,9 +16,9 @@ abstract interface class ExerciseRepository {
   /// Fuzzy lookup: tries exact, then diacritics-normalized, then containment.
   Future<Result<Exercise?>> findByNameFuzzy(String name);
   Future<Result<List<Exercise>>> getByMuscleGroup(MuscleGroup group);
-  Future<Result<List<Exercise>>> getVariations(int exerciseId);
-  Future<Result<List<ExerciseMuscleFocus>>> getMuscleFoci(int exerciseId);
-  Future<Result<int>> create(
+  Future<Result<List<Exercise>>> getVariations(String exerciseId);
+  Future<Result<List<ExerciseMuscleFocus>>> getMuscleFoci(String exerciseId);
+  Future<Result<String>> create(
     Exercise exercise, {
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>
         muscles =
@@ -29,7 +29,7 @@ abstract interface class ExerciseRepository {
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})>?
     muscles,
   });
-  Future<Result<void>> delete(int id);
-  Future<Result<void>> addVariation(int exerciseId, int variationId);
-  Future<Result<void>> removeVariation(int exerciseId, int variationId);
+  Future<Result<void>> delete(String id);
+  Future<Result<void>> addVariation(String exerciseId, String variationId);
+  Future<Result<void>> removeVariation(String exerciseId, String variationId);
 }

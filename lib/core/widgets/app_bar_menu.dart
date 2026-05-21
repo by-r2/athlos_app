@@ -45,23 +45,21 @@ class AppBarMenu extends ConsumerWidget {
 }
 
 void _openAppMenuSheet(BuildContext context) {
-  final shellClear = Theme.of(context).colorScheme.surface.withValues(alpha: 0);
   showModalBottomSheet<void>(
     context: context,
     useSafeArea: true,
     showDragHandle: true,
-    // Route-level [backgroundColor] is fixed when the sheet opens — it does not
-    // follow theme changes. Use a transparent shell and paint the surface from
-    // [Theme] inside the builder so SegmentedButton theme updates repaint here.
-    backgroundColor: shellClear,
-    builder: (sheetContext) => Material(
-      color: Theme.of(sheetContext).colorScheme.surfaceContainerLow,
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AthlosRadius.lg),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: const _AppMenuSheetBody(),
-    ),
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    builder: (sheetContext) {
+      final colorScheme = Theme.of(sheetContext).colorScheme;
+      return Material(
+        color: colorScheme.surface,
+        child: SizedBox(
+          width: double.infinity,
+          child: const _AppMenuSheetBody(),
+        ),
+      );
+    },
   );
 }
 

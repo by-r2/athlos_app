@@ -9,23 +9,23 @@ void main() {
       final t1 = t0.add(const Duration(hours: 2));
       final chronological = [
         WorkoutExecution(
-          id: 1,
-          workoutId: 10,
-          programId: 1,
+          id: 'exec-1',
+          workoutId: 'w-10',
+          programId: 'p-1',
           startedAt: t0,
           finishedAt: t0,
         ),
         WorkoutExecution(
-          id: 2,
-          workoutId: 99,
-          programId: 2,
+          id: 'exec-2',
+          workoutId: 'w-99',
+          programId: 'p-2',
           startedAt: t1,
           finishedAt: t1,
         ),
       ];
-      final cycles = <int, List<int>>{
-        1: [10, 20],
-        2: [30, 99],
+      final cycles = <String, List<String>>{
+        'p-1': ['w-10', 'w-20'],
+        'p-2': ['w-30', 'w-99'],
       };
       final r = computeCycleStreaks(chronological, cycles);
       expect(r.current, 2);
@@ -37,22 +37,22 @@ void main() {
       final t1 = t0.add(const Duration(hours: 1));
       final chronological = [
         WorkoutExecution(
-          id: 1,
-          workoutId: 30,
-          programId: 1,
+          id: 'exec-1',
+          workoutId: 'w-30',
+          programId: 'p-1',
           startedAt: t0,
           finishedAt: t0,
         ),
         WorkoutExecution(
-          id: 2,
-          workoutId: 20,
-          programId: 1,
+          id: 'exec-2',
+          workoutId: 'w-20',
+          programId: 'p-1',
           startedAt: t1,
           finishedAt: t1,
         ),
       ];
-      final cycles = <int, List<int>>{
-        1: [20, 30, 10],
+      final cycles = <String, List<String>>{
+        'p-1': ['w-20', 'w-30', 'w-10'],
       };
       final r = computeCycleStreaks(chronological, cycles);
       expect(r.current, 1);
@@ -67,17 +67,17 @@ void main() {
       final chronological = <WorkoutExecution>[
         for (var i = 0; i < 3; i++)
           WorkoutExecution(
-            id: i + 1,
-            workoutId: 1,
-            programId: 1,
+            id: 'exec-${i + 1}',
+            workoutId: 'w-1',
+            programId: 'p-1',
             startedAt: mon1.add(Duration(days: i)),
             finishedAt: mon1.add(Duration(days: i)),
           ),
         for (var i = 0; i < 3; i++)
           WorkoutExecution(
-            id: i + 4,
-            workoutId: 1,
-            programId: 1,
+            id: 'exec-${i + 4}',
+            workoutId: 'w-1',
+            programId: 'p-1',
             startedAt: mon1.add(Duration(days: 7 + i)),
             finishedAt: mon1.add(Duration(days: 7 + i)),
           ),

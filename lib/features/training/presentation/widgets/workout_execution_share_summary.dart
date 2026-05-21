@@ -22,8 +22,8 @@ class WorkoutExecutionShareSummary extends StatelessWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
   final String workoutName;
-  final Map<int, Exercise>? exerciseById;
-  final Map<int, WorkoutExercise>? workoutExerciseByExerciseId;
+  final Map<String, Exercise>? exerciseById;
+  final Map<String, WorkoutExercise>? workoutExerciseByExerciseId;
   final double? profileBodyWeightOnExecutionDate;
   final double? latestBodyWeight;
 

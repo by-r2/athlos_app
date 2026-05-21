@@ -4,8 +4,8 @@ String? resolveAppEntryRedirect({
   required String location,
   required bool isAuthLoading,
   required bool isProfileLoading,
+  required bool isSessionBootstrapping,
   required bool hasAuthUser,
-  required bool hasLocalAccess,
   required bool hasProfile,
 }) {
   final isOnSplash = location == RoutePaths.splash;
@@ -19,14 +19,16 @@ String? resolveAppEntryRedirect({
     return isOnSplash || isOnAuthRoute ? null : RoutePaths.splash;
   }
 
-  final canUseApp = hasAuthUser || hasLocalAccess;
+  if (isSessionBootstrapping) {
+    return isOnSplash ? null : RoutePaths.splash;
+  }
 
   if (isOnSplash) {
-    if (!canUseApp) return RoutePaths.authPrompt;
+    if (!hasAuthUser) return RoutePaths.authPrompt;
     return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;
   }
 
-  if (!canUseApp && !isOnAuthRoute) return RoutePaths.authPrompt;
+  if (!hasAuthUser && !isOnAuthRoute) return RoutePaths.authPrompt;
 
   if (hasAuthUser && isOnAuthRoute) {
     return hasProfile ? RoutePaths.hub : RoutePaths.profileSetup;

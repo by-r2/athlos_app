@@ -23,13 +23,18 @@ void showChironSheet(BuildContext context, {String? initialMessage}) {
     useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AthlosRadius.lg),
-      ),
-    ),
-    builder: (_) => _ChironSheet(initialMessage: initialMessage),
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      final colorScheme = Theme.of(sheetContext).colorScheme;
+      return Material(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AthlosRadius.lg),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: _ChironSheet(initialMessage: initialMessage),
+      );
+    },
   );
 }
 

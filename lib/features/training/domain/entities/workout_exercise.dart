@@ -2,9 +2,10 @@ import '../enums/load_mode.dart';
 
 /// Configuration of an exercise within a workout (sets, rep range, rest).
 class WorkoutExercise {
-  final int workoutId;
-  final int exerciseId;
-  final int order;
+  final String id;
+  final String workoutId;
+  final String exerciseId;
+  final int sortOrder;
   final int sets;
 
   /// Minimum target reps per set. Null for cardio exercises.
@@ -19,10 +20,10 @@ class WorkoutExercise {
   final bool isAmrap;
 
   /// Rest time between sets in seconds.
-  final int rest;
+  final int restSeconds;
 
   /// Planned duration per set in seconds. Used for cardio exercises.
-  final int? duration;
+  final int? durationSeconds;
 
   /// Superset group ID. Exercises sharing the same non-null groupId
   /// are executed back-to-back before rest.
@@ -34,24 +35,22 @@ class WorkoutExercise {
   /// User-chosen load mode for this exercise within this workout. Overrides
   /// the catalog default (`Exercise.defaultLoadMode`). Null means "use the
   /// catalog default".
-  ///
-  /// Only meaningful when `Exercise.supportsLoadModeOverride` is true (i.e.
-  /// the catalog entry has a `bodyweightLoadFactor`).
   final LoadMode? loadModeOverride;
 
   /// Free-text execution notes (postural cues, technique reminders, etc.).
   final String? notes;
 
   const WorkoutExercise({
+    required this.id,
     required this.workoutId,
     required this.exerciseId,
-    required this.order,
+    required this.sortOrder,
     required this.sets,
     this.minReps,
     this.maxReps,
     this.isAmrap = false,
-    required this.rest,
-    this.duration,
+    required this.restSeconds,
+    this.durationSeconds,
     this.groupId,
     this.isUnilateral = false,
     this.loadModeOverride,

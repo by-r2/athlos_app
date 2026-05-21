@@ -281,8 +281,8 @@ double computeSetVolume(
 /// "weight as-is" semantics for every set.
 double computeTotalVolume(
   Iterable<ExecutionSet> sets, {
-  Map<int, Exercise>? exerciseById,
-  Map<int, WorkoutExercise>? workoutExerciseByExerciseId,
+  Map<String, Exercise>? exerciseById,
+  Map<String, WorkoutExercise>? workoutExerciseByExerciseId,
   double? profileBodyWeightOnExecutionDate,
   double? latestBodyWeight,
 }) {

@@ -1,64 +1,82 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/profile/data/datasources/body_metric_remote_data_source.dart';
 import '../../features/profile/data/datasources/daos/body_metric_dao.dart';
 import '../../features/profile/data/datasources/daos/user_profile_dao.dart';
 import '../../features/profile/data/datasources/user_profile_remote_data_source.dart';
 import '../../features/profile/data/sync/body_metric_sync_adapter.dart';
 import '../../features/profile/data/sync/user_profile_sync_adapter.dart';
+import '../../features/training/data/sync/training_remote_client.dart';
+import '../../features/training/data/sync/training_sync_adapters.dart';
+import '../../features/training/data/sync/training_sync_store.dart';
 import '../database/app_database.dart';
-import '../database/daos/sync_record_dao.dart';
-import 'sync_record_store.dart';
-import 'user_owned_collection_sync_engine.dart';
-import 'user_owned_singleton_sync_engine.dart';
-import 'user_owned_sync_registry.dart';
+import '../providers/last_module_provider.dart';
+import '../services/supabase_config.dart';
+import 'sync_engine_v2.dart';
 import 'user_owned_sync_runner.dart';
 
 part 'sync_providers.g.dart';
 
 @Riverpod(keepAlive: true)
-SyncRecordStore syncRecordStore(Ref ref) =>
-    SyncRecordStore(ref.watch(syncRecordDaoProvider));
+TrainingSyncStore trainingSyncStore(Ref ref) =>
+    TrainingSyncStore(ref.watch(appDatabaseProvider));
 
 @Riverpod(keepAlive: true)
-BodyMetricSyncAdapter bodyMetricSyncAdapter(Ref ref) => BodyMetricSyncAdapter(
-  ref.watch(bodyMetricDaoProvider),
-  remoteGateway: ref.watch(bodyMetricRemoteDataSourceProvider),
-);
+TrainingRemoteClient trainingRemoteClient(Ref ref) => TrainingRemoteClient();
 
 @Riverpod(keepAlive: true)
-UserOwnedCollectionSyncEngine bodyMetricCollectionSyncEngine(Ref ref) =>
-    UserOwnedCollectionSyncEngine(
-      adapter: ref.watch(bodyMetricSyncAdapterProvider),
-      store: ref.watch(syncRecordStoreProvider),
-    );
+Future<int> pendingSyncDirtyCount(Ref ref) async {
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return 0;
+
+  final training = await ref.watch(trainingSyncStoreProvider).countDirty(userId);
+  final bodyMetrics =
+      (await ref.watch(bodyMetricDaoProvider).getDirty(userId)).length;
+  final bodyTombstones =
+      (await ref.watch(bodyMetricDaoProvider).getDirtyTombstones(userId)).length;
+  final profileDirty =
+      (await ref.watch(userProfileDaoProvider).getDirty()) != null ? 1 : 0;
+
+  return training + bodyMetrics + bodyTombstones + profileDirty;
+}
 
 @Riverpod(keepAlive: true)
-UserProfileSyncAdapter userProfileSyncAdapter(Ref ref) => UserProfileSyncAdapter(
-  ref.watch(userProfileDaoProvider),
-  remoteGateway: ref.watch(userProfileRemoteDataSourceProvider),
-);
+SyncEngineV2? syncEngineV2(Ref ref) {
+  if (!isSupabaseConfigured) return null;
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) return null;
+
+  final store = ref.watch(trainingSyncStoreProvider);
+  final remote = ref.watch(trainingRemoteClientProvider);
+
+  return SyncEngineV2(
+    adapters: [
+      UserProfileSyncAdapter(
+        dao: ref.watch(userProfileDaoProvider),
+        remote: ref.watch(userProfileRemoteDataSourceProvider),
+      ),
+      BodyMetricSyncAdapter(
+        dao: ref.watch(bodyMetricDaoProvider),
+        remote: ref.watch(bodyMetricRemoteDataSourceProvider),
+        userId: userId,
+      ),
+      ...buildTrainingSyncAdapters(
+        store: store,
+        remote: remote,
+        userId: userId,
+      ),
+    ],
+    prefs: ref.watch(sharedPreferencesProvider),
+  );
+}
 
 @Riverpod(keepAlive: true)
-UserOwnedSingletonSyncEngine userProfileSingletonSyncEngine(Ref ref) =>
-    UserOwnedSingletonSyncEngine(
-      adapter: ref.watch(userProfileSyncAdapterProvider),
-      store: ref.watch(syncRecordStoreProvider),
-    );
-
-@Riverpod(keepAlive: true)
-UserOwnedSyncRegistry userOwnedSyncRegistry(Ref ref) => UserOwnedSyncRegistry([
-  ref.watch(userProfileSingletonSyncEngineProvider),
-  ref.watch(bodyMetricCollectionSyncEngineProvider),
-]);
-
-@Riverpod(keepAlive: true)
-UserOwnedSyncRunner userOwnedSyncRunner(Ref ref) =>
-    UserOwnedSyncRunner(ref.watch(userOwnedSyncRegistryProvider));
-
-@Riverpod(keepAlive: true)
-SyncRecordDao syncRecordDao(Ref ref) =>
-    SyncRecordDao(ref.watch(appDatabaseProvider));
+UserOwnedSyncRunner userOwnedSyncRunner(Ref ref) {
+  final engine = ref.watch(syncEngineV2Provider);
+  if (engine == null) return UserOwnedSyncRunner.disabled();
+  return UserOwnedSyncRunner(engine);
+}
 
 @Riverpod(keepAlive: true)
 BodyMetricDao bodyMetricDao(Ref ref) =>

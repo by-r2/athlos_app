@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/repositories/body_metric_repository.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 import 'body_metric_repository_impl.dart';
@@ -12,13 +13,18 @@ part 'profile_providers.g.dart';
 UserProfileRepository userProfileRepository(Ref ref) =>
     UserProfileRepositoryImpl(
       ref.watch(userProfileDaoProvider),
-      ref.watch(userProfileSingletonSyncEngineProvider),
+      ref.watch(userOwnedSyncRunnerProvider),
     );
 
 @riverpod
-BodyMetricRepository bodyMetricRepository(Ref ref) =>
-    BodyMetricRepositoryImpl(
-      ref.watch(bodyMetricDaoProvider),
-      ref.watch(syncRecordStoreProvider),
-      ref.watch(bodyMetricCollectionSyncEngineProvider),
-    );
+BodyMetricRepository bodyMetricRepository(Ref ref) {
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) {
+    throw StateError('BodyMetricRepository requires an authenticated user');
+  }
+  return BodyMetricRepositoryImpl(
+    ref.watch(bodyMetricDaoProvider),
+    ref.watch(userOwnedSyncRunnerProvider),
+    userId,
+  );
+}

@@ -1,7 +1,7 @@
 import 'dart:math';
 
-/// Generates a stable UUID v4 string for remote sync identifiers.
-String generateSyncUuid() {
+/// Generates a random UUID v4 string.
+String generateUuidV4() {
   final random = Random.secure();
   final bytes = List<int>.generate(16, (_) => random.nextInt(256));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;

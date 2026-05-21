@@ -21,7 +21,7 @@ class CycleListWorkoutItem {
 
 /// Aggregated session counts for the Training Home summary.
 class TrainingHomeAnalytics {
-  final Map<int, int> sessionsByActiveWorkoutId;
+  final Map<String, int> sessionsByActiveWorkoutId;
   final int archivedSessionsTotal;
   final int totalSessions;
 
@@ -48,7 +48,7 @@ Future<TrainingHomeAnalytics> trainingHomeAnalytics(Ref ref) async {
   final allExecutionsResult = await execRepo.getAll();
   final allExecutions = allExecutionsResult.getOrThrow();
 
-  final sessionsByActiveWorkoutId = <int, int>{};
+  final sessionsByActiveWorkoutId = <String, int>{};
   for (final w in activeWorkouts) {
     final byWorkoutResult = await execRepo.getByWorkout(w.id);
     final list = byWorkoutResult.getOrThrow();
@@ -73,7 +73,7 @@ Future<TrainingHomeAnalytics> trainingHomeAnalytics(Ref ref) async {
 @riverpod
 Future<ExecutionComparison?> lastVsPreviousComparison(
   Ref ref,
-  int workoutId,
+  String workoutId,
 ) async {
   final repo = ref.watch(workoutExecutionRepositoryProvider);
   final result = await repo.getLastTwoFinishedWithVolume(workoutId);
@@ -121,7 +121,7 @@ Future<List<TrainingCycleStep>> cycleSteps(Ref ref) async {
 @riverpod
 Future<List<TrainingCycleStep>> cycleStepsForProgram(
   Ref ref,
-  int programId,
+  String programId,
 ) async {
   final repo = ref.watch(cycleRepositoryProvider);
   final result = await repo.getSteps(programId);

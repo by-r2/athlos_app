@@ -1,15 +1,15 @@
 import 'package:drift/drift.dart';
 
-/// Body weight / composition timeline entries.
 class BodyMetrics extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
   RealColumn get weight => real()();
   RealColumn get bodyFatPercent => real().nullable()();
   DateTimeColumn get recordedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
 
-  TextColumn get remoteId => text().nullable()();
-
-  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
-
-  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
 }

@@ -22,9 +22,9 @@ import '../widgets/training_history_filters.dart';
 final _placeholderExecutions = List.generate(
   6,
   (i) => WorkoutExecution(
-    id: i,
-    workoutId: 0,
-    programId: 0,
+    id: 'placeholder-$i',
+    workoutId: 'placeholder-workout',
+    programId: null,
     startedAt: DateTime(2024),
     finishedAt: DateTime(2024).add(const Duration(minutes: 45)),
   ),
@@ -43,7 +43,7 @@ class TrainingHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
-  int? _selectedWorkoutId;
+  String? _selectedWorkoutId;
   String? _lastWorkoutIdParam;
 
   int get _historyActiveFilterCount => _selectedWorkoutId != null ? 1 : 0;
@@ -57,10 +57,10 @@ class _TrainingHistoryScreenState extends ConsumerState<TrainingHistoryScreen> {
     if (workoutIdParam == _lastWorkoutIdParam) return;
 
     _lastWorkoutIdParam = workoutIdParam;
-    _selectedWorkoutId = int.tryParse(workoutIdParam ?? '');
+    _selectedWorkoutId = workoutIdParam;
   }
 
-  void _syncHistoryRouteWorkoutQuery(int? workoutId) {
+  void _syncHistoryRouteWorkoutQuery(String? workoutId) {
     final router = GoRouter.of(context);
     if (workoutId == null) {
       router.go(RoutePaths.trainingHistory);

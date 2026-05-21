@@ -36,8 +36,11 @@ class RecalculateTrainingStreaks extends _$RecalculateTrainingStreaks {
 
     final target = loaded.trainingFrequency ?? kDefaultTrainingFrequency;
 
-    final programIds = chronological.map((e) => e.programId).toSet();
-    final cycleByProgram = <int, List<int>>{};
+    final programIds = chronological
+        .map((e) => e.programId)
+        .whereType<String>()
+        .toSet();
+    final cycleByProgram = <String, List<String>>{};
     for (final pid in programIds) {
       final steps = (await cycleRepo.getSteps(pid)).getOrThrow();
       cycleByProgram[pid] = [for (final s in steps) s.workoutId];

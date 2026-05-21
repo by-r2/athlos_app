@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/utils/uuid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -41,7 +42,7 @@ class ProfileNotifier extends _$ProfileNotifier {
   }) async {
     final repo = ref.read(userProfileRepositoryProvider);
     final profile = UserProfile(
-      id: 0,
+      id: generateUuidV4(),
       name: name,
       height: height,
       age: age,
@@ -56,11 +57,9 @@ class ProfileNotifier extends _$ProfileNotifier {
       bio: bio,
     );
     final result = await repo.create(profile);
-    final id = result.getOrThrow();
+    result.getOrThrow();
     final created = (await repo.get()).getOrThrow();
-    state = AsyncData(
-      created ?? profile.copyWith(id: id, trainingStreaksSchema: 1),
-    );
+    state = AsyncData(created ?? profile);
   }
 
   /// Updates an existing user profile and refreshes the state.
@@ -92,7 +91,7 @@ class HasProfile extends _$HasProfile {
   /// Creates an empty profile (used when skipping setup) and marks as created.
   Future<void> createEmpty() async {
     final repo = ref.read(userProfileRepositoryProvider);
-    const emptyProfile = UserProfile(id: 0);
+    final emptyProfile = UserProfile(id: generateUuidV4());
     final result = await repo.create(emptyProfile);
     result.getOrThrow();
     state = const AsyncData(true);

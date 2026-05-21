@@ -12,7 +12,7 @@ import '../providers/training_metrics_provider.dart';
 
 /// Full-screen line chart showing estimated 1RM over time for a single exercise.
 class ExerciseLoadChartScreen extends ConsumerStatefulWidget {
-  final int exerciseId;
+  final String exerciseId;
 
   const ExerciseLoadChartScreen({super.key, required this.exerciseId});
 

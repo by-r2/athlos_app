@@ -21,7 +21,7 @@ import '../providers/program_notifier.dart';
 /// Slim form: name, focus, duration, rest, deload config, activate switch.
 /// Cycle and progression rules are managed in ProgramDetailScreen.
 class ProgramFormScreen extends ConsumerStatefulWidget {
-  final int? programId;
+  final String? programId;
 
   const ProgramFormScreen({super.key, this.programId});
 
@@ -125,7 +125,7 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
         (await repo.update(program)).getOrThrow();
       } else {
         final program = TrainingProgram(
-          id: 0,
+          id: '',
           name: name,
           focus: _focus,
           durationMode: _durationMode,

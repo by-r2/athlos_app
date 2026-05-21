@@ -41,18 +41,27 @@ _MF _p(TargetMuscle m, [MuscleRegion? r]) =>
 _MF _s(TargetMuscle m, [MuscleRegion? r]) =>
     (muscle: m, region: r, role: MuscleRole.secondary);
 
+/// Athlos namespace for UUID v5 exercise IDs (fixed, never changes).
+const _athlosExerciseNamespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+
+/// Generates a deterministic UUID v5 for a catalog exercise canonical name.
+String catalogExerciseId(String canonicalName) =>
+    AppDatabase.uuid5(_athlosExerciseNamespace, canonicalName);
+
 /// Seeds the database with verified exercises on first creation.
 ///
 /// Each exercise uses an English key as [name] (localized via ARB in the UI).
+/// UUID v5 is generated deterministically from the canonical name.
 /// Variation edges are applied after all exercises are inserted.
 Future<void> seedExercises(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
-
   for (final item in _seedItems) {
-    final id = await db
+    final id = catalogExerciseId(item.name);
+
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -64,12 +73,11 @@ Future<void> seedExercises(AppDatabase db) async {
             description: const Value.absent(),
           ),
         );
-    exerciseIds[item.name] = id;
 
     for (final focus in item.muscles) {
       await db
           .into(db.exerciseTargetMuscles)
-          .insert(
+          .insertOnConflictUpdate(
             ExerciseTargetMusclesCompanion(
               exerciseId: Value(id),
               targetMuscle: Value(focus.muscle),
@@ -81,26 +89,24 @@ Future<void> seedExercises(AppDatabase db) async {
   }
 
   for (final link in _variations) {
-    final fromId = exerciseIds[link.from];
-    final toId = exerciseIds[link.to];
-    if (fromId != null && toId != null) {
-      await db
-          .into(db.exerciseVariations)
-          .insert(
-            ExerciseVariationsCompanion(
-              exerciseId: Value(fromId),
-              variationId: Value(toId),
-            ),
-          );
-      await db
-          .into(db.exerciseVariations)
-          .insert(
-            ExerciseVariationsCompanion(
-              exerciseId: Value(toId),
-              variationId: Value(fromId),
-            ),
-          );
-    }
+    final fromId = catalogExerciseId(link.from);
+    final toId = catalogExerciseId(link.to);
+    await db
+        .into(db.exerciseVariations)
+        .insertOnConflictUpdate(
+          ExerciseVariationsCompanion(
+            exerciseId: Value(fromId),
+            variationId: Value(toId),
+          ),
+        );
+    await db
+        .into(db.exerciseVariations)
+        .insertOnConflictUpdate(
+          ExerciseVariationsCompanion(
+            exerciseId: Value(toId),
+            variationId: Value(fromId),
+          ),
+        );
   }
 }
 
@@ -915,10 +921,12 @@ final _seedItems = [
 /// Called from migration onUpgrade when upgrading from v1.
 Future<void> seedExercisesV2(AppDatabase db) async {
   for (final item in _cardioSeedItems) {
+    final id = catalogExerciseId(item.name);
     await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -946,10 +954,12 @@ const _cardioSeedItems = [
 /// Also updates movement_pattern for existing exercises.
 Future<void> seedExercisesV3(AppDatabase db) async {
   for (final item in _v3SeedItems) {
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -996,7 +1006,7 @@ Future<void> seedExercisesV3(AppDatabase db) async {
 /// Seeds the biceps exercises added in schema version 8.
 /// Called from migration onUpgrade when upgrading from v7.
 Future<void> seedExercisesV4(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   // Resolve existing exercise IDs for variation linking
   final existingRows = await db.select(db.exercises).get();
@@ -1005,10 +1015,12 @@ Future<void> seedExercisesV4(AppDatabase db) async {
   }
 
   for (final item in _v4SeedItems) {
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -1062,10 +1074,12 @@ Future<void> seedExercisesV4(AppDatabase db) async {
 
 /// Seeds the hamstrings variation added in schema version 11.
 Future<void> seedExercisesV5(AppDatabase db) async {
-  final exerciseId = await db
+  final id = catalogExerciseId('seatedLegCurl');
+  await db
       .into(db.exercises)
-      .insert(
+      .insertOnConflictUpdate(
         ExercisesCompanion.insert(
+          id: id,
           name: 'seatedLegCurl',
           muscleGroup: MuscleGroup.hamstrings,
           type: const Value(ExerciseType.strength),
@@ -1079,7 +1093,7 @@ Future<void> seedExercisesV5(AppDatabase db) async {
       .into(db.exerciseTargetMuscles)
       .insert(
         ExerciseTargetMusclesCompanion(
-          exerciseId: Value(exerciseId),
+          exerciseId: Value(id),
           targetMuscle: const Value(TargetMuscle.bicepsFemoris),
           muscleRegion: const Value(null),
           role: const Value(MuscleRole.primary),
@@ -1089,7 +1103,7 @@ Future<void> seedExercisesV5(AppDatabase db) async {
       .into(db.exerciseTargetMuscles)
       .insert(
         ExerciseTargetMusclesCompanion(
-          exerciseId: Value(exerciseId),
+          exerciseId: Value(id),
           targetMuscle: const Value(TargetMuscle.semitendinosus),
           muscleRegion: const Value(null),
           role: const Value(MuscleRole.primary),
@@ -1371,7 +1385,7 @@ const _secondaryRoleBackfill = {
 
 /// Seeds the exercises added in schema version 26.
 Future<void> seedExercisesV6(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   final existingRows = await db.select(db.exercises).get();
   for (final row in existingRows) {
@@ -1379,10 +1393,12 @@ Future<void> seedExercisesV6(AppDatabase db) async {
   }
 
   for (final item in _v6SeedItems) {
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -1655,7 +1671,7 @@ const _variations = [
 /// Seeds the isometric exercises added in schema version 28.
 /// Called from migration onUpgrade when upgrading from < 28.
 Future<void> seedExercisesV7(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   final existingRows = await db.select(db.exercises).get();
   for (final row in existingRows) {
@@ -1665,10 +1681,12 @@ Future<void> seedExercisesV7(AppDatabase db) async {
   for (final item in _v7SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -1794,7 +1812,7 @@ const _v7Variations = [
 
 /// Seeds [frontSquat] and [gobletSquat] (schema version 31).
 Future<void> seedExercisesV8(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   final existingRows = await db.select(db.exercises).get();
   for (final row in existingRows) {
@@ -1804,10 +1822,12 @@ Future<void> seedExercisesV8(AppDatabase db) async {
   for (final item in _v8SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -1900,7 +1920,7 @@ const _v8Variations = [
 
 /// Seeds [superman], [frontRaise], and [mountainClimber] (schema version 32).
 Future<void> seedExercisesV9(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   final existingRows = await db.select(db.exercises).get();
   for (final row in existingRows) {
@@ -1910,10 +1930,12 @@ Future<void> seedExercisesV9(AppDatabase db) async {
   for (final item in _v9SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),
@@ -2007,7 +2029,7 @@ const _v9Variations = [
 
 /// Seeds stair climbing, vertical climber, Jacobs Ladder, Russian twist (schema 33).
 Future<void> seedExercisesV33(AppDatabase db) async {
-  final exerciseIds = <String, int>{};
+  final exerciseIds = <String, String>{};
 
   final existingRows = await db.select(db.exercises).get();
   for (final row in existingRows) {
@@ -2017,10 +2039,12 @@ Future<void> seedExercisesV33(AppDatabase db) async {
   for (final item in _v33SeedItems) {
     if (exerciseIds.containsKey(item.name)) continue;
 
-    final id = await db
+    final id = catalogExerciseId(item.name);
+    await db
         .into(db.exercises)
-        .insert(
+        .insertOnConflictUpdate(
           ExercisesCompanion.insert(
+            id: id,
             name: item.name,
             muscleGroup: item.muscleGroup,
             type: Value(item.type),

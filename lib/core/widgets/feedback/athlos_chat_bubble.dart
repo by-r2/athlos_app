@@ -86,10 +86,31 @@ class AthlosChatBubble extends StatelessWidget {
 
   Widget _buildAvatar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: colorScheme.primaryContainer,
-      child: SvgPicture.asset(AthlosAssets.athlosSymbol, width: 32, height: 32),
+    const avatarSize = 32.0;
+    const symbolSize = 24.0;
+
+    return Container(
+      width: avatarSize,
+      height: avatarSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: colorScheme.primary,
+        boxShadow: colorScheme.brightness == Brightness.light
+            ? [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.22),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: SvgPicture.asset(
+        AthlosAssets.athlosSymbol,
+        width: symbolSize,
+        height: symbolSize,
+      ),
     );
   }
 }

@@ -1,8 +1,8 @@
 /// A step in the training cycle: an ordered workout reference.
 class TrainingCycleStep {
-  final int id;
+  final String id;
   final int orderIndex;
-  final int workoutId;
+  final String workoutId;
 
   const TrainingCycleStep({
     required this.id,

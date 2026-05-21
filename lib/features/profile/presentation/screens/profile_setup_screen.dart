@@ -576,7 +576,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     };
 
     final program = TrainingProgram(
-      id: 0,
+      id: '',
       name: 'Meu Programa',
       focus: focus,
       durationMode: DurationMode.sessions,

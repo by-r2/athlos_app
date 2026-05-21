@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Exercise ex({MuscleGroup mg = MuscleGroup.chest, MovementPattern? mp}) =>
-      Exercise(id: 1, name: 't', muscleGroup: mg, movementPattern: mp);
+      Exercise(id: 'ex-1', name: 't', muscleGroup: mg, movementPattern: mp);
 
   test('hinge pattern uses larger increment', () {
     expect(
@@ -41,7 +41,7 @@ void main() {
     expect(
       progressionLoadIncreaseFraction(
         Exercise(
-          id: 1,
+          id: 'ex-1',
           name: 'x',
           muscleGroup: MuscleGroup.shoulders,
           type: ExerciseType.strength,

@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/auth/presentation/providers/auth_notifier.dart';
-import '../../features/auth/presentation/providers/auth_prompt_notifier.dart';
 import '../../features/auth/presentation/screens/account_prompt_screen.dart';
 import '../../features/auth/presentation/screens/auth_email_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
@@ -23,6 +22,7 @@ import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
 import '../providers/last_module_provider.dart';
+import '../providers/session_bootstrap_provider.dart';
 import '../services/user_data_sync_coordinator.dart';
 import 'app_entry_decision.dart';
 import 'athlos_router_pages.dart';
@@ -36,10 +36,11 @@ GoRouter appRouter(Ref ref) {
   bool hasRestoredModule = false;
 
   final refreshNotifier = ValueNotifier<int>(0);
-  ref.watch(userDataCloudSyncListenerProvider);
+  ref.watch(userDataCloudSyncConnectivityListenerProvider);
+  ref.watch(sessionBootstrapListenerProvider);
   ref.listen(authProvider, (_, _) => refreshNotifier.value++);
-  ref.listen(localAccessProvider, (_, _) => refreshNotifier.value++);
   ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
+  ref.listen(sessionBootstrapProvider, (_, _) => refreshNotifier.value++);
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
@@ -48,16 +49,19 @@ GoRouter appRouter(Ref ref) {
     redirect: (context, state) {
       final hasProfileAsync = ref.read(hasProfileProvider);
       final authAsync = ref.read(authProvider);
-      final hasLocalAccess = ref.read(localAccessProvider);
       final location = state.matchedLocation;
-      final hasProfile = hasProfileAsync.value ?? false;
+      final hasAuthUser = authAsync.value != null;
+      final isSessionBootstrapping =
+          hasAuthUser && !ref.read(sessionBootstrapProvider);
+      final hasProfile =
+          !isSessionBootstrapping && (hasProfileAsync.value ?? false);
 
       final redirect = resolveAppEntryRedirect(
         location: location,
         isAuthLoading: authAsync.isLoading,
         isProfileLoading: hasProfileAsync.isLoading,
-        hasAuthUser: authAsync.value != null,
-        hasLocalAccess: hasLocalAccess,
+        isSessionBootstrapping: isSessionBootstrapping,
+        hasAuthUser: hasAuthUser,
         hasProfile: hasProfile,
       );
       if (redirect != null) return redirect;
@@ -130,7 +134,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingExercises}/:exerciseId',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['exerciseId']!);
+          final id = state.pathParameters['exerciseId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             ExerciseDetailScreen(exerciseId: id),
@@ -147,7 +151,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['workoutId']!);
+          final id = state.pathParameters['workoutId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             WorkoutDetailScreen(workoutId: id),
@@ -157,7 +161,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId/edit',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['workoutId']!);
+          final id = state.pathParameters['workoutId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             WorkoutFormScreen(workoutId: id),
@@ -167,7 +171,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingWorkouts}/:workoutId/execute',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['workoutId']!);
+          final id = state.pathParameters['workoutId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             WorkoutExecutionScreen(workoutId: id),
@@ -179,7 +183,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingHistory}/:executionId/share',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['executionId']!);
+          final id = state.pathParameters['executionId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             WorkoutShareSummaryScreen(executionId: id),
@@ -191,7 +195,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingHistory}/:executionId',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['executionId']!);
+          final id = state.pathParameters['executionId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             ExecutionDetailScreen(executionId: id),
@@ -203,7 +207,7 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '${RoutePaths.trainingExercises}/:exerciseId/load-chart',
         pageBuilder: (context, state) {
-          final id = int.parse(state.pathParameters['exerciseId']!);
+          final id = state.pathParameters['exerciseId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             ExerciseLoadChartScreen(exerciseId: id),

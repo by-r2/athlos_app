@@ -32,7 +32,7 @@ double? profileWeightAtOrBefore(
 
 /// Personal record for an exercise: best estimated 1RM ever achieved.
 class ExercisePR {
-  final int exerciseId;
+  final String exerciseId;
 
   /// Best estimated 1RM across all completed sets.
   final double best1RM;
@@ -52,7 +52,7 @@ class ExercisePR {
 /// Returns the personal record (best estimated 1RM) for [exerciseId],
 /// accounting for bodyweight exercises using profile weight.
 @riverpod
-Future<ExercisePR?> exercisePR(Ref ref, int exerciseId) async {
+Future<ExercisePR?> exercisePR(Ref ref, String exerciseId) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final workoutRepo = ref.watch(workoutRepositoryProvider);
   final exercises = await ref.watch(exerciseListProvider.future);
@@ -70,7 +70,7 @@ Future<ExercisePR?> exercisePR(Ref ref, int exerciseId) async {
   if (rows.isEmpty) return null;
 
   final execIds = rows.map((r) => r.set.executionId).toSet();
-  final weByExecId = <int, WorkoutExercise?>{};
+  final weByExecId = <String, WorkoutExercise?>{};
   for (final execId in execIds) {
     final execResult = await execRepo.getById(execId);
     final exec = execResult.isSuccess ? execResult.getOrThrow() : null;
@@ -130,7 +130,7 @@ Future<ExercisePR?> exercisePR(Ref ref, int exerciseId) async {
 @riverpod
 Future<bool> isSetNewPR(
   Ref ref, {
-  required int exerciseId,
+  required String exerciseId,
   required double? weight,
   required int? reps,
   required LoadMode loadMode,
@@ -322,7 +322,7 @@ enum ChartTimeRange { days30, days90, allTime }
 @riverpod
 Future<List<LoadDataPoint>> exerciseLoadHistory(
   Ref ref,
-  int exerciseId, {
+  String exerciseId, {
   ChartTimeRange range = ChartTimeRange.allTime,
 }) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
@@ -345,7 +345,7 @@ Future<List<LoadDataPoint>> exerciseLoadHistory(
   }
 
   final execIds = rows.map((r) => r.set.executionId).toSet();
-  final weByExecId = <int, WorkoutExercise?>{};
+  final weByExecId = <String, WorkoutExercise?>{};
   for (final execId in execIds) {
     final execResult = await execRepo.getById(execId);
     final exec = execResult.isSuccess ? execResult.getOrThrow() : null;
@@ -398,7 +398,7 @@ Future<List<LoadDataPoint>> exerciseLoadHistory(
 
 /// PR data for a single exercise (for PR History screen).
 class ExercisePRRecord {
-  final int exerciseId;
+  final String exerciseId;
   final String exerciseName;
   final String muscleGroup;
   final bool isVerified;

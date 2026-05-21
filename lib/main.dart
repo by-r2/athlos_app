@@ -11,7 +11,6 @@ import 'l10n/app_localizations.dart';
 
 import 'core/providers/last_module_provider.dart';
 import 'core/router/app_router.dart';
-import 'core/services/catalog_sync_service.dart';
 import 'core/services/supabase_config.dart';
 import 'core/services/user_data_sync_coordinator.dart';
 import 'core/theme/athlos_theme.dart';
@@ -29,10 +28,6 @@ void main() async {
   final container = ProviderContainer(
     overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
   );
-
-  if (isSupabaseConfigured) {
-    await container.read(catalogSyncServiceProvider).sync();
-  }
 
   runApp(
     UncontrolledProviderScope(container: container, child: const AthlosApp()),

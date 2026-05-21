@@ -4,43 +4,56 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('resolveAppEntryRedirect', () {
-    test('mantem rotas de auth durante loading', () {
+    test('mantem splash durante bootstrap pos-login', () {
       final redirect = resolveAppEntryRedirect(
-        location: RoutePaths.authSignIn,
-        isAuthLoading: true,
+        location: RoutePaths.splash,
+        isAuthLoading: false,
         isProfileLoading: false,
-        hasAuthUser: false,
-        hasLocalAccess: false,
+        isSessionBootstrapping: true,
+        hasAuthUser: true,
         hasProfile: false,
       );
 
       expect(redirect, isNull);
     });
 
-    test('envia usuario sem sessao e sem modo local para auth', () {
+    test('redireciona para splash durante bootstrap fora do splash', () {
+      final redirect = resolveAppEntryRedirect(
+        location: RoutePaths.authSignIn,
+        isAuthLoading: false,
+        isProfileLoading: false,
+        isSessionBootstrapping: true,
+        hasAuthUser: true,
+        hasProfile: false,
+      );
+
+      expect(redirect, RoutePaths.splash);
+    });
+
+    test('mantem rotas de auth durante loading de auth', () {
+      final redirect = resolveAppEntryRedirect(
+        location: RoutePaths.authSignIn,
+        isAuthLoading: true,
+        isProfileLoading: false,
+        isSessionBootstrapping: false,
+        hasAuthUser: false,
+        hasProfile: false,
+      );
+
+      expect(redirect, isNull);
+    });
+
+    test('envia usuario sem sessao para auth', () {
       final redirect = resolveAppEntryRedirect(
         location: RoutePaths.hub,
         isAuthLoading: false,
         isProfileLoading: false,
+        isSessionBootstrapping: false,
         hasAuthUser: false,
-        hasLocalAccess: false,
         hasProfile: true,
       );
 
       expect(redirect, RoutePaths.authPrompt);
-    });
-
-    test('permite hub sem sessao apenas com modo local aceito', () {
-      final redirect = resolveAppEntryRedirect(
-        location: RoutePaths.splash,
-        isAuthLoading: false,
-        isProfileLoading: false,
-        hasAuthUser: false,
-        hasLocalAccess: true,
-        hasProfile: true,
-      );
-
-      expect(redirect, RoutePaths.hub);
     });
 
     test('envia usuario autenticado sem perfil para setup', () {
@@ -48,8 +61,8 @@ void main() {
         location: RoutePaths.splash,
         isAuthLoading: false,
         isProfileLoading: false,
+        isSessionBootstrapping: false,
         hasAuthUser: true,
-        hasLocalAccess: false,
         hasProfile: false,
       );
 
@@ -61,8 +74,8 @@ void main() {
         location: RoutePaths.authSignIn,
         isAuthLoading: false,
         isProfileLoading: false,
+        isSessionBootstrapping: false,
         hasAuthUser: true,
-        hasLocalAccess: false,
         hasProfile: true,
       );
 

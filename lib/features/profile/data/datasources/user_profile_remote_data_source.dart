@@ -33,6 +33,23 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     return _fromJson(row);
   }
 
+  @override
+  Future<UserProfile?> fetchUpdatedSince(DateTime lastPullAt) async {
+    final client = _client;
+    final userId = currentUserId;
+    if (client == null || userId == null) return null;
+
+    final row = await client
+        .from(_table)
+        .select()
+        .eq('id', userId)
+        .gt('updated_at', lastPullAt.toUtc().toIso8601String())
+        .maybeSingle();
+    if (row == null) return null;
+    return _fromJson(row);
+  }
+
+  @override
   Future<DateTime> upsertCurrentProfile(UserProfile profile) async {
     final client = _client;
     final userId = currentUserId;
@@ -80,7 +97,7 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
   };
 
   UserProfile _fromJson(Map<String, dynamic> row) => UserProfile(
-    id: 0,
+    id: row['id'] as String,
     name: row['name'] as String?,
     height: _asDouble(row['height']),
     age: _asInt(row['age']),
@@ -106,8 +123,6 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     currentFrequencyStreak: _asInt(row['current_frequency_streak']) ?? 0,
     bestFrequencyStreak: _asInt(row['best_frequency_streak']) ?? 0,
     trainingStreaksSchema: _asInt(row['training_streaks_schema']) ?? 0,
-    remoteUserId: row['id'] as String?,
-    lastSyncedAt: _asDateTime(row['updated_at']),
   );
 
   T? _enumByName<T extends Enum>(List<T> values, Object? name) {

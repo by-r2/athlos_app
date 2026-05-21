@@ -23,7 +23,7 @@ import '../providers/program_notifier.dart';
 
 /// Advanced settings for a training program: header, progression, deload, actions.
 class ProgramDetailScreen extends ConsumerWidget {
-  final int programId;
+  final String programId;
 
   const ProgramDetailScreen({super.key, required this.programId});
 
@@ -223,7 +223,7 @@ class _ProgramHeader extends ConsumerWidget {
 // ── Progression Section ──────────────────────────────────────────────
 
 class _ProgressionSection extends ConsumerStatefulWidget {
-  final int programId;
+  final String programId;
 
   const _ProgressionSection({required this.programId});
 

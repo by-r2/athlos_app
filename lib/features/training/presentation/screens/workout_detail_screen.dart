@@ -25,17 +25,18 @@ import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 final _placeholderExercises = List.generate(
   3,
   (i) => WorkoutExercise(
-    workoutId: 0,
-    exerciseId: 0,
-    order: i,
+    id: '',
+    workoutId: '',
+    exerciseId: '',
+    sortOrder: i,
     sets: 3,
     minReps: 10,
     maxReps: 10,
-    rest: 60,
+    restSeconds: 60,
   ),
 );
 final _placeholderWorkout = Workout(
-  id: 0,
+  id: '',
   name: '',
   description: null,
   sortOrder: null,
@@ -45,7 +46,7 @@ final _placeholderWorkout = Workout(
 
 /// Detail view of a single workout.
 class WorkoutDetailScreen extends ConsumerWidget {
-  final int workoutId;
+  final String workoutId;
 
   const WorkoutDetailScreen({super.key, required this.workoutId});
 
@@ -553,9 +554,9 @@ class _ExerciseDetailTile extends ConsumerWidget {
   }
 
   String _exerciseSubtitle(WorkoutExercise ex, String groupName) {
-    final config = ex.duration != null
-        ? '${ex.sets}×${formatDuration(ex.duration!)}  •  ${ex.rest}s'
-        : '${ex.sets}×${ex.repsDisplay}  •  ${ex.rest}s';
+    final config = ex.durationSeconds != null
+        ? '${ex.sets}×${formatDuration(ex.durationSeconds!)}  •  ${ex.restSeconds}s'
+        : '${ex.sets}×${ex.repsDisplay}  •  ${ex.restSeconds}s';
     return groupName.isNotEmpty ? '$groupName  •  $config' : config;
   }
 }
@@ -563,7 +564,7 @@ class _ExerciseDetailTile extends ConsumerWidget {
 class _WorkoutLastVsPreviousSection extends ConsumerWidget {
   const _WorkoutLastVsPreviousSection({required this.workoutId});
 
-  final int workoutId;
+  final String workoutId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

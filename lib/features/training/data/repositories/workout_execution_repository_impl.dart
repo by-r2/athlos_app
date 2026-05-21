@@ -3,12 +3,14 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/uuid.dart';
+import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/execution_comparison.dart';
 import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../domain/entities/execution_set.dart' as domain;
 import '../../domain/entities/execution_set_segment.dart' as domain;
 import '../../domain/entities/workout_execution.dart' as domain;
-import '../../domain/enums/load_mode.dart';
 import '../../domain/helpers/training_metrics.dart';
 import '../../domain/repositories/exercise_repository.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
@@ -16,13 +18,10 @@ import '../../domain/repositories/workout_repository.dart';
 import '../datasources/daos/workout_execution_dao.dart';
 
 class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
-  final WorkoutExecutionDao _dao;
-  final ExerciseRepository? _exerciseRepository;
-  final WorkoutRepository? _workoutRepository;
-  final BodyMetricRepository? _bodyMetricRepository;
-
   WorkoutExecutionRepositoryImpl(
-    this._dao, {
+    this._dao,
+    this._syncRunner,
+    this._userId, {
     ExerciseRepository? exerciseRepository,
     WorkoutRepository? workoutRepository,
     BodyMetricRepository? bodyMetricRepository,
@@ -30,10 +29,27 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
        _workoutRepository = workoutRepository,
        _bodyMetricRepository = bodyMetricRepository;
 
+  final WorkoutExecutionDao _dao;
+  final UserOwnedSyncRunner _syncRunner;
+  final String _userId;
+  final ExerciseRepository? _exerciseRepository;
+  final WorkoutRepository? _workoutRepository;
+  final BodyMetricRepository? _bodyMetricRepository;
+
+  Future<void> _syncExecution() async {
+    await _syncRunner.synchronizeTable(
+      TrainingSyncTableNames.workoutExecutions,
+    );
+  }
+
+  Future<void> _syncSet() async {
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.executionSets);
+  }
+
   @override
   Future<Result<List<domain.WorkoutExecution>>> getAll() async {
     try {
-      final rows = await _dao.getAll();
+      final rows = await _dao.getAll(_userId);
       return Success(rows.map(_executionToDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load executions: $e'));
@@ -42,10 +58,10 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.WorkoutExecution>>> getByWorkout(
-    int workoutId,
+    String workoutId,
   ) async {
     try {
-      final rows = await _dao.getByWorkout(workoutId);
+      final rows = await _dao.getByWorkout(workoutId, _userId);
       return Success(rows.map(_executionToDomain).toList());
     } on Exception catch (e) {
       return Failure(
@@ -55,7 +71,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<domain.WorkoutExecution?>> getById(int id) async {
+  Future<Result<domain.WorkoutExecution?>> getById(String id) async {
     try {
       final row = await _dao.getById(id);
       return Success(row != null ? _executionToDomain(row) : null);
@@ -67,7 +83,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   @override
   Future<Result<domain.WorkoutExecution?>> getLastFinished() async {
     try {
-      final row = await _dao.getLastFinished();
+      final row = await _dao.getLastFinished(_userId);
       return Success(row != null ? _executionToDomain(row) : null);
     } on Exception catch (e) {
       return Failure(
@@ -78,10 +94,10 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<ExecutionComparison?>> getLastTwoFinishedWithVolume(
-    int workoutId,
+    String workoutId,
   ) async {
     try {
-      final byWorkout = await _dao.getByWorkout(workoutId);
+      final byWorkout = await _dao.getByWorkout(workoutId, _userId);
       final finished = byWorkout
           .where((e) => e.finishedAt != null)
           .take(2)
@@ -144,16 +160,15 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     );
   }
 
-  /// Loads sets for [executionId] and attaches drop-set segments. Mirrors the
-  /// presentation-side `executionSetsWithSegments` provider so server-side
-  /// consumers (volume comparisons, future analytics) see the full picture.
-  Future<List<domain.ExecutionSet>> _setsWithSegments(int executionId) async {
+  Future<List<domain.ExecutionSet>> _setsWithSegments(
+    String executionId,
+  ) async {
     final sets = (await getSets(executionId)).getOrThrow();
     final segments = (await getSegmentsForExecution(executionId)).getOrThrow();
 
     if (segments.isEmpty) return sets;
 
-    final segmentsBySetId = <int, List<domain.ExecutionSetSegment>>{};
+    final segmentsBySetId = <String, List<domain.ExecutionSetSegment>>{};
     for (final seg in segments) {
       segmentsBySetId.putIfAbsent(seg.executionSetId, () => []).add(seg);
     }
@@ -170,8 +185,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         plannedWeight: s.plannedWeight,
         reps: s.reps,
         weight: s.weight,
-        duration: s.duration,
-        distance: s.distance,
+        durationSeconds: s.durationSeconds,
+        distanceMeters: s.distanceMeters,
         isCompleted: s.isCompleted,
         isWarmup: s.isWarmup,
         rpe: s.rpe,
@@ -190,7 +205,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   @override
   Future<Result<List<domain.WorkoutExecution>>> getDangling() async {
     try {
-      final rows = await _dao.getDangling();
+      final rows = await _dao.getDangling(_userId);
       return Success(rows.map(_executionToDomain).toList());
     } on Exception catch (e) {
       return Failure(
@@ -200,7 +215,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> deleteUnfinishedByWorkout(int workoutId) async {
+  Future<Result<void>> deleteUnfinishedByWorkout(String workoutId) async {
     try {
       await _dao.deleteUnfinishedByWorkout(workoutId);
       return const Success(null);
@@ -226,20 +241,22 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<int>> start(
-    int workoutId, {
-    required int programId,
-    String? exerciseConfigSnapshot,
+  Future<Result<String>> start(
+    String workoutId, {
+    String? programId,
   }) async {
     try {
-      final id = await _dao.create(
+      final id = generateUuidV4();
+      await _dao.create(
         WorkoutExecutionsCompanion.insert(
+          id: id,
+          userId: _userId,
           workoutId: workoutId,
-          programId: programId,
+          programId: programId ?? '',
           startedAt: Value(DateTime.now()),
-          exerciseConfigSnapshot: Value(exerciseConfigSnapshot),
         ),
       );
+      await _syncExecution();
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to start execution: $e'));
@@ -247,9 +264,10 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> finish(int executionId) async {
+  Future<Result<void>> finish(String executionId) async {
     try {
       await _dao.finish(executionId);
+      await _syncExecution();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to finish execution: $e'));
@@ -257,9 +275,10 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> delete(int id) async {
+  Future<Result<void>> delete(String id) async {
     try {
       await _dao.deleteById(id);
+      await _syncExecution();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete execution $id: $e'));
@@ -267,7 +286,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<List<domain.ExecutionSet>>> getSets(int executionId) async {
+  Future<Result<List<domain.ExecutionSet>>> getSets(String executionId) async {
     try {
       final rows = await _dao.getSets(executionId);
       return Success(rows.map(_setToDomain).toList());
@@ -277,10 +296,13 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<int>> logSet(domain.ExecutionSet set) async {
+  Future<Result<String>> logSet(domain.ExecutionSet set) async {
     try {
-      final id = await _dao.insertSet(
+      final setId = set.id.isEmpty ? generateUuidV4() : set.id;
+      await _dao.insertSet(
         ExecutionSetsCompanion.insert(
+          id: setId,
+          userId: _userId,
           executionId: set.executionId,
           exerciseId: set.exerciseId,
           setNumber: set.setNumber,
@@ -288,8 +310,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           plannedWeight: Value(set.plannedWeight),
           reps: Value(set.reps),
           weight: Value(set.weight),
-          duration: Value(set.duration),
-          distance: Value(set.distance),
+          durationSeconds: Value(set.durationSeconds),
+          distanceMeters: Value(set.distanceMeters),
           isCompleted: Value(set.isCompleted),
           isWarmup: Value(set.isWarmup),
           rpe: Value(set.rpe),
@@ -302,7 +324,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isUnilateral: Value(set.isUnilateral),
         ),
       );
-      return Success(id);
+      await _syncSet();
+      return Success(setId);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to log set: $e'));
     }
@@ -316,8 +339,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         ExecutionSetsCompanion(
           reps: Value(set.reps),
           weight: Value(set.weight),
-          duration: Value(set.duration),
-          distance: Value(set.distance),
+          durationSeconds: Value(set.durationSeconds),
+          distanceMeters: Value(set.distanceMeters),
           isCompleted: Value(set.isCompleted),
           isWarmup: Value(set.isWarmup),
           rpe: Value(set.rpe),
@@ -330,6 +353,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           isUnilateral: Value(set.isUnilateral),
         ),
       );
+      await _syncSet();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update set: $e'));
@@ -337,11 +361,11 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<Map<int, double>>> getLastWeightsForExercises(
-    List<int> exerciseIds,
+  Future<Result<Map<String, double>>> getLastWeightsForExercises(
+    List<String> exerciseIds,
   ) async {
     try {
-      final weights = await _dao.getLastWeightsForExercises(exerciseIds);
+      final weights = await _dao.getLastWeightsForExercises(exerciseIds, _userId);
       return Success(weights);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load last weights: $e'));
@@ -350,31 +374,11 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.ExecutionSet>>> getLastCompletedSetsForExercise(
-    int exerciseId,
+    String exerciseId,
   ) async {
     try {
-      final rows = await _dao.getLastCompletedSetsForExercise(exerciseId);
-      return Success(
-        rows
-            .map(
-              (r) => domain.ExecutionSet(
-                id: r.id,
-                executionId: r.executionId,
-                exerciseId: r.exerciseId,
-                setNumber: r.setNumber,
-                plannedReps: r.plannedReps,
-                plannedWeight: r.plannedWeight,
-                reps: r.reps,
-                weight: r.weight,
-                duration: r.duration,
-                distance: r.distance,
-                isCompleted: r.isCompleted,
-                isWarmup: r.isWarmup,
-                rpe: r.rpe,
-              ),
-            )
-            .toList(),
-      );
+      final rows = await _dao.getLastCompletedSetsForExercise(exerciseId, _userId);
+      return Success(rows.map(_setToDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load last sets: $e'));
     }
@@ -382,31 +386,11 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.ExecutionSet>>> getAllCompletedSetsForExercise(
-    int exerciseId,
+    String exerciseId,
   ) async {
     try {
-      final rows = await _dao.getAllCompletedSetsForExercise(exerciseId);
-      return Success(
-        rows
-            .map(
-              (r) => domain.ExecutionSet(
-                id: r.id,
-                executionId: r.executionId,
-                exerciseId: r.exerciseId,
-                setNumber: r.setNumber,
-                plannedReps: r.plannedReps,
-                plannedWeight: r.plannedWeight,
-                reps: r.reps,
-                weight: r.weight,
-                duration: r.duration,
-                distance: r.distance,
-                isCompleted: r.isCompleted,
-                isWarmup: r.isWarmup,
-                rpe: r.rpe,
-              ),
-            )
-            .toList(),
-      );
+      final rows = await _dao.getAllCompletedSetsForExercise(exerciseId, _userId);
+      return Success(rows.map(_setToDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load all sets: $e'));
     }
@@ -420,7 +404,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     final raw = await _dao.getSegmentsForExecutionSetIds(ids);
     if (raw.isEmpty) return sets;
 
-    final bySetId = <int, List<domain.ExecutionSetSegment>>{};
+    final bySetId = <String, List<domain.ExecutionSetSegment>>{};
     for (final row in raw) {
       final d = _segmentToDomain(row);
       bySetId.putIfAbsent(d.executionSetId, () => []).add(d);
@@ -437,8 +421,8 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         plannedWeight: s.plannedWeight,
         reps: s.reps,
         weight: s.weight,
-        duration: s.duration,
-        distance: s.distance,
+        durationSeconds: s.durationSeconds,
+        distanceMeters: s.distanceMeters,
         isCompleted: s.isCompleted,
         isWarmup: s.isWarmup,
         rpe: s.rpe,
@@ -456,9 +440,12 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<({domain.ExecutionSet set, DateTime date})>>>
-  getCompletedSetsWithDateForExercise(int exerciseId) async {
+  getCompletedSetsWithDateForExercise(String exerciseId) async {
     try {
-      final rows = await _dao.getCompletedSetsWithDateForExercise(exerciseId);
+      final rows = await _dao.getCompletedSetsWithDateForExercise(
+        exerciseId,
+        _userId,
+      );
       if (rows.isEmpty) return const Success([]);
 
       final domainSets = rows.map((r) => _setToDomain(r.set)).toList();
@@ -473,51 +460,50 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     }
   }
 
-  domain.WorkoutExecution _executionToDomain(dynamic row) =>
+  domain.WorkoutExecution _executionToDomain(WorkoutExecution row) =>
       domain.WorkoutExecution(
-        id: row.id as int,
-        workoutId: row.workoutId as int,
-        programId: row.programId as int,
-        startedAt: row.startedAt as DateTime,
-        finishedAt: row.finishedAt as DateTime?,
-        exerciseConfigSnapshot: row.exerciseConfigSnapshot as String?,
+        id: row.id,
+        workoutId: row.workoutId,
+        programId: row.programId,
+        startedAt: row.startedAt,
+        finishedAt: row.finishedAt,
       );
 
-  domain.ExecutionSet _setToDomain(dynamic row) => domain.ExecutionSet(
-    id: row.id as int,
-    executionId: row.executionId as int,
-    exerciseId: row.exerciseId as int,
-    setNumber: row.setNumber as int,
-    plannedReps: row.plannedReps as int?,
-    plannedWeight: row.plannedWeight as double?,
-    reps: row.reps as int?,
-    weight: row.weight as double?,
-    duration: row.duration as int?,
-    distance: row.distance as double?,
-    isCompleted: row.isCompleted as bool,
-    isWarmup: row.isWarmup as bool,
-    rpe: row.rpe as int?,
-    bodyWeightSnapshot: row.bodyWeightSnapshot as double?,
-    loadModeOverride: row.loadModeOverride as LoadMode?,
-    leftReps: row.leftReps as int?,
-    leftWeight: row.leftWeight as double?,
-    rightReps: row.rightReps as int?,
-    rightWeight: row.rightWeight as double?,
-    isUnilateral: row.isUnilateral as bool?,
+  domain.ExecutionSet _setToDomain(ExecutionSet row) => domain.ExecutionSet(
+    id: row.id,
+    executionId: row.executionId,
+    exerciseId: row.exerciseId,
+    setNumber: row.setNumber,
+    plannedReps: row.plannedReps,
+    plannedWeight: row.plannedWeight,
+    reps: row.reps,
+    weight: row.weight,
+    durationSeconds: row.durationSeconds,
+    distanceMeters: row.distanceMeters,
+    isCompleted: row.isCompleted,
+    isWarmup: row.isWarmup,
+    rpe: row.rpe,
+    bodyWeightSnapshot: row.bodyWeightSnapshot,
+    loadModeOverride: row.loadModeOverride,
+    leftReps: row.leftReps,
+    leftWeight: row.leftWeight,
+    rightReps: row.rightReps,
+    rightWeight: row.rightWeight,
+    isUnilateral: row.isUnilateral,
   );
 
-  domain.ExecutionSetSegment _segmentToDomain(dynamic row) =>
+  domain.ExecutionSetSegment _segmentToDomain(ExecutionSetSegment row) =>
       domain.ExecutionSetSegment(
-        id: row.id as int,
-        executionSetId: row.executionSetId as int,
-        segmentOrder: row.segmentOrder as int,
-        reps: row.reps as int,
-        weight: row.weight as double?,
+        id: row.id,
+        executionSetId: row.executionSetId,
+        segmentOrder: row.segmentOrder,
+        reps: row.reps,
+        weight: row.weight,
       );
 
   @override
   Future<Result<List<domain.ExecutionSetSegment>>> getSegments(
-    int executionSetId,
+    String executionSetId,
   ) async {
     try {
       final rows = await _dao.getSegments(executionSetId);
@@ -529,7 +515,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<List<domain.ExecutionSetSegment>>> getSegmentsForExecution(
-    int executionId,
+    String executionId,
   ) async {
     try {
       final rows = await _dao.getSegmentsForExecution(executionId);
@@ -543,7 +529,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
 
   @override
   Future<Result<void>> saveSegments(
-    int executionSetId,
+    String executionSetId,
     List<domain.ExecutionSetSegment> segments,
   ) async {
     try {
@@ -552,6 +538,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         segments
             .map(
               (s) => ExecutionSetSegmentsCompanion.insert(
+                id: s.id.isEmpty ? generateUuidV4() : s.id,
                 executionSetId: executionSetId,
                 segmentOrder: s.segmentOrder,
                 reps: s.reps,
@@ -560,6 +547,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
             )
             .toList(),
       );
+      await _syncSet();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to save segments: $e'));

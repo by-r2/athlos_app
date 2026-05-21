@@ -28,7 +28,7 @@ Future<List<TrainingProgram>> programList(Ref ref) async {
 
 /// Number of finished sessions for a given program.
 @riverpod
-Future<int> programSessionCount(Ref ref, int programId) async {
+Future<int> programSessionCount(Ref ref, String programId) async {
   final repo = ref.watch(programRepositoryProvider);
   final result = await repo.getSessionCount(programId);
   return result.getOrThrow();
@@ -52,7 +52,7 @@ class ProgramProgressInfo {
 }
 
 @riverpod
-Future<ProgramProgressInfo> programProgress(Ref ref, int programId) async {
+Future<ProgramProgressInfo> programProgress(Ref ref, String programId) async {
   final programs = await ref.watch(programListProvider.future);
   final program = programs.where((p) => p.id == programId).firstOrNull;
   if (program == null) {
@@ -111,7 +111,7 @@ class ProgramActions extends _$ProgramActions {
   @override
   FutureOr<void> build() {}
 
-  Future<int> createProgram(TrainingProgram program) async {
+  Future<String> createProgram(TrainingProgram program) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.create(program);
     return result.getOrThrow();
@@ -123,31 +123,31 @@ class ProgramActions extends _$ProgramActions {
     result.getOrThrow();
   }
 
-  Future<void> activateProgram(int programId) async {
+  Future<void> activateProgram(String programId) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.activate(programId);
     result.getOrThrow();
   }
 
-  Future<void> archiveProgram(int programId) async {
+  Future<void> archiveProgram(String programId) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.archive(programId);
     result.getOrThrow();
   }
 
-  Future<void> deleteProgram(int programId) async {
+  Future<void> deleteProgram(String programId) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.delete(programId);
     result.getOrThrow();
   }
 
-  Future<void> enterDeload(int programId) async {
+  Future<void> enterDeload(String programId) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.setDeloadActive(programId, active: true);
     result.getOrThrow();
   }
 
-  Future<void> exitDeload(int programId) async {
+  Future<void> exitDeload(String programId) async {
     final repo = ref.read(programRepositoryProvider);
     final result = await repo.setDeloadActive(programId, active: false);
     result.getOrThrow();

@@ -9,10 +9,10 @@ class ResolveRuntimeDuplicateUseCase {
 
   Future<Result<void>> call({
     required BackupConflictType entityType,
-    required int leftEntityId,
-    required int rightEntityId,
+    required String leftEntityId,
+    required String rightEntityId,
     required RuntimeDuplicateDecision decision,
-    int? winnerId,
+    String? winnerId,
     Map<String, dynamic>? mergedAttributes,
   }) {
     return _repository.resolveRuntimeDuplicate(

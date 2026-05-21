@@ -26,7 +26,7 @@ import '../providers/exercise_notifier.dart';
 import '../providers/training_metrics_provider.dart';
 
 const _placeholderExercise = Exercise(
-  id: 0,
+  id: '',
   name: '',
   muscleGroup: MuscleGroup.chest,
   isVerified: true,
@@ -36,7 +36,7 @@ const _placeholderExercise = Exercise(
 ///
 /// For custom exercises (isVerified = false), shows edit/delete actions.
 class ExerciseDetailScreen extends ConsumerWidget {
-  final int exerciseId;
+  final String exerciseId;
 
   const ExerciseDetailScreen({super.key, required this.exerciseId});
 
@@ -818,7 +818,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
 
 /// Shows exercise variations.
 class _VariationsSection extends ConsumerWidget {
-  final int exerciseId;
+  final String exerciseId;
   final String currentExerciseName;
 
   const _VariationsSection({
@@ -907,7 +907,7 @@ class _VariationsSection extends ConsumerWidget {
 }
 
 class _PRSection extends ConsumerWidget {
-  final int exerciseId;
+  final String exerciseId;
   const _PRSection({required this.exerciseId});
 
   @override

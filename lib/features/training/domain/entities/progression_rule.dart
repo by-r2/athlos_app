@@ -5,9 +5,9 @@ import '../enums/progression_type.dart';
 /// A per-exercise progression rule within a training program.
 /// Defines how and when to increase load/volume for an exercise.
 class ProgressionRule {
-  final int id;
-  final int programId;
-  final int exerciseId;
+  final String id;
+  final String programId;
+  final String exerciseId;
   final ProgressionType type;
 
   /// Increment value: kg for weight, reps count, or sets count.
