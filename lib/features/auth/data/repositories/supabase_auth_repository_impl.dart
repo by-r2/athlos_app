@@ -32,7 +32,9 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
 
     return client.auth.onAuthStateChange
         .where(
-          (event) => event.event != supabase.AuthChangeEvent.initialSession,
+          (event) =>
+              event.event != supabase.AuthChangeEvent.initialSession &&
+              event.event != supabase.AuthChangeEvent.passwordRecovery,
         )
         .map((event) => _toDomain(event.session?.user));
   }
