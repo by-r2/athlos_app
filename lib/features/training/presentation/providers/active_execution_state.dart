@@ -29,7 +29,7 @@ class SegmentEntry {
 /// this tracks both planned and actual values in a mutable form
 /// before persistence.
 class SetEntry {
-  final int? id;
+  final String? id;
   final int setNumber;
   final int? plannedReps;
   final double? plannedWeight;
@@ -85,7 +85,7 @@ class SetEntry {
   bool get isDropSet => segments.length > 1;
 
   SetEntry copyWith({
-    int? id,
+    String? id,
     int? setNumber,
     int? Function()? plannedReps,
     double? Function()? plannedWeight,
@@ -175,11 +175,11 @@ class SetEntry {
 
 /// Holds the full state of an active workout execution in progress.
 class ActiveExecutionState {
-  final int executionId;
-  final int workoutId;
+  final String executionId;
+  final String workoutId;
 
   /// exerciseId -> list of sets for that exercise.
-  final Map<int, List<SetEntry>> exerciseSets;
+  final Map<String, List<SetEntry>> exerciseSets;
 
   /// Ordered exercise configs to access rest per exercise.
   final List<WorkoutExercise> exercises;
@@ -209,7 +209,7 @@ class ActiveExecutionState {
   bool get hasCompletedSets => completedSetCount > 0;
 
   ActiveExecutionState copyWith({
-    Map<int, List<SetEntry>>? exerciseSets,
+    Map<String, List<SetEntry>>? exerciseSets,
     bool? isFinishing,
   }) => ActiveExecutionState(
     executionId: executionId,

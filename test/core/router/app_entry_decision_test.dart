@@ -10,37 +10,22 @@ void main() {
         isAuthLoading: true,
         isProfileLoading: false,
         hasAuthUser: false,
-        hasLocalAccess: false,
         hasProfile: false,
       );
 
       expect(redirect, isNull);
     });
 
-    test('envia usuario sem sessao e sem modo local para auth', () {
+    test('envia usuario sem sessao para auth', () {
       final redirect = resolveAppEntryRedirect(
         location: RoutePaths.hub,
         isAuthLoading: false,
         isProfileLoading: false,
         hasAuthUser: false,
-        hasLocalAccess: false,
         hasProfile: true,
       );
 
       expect(redirect, RoutePaths.authPrompt);
-    });
-
-    test('permite hub sem sessao apenas com modo local aceito', () {
-      final redirect = resolveAppEntryRedirect(
-        location: RoutePaths.splash,
-        isAuthLoading: false,
-        isProfileLoading: false,
-        hasAuthUser: false,
-        hasLocalAccess: true,
-        hasProfile: true,
-      );
-
-      expect(redirect, RoutePaths.hub);
     });
 
     test('envia usuario autenticado sem perfil para setup', () {
@@ -49,7 +34,6 @@ void main() {
         isAuthLoading: false,
         isProfileLoading: false,
         hasAuthUser: true,
-        hasLocalAccess: false,
         hasProfile: false,
       );
 
@@ -62,7 +46,6 @@ void main() {
         isAuthLoading: false,
         isProfileLoading: false,
         hasAuthUser: true,
-        hasLocalAccess: false,
         hasProfile: true,
       );
 

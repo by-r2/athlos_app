@@ -6,10 +6,12 @@ abstract interface class BodyMetricRemoteSyncGateway {
 
   Future<List<BodyMetric>> fetchAllForCurrentUser();
 
+  Future<List<BodyMetric>> fetchUpdatedSince(DateTime lastPullAt);
+
   Future<DateTime> upsert({
-    required String remoteId,
+    required String id,
     required BodyMetric metric,
   });
 
-  Future<void> delete(String remoteId);
+  Future<void> delete(String id);
 }

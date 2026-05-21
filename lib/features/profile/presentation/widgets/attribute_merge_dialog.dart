@@ -6,7 +6,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class AttributeMergeResult {
-  final int winnerId;
+  final String winnerId;
   final Map<String, dynamic> mergedAttributes;
 
   const AttributeMergeResult({
@@ -20,8 +20,8 @@ Future<AttributeMergeResult?> showAttributeMergeDialog({
   required BackupConflictType entityType,
   required Map<String, dynamic> itemA,
   required Map<String, dynamic> itemB,
-  required int idA,
-  required int idB,
+  required String idA,
+  required String idB,
 }) {
   return showModalBottomSheet<AttributeMergeResult>(
     context: context,
@@ -41,8 +41,8 @@ class _AttributeMergeSheet extends StatefulWidget {
   final BackupConflictType entityType;
   final Map<String, dynamic> itemA;
   final Map<String, dynamic> itemB;
-  final int idA;
-  final int idB;
+  final String idA;
+  final String idB;
 
   const _AttributeMergeSheet({
     required this.entityType,
@@ -61,13 +61,6 @@ class _AttributeMergeSheetState extends State<_AttributeMergeSheet> {
 
   List<_MergeField> get _fields {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.entityType == BackupConflictType.equipment) {
-      return [
-        _MergeField('name', l10n.conflictCenterMergeFieldName),
-        _MergeField('category', l10n.conflictCenterMergeFieldCategory),
-        _MergeField('description', l10n.conflictCenterMergeFieldDescription),
-      ];
-    }
     return [
       _MergeField('name', l10n.conflictCenterMergeFieldName),
       _MergeField('muscle_group', l10n.conflictCenterMergeFieldMuscleGroup),

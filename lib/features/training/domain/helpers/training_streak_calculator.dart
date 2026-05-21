@@ -5,7 +5,7 @@ const kTrainingStreaksSchemaVersion = 1;
 
 ({int current, int best}) computeCycleStreaks(
   List<WorkoutExecution> chronological,
-  Map<int, List<int>> cycleWorkoutIdsByProgramId,
+  Map<String, List<String>> cycleWorkoutIdsByProgramId,
 ) {
   if (chronological.isEmpty) {
     return (current: 0, best: 0);
@@ -37,7 +37,7 @@ const kTrainingStreaksSchemaVersion = 1;
 bool _isValidCycleTransition({
   required WorkoutExecution prev,
   required WorkoutExecution curr,
-  required Map<int, List<int>> cycleWorkoutIdsByProgramId,
+  required Map<String, List<String>> cycleWorkoutIdsByProgramId,
 }) {
   if (prev.programId != curr.programId) {
     return true;
@@ -52,11 +52,9 @@ bool _isValidCycleTransition({
   return prev.workoutId == expectedPrevId;
 }
 
-int _previousWorkoutInCycle(int workoutId, List<int> cycleWorkoutIds) {
+String? _previousWorkoutInCycle(String workoutId, List<String> cycleWorkoutIds) {
   final idx = cycleWorkoutIds.indexOf(workoutId);
-  if (idx < 0) {
-    return -1;
-  }
+  if (idx < 0) return null;
   return cycleWorkoutIds[(idx - 1 + cycleWorkoutIds.length) %
       cycleWorkoutIds.length];
 }

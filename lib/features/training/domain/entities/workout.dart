@@ -1,6 +1,6 @@
 /// A workout is a named collection of exercises with their configurations.
 class Workout {
-  final int id;
+  final String id;
   final String name;
   final String? description;
   final int? sortOrder;
@@ -17,7 +17,7 @@ class Workout {
   });
 
   Workout copyWith({
-    int? id,
+    String? id,
     String? name,
     String? Function()? description,
     int? Function()? sortOrder,

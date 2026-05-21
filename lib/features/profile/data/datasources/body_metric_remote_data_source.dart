@@ -29,8 +29,23 @@ class BodyMetricRemoteDataSource implements BodyMetricRemoteSyncGateway {
   }
 
   @override
+  Future<List<BodyMetric>> fetchUpdatedSince(DateTime lastPullAt) async {
+    final client = _client;
+    final userId = currentUserId;
+    if (client == null || userId == null) return const [];
+
+    final rows = await client
+        .from(_table)
+        .select()
+        .eq('user_id', userId)
+        .gt('updated_at', lastPullAt.toUtc().toIso8601String())
+        .order('recorded_at', ascending: false);
+    return rows.map<BodyMetric>(_fromJson).toList(growable: false);
+  }
+
+  @override
   Future<DateTime> upsert({
-    required String remoteId,
+    required String id,
     required BodyMetric metric,
   }) async {
     final client = _client;
@@ -41,30 +56,29 @@ class BodyMetricRemoteDataSource implements BodyMetricRemoteSyncGateway {
 
     final syncedAt = DateTime.now().toUtc();
     await client.from(_table).upsert(
-      _toJson(metric, userId: userId, remoteId: remoteId, syncedAt: syncedAt),
+      _toJson(metric, userId: userId, syncedAt: syncedAt),
       onConflict: 'id',
     );
     return syncedAt;
   }
 
   @override
-  Future<void> delete(String remoteId) async {
+  Future<void> delete(String id) async {
     final client = _client;
     final userId = currentUserId;
     if (client == null || userId == null) {
       throw const AuthAppException('User must be signed in to sync body metrics.');
     }
 
-    await client.from(_table).delete().eq('id', remoteId).eq('user_id', userId);
+    await client.from(_table).delete().eq('id', id).eq('user_id', userId);
   }
 
   Map<String, dynamic> _toJson(
     BodyMetric metric, {
     required String userId,
-    required String remoteId,
     required DateTime syncedAt,
   }) => <String, dynamic>{
-    'id': remoteId,
+    'id': metric.id,
     'user_id': userId,
     'weight': metric.weight,
     'body_fat_percent': metric.bodyFatPercent,
@@ -73,12 +87,10 @@ class BodyMetricRemoteDataSource implements BodyMetricRemoteSyncGateway {
   };
 
   BodyMetric _fromJson(Map<String, dynamic> row) => BodyMetric(
-    id: 0,
+    id: row['id'] as String,
     weight: _asDouble(row['weight']) ?? 0,
     bodyFatPercent: _asDouble(row['body_fat_percent']),
     recordedAt: _asDateTime(row['recorded_at']) ?? DateTime.now().toUtc(),
-    remoteId: row['id'] as String?,
-    lastSyncedAt: _asDateTime(row['updated_at']),
   );
 
   double? _asDouble(Object? value) {

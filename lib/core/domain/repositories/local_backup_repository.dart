@@ -7,15 +7,15 @@ abstract interface class LocalBackupRepository {
 
   Future<Result<void>> resolveRuntimeDuplicate({
     required BackupConflictType entityType,
-    required int leftEntityId,
-    required int rightEntityId,
+    required String leftEntityId,
+    required String rightEntityId,
     required RuntimeDuplicateDecision decision,
-    int? winnerId,
+    String? winnerId,
     Map<String, dynamic>? mergedAttributes,
   });
 
   Future<Result<Map<String, dynamic>>> loadEntityAttributes({
     required BackupConflictType entityType,
-    required int entityId,
+    required String entityId,
   });
 }

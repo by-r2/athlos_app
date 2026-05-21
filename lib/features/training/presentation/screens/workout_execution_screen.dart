@@ -83,7 +83,7 @@ String _formatSetSummary(SetEntry set) {
 }
 
 class WorkoutExecutionScreen extends ConsumerStatefulWidget {
-  final int workoutId;
+  final String workoutId;
 
   const WorkoutExecutionScreen({super.key, required this.workoutId});
 
@@ -338,7 +338,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   // Helpers
   // ---------------------------------------------------------------------------
 
-  String _exerciseName(int exerciseId) {
+  String _exerciseName(String exerciseId) {
     final l10n = AppLocalizations.of(context)!;
     final allExercises = ref.read(exerciseListProvider).value;
     final entity = allExercises?.firstWhere(
@@ -353,7 +353,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
   }
 
-  String _muscleGroupName(int exerciseId) {
+  String _muscleGroupName(String exerciseId) {
     final l10n = AppLocalizations.of(context)!;
     final allExercises = ref.read(exerciseListProvider).value;
     final entity = allExercises?.firstWhere(
@@ -364,7 +364,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     return localizedMuscleGroupName(entity.muscleGroup, l10n);
   }
 
-  Exercise? _exerciseEntity(int exerciseId) {
+  Exercise? _exerciseEntity(String exerciseId) {
     final allExercises = ref.read(exerciseListProvider).value;
     return allExercises?.firstWhere(
       (e) => e.id == exerciseId,
@@ -507,7 +507,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     return null;
   }
 
-  bool _isExerciseIsometric(int exerciseId) {
+  bool _isExerciseIsometric(String exerciseId) {
     final allExercises = ref.read(exerciseListProvider).value;
     return allExercises?.any((e) => e.id == exerciseId && e.isIsometric) ??
         false;
@@ -517,7 +517,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       _isExerciseIsometric(exec.exercises[_focusedExerciseIndex].exerciseId);
 
   bool _isFocusedCardio(ActiveExecutionState exec) =>
-      exec.exercises[_focusedExerciseIndex].duration != null &&
+      exec.exercises[_focusedExerciseIndex].durationSeconds != null &&
       !_isFocusedIsometric(exec);
 
   void _goToFocused(
@@ -544,7 +544,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final isIsometric = _isExerciseIsometric(exId);
     final isCardio =
-        exec.exercises[exerciseIndex].duration != null && !isIsometric;
+        exec.exercises[exerciseIndex].durationSeconds != null && !isIsometric;
 
     setState(() {
       _focusedExerciseIndex = exerciseIndex;
@@ -557,7 +557,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             entry.duration ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.duration ?? 0
-                : exec.exercises[exerciseIndex].duration ?? 0);
+                : exec.exercises[exerciseIndex].durationSeconds ?? 0);
         _currentWeight =
             entry.weight ??
             (prevCompleted.isNotEmpty
@@ -570,7 +570,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             entry.duration ??
             (prevCompleted.isNotEmpty
                 ? prevCompleted.last.duration ?? 0
-                : exec.exercises[exerciseIndex].duration ?? 0);
+                : exec.exercises[exerciseIndex].durationSeconds ?? 0);
         _currentDistance =
             entry.distance ??
             (prevCompleted.isNotEmpty ? prevCompleted.last.distance ?? 0 : 0);
@@ -2281,7 +2281,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     ref.read(cardioTimerProvider.notifier).reset();
     setState(() {
       _currentDuration =
-          currentSetEntry.duration ?? exercise.duration ?? _currentDuration;
+          currentSetEntry.duration ?? exercise.durationSeconds ?? _currentDuration;
       _timedSubState = _TimedSubState.finishing;
       _viewMode = _ViewMode.timedSet;
     });
@@ -2360,7 +2360,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   ) {
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
-    final goalSeconds = exercise.duration ?? 0;
+    final goalSeconds = exercise.durationSeconds ?? 0;
 
     final currentSetEntry = sets.firstWhere(
       (s) => s.setNumber == _focusedSetNumber,
@@ -2755,7 +2755,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
     final name = _exerciseName(exercise.exerciseId);
-    final goalSeconds = exercise.duration ?? 0;
+    final goalSeconds = exercise.durationSeconds ?? 0;
 
     return Scaffold(
       appBar: _timedAppBar(name, sets.length),
@@ -2822,7 +2822,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         _startCountdown(exec);
       } else {
         final exercise = exec.exercises[_focusedExerciseIndex];
-        final goalSeconds = exercise.duration ?? 0;
+        final goalSeconds = exercise.durationSeconds ?? 0;
         ref.read(cardioTimerProvider.notifier).start(goalSeconds);
         setState(() => _timedSubState = _TimedSubState.running);
       }
@@ -2980,7 +2980,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final exercise = exec.exercises[_focusedExerciseIndex];
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
     final name = _exerciseName(exercise.exerciseId);
-    final goalSeconds = exercise.duration ?? 0;
+    final goalSeconds = exercise.durationSeconds ?? 0;
 
     final diff = goalSeconds > 0 ? _currentDuration - goalSeconds : 0;
     final Color? diffColor;

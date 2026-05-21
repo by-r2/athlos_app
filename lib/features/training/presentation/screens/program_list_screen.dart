@@ -297,7 +297,7 @@ class _ProgramCard extends ConsumerWidget {
 }
 
 class _ProgramProgressBar extends ConsumerWidget {
-  final int programId;
+  final String programId;
 
   const _ProgramProgressBar({required this.programId});
 

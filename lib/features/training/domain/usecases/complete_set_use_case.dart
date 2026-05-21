@@ -14,8 +14,8 @@ class CompleteSetParams {
 /// Persists a completed set and its drop-set segments (if any).
 ///
 /// Handles insert vs update based on [ExecutionSet.id]:
-/// - `id == 0` → new set (insert)
-/// - `id > 0` → existing set (update)
+/// - empty string → new set (insert)
+/// - non-empty → existing set (update)
 ///
 /// Returns the persisted set ID.
 class CompleteSetUseCase {
@@ -23,10 +23,10 @@ class CompleteSetUseCase {
 
   const CompleteSetUseCase(this._repository);
 
-  Future<Result<int>> call(CompleteSetParams params) async {
-    final int setId;
+  Future<Result<String>> call(CompleteSetParams params) async {
+    final String setId;
 
-    if (params.set.id == 0) {
+    if (params.set.id.isEmpty) {
       final result = await _repository.logSet(params.set);
       switch (result) {
         case Success(:final value):
@@ -50,7 +50,7 @@ class CompleteSetUseCase {
           .entries
           .map(
             (e) => ExecutionSetSegment(
-              id: 0,
+              id: '',
               executionSetId: setId,
               segmentOrder: e.key + 1,
               reps: e.value.reps,

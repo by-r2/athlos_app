@@ -19,14 +19,37 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     with _$ExerciseDaoMixin {
   ExerciseDao(super.db);
 
-  Future<List<Exercise>> getAll() => select(exercises).get();
+  Future<void> _markDirty(String id) {
+    final now = DateTime.now().toUtc();
+    return (update(exercises)..where((e) => e.id.equals(id))).write(
+      ExercisesCompanion(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 
-  Future<Exercise?> getById(int id) =>
-      (select(exercises)..where((e) => e.id.equals(id))).getSingleOrNull();
+  Future<List<Exercise>> getAll() =>
+      (select(exercises)..where((e) => e.deletedAt.isNull())).get();
+
+  /// Returns exercises visible to the user: verified OR created by them.
+  Future<List<Exercise>> getVisible(String userId) =>
+      (select(exercises)
+            ..where(
+              (e) =>
+                  e.deletedAt.isNull() &
+                  (e.isVerified.equals(true) | e.createdBy.equals(userId)),
+            ))
+          .get();
+
+  Future<Exercise?> getById(String id) =>
+      (select(exercises)
+            ..where((e) => e.id.equals(id) & e.deletedAt.isNull()))
+          .getSingleOrNull();
 
   /// Same-name guard for inserts: canonical + verified locale synonyms.
-  Future<int?> findIdByConflictingName(String name) async {
-    final all = await select(exercises).get();
+  Future<String?> findIdByConflictingName(String name) async {
+    final all = await getAll();
     for (final row in all) {
       if (ExerciseNameMatch.collidesWithCanonicalRow(
         name,
@@ -40,11 +63,10 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Case-insensitive name lookup. Returns the first matching exercise id, or null.
-  Future<int?> findIdByName(String name) async {
+  Future<String?> findIdByName(String name) async {
     final normalized = name.trim().toLowerCase();
     if (normalized.isEmpty) return null;
-    final all = await select(exercises).get();
-    // Pass 1: exact case-insensitive match on persisted key
+    final all = await getAll();
     for (final row in all) {
       if (row.name.trim().toLowerCase() == normalized) return row.id;
     }
@@ -62,7 +84,7 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
 
   /// Fuzzy name lookup: [findIdByName], then diacritic-insensitive containment
   /// on persisted keys and verified synonyms.
-  Future<int?> findIdByNameFuzzy(String name) async {
+  Future<String?> findIdByNameFuzzy(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return null;
 
@@ -72,16 +94,14 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     final inputNorm = ExerciseLabelNormalizer.normalize(trimmed);
     if (inputNorm.isEmpty) return null;
 
-    final all = await select(exercises).get();
+    final all = await getAll();
 
-    // Diacritic-insensitive equality on persisted key (custom + verified)
     for (final row in all) {
       final rowNorm = ExerciseLabelNormalizer.normalize(row.name);
       if (rowNorm == inputNorm) return row.id;
     }
 
-    // Containment — pick the candidate whose length is closest to input
-    int? bestId;
+    String? bestId;
     var bestDelta = 999;
     for (final row in all) {
       for (final target in _rowFuzzyLabelTargets(row.name, row.isVerified)) {
@@ -106,69 +126,65 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
     }
   }
 
-  Future<List<Exercise>> getByMuscleGroup(MuscleGroup group) =>
-      (select(exercises)..where((e) => e.muscleGroup.equalsValue(group))).get();
-
-  Future<int> create(ExercisesCompanion entry) => into(exercises).insert(entry);
-
-  Future<void> updateById(int id, ExercisesCompanion entry) =>
-      (update(exercises)..where((e) => e.id.equals(id))).write(entry);
-
-  Future<void> deleteById(int id) =>
-      (delete(exercises)..where((e) => e.id.equals(id))).go();
-
-  Future<List<Exercise>> getUserCreated() =>
-      (select(exercises)..where((e) => e.isVerified.equals(false))).get();
-
-  Future<void> markSynced({
-    required int id,
-    required String remoteId,
-    required DateTime syncedAt,
+  Future<List<Exercise>> getByMuscleGroup(
+    MuscleGroup group, {
+    required String userId,
   }) =>
-      (update(exercises)..where((e) => e.id.equals(id))).write(
-        ExercisesCompanion(
-          remoteId: Value(remoteId),
-          lastSyncedAt: Value(syncedAt),
-        ),
-      );
+      (select(exercises)
+            ..where(
+              (e) =>
+                  e.muscleGroup.equalsValue(group) &
+                  e.deletedAt.isNull() &
+                  (e.isVerified.equals(true) | e.createdBy.equals(userId)),
+            ))
+          .get();
 
-  Future<void> markLocalDirty(int id) {
+  Future<void> create(ExercisesCompanion entry) async {
+    await into(exercises).insert(entry);
+    await _markDirty(entry.id.value);
+  }
+
+  Future<void> updateById(String id, ExercisesCompanion entry) async {
+    await (update(exercises)..where((e) => e.id.equals(id))).write(entry);
+    await _markDirty(id);
+  }
+
+  Future<void> deleteById(String id) {
     final now = DateTime.now().toUtc();
     return (update(exercises)..where((e) => e.id.equals(id))).write(
-      ExercisesCompanion(localUpdatedAt: Value(now)),
+      ExercisesCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
     );
   }
 
-  Future<Exercise?> getFirstByRemoteId(String remoteId) =>
+  /// Returns user-created (non-verified) exercises.
+  Future<List<Exercise>> getByUser(String userId) =>
       (select(exercises)
-            ..where((e) => e.remoteId.equals(remoteId))
-            ..limit(1))
-          .getSingleOrNull();
-
-  Future<Exercise?> getFirstByCatalogRemoteId(String catalogRemoteId) =>
-      (select(exercises)
-            ..where((e) => e.catalogRemoteId.equals(catalogRemoteId))
-            ..limit(1))
-          .getSingleOrNull();
-
-  Future<List<Exercise>> getAllByCatalogRemoteId(String catalogRemoteId) =>
-      (select(exercises)
-            ..where((e) => e.catalogRemoteId.equals(catalogRemoteId)))
+            ..where(
+              (e) =>
+                  e.createdBy.equals(userId) &
+                  e.isVerified.equals(false) &
+                  e.deletedAt.isNull(),
+            ))
           .get();
 
   // --- Muscle targeting relations ---
 
-  Future<List<ExerciseTargetMuscle>> getMuscleFoci(int exerciseId) => (select(
-    exerciseTargetMuscles,
-  )..where((e) => e.exerciseId.equals(exerciseId))).get();
+  Future<List<ExerciseTargetMuscle>> getMuscleFoci(String exerciseId) =>
+      (select(exerciseTargetMuscles)
+            ..where((e) => e.exerciseId.equals(exerciseId)))
+          .get();
 
   Future<void> setMuscleFoci(
-    int exerciseId,
+    String exerciseId,
     List<({TargetMuscle muscle, MuscleRegion? region, MuscleRole role})> foci,
   ) async {
-    await (delete(
-      exerciseTargetMuscles,
-    )..where((e) => e.exerciseId.equals(exerciseId))).go();
+    await (delete(exerciseTargetMuscles)
+          ..where((e) => e.exerciseId.equals(exerciseId)))
+        .go();
     for (final focus in foci) {
       await into(exerciseTargetMuscles).insert(
         ExerciseTargetMusclesCompanion(
@@ -179,33 +195,43 @@ class ExerciseDao extends DatabaseAccessor<AppDatabase>
         ),
       );
     }
+    await _markDirty(exerciseId);
   }
 
   // --- Variation relations ---
 
-  Future<List<Exercise>> getVariations(int exerciseId) {
+  Future<List<Exercise>> getVariations(String exerciseId) {
     final query = select(exercises).join([
       innerJoin(
         exerciseVariations,
         exerciseVariations.variationId.equalsExp(exercises.id),
       ),
-    ])..where(exerciseVariations.exerciseId.equals(exerciseId));
+    ])
+      ..where(
+        exerciseVariations.exerciseId.equals(exerciseId) &
+            exercises.deletedAt.isNull(),
+      );
     return query.map((row) => row.readTable(exercises)).get();
   }
 
-  Future<void> addVariation(int exerciseId, int variationId) =>
-      into(exerciseVariations).insert(
-        ExerciseVariationsCompanion(
-          exerciseId: Value(exerciseId),
-          variationId: Value(variationId),
-        ),
-      );
+  Future<void> addVariation(String exerciseId, String variationId) async {
+    await into(exerciseVariations).insert(
+      ExerciseVariationsCompanion(
+        exerciseId: Value(exerciseId),
+        variationId: Value(variationId),
+      ),
+    );
+    await _markDirty(exerciseId);
+  }
 
-  Future<void> removeVariation(int exerciseId, int variationId) =>
-      (delete(exerciseVariations)..where(
+  Future<void> removeVariation(String exerciseId, String variationId) async {
+    await (delete(exerciseVariations)
+          ..where(
             (e) =>
                 e.exerciseId.equals(exerciseId) &
                 e.variationId.equals(variationId),
           ))
-          .go();
+        .go();
+    await _markDirty(exerciseId);
+  }
 }

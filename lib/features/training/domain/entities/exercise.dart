@@ -21,7 +21,7 @@ class ExerciseMuscleFocus {
 
 /// Exercise with muscle targeting details.
 class Exercise {
-  final int id;
+  final String id;
   final String name;
   final MuscleGroup muscleGroup;
   final ExerciseType type;

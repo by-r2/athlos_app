@@ -17,7 +17,7 @@ import '../providers/workout_notifier.dart';
 
 final _placeholderWorkouts = List.generate(
   6,
-  (i) => Workout(id: -(i + 1), name: BoneMock.name, createdAt: DateTime(2024)),
+  (i) => Workout(id: 'placeholder-$i', name: BoneMock.name, createdAt: DateTime(2024)),
 );
 
 /// Standalone workout catalog screen (all user workout templates).
@@ -194,7 +194,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     );
   }
 
-  void _archiveWorkout(BuildContext context, int id) async {
+  void _archiveWorkout(BuildContext context, String id) async {
     try {
       await ref.read(workoutListProvider.notifier).archiveWorkout(id);
       if (context.mounted) {
@@ -213,7 +213,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     }
   }
 
-  void _unarchiveWorkout(BuildContext context, int id) async {
+  void _unarchiveWorkout(BuildContext context, String id) async {
     try {
       await ref.read(workoutListProvider.notifier).unarchiveWorkout(id);
       if (context.mounted) {
@@ -232,7 +232,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     }
   }
 
-  void _duplicateWorkout(BuildContext context, int id) async {
+  void _duplicateWorkout(BuildContext context, String id) async {
     final l10n = AppLocalizations.of(context)!;
     try {
       await ref

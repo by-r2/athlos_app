@@ -83,7 +83,7 @@ ShellRoute trainingShellRoute() {
       GoRoute(
         path: '${RoutePaths.trainingPrograms}/:programId',
         pageBuilder: (context, state) {
-          final programId = int.parse(state.pathParameters['programId']!);
+          final programId = state.pathParameters['programId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             ProgramDetailScreen(programId: programId),
@@ -93,7 +93,7 @@ ShellRoute trainingShellRoute() {
       GoRoute(
         path: '${RoutePaths.trainingPrograms}/:programId/edit',
         pageBuilder: (context, state) {
-          final programId = int.parse(state.pathParameters['programId']!);
+          final programId = state.pathParameters['programId']!;
           return AthlosRouterPages.fadeThrough(
             state,
             ProgramFormScreen(programId: programId),

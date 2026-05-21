@@ -59,22 +59,6 @@
   "@profileDataTab": {
     "description": "Profile tab label for data backup/import category"
   },
-  "profileDataSectionTitle": "Guardar e restaurar",
-  "@profileDataSectionTitle": {
-    "description": "Profile data section title for local backup"
-  },
-  "profileDataSectionDescription": "Exporte ou importe treinos, itens personalizados e histórico neste aparelho.",
-  "@profileDataSectionDescription": {
-    "description": "Profile data section description"
-  },
-  "profileDataBackupLearnMoreTitle": "Detalhes do backup",
-  "@profileDataBackupLearnMoreTitle": {
-    "description": "Expansion title for technical backup details on profile data tab"
-  },
-  "profileDataBackupDetails": "O arquivo JSON inclui seus dados autorais. Itens oficiais do catálogo são referenciados por ID canônico.",
-  "@profileDataBackupDetails": {
-    "description": "Technical backup details shown in profile data tab expansion"
-  },
   "profileDataConflictsSectionTitle": "Duplicados nos seus dados",
   "@profileDataConflictsSectionTitle": {
     "description": "Profile data section title for duplicate review"
@@ -187,234 +171,6 @@
   "profileDataConflictSummaryLocalHint": "Duplicados são detectados e resolvidos dentro da Central de Conflitos.",
   "@profileDataConflictSummaryLocalHint": {
     "description": "Hint explaining where conflicts are resolved"
-  },
-  "profileDataExportAction": "Exportar dados",
-  "@profileDataExportAction": {
-    "description": "Action button to export user data"
-  },
-  "profileDataImportAction": "Importar dados",
-  "@profileDataImportAction": {
-    "description": "Action button to import user data"
-  },
-  "profileDataExportShareText": "Backup dos dados do Athlos",
-  "@profileDataExportShareText": {
-    "description": "Share text for exported backup file"
-  },
-  "profileDataExportError": "Não foi possível exportar os dados agora.",
-  "@profileDataExportError": {
-    "description": "Error message when export fails"
-  },
-  "profileDataImportError": "Não foi possível importar este arquivo.",
-  "@profileDataImportError": {
-    "description": "Error message when import fails"
-  },
-  "profileDataImportConfirmTitle": "Confirmar importação",
-  "@profileDataImportConfirmTitle": {
-    "description": "Title for import confirmation dialog"
-  },
-  "profileDataImportConfirmMessage": "Serão processados {total} registros. Deseja continuar?",
-  "@profileDataImportConfirmMessage": {
-    "description": "Message before running import",
-    "placeholders": {
-      "total": { "type": "int" }
-    }
-  },
-  "profileDataImportResultTitle": "Importação concluída",
-  "@profileDataImportResultTitle": {
-    "description": "Title for import result dialog"
-  },
-  "profileDataImportResultMessage": "Criados: {created}\nAtualizados: {updated}\nIgnorados: {skipped}\nFalhas: {failed}",
-  "@profileDataImportResultMessage": {
-    "description": "Summary message after import",
-    "placeholders": {
-      "created": { "type": "int" },
-      "updated": { "type": "int" },
-      "skipped": { "type": "int" },
-      "failed": { "type": "int" }
-    }
-  },
-  "profileDataConflictTitle": "Conflito encontrado",
-  "@profileDataConflictTitle": {
-    "description": "Title of conflict resolution dialog during import"
-  },
-  "profileDataConflictType": "Tipo: {type}",
-  "@profileDataConflictType": {
-    "description": "Conflict type label",
-    "placeholders": {
-      "type": { "type": "String" }
-    }
-  },
-  "profileDataConflictExisting": "Atual: {value}",
-  "@profileDataConflictExisting": {
-    "description": "Current local value in conflict dialog",
-    "placeholders": {
-      "value": { "type": "String" }
-    }
-  },
-  "profileDataConflictImported": "Importado: {value}",
-  "@profileDataConflictImported": {
-    "description": "Imported value in conflict dialog",
-    "placeholders": {
-      "value": { "type": "String" }
-    }
-  },
-  "profileDataConflictKeepExisting": "Manter atual",
-  "@profileDataConflictKeepExisting": {
-    "description": "Resolution action to keep local data"
-  },
-  "profileDataConflictOverwrite": "Substituir pelo importado",
-  "@profileDataConflictOverwrite": {
-    "description": "Resolution action to overwrite local data"
-  },
-  "profileDataConflictKeepBoth": "Manter os dois",
-  "@profileDataConflictKeepBoth": {
-    "description": "Resolution action to keep both records"
-  },
-  "profileDataPendingTitle": "Importação · confirme este item",
-  "@profileDataPendingTitle": {
-    "description": "Title shown for pending import review decision"
-  },
-  "profileDataPendingIntro": "Escolha uma opção abaixo. A sua escolha vale apenas para este item.",
-  "@profileDataPendingIntro": {
-    "description": "Lead-in for pending import review dialog"
-  },
-  "profileDataPendingContextImportPreview": "Apareceu ao pré-visualizar a importação.",
-  "@profileDataPendingContextImportPreview": {
-    "description": "Context line when conflict found during import preview"
-  },
-  "profileDataPendingContextRuntimeScan": "Apareceu ao analisar duplicados nos dados guardados aqui.",
-  "@profileDataPendingContextRuntimeScan": {
-    "description": "Context line when conflict found during runtime duplicate scan"
-  },
-  "profileDataPendingContextCatalogSync": "Detectado durante a sincronização do catálogo.",
-  "@profileDataPendingContextCatalogSync": {
-    "description": "Context line when conflict relates to catalog sync"
-  },
-  "profileDataPendingType": "Pendência: {type}",
-  "@profileDataPendingType": {
-    "description": "Pending review type label",
-    "placeholders": {
-      "type": { "type": "String" }
-    }
-  },
-  "profileDataPendingScope": "Decisão: {scope}",
-  "@profileDataPendingScope": {
-    "description": "Decision scope for pending review",
-    "placeholders": {
-      "scope": { "type": "String" }
-    }
-  },
-  "profileDataPendingDetectedFrom": "Detectado em: {source}",
-  "@profileDataPendingDetectedFrom": {
-    "description": "Detection source for pending review",
-    "placeholders": {
-      "source": { "type": "String" }
-    }
-  },
-  "profileDataPendingScopeUserLocal": "Conflito local decidível pelo usuário",
-  "@profileDataPendingScopeUserLocal": {
-    "description": "Decision scope label for user-resolved local conflicts"
-  },
-  "profileDataPendingScopeCatalogGovernance": "Política de catálogo (governança)",
-  "@profileDataPendingScopeCatalogGovernance": {
-    "description": "Decision scope label for catalog governance conflicts"
-  },
-  "profileDataPendingSourceImportPreview": "Prévia de importação",
-  "@profileDataPendingSourceImportPreview": {
-    "description": "Detection source label for import preview"
-  },
-  "profileDataPendingSourceRuntimeScan": "Varredura local em runtime",
-  "@profileDataPendingSourceRuntimeScan": {
-    "description": "Detection source label for runtime scan"
-  },
-  "profileDataPendingSourceCatalogSync": "Sincronização de catálogo",
-  "@profileDataPendingSourceCatalogSync": {
-    "description": "Detection source label for catalog sync"
-  },
-  "profileDataPendingLabelFromBackup": "Nome no backup",
-  "@profileDataPendingLabelFromBackup": {
-    "description": "Section label for imported backup row"
-  },
-  "profileDataPendingLabelOnDevice": "Já existe aqui",
-  "@profileDataPendingLabelOnDevice": {
-    "description": "Section label for existing device row"
-  },
-  "profileDataPendingLabelSuggestion": "Correspondência sugerida",
-  "@profileDataPendingLabelSuggestion": {
-    "description": "Section label for fuzzy algorithm suggestion"
-  },
-  "profileDataPendingImported": "{value}",
-  "@profileDataPendingImported": {
-    "description": "Imported item value only (label is separate)",
-    "placeholders": {
-      "value": { "type": "String" }
-    }
-  },
-  "profileDataPendingExisting": "{value}",
-  "@profileDataPendingExisting": {
-    "description": "Existing device item value only",
-    "placeholders": {
-      "value": { "type": "String" }
-    }
-  },
-  "profileDataPendingSuggested": "{value}\nSemelhança dos nomes: {percent}",
-  "@profileDataPendingSuggested": {
-    "description": "Suggested match with human-readable similarity percent",
-    "placeholders": {
-      "value": { "type": "String" },
-      "percent": { "type": "String" }
-    }
-  },
-  "profileDataPendingSuggestedShort": "{value}",
-  "@profileDataPendingSuggestedShort": {
-    "description": "Suggested match without similarity when score missing",
-    "placeholders": {
-      "value": { "type": "String" }
-    }
-  },
-  "profileDataPendingNoSuggestion": "Não há correspondência automática para este caso.",
-  "@profileDataPendingNoSuggestion": {
-    "description": "Shown when no suggestion is available for pending review"
-  },
-  "profileDataPendingLinkSuggested": "Fundir com o sugerido",
-  "@profileDataPendingLinkSuggested": {
-    "description": "Action to link import item to suggested local item"
-  },
-  "profileDataPendingCreateCustom": "Guardar como novo",
-  "@profileDataPendingCreateCustom": {
-    "description": "Action to create unresolved item as custom"
-  },
-  "profileDataPendingSkip": "Não importar",
-  "@profileDataPendingSkip": {
-    "description": "Action to skip unresolved imported item"
-  },
-  "profileDataPendingMissingCanonical": "Registo de {entity} na cópia de segurança sem ligação clara ao catálogo.",
-  "@profileDataPendingMissingCanonical": {
-    "description": "Pending type for missing canonical catalog reference",
-    "placeholders": {
-      "entity": { "type": "String" }
-    }
-  },
-  "profileDataPendingFuzzy": "Pode haver duplicado em {entity}: os nomes são quase iguais.",
-  "@profileDataPendingFuzzy": {
-    "description": "Pending type for fuzzy duplicate suggestion",
-    "placeholders": {
-      "entity": { "type": "String" }
-    }
-  },
-  "profileDataPendingVerifiedVsCustom": "Em {entity}: na cópia de segurança está como personalizado; aqui já existe um oficial com nome parecido.",
-  "@profileDataPendingVerifiedVsCustom": {
-    "description": "Pending type for verified versus non-verified confirmation",
-    "placeholders": {
-      "entity": { "type": "String" }
-    }
-  },
-  "profileDataPendingGovernance": "Conflito grave no catálogo ({entity}); decisão da equipe técnica necessária.",
-  "@profileDataPendingGovernance": {
-    "description": "Pending type for verified vs verified governance conflict",
-    "placeholders": {
-      "entity": { "type": "String" }
-    }
   },
   "conflictCenterOpenAction": "Abrir central de conflitos",
   "@conflictCenterOpenAction": {
@@ -1857,7 +1613,7 @@
   "@unknownExerciseId": {
     "description": "Fallback label when exercise is not found",
     "placeholders": {
-      "id": { "type": "int" }
+      "id": { "type": "String" }
     }
   },
   "executionFeedbackWeightTooLight": "Peso leve, considere aumentar a carga",
@@ -2880,6 +2636,10 @@
   "@authOfflineModeMessage": {
     "description": "Message shown when auth cannot be offered because there is no internet connection"
   },
+  "authRequiresInternetMessage": "Conecte-se à internet para entrar ou criar uma conta.",
+  "@authRequiresInternetMessage": {
+    "description": "Message shown on auth screens when internet is required to sign in or sign up"
+  },
   "authSignInTitle": "Entrar na conta",
   "@authSignInTitle": {
     "description": "Sign-in screen title"
@@ -2975,6 +2735,23 @@
   "authGoogleStarted": "Conclua o login no navegador.",
   "@authGoogleStarted": {
     "description": "Message after starting OAuth"
+  },
+  "authSignOutUnsyncedTitle": "Alterações não salvas",
+  "@authSignOutUnsyncedTitle": {
+    "description": "Title for dialog when signing out with pending cloud sync"
+  },
+  "authSignOutUnsyncedMessage": "Você tem {count} alterações que ainda não foram enviadas para a nuvem. Se sair agora, elas serão perdidas neste dispositivo.",
+  "@authSignOutUnsyncedMessage": {
+    "description": "Message when signing out with dirty local data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authSignOutConfirm": "Sair mesmo assim",
+  "@authSignOutConfirm": {
+    "description": "Confirm sign out despite unsynced data"
   },
   "authLogoutAction": "Sair da conta",
   "@authLogoutAction": {

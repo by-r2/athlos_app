@@ -4,17 +4,18 @@ import 'package:athlos_app/features/training/presentation/providers/active_execu
 import 'package:flutter_test/flutter_test.dart';
 
 WorkoutExercise _exercise({
-  required int exerciseId,
-  required int order,
+  required String exerciseId,
+  required int sortOrder,
   int? groupId,
 }) => WorkoutExercise(
-  workoutId: 1,
+  id: 'wx-$exerciseId',
+  workoutId: 'workout-1',
   exerciseId: exerciseId,
-  order: order,
+  sortOrder: sortOrder,
   sets: 3,
   minReps: 10,
   maxReps: 10,
-  rest: 60,
+  restSeconds: 60,
   groupId: groupId,
 );
 
@@ -23,10 +24,10 @@ SetEntry _set(int setNumber, {required bool isCompleted}) =>
 
 ActiveExecutionState _execution({
   required List<WorkoutExercise> exercises,
-  required Map<int, List<SetEntry>> exerciseSets,
+  required Map<String, List<SetEntry>> exerciseSets,
 }) => ActiveExecutionState(
-  executionId: 1,
-  workoutId: 1,
+  executionId: 'exec-1',
+  workoutId: 'workout-1',
   exercises: exercises,
   exerciseSets: exerciseSets,
 );
@@ -36,12 +37,12 @@ void main() {
     test('returns the first exercise of the next superset round', () {
       final exec = _execution(
         exercises: [
-          _exercise(exerciseId: 10, order: 0, groupId: 1),
-          _exercise(exerciseId: 20, order: 1, groupId: 1),
+          _exercise(exerciseId: 'ex-10', sortOrder: 0, groupId: 1),
+          _exercise(exerciseId: 'ex-20', sortOrder: 1, groupId: 1),
         ],
         exerciseSets: {
-          10: [_set(1, isCompleted: true), _set(2, isCompleted: false)],
-          20: [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'ex-20': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
         },
       );
 
@@ -56,9 +57,9 @@ void main() {
 
     test('keeps regular exercises on their next pending set', () {
       final exec = _execution(
-        exercises: [_exercise(exerciseId: 10, order: 0)],
+        exercises: [_exercise(exerciseId: 'ex-10', sortOrder: 0)],
         exerciseSets: {
-          10: [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
         },
       );
 
@@ -76,14 +77,14 @@ void main() {
       () {
         final exec = _execution(
           exercises: [
-            _exercise(exerciseId: 10, order: 0, groupId: 1),
-            _exercise(exerciseId: 20, order: 1, groupId: 1),
-            _exercise(exerciseId: 30, order: 2),
+            _exercise(exerciseId: 'ex-10', sortOrder: 0, groupId: 1),
+            _exercise(exerciseId: 'ex-20', sortOrder: 1, groupId: 1),
+            _exercise(exerciseId: 'ex-30', sortOrder: 2),
           ],
           exerciseSets: {
-            10: [_set(1, isCompleted: true)],
-            20: [_set(1, isCompleted: true)],
-            30: [_set(1, isCompleted: false)],
+            'ex-10': [_set(1, isCompleted: true)],
+            'ex-20': [_set(1, isCompleted: true)],
+            'ex-30': [_set(1, isCompleted: false)],
           },
         );
 

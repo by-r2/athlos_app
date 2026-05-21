@@ -12,8 +12,8 @@ Future<void> showTrainingHistoryWorkoutFilterSheet({
   required BuildContext context,
   required AppLocalizations l10n,
   required List<Workout> workouts,
-  required int? initialWorkoutId,
-  required ValueChanged<int?> onApply,
+  required String? initialWorkoutId,
+  required ValueChanged<String?> onApply,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -41,8 +41,8 @@ class _TrainingHistoryFiltersBody extends StatefulWidget {
 
   final AppLocalizations l10n;
   final List<Workout> workouts;
-  final int? initialWorkoutId;
-  final ValueChanged<int?> onApply;
+  final String? initialWorkoutId;
+  final ValueChanged<String?> onApply;
 
   @override
   State<_TrainingHistoryFiltersBody> createState() =>
@@ -51,7 +51,7 @@ class _TrainingHistoryFiltersBody extends StatefulWidget {
 
 class _TrainingHistoryFiltersBodyState
     extends State<_TrainingHistoryFiltersBody> {
-  late int? _workoutId;
+  late String? _workoutId;
 
   @override
   void initState() {
@@ -160,7 +160,7 @@ class _TrainingHistoryFiltersBodyState
                         _ when selected != null => selected.name,
                         _ => l10n.unknownWorkout,
                       };
-                      return PopupMenuButton<int?>(
+                      return PopupMenuButton<String?>(
                         tooltip: '',
                         elevation: 2,
                         position: PopupMenuPosition.under,
@@ -241,14 +241,14 @@ class _TrainingHistoryFiltersBodyState
     );
   }
 
-  PopupMenuItem<int?> _workoutMenuEntry(
+  PopupMenuItem<String?> _workoutMenuEntry(
     BuildContext context, {
-    required int? value,
+    required String? value,
     required String text,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final selected = _workoutId == value;
-    return PopupMenuItem<int?>(
+    return PopupMenuItem<String?>(
       value: value,
       padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.sm),
       child: Row(

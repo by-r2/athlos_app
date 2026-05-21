@@ -458,11 +458,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         );
       case 'updateWorkout':
         return _handleUpdateWorkout(
-          args['workoutId'] != null
-              ? (args['workoutId'] is int
-                    ? args['workoutId'] as int
-                    : int.tryParse(args['workoutId'].toString()))
-              : null,
+          args['workoutId']?.toString(),
           args['name']?.toString(),
           args['description']?.toString(),
           args['exercises'] is List ? args['exercises'] as List? : null,
@@ -486,13 +482,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
           args['exercises'] is List ? args['exercises'] as List? : null,
         );
       case 'archiveWorkout':
-        return _handleArchiveWorkout(
-          args['workoutId'] != null
-              ? (args['workoutId'] is int
-                    ? args['workoutId'] as int
-                    : int.tryParse(args['workoutId'].toString()))
-              : null,
-        );
+        return _handleArchiveWorkout(args['workoutId']?.toString());
       case 'setCycle':
         return _handleSetCycle(
           args['steps'] is List ? args['steps'] as List? : null,
@@ -501,23 +491,15 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
         return _handleGetTrainingState();
       case 'setProgressionRules':
         return _handleSetProgressionRules(
-          args['programId'] is int
-              ? args['programId'] as int
-              : int.tryParse(args['programId']?.toString() ?? ''),
+          args['programId']?.toString(),
           args['rules'] is List ? args['rules'] as List : null,
         );
       case 'createProgram':
         return _handleCreateProgram(args);
       case 'archiveProgram':
-        return _handleArchiveProgram(
-          args['programId'] is int
-              ? args['programId'] as int
-              : int.tryParse(args['programId']?.toString() ?? ''),
-        );
+        return _handleArchiveProgram(args['programId']?.toString());
       case 'setDeloadActive':
-        final programId = args['programId'] is int
-            ? args['programId'] as int
-            : int.tryParse(args['programId']?.toString() ?? '');
+        final programId = args['programId']?.toString();
         final active = args['active'] is bool
             ? args['active'] as bool
             : args['active']?.toString().toLowerCase() == 'true';
@@ -525,10 +507,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
       case 'getWeeklyVolume':
         return _handleGetWeeklyVolume();
       case 'getEstimated1RM':
-        final exerciseId = args['exerciseId'] is int
-            ? args['exerciseId'] as int
-            : int.tryParse(args['exerciseId']?.toString() ?? '');
-        return _handleGetEstimated1RM(exerciseId);
+        return _handleGetEstimated1RM(args['exerciseId']?.toString());
       default:
         return {'success': false, 'error': 'Unknown function: $name'};
     }
@@ -594,15 +573,16 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
 
       workoutExercises.add(
         domain_we.WorkoutExercise(
-          workoutId: 0,
+          id: '',
+          workoutId: '',
           exerciseId: exercise.id,
-          order: i,
+          sortOrder: i,
           sets: sets,
           minReps: minReps,
           maxReps: maxReps,
           isAmrap: isAmrap,
-          rest: restSeconds,
-          duration: durationSeconds,
+          restSeconds: restSeconds,
+          durationSeconds: durationSeconds,
           groupId: null,
           notes: (notes != null && notes.isNotEmpty) ? notes : null,
         ),
@@ -617,7 +597,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     }
 
     final workout = domain_workout.Workout(
-      id: 0,
+      id: '',
       name: name.trim(),
       description: description?.trim().isEmpty ?? true
           ? null
@@ -642,8 +622,8 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     };
   }
 
-  Future<Map<String, Object?>> _handleArchiveWorkout(int? workoutId) async {
-    if (workoutId == null || workoutId <= 0) {
+  Future<Map<String, Object?>> _handleArchiveWorkout(String? workoutId) async {
+    if (workoutId == null || workoutId.isEmpty) {
       return {'success': false, 'error': 'Invalid workoutId'};
     }
     final result = await _workoutRepo.archive(workoutId);
@@ -677,15 +657,10 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     for (var i = 0; i < stepsList.length; i++) {
       final item = stepsList[i];
       if (item is! Map) continue;
-      final map = item;
-      final workoutId = map['workoutId'] != null
-          ? (map['workoutId'] is int
-                ? map['workoutId'] as int
-                : int.tryParse(map['workoutId'].toString()))
-          : null;
-      if (workoutId == null || workoutId <= 0) continue;
+      final workoutId = item['workoutId']?.toString();
+      if (workoutId == null || workoutId.isEmpty) continue;
       cycleSteps.add(
-        TrainingCycleStep(id: 0, orderIndex: i, workoutId: workoutId),
+        TrainingCycleStep(id: '', orderIndex: i, workoutId: workoutId),
       );
     }
     if (cycleSteps.isEmpty) {
@@ -820,10 +795,10 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
   }
 
   Future<Map<String, Object?>> _handleSetProgressionRules(
-    int? programId,
+    String? programId,
     List? rulesList,
   ) async {
-    if (programId == null || programId <= 0) {
+    if (programId == null || programId.isEmpty) {
       return {'success': false, 'error': 'Invalid programId'};
     }
     if (rulesList == null) {
@@ -832,9 +807,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     try {
       final rules = rulesList.map((item) {
         final m = item as Map<String, dynamic>;
-        final exerciseId = m['exerciseId'] is int
-            ? m['exerciseId'] as int
-            : int.parse(m['exerciseId'].toString());
+        final exerciseId = m['exerciseId']?.toString() ?? '';
         final type = ProgressionType.values.byName(
           m['type']?.toString() ?? 'incrementWeight',
         );
@@ -852,7 +825,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
             ? (m['conditionValue'] as num).toDouble()
             : null;
         return ProgressionRule(
-          id: 0,
+          id: '',
           programId: programId,
           exerciseId: exerciseId,
           type: type,
@@ -894,7 +867,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
           : focus.suggestedRestSeconds;
 
       final program = TrainingProgram(
-        id: 0,
+        id: '',
         name: name,
         focus: focus,
         durationMode: durationMode,
@@ -907,13 +880,16 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
 
       final workoutIds = args['workoutIds'];
       if (workoutIds is List && workoutIds.isNotEmpty) {
-        final ids = workoutIds.map((e) => _parseInt(e, 0)).toList();
+        final ids = workoutIds
+            .map((e) => e?.toString() ?? '')
+            .where((e) => e.isNotEmpty)
+            .toList();
         var order = 0;
         await _cycleRepo.setSteps(
           ids
               .map(
                 (wId) => TrainingCycleStep(
-                  id: 0,
+                  id: '',
                   orderIndex: order++,
                   workoutId: wId,
                 ),
@@ -930,8 +906,8 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     }
   }
 
-  Future<Map<String, Object?>> _handleArchiveProgram(int? programId) async {
-    if (programId == null || programId <= 0) {
+  Future<Map<String, Object?>> _handleArchiveProgram(String? programId) async {
+    if (programId == null || programId.isEmpty) {
       return {'success': false, 'error': 'Invalid programId'};
     }
     try {
@@ -944,10 +920,10 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
   }
 
   Future<Map<String, Object?>> _handleSetDeloadActive(
-    int? programId,
+    String? programId,
     bool active,
   ) async {
-    if (programId == null || programId <= 0) {
+    if (programId == null || programId.isEmpty) {
       return {'success': false, 'error': 'Invalid programId'};
     }
     try {
@@ -998,8 +974,8 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
     }
   }
 
-  Future<Map<String, Object?>> _handleGetEstimated1RM(int? exerciseId) async {
-    if (exerciseId == null || exerciseId <= 0) {
+  Future<Map<String, Object?>> _handleGetEstimated1RM(String? exerciseId) async {
+    if (exerciseId == null || exerciseId.isEmpty) {
       return {'success': false, 'error': 'Invalid exerciseId'};
     }
     try {
@@ -1039,7 +1015,7 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
       }
 
       final execIds = rows.map((r) => r.set.executionId).toSet();
-      final weByExecId = <int, domain_we.WorkoutExercise?>{};
+      final weByExecId = <String, domain_we.WorkoutExercise?>{};
       for (final execId in execIds) {
         final execResult = await _executionRepo.getById(execId);
         final exec = execResult.isSuccess ? execResult.getOrThrow() : null;
@@ -1272,12 +1248,12 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
   }
 
   Future<Map<String, Object?>> _handleUpdateWorkout(
-    int? workoutId,
+    String? workoutId,
     String? newName,
     String? newDescription,
     List? exercisesList,
   ) async {
-    if (workoutId == null || workoutId <= 0) {
+    if (workoutId == null || workoutId.isEmpty) {
       return {'success': false, 'error': 'Invalid workoutId'};
     }
 
@@ -1342,15 +1318,16 @@ Assistant: "Recomendo consultar um profissional de saúde pra avaliar esse ombro
 
         workoutExercises.add(
           domain_we.WorkoutExercise(
+            id: '',
             workoutId: workoutId,
             exerciseId: exercise.id,
-            order: i,
+            sortOrder: i,
             sets: sets,
             minReps: minReps,
             maxReps: maxReps,
             isAmrap: isAmrap,
-            rest: restSeconds,
-            duration: durationSeconds,
+            restSeconds: restSeconds,
+            durationSeconds: durationSeconds,
             groupId: null,
             notes: (notes != null && notes.isNotEmpty) ? notes : null,
           ),

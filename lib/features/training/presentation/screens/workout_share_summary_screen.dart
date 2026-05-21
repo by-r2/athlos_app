@@ -18,7 +18,7 @@ import '../providers/workout_notifier.dart';
 import '../widgets/workout_execution_share_summary.dart';
 
 class WorkoutShareSummaryScreen extends ConsumerStatefulWidget {
-  final int executionId;
+  final String executionId;
 
   const WorkoutShareSummaryScreen({super.key, required this.executionId});
 
@@ -34,9 +34,9 @@ class _WorkoutShareSummaryScreenState
   static final _placeholderSets = List.generate(
     3,
     (i) => ExecutionSet(
-      id: i,
-      executionId: 0,
-      exerciseId: 0,
+      id: 'placeholder-$i',
+      executionId: '',
+      exerciseId: '',
       setNumber: i + 1,
       plannedReps: 10,
       reps: 10,
@@ -46,9 +46,8 @@ class _WorkoutShareSummaryScreenState
   );
 
   static final _placeholderExecution = WorkoutExecution(
-    id: 0,
-    workoutId: 0,
-    programId: 0,
+    id: '',
+    workoutId: '',
     startedAt: DateTime(2025, 1, 15, 10, 30),
   );
 
@@ -106,7 +105,7 @@ class _WorkoutShareSummaryScreenState
     final exerciseConfigAsync = execution != null
         ? ref.watch(executionExerciseConfigProvider(execution))
         : null;
-    final workoutExerciseByExerciseId = <int, WorkoutExercise>{};
+    final workoutExerciseByExerciseId = <String, WorkoutExercise>{};
     if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
       for (final we in wes) {
         workoutExerciseByExerciseId[we.exerciseId] = we;

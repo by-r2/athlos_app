@@ -3,8 +3,8 @@
 /// Normal sets have no segments. Drop sets have 2+ segments
 /// representing each weight/rep block within the set.
 class ExecutionSetSegment {
-  final int id;
-  final int executionSetId;
+  final String id;
+  final String executionSetId;
   final int segmentOrder;
   final int reps;
   final double? weight;

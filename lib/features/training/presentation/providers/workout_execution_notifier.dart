@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
@@ -22,7 +20,7 @@ class WorkoutExecutionList extends _$WorkoutExecutionList {
     return result.getOrThrow();
   }
 
-  Future<void> deleteExecution(int id) async {
+  Future<void> deleteExecution(String id) async {
     final repo = ref.read(workoutExecutionRepositoryProvider);
     final result = await repo.delete(id);
     result.getOrThrow();
@@ -46,7 +44,7 @@ Future<WorkoutExecution?> danglingExecution(Ref ref) async {
 @riverpod
 Future<List<ExecutionSet>> executionSetsWithSegments(
   Ref ref,
-  int executionId,
+  String executionId,
 ) async {
   final repo = ref.watch(workoutExecutionRepositoryProvider);
   final setsResult = await repo.getSets(executionId);
@@ -57,7 +55,7 @@ Future<List<ExecutionSet>> executionSetsWithSegments(
   )).getOrThrow();
 
   // Group segments by executionSetId
-  final segmentsBySetId = <int, List<ExecutionSetSegment>>{};
+  final segmentsBySetId = <String, List<ExecutionSetSegment>>{};
   for (final seg in allSegments) {
     segmentsBySetId.putIfAbsent(seg.executionSetId, () => []).add(seg);
   }
@@ -87,41 +85,11 @@ Future<List<ExecutionSet>> executionSetsWithSegments(
 }
 
 /// Resolves the exercise configuration for a past execution.
-/// Prefers the JSON snapshot saved at execution time; falls back to the
-/// live workout template for older executions without a snapshot.
+/// Falls back to the live workout template.
 @riverpod
 Future<List<WorkoutExercise>> executionExerciseConfig(
   Ref ref,
   WorkoutExecution execution,
 ) async {
-  final snapshot = execution.exerciseConfigSnapshot;
-  if (snapshot != null && snapshot.isNotEmpty) {
-    return _parseExerciseSnapshot(execution.workoutId, snapshot);
-  }
   return ref.watch(workoutExercisesProvider(execution.workoutId).future);
-}
-
-List<WorkoutExercise> _parseExerciseSnapshot(
-  int workoutId,
-  String jsonSnapshot,
-) {
-  final list = (jsonDecode(jsonSnapshot) as List).cast<Map<String, dynamic>>();
-  return list
-      .map(
-        (e) => WorkoutExercise(
-          workoutId: workoutId,
-          exerciseId: e['exerciseId'] as int,
-          order: e['order'] as int? ?? 0,
-          sets: e['sets'] as int,
-          minReps: e['minReps'] as int?,
-          maxReps: e['maxReps'] as int?,
-          isAmrap: e['isAmrap'] as bool? ?? false,
-          rest: e['rest'] as int? ?? 0,
-          duration: e['duration'] as int?,
-          groupId: e['groupId'] as int?,
-          isUnilateral: e['isUnilateral'] as bool? ?? false,
-          notes: e['notes'] as String?,
-        ),
-      )
-      .toList();
 }

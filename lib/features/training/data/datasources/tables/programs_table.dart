@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 
-/// Training programs (mesocycles).
 class Programs extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
   TextColumn get name => text()();
   TextColumn get focus => text()();
   TextColumn get durationMode => text()();
@@ -16,10 +16,10 @@ class Programs extends Table {
   RealColumn get deloadIntensityMultiplier => real().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get archivedAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
 
-  TextColumn get remoteId => text().nullable()();
-
-  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
-
-  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
 }

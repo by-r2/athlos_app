@@ -19,14 +19,14 @@ class WorkoutList extends _$WorkoutList {
     return result.getOrThrow();
   }
 
-  Future<int> createWorkout({
+  Future<String> createWorkout({
     required String name,
     String? description,
     required List<WorkoutExercise> exercises,
   }) async {
     final repo = ref.read(workoutRepositoryProvider);
     final workout = Workout(
-      id: 0,
+      id: '',
       name: name,
       description: description,
       createdAt: DateTime.now(),
@@ -49,7 +49,7 @@ class WorkoutList extends _$WorkoutList {
     ref.invalidate(workoutExercisesProvider(workout.id));
   }
 
-  Future<void> deleteWorkout(int id) async {
+  Future<void> deleteWorkout(String id) async {
     final execRepo = ref.read(workoutExecutionRepositoryProvider);
     final cascadeResult = await execRepo.deleteUnfinishedByWorkout(id);
     cascadeResult.getOrThrow();
@@ -63,7 +63,7 @@ class WorkoutList extends _$WorkoutList {
     ref.invalidate(workoutExecutionListProvider);
   }
 
-  Future<void> archiveWorkout(int id) async {
+  Future<void> archiveWorkout(String id) async {
     final repo = ref.read(workoutRepositoryProvider);
     final result = await repo.archive(id);
     result.getOrThrow();
@@ -75,7 +75,7 @@ class WorkoutList extends _$WorkoutList {
     ref.invalidate(cycleStepsProvider);
   }
 
-  Future<void> unarchiveWorkout(int id) async {
+  Future<void> unarchiveWorkout(String id) async {
     final repo = ref.read(workoutRepositoryProvider);
     final result = await repo.unarchive(id);
     result.getOrThrow();
@@ -83,7 +83,7 @@ class WorkoutList extends _$WorkoutList {
     ref.invalidate(archivedWorkoutListProvider);
   }
 
-  Future<int> duplicateWorkout(int id, {required String nameSuffix}) async {
+  Future<String> duplicateWorkout(String id, {required String nameSuffix}) async {
     final repo = ref.read(workoutRepositoryProvider);
     final result = await repo.duplicate(id, nameSuffix: nameSuffix);
     final newId = result.getOrThrow();
@@ -91,7 +91,7 @@ class WorkoutList extends _$WorkoutList {
     return newId;
   }
 
-  Future<void> reorderWorkouts(List<int> orderedIds) async {
+  Future<void> reorderWorkouts(List<String> orderedIds) async {
     final repo = ref.read(workoutRepositoryProvider);
 
     // Optimistic update: apply new sortOrder values immediately so
@@ -134,7 +134,7 @@ class ArchivedWorkoutList extends _$ArchivedWorkoutList {
 
 /// Loads a single workout by ID.
 @riverpod
-Future<Workout?> workoutById(Ref ref, int id) async {
+Future<Workout?> workoutById(Ref ref, String id) async {
   final repo = ref.watch(workoutRepositoryProvider);
   final result = await repo.getById(id);
   return result.getOrThrow();
@@ -142,7 +142,7 @@ Future<Workout?> workoutById(Ref ref, int id) async {
 
 /// Loads the exercises configured for a workout.
 @riverpod
-Future<List<WorkoutExercise>> workoutExercises(Ref ref, int workoutId) async {
+Future<List<WorkoutExercise>> workoutExercises(Ref ref, String workoutId) async {
   final repo = ref.watch(workoutRepositoryProvider);
   final result = await repo.getExercises(workoutId);
   return result.getOrThrow();
@@ -150,7 +150,7 @@ Future<List<WorkoutExercise>> workoutExercises(Ref ref, int workoutId) async {
 
 /// Last finished workout execution. Watched by [nextWorkoutProvider].
 @riverpod
-Future<int?> lastFinishedWorkoutId(Ref ref) async {
+Future<String?> lastFinishedWorkoutId(Ref ref) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
   final result = await execRepo.getLastFinished();
   return result.getOrThrow()?.workoutId;

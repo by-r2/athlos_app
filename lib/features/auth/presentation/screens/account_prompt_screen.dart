@@ -10,26 +10,12 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/supabase_config.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../../domain/enums/social_auth_provider.dart';
 import '../providers/auth_notifier.dart';
-import '../providers/auth_prompt_notifier.dart';
 import '../widgets/athlos_auth_scaffold.dart';
 
 class AccountPromptScreen extends ConsumerWidget {
   const AccountPromptScreen({super.key});
-
-  Future<void> _goToApp(BuildContext context, WidgetRef ref) async {
-    final hasProfile = ref.read(hasProfileProvider).value ?? false;
-    if (!context.mounted) return;
-    context.go(hasProfile ? RoutePaths.hub : RoutePaths.profileSetup);
-  }
-
-  Future<void> _continueLocal(BuildContext context, WidgetRef ref) async {
-    await ref.read(localAccessProvider.notifier).accept();
-    if (!context.mounted) return;
-    await _goToApp(context, ref);
-  }
 
   Future<void> _signInWithGoogle(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
@@ -77,11 +63,7 @@ class AccountPromptScreen extends ConsumerWidget {
         subtitle: l10n.authPromptSubtitle,
         heroHeightFactor: 0.38,
         symbolSize: 132,
-        child: AthlosAuthOfflinePanel(
-          message: l10n.authOfflineModeMessage,
-          actionLabel: l10n.authContinueLocalAction,
-          onContinue: isBusy ? null : () => _continueLocal(context, ref),
-        ),
+        child: AthlosAuthOfflinePanel(message: l10n.authRequiresInternetMessage),
       ),
       data: (hasInternet) {
         if (!hasInternet) {
@@ -91,9 +73,7 @@ class AccountPromptScreen extends ConsumerWidget {
             heroHeightFactor: 0.38,
             symbolSize: 132,
             child: AthlosAuthOfflinePanel(
-              message: l10n.authOfflineModeMessage,
-              actionLabel: l10n.authContinueLocalAction,
-              onContinue: isBusy ? null : () => _continueLocal(context, ref),
+              message: l10n.authRequiresInternetMessage,
             ),
           );
         }
@@ -113,12 +93,10 @@ class AccountPromptScreen extends ConsumerWidget {
             signInLabel: l10n.authSignInAction,
             createAccountLabel: l10n.authCreateAccountAction,
             googleTooltip: l10n.authSignInWithGoogleAction,
-            continueOfflineLabel: l10n.authContinueLocalAction,
             isBusy: isBusy,
             onSignIn: () => context.push(RoutePaths.authSignIn),
             onCreateAccount: () => context.push(RoutePaths.authSignUp),
             onGoogle: () => _signInWithGoogle(context, ref),
-            onContinueOffline: () => _continueLocal(context, ref),
           ),
         );
       },
@@ -133,12 +111,10 @@ class _AuthChoicePanel extends StatelessWidget {
     required this.signInLabel,
     required this.createAccountLabel,
     required this.googleTooltip,
-    required this.continueOfflineLabel,
     required this.isBusy,
     required this.onSignIn,
     required this.onCreateAccount,
     required this.onGoogle,
-    required this.onContinueOffline,
   });
 
   final String title;
@@ -146,12 +122,10 @@ class _AuthChoicePanel extends StatelessWidget {
   final String signInLabel;
   final String createAccountLabel;
   final String googleTooltip;
-  final String continueOfflineLabel;
   final bool isBusy;
   final VoidCallback onSignIn;
   final VoidCallback onCreateAccount;
   final VoidCallback onGoogle;
-  final VoidCallback onContinueOffline;
 
   @override
   Widget build(BuildContext context) {
@@ -218,11 +192,6 @@ class _AuthChoicePanel extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        const Spacer(),
-        TextButton(
-          onPressed: isBusy ? null : onContinueOffline,
-          child: Text(continueOfflineLabel),
         ),
       ],
     );

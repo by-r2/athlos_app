@@ -3,14 +3,9 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
-import '../../../../core/sync/sync_record_store.dart';
 import '../../../../core/sync/user_owned_sync_runner.dart';
-import '../../../../core/utils/sync_id.dart';
 import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/exercise.dart' as domain;
-import '../../domain/enums/exercise_type.dart';
-import '../../domain/enums/load_mode.dart';
-import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart' as domain_region;
 import '../../domain/enums/muscle_role.dart' as domain_role;
@@ -19,20 +14,16 @@ import '../../domain/repositories/exercise_repository.dart';
 import '../datasources/daos/exercise_dao.dart';
 
 class ExerciseRepositoryImpl implements ExerciseRepository {
-  ExerciseRepositoryImpl(
-    this._dao,
-    this._syncRunner,
-    this._syncStore,
-  );
+  ExerciseRepositoryImpl(this._dao, this._syncRunner, this._userId);
 
   final ExerciseDao _dao;
   final UserOwnedSyncRunner _syncRunner;
-  final SyncRecordStore _syncStore;
+  final String _userId;
 
   @override
   Future<Result<List<domain.Exercise>>> getAll() async {
     try {
-      final rows = await _dao.getAll();
+      final rows = await _dao.getVisible(_userId);
       final results = <domain.Exercise>[];
       for (final row in rows) {
         final muscles = await _loadMuscleFoci(row.id);
@@ -45,7 +36,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<domain.Exercise?>> getById(int id) async {
+  Future<Result<domain.Exercise?>> getById(String id) async {
     try {
       final row = await _dao.getById(id);
       if (row == null) return const Success(null);
@@ -85,7 +76,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
     MuscleGroup group,
   ) async {
     try {
-      final rows = await _dao.getByMuscleGroup(group);
+      final rows = await _dao.getByMuscleGroup(group, userId: _userId);
       final results = <domain.Exercise>[];
       for (final row in rows) {
         final muscles = await _loadMuscleFoci(row.id);
@@ -100,7 +91,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<List<domain.Exercise>>> getVariations(int exerciseId) async {
+  Future<Result<List<domain.Exercise>>> getVariations(String exerciseId) async {
     try {
       final rows = await _dao.getVariations(exerciseId);
       final results = <domain.Exercise>[];
@@ -116,7 +107,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
 
   @override
   Future<Result<List<domain.ExerciseMuscleFocus>>> getMuscleFoci(
-    int exerciseId,
+    String exerciseId,
   ) async {
     try {
       return Success(await _loadMuscleFoci(exerciseId));
@@ -126,7 +117,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<int>> create(
+  Future<Result<String>> create(
     domain.Exercise exercise, {
     List<
           ({
@@ -146,8 +137,12 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         );
       }
 
-      final id = await _dao.create(
+      await _dao.create(
         ExercisesCompanion.insert(
+          id: exercise.id,
+          createdBy: exercise.isVerified
+              ? const Value.absent()
+              : Value(_userId),
           name: exercise.name,
           muscleGroup: exercise.muscleGroup,
           type: Value(exercise.type),
@@ -160,13 +155,12 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         ),
       );
       if (muscles.isNotEmpty) {
-        await _dao.setMuscleFoci(id, muscles);
+        await _dao.setMuscleFoci(exercise.id, muscles);
       }
       if (!exercise.isVerified) {
-        await _dao.markLocalDirty(id);
-        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
+        await _syncRunner.synchronizeTable(TrainingSyncTableNames.exercises);
       }
-      return Success(id);
+      return Success(exercise.id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create exercise: $e'));
     }
@@ -203,8 +197,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         await _dao.setMuscleFoci(exercise.id, muscles);
       }
       if (!exercise.isVerified) {
-        await _dao.markLocalDirty(exercise.id);
-        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
+        await _syncRunner.synchronizeTable(TrainingSyncTableNames.exercises);
       }
       return const Success(null);
     } on Exception catch (e) {
@@ -213,30 +206,16 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<void>> delete(int id) async {
+  Future<Result<void>> delete(String id) async {
     try {
       final row = await _dao.getById(id);
-      if (row != null && !row.isVerified) {
-        final record = await _syncStore.getByLocalId(
-          tableName: TrainingSyncTableNames.userExercises,
-          localId: id,
+      if (row != null && row.isVerified) {
+        return Failure(
+          ValidationException('Cannot delete a verified catalog exercise'),
         );
-        final remoteId = record?.remoteId ?? row.remoteId;
-        final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
-        if (remoteId != null || record != null) {
-          await _syncStore.markTombstone(
-            tableName: TrainingSyncTableNames.userExercises,
-            localId: id,
-            syncId: syncId,
-            remoteId: remoteId,
-            remoteUserId: record?.remoteUserId,
-          );
-        }
-        await _dao.deleteById(id);
-        await _syncRunner.synchronizeTable(TrainingSyncTableNames.userExercises);
-      } else {
-        await _dao.deleteById(id);
       }
+      await _dao.deleteById(id);
+      await _syncRunner.synchronizeTable(TrainingSyncTableNames.exercises);
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete exercise $id: $e'));
@@ -244,7 +223,10 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<void>> addVariation(int exerciseId, int variationId) async {
+  Future<Result<void>> addVariation(
+    String exerciseId,
+    String variationId,
+  ) async {
     try {
       await _dao.addVariation(exerciseId, variationId);
       return const Success(null);
@@ -254,7 +236,10 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   @override
-  Future<Result<void>> removeVariation(int exerciseId, int variationId) async {
+  Future<Result<void>> removeVariation(
+    String exerciseId,
+    String variationId,
+  ) async {
     try {
       await _dao.removeVariation(exerciseId, variationId);
       return const Success(null);
@@ -264,7 +249,7 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   Future<List<domain.ExerciseMuscleFocus>> _loadMuscleFoci(
-    int exerciseId,
+    String exerciseId,
   ) async {
     final rows = await _dao.getMuscleFoci(exerciseId);
     return rows
@@ -279,19 +264,19 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
   }
 
   domain.Exercise _toDomain(
-    dynamic row,
+    Exercise row,
     List<domain.ExerciseMuscleFocus> muscles,
   ) => domain.Exercise(
-    id: row.id as int,
-    name: row.name as String,
-    muscleGroup: row.muscleGroup as MuscleGroup,
-    type: row.type as ExerciseType,
-    movementPattern: row.movementPattern as MovementPattern?,
-    description: row.description as String?,
-    isVerified: row.isVerified as bool,
-    defaultLoadMode: row.defaultLoadMode as LoadMode,
-    bodyweightLoadFactor: row.bodyweightLoadFactor as double?,
-    isIsometric: row.isIsometric as bool,
+    id: row.id,
+    name: row.name,
+    muscleGroup: row.muscleGroup,
+    type: row.type,
+    movementPattern: row.movementPattern,
+    description: row.description,
+    isVerified: row.isVerified,
+    defaultLoadMode: row.defaultLoadMode,
+    bodyweightLoadFactor: row.bodyweightLoadFactor,
+    isIsometric: row.isIsometric,
     muscles: muscles,
   );
 }

@@ -3,9 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
-import '../../../../core/sync/sync_record_store.dart';
 import '../../../../core/sync/user_owned_sync_runner.dart';
-import '../../../../core/utils/sync_id.dart';
 import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/deload_config.dart';
 import '../../domain/entities/training_program.dart';
@@ -16,33 +14,20 @@ import '../../domain/repositories/program_repository.dart';
 import '../datasources/daos/program_dao.dart';
 
 class ProgramRepositoryImpl implements ProgramRepository {
-  ProgramRepositoryImpl(
-    this._dao,
-    this._syncRunner,
-    this._syncStore,
-  );
+  ProgramRepositoryImpl(this._dao, this._syncRunner, this._userId);
 
   final ProgramDao _dao;
   final UserOwnedSyncRunner _syncRunner;
-  final SyncRecordStore _syncStore;
+  final String _userId;
 
-  Future<void> _syncProgram(int programId) async {
-    await _dao.markLocalDirty(programId);
-    await _syncRunner.synchronizeTable(TrainingSyncTableNames.userPrograms);
-  }
-
-  Future<void> _syncAllPrograms() async {
-    final rows = await _dao.getAll();
-    for (final row in rows) {
-      await _dao.markLocalDirty(row.id);
-    }
-    await _syncRunner.synchronizeTable(TrainingSyncTableNames.userPrograms);
+  Future<void> _syncPrograms() async {
+    await _syncRunner.synchronizeTable(TrainingSyncTableNames.programs);
   }
 
   @override
   Future<Result<List<TrainingProgram>>> getAll() async {
     try {
-      final rows = await _dao.getAll();
+      final rows = await _dao.getAll(_userId);
       return Success(rows.map(_toDomain).toList());
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load programs: $e'));
@@ -50,7 +35,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<TrainingProgram?>> getById(int id) async {
+  Future<Result<TrainingProgram?>> getById(String id) async {
     try {
       final row = await _dao.getById(id);
       return Success(row != null ? _toDomain(row) : null);
@@ -62,7 +47,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
   @override
   Future<Result<TrainingProgram?>> getActive() async {
     try {
-      final row = await _dao.getActive();
+      final row = await _dao.getActive(_userId);
       return Success(row != null ? _toDomain(row) : null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to load active program: $e'));
@@ -70,11 +55,13 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<int>> create(TrainingProgram program) async {
+  Future<Result<String>> create(TrainingProgram program) async {
     try {
       final dc = program.deloadConfig;
-      final id = await _dao.create(
+      await _dao.create(
         ProgramsCompanion.insert(
+          id: program.id,
+          userId: _userId,
           name: program.name,
           focus: program.focus.name,
           durationMode: program.durationMode.name,
@@ -87,8 +74,8 @@ class ProgramRepositoryImpl implements ProgramRepository {
           deloadIntensityMultiplier: Value(dc?.intensityMultiplier),
         ),
       );
-      await _syncProgram(id);
-      return Success(id);
+      await _syncPrograms();
+      return Success(program.id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create program: $e'));
     }
@@ -112,7 +99,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
           deloadIntensityMultiplier: Value(dc?.intensityMultiplier),
         ),
       );
-      await _syncProgram(program.id);
+      await _syncPrograms();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to update program: $e'));
@@ -120,10 +107,10 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<void>> activate(int programId) async {
+  Future<Result<void>> activate(String programId) async {
     try {
-      await _dao.activate(programId);
-      await _syncAllPrograms();
+      await _dao.activate(programId, _userId);
+      await _syncPrograms();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to activate program: $e'));
@@ -131,10 +118,10 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<void>> archive(int programId) async {
+  Future<Result<void>> archive(String programId) async {
     try {
       await _dao.archive(programId);
-      await _syncProgram(programId);
+      await _syncPrograms();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to archive program: $e'));
@@ -142,26 +129,10 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<void>> delete(int programId) async {
+  Future<Result<void>> delete(String programId) async {
     try {
-      final row = await _dao.getById(programId);
-      final record = await _syncStore.getByLocalId(
-        tableName: TrainingSyncTableNames.userPrograms,
-        localId: programId,
-      );
-      final remoteId = record?.remoteId ?? row?.remoteId;
-      final syncId = record?.syncId ?? remoteId ?? generateSyncUuid();
-      if (remoteId != null || record != null) {
-        await _syncStore.markTombstone(
-          tableName: TrainingSyncTableNames.userPrograms,
-          localId: programId,
-          syncId: syncId,
-          remoteId: remoteId,
-          remoteUserId: record?.remoteUserId,
-        );
-      }
       await _dao.deleteProgram(programId);
-      await _syncRunner.synchronizeTable(TrainingSyncTableNames.userPrograms);
+      await _syncPrograms();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete program: $e'));
@@ -170,12 +141,12 @@ class ProgramRepositoryImpl implements ProgramRepository {
 
   @override
   Future<Result<void>> setDeloadActive(
-    int programId, {
+    String programId, {
     required bool active,
   }) async {
     try {
       await _dao.setDeloadActive(programId, active: active);
-      await _syncProgram(programId);
+      await _syncPrograms();
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to set deload status: $e'));
@@ -183,7 +154,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
   }
 
   @override
-  Future<Result<int>> getSessionCount(int programId) async {
+  Future<Result<int>> getSessionCount(String programId) async {
     try {
       final count = await _dao.getSessionCount(programId);
       return Success(count);

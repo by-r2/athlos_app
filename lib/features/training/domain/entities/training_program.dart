@@ -5,7 +5,7 @@ import 'deload_config.dart';
 /// A training program (mesocycle) — a named, time-bound container
 /// that owns a cycle and tracks progress.
 class TrainingProgram {
-  final int id;
+  final String id;
   final String name;
   final ProgramFocus focus;
   final DurationMode durationMode;

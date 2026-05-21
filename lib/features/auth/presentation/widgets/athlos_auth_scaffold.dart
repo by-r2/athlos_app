@@ -137,12 +137,12 @@ class AthlosAuthOfflinePanel extends StatelessWidget {
   const AthlosAuthOfflinePanel({
     super.key,
     required this.message,
-    required this.actionLabel,
-    required this.onContinue,
+    this.actionLabel,
+    this.onContinue,
   });
 
   final String message;
-  final String actionLabel;
+  final String? actionLabel;
   final VoidCallback? onContinue;
 
   @override
@@ -178,8 +178,10 @@ class AthlosAuthOfflinePanel extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
-        const Gap(AthlosSpacing.xl),
-        FilledButton(onPressed: onContinue, child: Text(actionLabel)),
+        if (actionLabel != null && onContinue != null) ...[
+          const Gap(AthlosSpacing.xl),
+          FilledButton(onPressed: onContinue, child: Text(actionLabel!)),
+        ],
       ],
     );
   }

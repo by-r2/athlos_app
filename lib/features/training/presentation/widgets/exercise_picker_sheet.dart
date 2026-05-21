@@ -15,7 +15,7 @@ import '../providers/exercise_notifier.dart';
 final _placeholderExercises = List.generate(
   8,
   (i) => Exercise(
-    id: i,
+    id: 'placeholder-$i',
     name: 'Placeholder exercise',
     muscleGroup: MuscleGroup.chest,
     isVerified: true,

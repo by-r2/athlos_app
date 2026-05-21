@@ -3,20 +3,20 @@ import 'package:drift/drift.dart';
 import 'exercises_table.dart';
 import 'programs_table.dart';
 
-/// Per-exercise progression rules within a training program.
 class ProgressionRules extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  IntColumn get programId => integer().references(Programs, #id)();
-  IntColumn get exerciseId => integer().references(Exercises, #id)();
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get programId => text().references(Programs, #id)();
+  TextColumn get exerciseId => text().references(Exercises, #id)();
   TextColumn get type => text()();
   RealColumn get value => real()();
   TextColumn get frequency => text()();
   TextColumn get condition => text().nullable()();
   RealColumn get conditionValue => real().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
 
-  TextColumn get remoteId => text().nullable()();
-
-  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
-
-  DateTimeColumn get localUpdatedAt => dateTime().nullable()();
+  @override
+  Set<Column> get primaryKey => {id};
 }

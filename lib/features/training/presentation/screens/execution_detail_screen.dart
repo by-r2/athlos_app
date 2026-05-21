@@ -26,18 +26,17 @@ import '../providers/workout_notifier.dart';
 import '../widgets/workout_execution_share_summary.dart';
 
 final _placeholderExecution = WorkoutExecution(
-  id: 0,
-  workoutId: 0,
-  programId: 0,
+  id: '',
+  workoutId: '',
   startedAt: DateTime(0),
 );
 
 final _placeholderSets = List.generate(
   4,
   (i) => ExecutionSet(
-    id: i,
-    executionId: 0,
-    exerciseId: 0,
+    id: 'placeholder-$i',
+    executionId: '',
+    exerciseId: '',
     setNumber: i + 1,
     plannedReps: 10,
     reps: 10,
@@ -47,7 +46,7 @@ final _placeholderSets = List.generate(
 );
 
 class ExecutionDetailScreen extends ConsumerStatefulWidget {
-  final int executionId;
+  final String executionId;
 
   const ExecutionDetailScreen({super.key, required this.executionId});
 
@@ -95,8 +94,8 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final exerciseConfigAsync = execution != null
         ? ref.watch(executionExerciseConfigProvider(execution))
         : null;
-    final unilateralMap = <int, bool>{};
-    final workoutExerciseByExerciseId = <int, WorkoutExercise>{};
+    final unilateralMap = <String, bool>{};
+    final workoutExerciseByExerciseId = <String, WorkoutExercise>{};
     if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
       for (final we in wes) {
         unilateralMap[we.exerciseId] = we.isUnilateral;
@@ -113,7 +112,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
 
     final sets = setsAsync.value ?? _placeholderSets;
 
-    final prSetIdsPerExercise = <int, Set<int>>{};
+    final prSetIdsPerExercise = <String, Set<String>>{};
     final allExercises = exercisesAsync.value ?? <Exercise>[];
     final exerciseMapLocal = {for (final e in allExercises) e.id: e};
     final profileWeight = ref.watch(latestBodyWeightProvider).value;
@@ -227,8 +226,8 @@ class _ExecutionShareSummaryTab extends StatefulWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
   final String workoutName;
-  final Map<int, Exercise>? exerciseById;
-  final Map<int, WorkoutExercise>? workoutExerciseByExerciseId;
+  final Map<String, Exercise>? exerciseById;
+  final Map<String, WorkoutExercise>? workoutExerciseByExerciseId;
   final double? profileBodyWeightOnExecutionDate;
   final double? latestBodyWeight;
 
@@ -291,11 +290,11 @@ class _ExecutionDetailBody extends StatelessWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
   final AsyncValue<List<Exercise>> exercisesAsync;
-  final Map<int, bool> unilateralMap;
-  final Map<int, WorkoutExercise> workoutExerciseByExerciseId;
+  final Map<String, bool> unilateralMap;
+  final Map<String, WorkoutExercise> workoutExerciseByExerciseId;
   final double? profileBodyWeightOnExecutionDate;
   final double? latestBodyWeight;
-  final Map<int, Set<int>> prSetIdsPerExercise;
+  final Map<String, Set<String>> prSetIdsPerExercise;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
   final AppLocalizations l10n;
@@ -513,7 +512,7 @@ class _ExerciseBreakdown extends StatelessWidget {
 
   /// When null (legacy session), falls back to [ExecutionSet.plannedReps].
   final WorkoutExercise? workoutExercise;
-  final Set<int> prSetIds;
+  final Set<String> prSetIds;
   final ColorScheme colorScheme;
   final TextTheme textTheme;
   final AppLocalizations l10n;
@@ -780,8 +779,8 @@ class _SetRow extends StatelessWidget {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    final durationStr = setEntry.duration != null
-        ? formatDuration(setEntry.duration!)
+    final durationStr = setEntry.durationSeconds != null
+        ? formatDuration(setEntry.durationSeconds!)
         : '-';
     final weightStr = _fmtWeight(setEntry.weight);
 
@@ -826,11 +825,11 @@ class _SetRow extends StatelessWidget {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    final durationStr = setEntry.duration != null
-        ? formatDuration(setEntry.duration!)
+    final durationStr = setEntry.durationSeconds != null
+        ? formatDuration(setEntry.durationSeconds!)
         : '-';
-    final distanceStr = setEntry.distance != null
-        ? '${(setEntry.distance! / 1000).toStringAsFixed(2)}km'
+    final distanceStr = setEntry.distanceMeters != null
+        ? '${(setEntry.distanceMeters! / 1000).toStringAsFixed(2)}km'
         : '-';
 
     return Padding(

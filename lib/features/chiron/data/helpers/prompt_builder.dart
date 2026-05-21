@@ -64,7 +64,7 @@ class PromptBuilder {
         ? bodyMetricResult.getOrThrow()?.weight
         : null;
 
-    final exerciseMap = <int, String>{};
+    final exerciseMap = <String, String>{};
     var allExercises = <Exercise>[];
     if (exerciseResult.isSuccess) {
       allExercises = exerciseResult.getOrThrow();
@@ -176,7 +176,7 @@ class PromptBuilder {
 
   Future<void> _buildWorkouts(
     Result<List<Workout>> workoutResult,
-    Map<int, String> exerciseMap,
+    Map<String, String> exerciseMap,
     List<String> sections, {
     required int maxItems,
   }) async {
@@ -213,8 +213,8 @@ class PromptBuilder {
   Future<void> _buildExecutions(
     Result<List<WorkoutExecution>> execResult,
     Result<List<Workout>> workoutResult,
-    Map<int, String> exerciseMap,
-    Map<int, Exercise> exerciseById,
+    Map<String, String> exerciseMap,
+    Map<String, Exercise> exerciseById,
     double? profileBodyWeight,
     List<String> sections, {
     required int maxItems,
@@ -227,7 +227,7 @@ class PromptBuilder {
         .toList();
     if (recent.isEmpty) return;
 
-    final workoutNames = <int, String>{};
+    final workoutNames = <String, String>{};
     if (workoutResult.isSuccess) {
       for (final w in workoutResult.getOrThrow()) {
         workoutNames[w.id] = w.name;
@@ -268,7 +268,7 @@ class PromptBuilder {
       final setsResult = setResults[i];
       if (setsResult.isSuccess) {
         final sets = setsResult.getOrThrow();
-        final bestByExercise = <int, String>{};
+        final bestByExercise = <String, String>{};
         for (final s in sets.where((s) => s.isCompleted)) {
           final exercise = exerciseById[s.exerciseId];
           final we = weByExerciseId[s.exerciseId];
@@ -293,7 +293,7 @@ class PromptBuilder {
               : null;
           final base =
               loadTag ??
-              (s.duration != null ? '${s.duration}s' : '${s.reps ?? 0}r');
+              (s.durationSeconds != null ? '${s.durationSeconds}s' : '${s.reps ?? 0}r');
           final label = s.rpe != null ? '$base @RPE${s.rpe}' : base;
           final prev = bestByExercise[s.exerciseId];
           if (prev == null) bestByExercise[s.exerciseId] = '$loadModeTag$label';

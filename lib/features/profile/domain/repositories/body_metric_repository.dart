@@ -12,9 +12,9 @@ abstract interface class BodyMetricRepository {
   /// Latest record with [recordedAt] on or before [instant], or null.
   Future<Result<BodyMetric?>> getLatestAtOrBefore(DateTime instant);
 
-  Future<Result<int>> create(BodyMetric metric);
+  Future<Result<String>> create(BodyMetric metric);
   Future<Result<void>> update(BodyMetric metric);
-  Future<Result<void>> delete(int id);
+  Future<Result<void>> delete(String id);
 
   /// Reconciles the local timeline with the authenticated remote account.
   Future<Result<void>> reconcileOnAuth();

@@ -10,17 +10,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('CompleteSetUseCase', () {
-    test('insere set novo quando id == 0', () async {
+    test('insere set novo quando id.isEmpty', () async {
       final repository = _FakeWorkoutExecutionRepository();
-      repository.logSetResult = const Success(99);
+      repository.logSetResult = const Success('uuid-99');
       final useCase = CompleteSetUseCase(repository);
 
       final result = await useCase(
         CompleteSetParams(
           set: const ExecutionSet(
-            id: 0,
-            executionId: 10,
-            exerciseId: 20,
+            id: '',
+            executionId: 'exec-10',
+            exerciseId: 'ex-20',
             setNumber: 1,
             reps: 10,
             weight: 40,
@@ -29,12 +29,12 @@ void main() {
         ),
       );
 
-      expect(result.getOrThrow(), 99);
+      expect(result.getOrThrow(), 'uuid-99');
       expect(repository.logSetCalls, 1);
       expect(repository.updateSetCalls, 0);
     });
 
-    test('atualiza set existente quando id > 0', () async {
+    test('atualiza set existente quando id nao vazio', () async {
       final repository = _FakeWorkoutExecutionRepository();
       repository.updateSetResult = const Success(null);
       final useCase = CompleteSetUseCase(repository);
@@ -42,9 +42,9 @@ void main() {
       final result = await useCase(
         CompleteSetParams(
           set: const ExecutionSet(
-            id: 42,
-            executionId: 10,
-            exerciseId: 20,
+            id: 'uuid-42',
+            executionId: 'exec-10',
+            exerciseId: 'ex-20',
             setNumber: 2,
             reps: 8,
             weight: 50,
@@ -53,28 +53,28 @@ void main() {
         ),
       );
 
-      expect(result.getOrThrow(), 42);
+      expect(result.getOrThrow(), 'uuid-42');
       expect(repository.logSetCalls, 0);
       expect(repository.updateSetCalls, 1);
     });
 
     test('salva segmentos de drop-set com order sequencial', () async {
       final repository = _FakeWorkoutExecutionRepository();
-      repository.logSetResult = const Success(123);
+      repository.logSetResult = const Success('uuid-123');
       repository.saveSegmentsResult = const Success(null);
       final useCase = CompleteSetUseCase(repository);
 
       final segments = const [
         ExecutionSetSegment(
-          id: 0,
-          executionSetId: 0,
+          id: '',
+          executionSetId: '',
           segmentOrder: 99,
           reps: 12,
           weight: 20,
         ),
         ExecutionSetSegment(
-          id: 0,
-          executionSetId: 0,
+          id: '',
+          executionSetId: '',
           segmentOrder: 77,
           reps: 10,
           weight: 15,
@@ -84,9 +84,9 @@ void main() {
       final result = await useCase(
         CompleteSetParams(
           set: const ExecutionSet(
-            id: 0,
-            executionId: 1,
-            exerciseId: 2,
+            id: '',
+            executionId: 'exec-1',
+            exerciseId: 'ex-2',
             setNumber: 3,
             reps: 12,
             weight: 20,
@@ -96,18 +96,18 @@ void main() {
         ),
       );
 
-      expect(result.getOrThrow(), 123);
-      expect(repository.savedSegmentsExecutionSetId, 123);
+      expect(result.getOrThrow(), 'uuid-123');
+      expect(repository.savedSegmentsExecutionSetId, 'uuid-123');
       expect(repository.savedSegments.length, 2);
       expect(repository.savedSegments[0].segmentOrder, 1);
       expect(repository.savedSegments[1].segmentOrder, 2);
-      expect(repository.savedSegments[0].executionSetId, 123);
-      expect(repository.savedSegments[1].executionSetId, 123);
+      expect(repository.savedSegments[0].executionSetId, 'uuid-123');
+      expect(repository.savedSegments[1].executionSetId, 'uuid-123');
     });
 
     test('retorna falha quando salvar segmentos falha', () async {
       final repository = _FakeWorkoutExecutionRepository();
-      repository.logSetResult = const Success(123);
+      repository.logSetResult = const Success('uuid-123');
       repository.saveSegmentsResult = const Failure(
         DatabaseException('segments error'),
       );
@@ -116,9 +116,9 @@ void main() {
       final result = await useCase(
         CompleteSetParams(
           set: const ExecutionSet(
-            id: 0,
-            executionId: 1,
-            exerciseId: 2,
+            id: '',
+            executionId: 'exec-1',
+            exerciseId: 'ex-2',
             setNumber: 1,
             reps: 10,
             weight: 30,
@@ -126,15 +126,15 @@ void main() {
           ),
           segments: const [
             ExecutionSetSegment(
-              id: 0,
-              executionSetId: 0,
+              id: '',
+              executionSetId: '',
               segmentOrder: 1,
               reps: 10,
               weight: 30,
             ),
             ExecutionSetSegment(
-              id: 0,
-              executionSetId: 0,
+              id: '',
+              executionSetId: '',
               segmentOrder: 2,
               reps: 8,
               weight: 25,
@@ -149,7 +149,9 @@ void main() {
 }
 
 class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
-  Result<int> logSetResult = const Failure(DatabaseException('not configured'));
+  Result<String> logSetResult = const Failure(
+    DatabaseException('not configured'),
+  );
   Result<void> updateSetResult = const Failure(
     DatabaseException('not configured'),
   );
@@ -159,11 +161,11 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
 
   int logSetCalls = 0;
   int updateSetCalls = 0;
-  int? savedSegmentsExecutionSetId;
+  String? savedSegmentsExecutionSetId;
   List<ExecutionSetSegment> savedSegments = const [];
 
   @override
-  Future<Result<int>> logSet(ExecutionSet set) async {
+  Future<Result<String>> logSet(ExecutionSet set) async {
     logSetCalls++;
     return logSetResult;
   }
@@ -176,7 +178,7 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
 
   @override
   Future<Result<void>> saveSegments(
-    int executionSetId,
+    String executionSetId,
     List<ExecutionSetSegment> segments,
   ) async {
     savedSegmentsExecutionSetId = executionSetId;
@@ -187,56 +189,55 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   @override
   Future<Result<List<WorkoutExecution>>> getAll() => _unsupported();
   @override
-  Future<Result<List<WorkoutExecution>>> getByWorkout(int workoutId) =>
+  Future<Result<List<WorkoutExecution>>> getByWorkout(String workoutId) =>
       _unsupported();
   @override
-  Future<Result<WorkoutExecution?>> getById(int id) => _unsupported();
+  Future<Result<WorkoutExecution?>> getById(String id) => _unsupported();
   @override
   Future<Result<WorkoutExecution?>> getLastFinished() => _unsupported();
   @override
   Future<Result<ExecutionComparison?>> getLastTwoFinishedWithVolume(
-    int workoutId,
+    String workoutId,
   ) => _unsupported();
   @override
-  Future<Result<int>> start(
-    int workoutId, {
-    required int programId,
-    String? exerciseConfigSnapshot,
+  Future<Result<String>> start(
+    String workoutId, {
+    String? programId,
   }) => _unsupported();
   @override
-  Future<Result<void>> finish(int executionId, {String? notes}) =>
+  Future<Result<void>> finish(String executionId) => _unsupported();
+  @override
+  Future<Result<void>> delete(String id) => _unsupported();
+  @override
+  Future<Result<List<ExecutionSet>>> getSets(String executionId) =>
       _unsupported();
   @override
-  Future<Result<void>> delete(int id) => _unsupported();
-  @override
-  Future<Result<List<ExecutionSet>>> getSets(int executionId) => _unsupported();
-  @override
-  Future<Result<Map<int, double>>> getLastWeightsForExercises(
-    List<int> exerciseIds,
+  Future<Result<Map<String, double>>> getLastWeightsForExercises(
+    List<String> exerciseIds,
   ) => _unsupported();
   @override
-  Future<Result<List<ExecutionSetSegment>>> getSegments(int executionSetId) =>
-      _unsupported();
+  Future<Result<List<ExecutionSetSegment>>> getSegments(
+    String executionSetId,
+  ) => _unsupported();
   @override
   Future<Result<List<ExecutionSetSegment>>> getSegmentsForExecution(
-    int executionId,
+    String executionId,
   ) => _unsupported();
   @override
   Future<Result<List<ExecutionSet>>> getLastCompletedSetsForExercise(
-    int exerciseId,
+    String exerciseId,
   ) => _unsupported();
   @override
   Future<Result<List<ExecutionSet>>> getAllCompletedSetsForExercise(
-    int exerciseId,
+    String exerciseId,
   ) => _unsupported();
-
   @override
   Future<Result<List<({ExecutionSet set, DateTime date})>>>
-  getCompletedSetsWithDateForExercise(int exerciseId) => _unsupported();
+  getCompletedSetsWithDateForExercise(String exerciseId) => _unsupported();
   @override
   Future<Result<List<WorkoutExecution>>> getDangling() => _unsupported();
   @override
-  Future<Result<void>> deleteUnfinishedByWorkout(int workoutId) =>
+  Future<Result<void>> deleteUnfinishedByWorkout(String workoutId) =>
       _unsupported();
   @override
   Future<Result<void>> deleteOrphaned() => _unsupported();

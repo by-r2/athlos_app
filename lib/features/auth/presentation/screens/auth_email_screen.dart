@@ -14,7 +14,6 @@ import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/auth_error_code.dart';
 import '../providers/auth_notifier.dart';
-import '../providers/auth_prompt_notifier.dart';
 import '../widgets/athlos_auth_scaffold.dart';
 
 class AuthEmailScreen extends ConsumerStatefulWidget {
@@ -92,12 +91,6 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
     context.go(RoutePaths.authPrompt);
   }
 
-  Future<void> _continueLocal() async {
-    await ref.read(localAccessProvider.notifier).accept();
-    if (!mounted) return;
-    context.go(RoutePaths.splash);
-  }
-
   String _authErrorMessage(Object error, AppLocalizations l10n) {
     if (error is AuthAppException) {
       return switch (error.message) {
@@ -131,8 +124,6 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
             email: _emailController.text,
             password: _passwordController.text,
           );
-      if (!mounted) return;
-      await ref.read(localAccessProvider.notifier).reset();
       if (!mounted) return;
       context.go(RoutePaths.splash);
     } on Object catch (error) {
@@ -301,8 +292,6 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
             password: _passwordController.text,
           );
       if (!mounted) return;
-      await ref.read(localAccessProvider.notifier).reset();
-      if (!mounted) return;
       _addAssistantMessage(l10n.authSignUpChatSuccess);
       Future.delayed(const Duration(milliseconds: 700), () {
         if (!mounted) return;
@@ -312,7 +301,6 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       if (!mounted) return;
       if (error is AuthAppException &&
           error.message == AuthErrorCode.emailNotConfirmed) {
-        await ref.read(localAccessProvider.notifier).reset();
         if (!mounted) return;
         _addAssistantMessage(l10n.authSignUpChatGoToLogin);
         Future.delayed(const Duration(milliseconds: 900), () {
@@ -369,11 +357,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       onBackPressed: _goBack,
       heroHeightFactor: 0.34,
       symbolSize: 116,
-      child: AthlosAuthOfflinePanel(
-        message: l10n.authOfflineModeMessage,
-        actionLabel: l10n.authContinueLocalAction,
-        onContinue: _isSubmitting ? null : _continueLocal,
-      ),
+      child: AthlosAuthOfflinePanel(message: l10n.authRequiresInternetMessage),
     );
   }
 

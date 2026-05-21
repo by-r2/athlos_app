@@ -1,10 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../../core/database/app_database.dart';
 import '../../../../core/sync/sync_providers.dart';
-import '../../../../core/sync/user_owned_sync_runner.dart';
-import '../sync/training_sync_table_names.dart';
-import '../../../profile/data/repositories/profile_providers.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/repositories/cycle_repository.dart';
 import '../../domain/repositories/exercise_repository.dart';
 import '../../domain/repositories/program_repository.dart';
@@ -22,20 +19,26 @@ import 'workout_repository_impl.dart';
 
 part 'training_providers.g.dart';
 
-// --- Repositories ---
+String _requireUserId(Ref ref) {
+  final userId = ref.watch(authProvider).value?.id;
+  if (userId == null) {
+    throw StateError('Training repositories require an authenticated user');
+  }
+  return userId;
+}
 
 @riverpod
 ExerciseRepository exerciseRepository(Ref ref) => ExerciseRepositoryImpl(
   ref.watch(exerciseDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
-  ref.watch(syncRecordStoreProvider),
+  _requireUserId(ref),
 );
 
 @riverpod
 WorkoutRepository workoutRepository(Ref ref) => WorkoutRepositoryImpl(
   ref.watch(workoutDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
-  ref.watch(syncRecordStoreProvider),
+  _requireUserId(ref),
 );
 
 @riverpod
@@ -43,23 +46,21 @@ WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>
     WorkoutExecutionRepositoryImpl(
       ref.watch(workoutExecutionDaoProvider),
       ref.watch(userOwnedSyncRunnerProvider),
-      ref.watch(syncRecordStoreProvider),
-      exerciseRepository: ref.watch(exerciseRepositoryProvider),
-      workoutRepository: ref.watch(workoutRepositoryProvider),
-      bodyMetricRepository: ref.watch(bodyMetricRepositoryProvider),
+      _requireUserId(ref),
     );
 
 @riverpod
 CycleRepository cycleRepository(Ref ref) => CycleRepositoryImpl(
   ref.watch(cycleStepDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
+  _requireUserId(ref),
 );
 
 @riverpod
 ProgramRepository programRepository(Ref ref) => ProgramRepositoryImpl(
   ref.watch(programDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
-  ref.watch(syncRecordStoreProvider),
+  _requireUserId(ref),
 );
 
 @riverpod
@@ -67,10 +68,8 @@ ProgressionRuleRepository progressionRuleRepository(Ref ref) =>
     ProgressionRuleRepositoryImpl(
       ref.watch(progressionRuleDaoProvider),
       ref.watch(userOwnedSyncRunnerProvider),
-      ref.watch(syncRecordStoreProvider),
+      _requireUserId(ref),
     );
-
-// --- Use Cases ---
 
 @riverpod
 CompleteSetUseCase completeSetUseCase(Ref ref) =>

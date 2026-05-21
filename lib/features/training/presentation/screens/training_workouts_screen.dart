@@ -107,7 +107,7 @@ class _StartNextWorkoutFab extends ConsumerWidget {
 // ── Active program cycle view ─────────────────────────────────────────
 
 class _ActiveProgramCycleView extends ConsumerStatefulWidget {
-  final int programId;
+  final String programId;
 
   const _ActiveProgramCycleView({required this.programId});
 
@@ -118,7 +118,7 @@ class _ActiveProgramCycleView extends ConsumerStatefulWidget {
 
 class _ActiveProgramCycleViewState
     extends ConsumerState<_ActiveProgramCycleView> {
-  List<int>? _workoutIds;
+  List<String>? _workoutIds;
 
   void _syncFromSteps(List<TrainingCycleStep> steps) {
     _workoutIds ??= steps.map((s) => s.workoutId).toList();
@@ -129,7 +129,7 @@ class _ActiveProgramCycleViewState
     final repo = ref.read(cycleRepositoryProvider);
     final steps = [
       for (var i = 0; i < _workoutIds!.length; i++)
-        TrainingCycleStep(id: 0, orderIndex: i, workoutId: _workoutIds![i]),
+        TrainingCycleStep(id: '', orderIndex: i, workoutId: _workoutIds![i]),
     ];
     final result = await repo.setSteps(steps, widget.programId);
     result.getOrThrow();
@@ -137,7 +137,7 @@ class _ActiveProgramCycleViewState
     ref.invalidate(cycleStepsForProgramProvider(widget.programId));
   }
 
-  void _addWorkout(int workoutId) {
+  void _addWorkout(String workoutId) {
     setState(() {
       _workoutIds = [...?_workoutIds, workoutId];
     });
@@ -239,7 +239,7 @@ class _ActiveProgramCycleViewState
   void _showAddWorkoutPicker(
     BuildContext context,
     List<Workout> workouts,
-    List<int> cycleWorkoutIds,
+    List<String> cycleWorkoutIds,
   ) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
@@ -488,7 +488,7 @@ class _ProgramHeader extends ConsumerWidget {
       ProgramFocus.custom => l10n.programFocusCustom,
     };
 
-    final programId = program.id as int;
+    final programId = program.id as String;
     final progressAsync = ref.watch(programProgressProvider(programId));
 
     return Padding(
@@ -761,7 +761,7 @@ class _NoProgramActiveView extends ConsumerWidget {
 
 class _EmptyCycleMessage extends StatelessWidget {
   final List<Workout> workouts;
-  final void Function(int workoutId) onAddWorkout;
+  final void Function(String workoutId) onAddWorkout;
 
   const _EmptyCycleMessage({
     required this.workouts,

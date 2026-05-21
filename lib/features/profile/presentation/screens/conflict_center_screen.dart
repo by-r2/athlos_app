@@ -109,7 +109,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
     );
   }
 
-  Future<void> _handleKeep(BackupPendingReview review, int winnerId) async {
+  Future<void> _handleKeep(BackupPendingReview review, String winnerId) async {
     await _resolve(
       review: review,
       decision: RuntimeDuplicateDecision.confirmDuplicate,
@@ -157,7 +157,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
   Future<void> _resolve({
     required BackupPendingReview review,
     required RuntimeDuplicateDecision decision,
-    int? winnerId,
+    String? winnerId,
     Map<String, dynamic>? mergedAttributes,
   }) async {
     final leftId = review.leftEntityId;
@@ -507,7 +507,7 @@ class _DuplicateCard extends StatelessWidget {
     final labelA = _resolveLabel(review.entityType, review.importedLabel, l10n);
     final labelB = _resolveLabel(
       review.entityType,
-      review.existingLabel ?? review.suggestedLabel ?? '-',
+      review.existingLabel ?? '-',
       l10n,
     );
 
@@ -738,10 +738,7 @@ class _CustomActions extends StatelessWidget {
 
 String _entityLabel(BackupConflictType type, AppLocalizations l10n) {
   return switch (type) {
-    BackupConflictType.profile => l10n.profile,
-    BackupConflictType.equipment => l10n.profileEquipmentTab,
     BackupConflictType.exercise => l10n.tabExercises,
-    BackupConflictType.workout => l10n.tabTraining,
   };
 }
 
@@ -773,11 +770,8 @@ String _resolveLabel(
 
   final resolver = DomainLabelResolver(l10n);
   final kind = switch (entityType) {
-    BackupConflictType.equipment => DomainLabelKind.equipment,
     BackupConflictType.exercise => DomainLabelKind.exercise,
-    BackupConflictType.profile || BackupConflictType.workout => null,
   };
-  if (kind == null) return trimmed;
 
   final canonical = resolver.toCanonicalName(kind: kind, candidate: trimmed);
   return resolver.toDisplayName(

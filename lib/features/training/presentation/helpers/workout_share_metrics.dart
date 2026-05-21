@@ -18,8 +18,8 @@ final class WorkoutShareMetrics {
 
 WorkoutShareMetrics computeWorkoutShareMetrics(
   List<ExecutionSet> sets, {
-  Map<int, Exercise>? exerciseById,
-  Map<int, WorkoutExercise>? workoutExerciseByExerciseId,
+  Map<String, Exercise>? exerciseById,
+  Map<String, WorkoutExercise>? workoutExerciseByExerciseId,
   double? profileBodyWeightOnExecutionDate,
   double? latestBodyWeight,
 }) {

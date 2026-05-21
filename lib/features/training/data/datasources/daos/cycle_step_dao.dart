@@ -10,70 +10,88 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase>
     with _$CycleStepDaoMixin {
   CycleStepDao(super.db);
 
-  /// Returns steps for the given [programId], ordered by orderIndex.
-  Future<List<CycleStep>> getAllOrdered(int programId) {
-    final query = select(cycleSteps)
-      ..where((s) => s.programId.equals(programId))
-      ..orderBy([(s) => OrderingTerm.asc(s.orderIndex)]);
-    return query.get();
-  }
-
-  /// Replaces all steps for the given [programId].
-  Future<void> replaceAll(
-    List<CycleStepsCompanion> entries,
-    int programId,
-  ) async {
-    final deleteQuery = delete(cycleSteps)
-      ..where((s) => s.programId.equals(programId));
-    await deleteQuery.go();
-    if (entries.isNotEmpty) {
-      await batch((batch) => batch.insertAll(cycleSteps, entries));
-    }
-  }
-
-  /// Removes all cycle steps that reference [workoutId] in the given program.
-  Future<void> removeWorkout(int workoutId, int programId) async {
-    await (delete(cycleSteps)..where(
-          (s) => s.workoutId.equals(workoutId) & s.programId.equals(programId),
-        ))
-        .go();
-  }
-
-  /// Removes all cycle steps that reference [workoutId] across ALL programs.
-  Future<void> removeWorkoutFromAll(int workoutId) async {
-    await (delete(
-      cycleSteps,
-    )..where((s) => s.workoutId.equals(workoutId))).go();
-  }
-
-  Future<int> insertStep(CycleStepsCompanion entry) =>
-      into(cycleSteps).insert(entry);
-
-  Future<void> updateStep(int id, CycleStepsCompanion entry) =>
-      (update(cycleSteps)..where((s) => s.id.equals(id))).write(entry);
-
-  Future<List<CycleStep>> getAll() => select(cycleSteps).get();
-
-  Future<void> markSynced({
-    required int id,
-    required String remoteId,
-    required DateTime syncedAt,
-  }) =>
-      (update(cycleSteps)..where((s) => s.id.equals(id))).write(
-        CycleStepsCompanion(
-          remoteId: Value(remoteId),
-          lastSyncedAt: Value(syncedAt),
-        ),
-      );
-
-  Future<void> markLocalDirty(int id) {
+  Future<void> _markDirty(String id) {
     final now = DateTime.now().toUtc();
     return (update(cycleSteps)..where((s) => s.id.equals(id))).write(
-      CycleStepsCompanion(localUpdatedAt: Value(now)),
+      CycleStepsCompanion(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
     );
   }
 
-  Future<CycleStep?> getByRemoteId(String remoteId) =>
-      (select(cycleSteps)..where((s) => s.remoteId.equals(remoteId)))
-          .getSingleOrNull();
+  /// Returns steps for the given [programId], ordered by orderIndex.
+  Future<List<CycleStep>> getAllOrdered(String programId, String userId) =>
+      (select(cycleSteps)
+            ..where(
+              (s) =>
+                  s.userId.equals(userId) &
+                  s.programId.equals(programId) &
+                  s.deletedAt.isNull(),
+            )
+            ..orderBy([(s) => OrderingTerm.asc(s.orderIndex)]))
+          .get();
+
+  /// Replaces all active steps for [programId] (hard delete + insert).
+  Future<void> replaceAll(
+    List<CycleStepsCompanion> entries,
+    String programId,
+  ) async {
+    await transaction(() async {
+      await (delete(cycleSteps)
+            ..where((s) => s.programId.equals(programId)))
+          .go();
+      for (final entry in entries) {
+        await into(cycleSteps).insert(entry);
+        await _markDirty(entry.id.value);
+      }
+    });
+  }
+
+  /// Soft-deletes cycle steps that reference [workoutId] in the given program.
+  Future<void> removeWorkout(String workoutId, String programId) {
+    final now = DateTime.now().toUtc();
+    return (update(cycleSteps)
+          ..where(
+            (s) =>
+                s.workoutId.equals(workoutId) &
+                s.programId.equals(programId),
+          ))
+        .write(
+      CycleStepsCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  /// Soft-deletes cycle steps that reference [workoutId] across ALL programs.
+  Future<void> removeWorkoutFromAll(String workoutId) {
+    final now = DateTime.now().toUtc();
+    return (update(cycleSteps)
+          ..where((s) => s.workoutId.equals(workoutId)))
+        .write(
+      CycleStepsCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<void> insertStep(CycleStepsCompanion entry) async {
+    await into(cycleSteps).insert(entry);
+    await _markDirty(entry.id.value);
+  }
+
+  Future<void> updateStep(String id, CycleStepsCompanion entry) async {
+    await (update(cycleSteps)..where((s) => s.id.equals(id))).write(entry);
+    await _markDirty(id);
+  }
+
+  Future<List<CycleStep>> getAll(String userId) =>
+      (select(cycleSteps)
+            ..where((s) => s.userId.equals(userId) & s.deletedAt.isNull()))
+          .get();
 }

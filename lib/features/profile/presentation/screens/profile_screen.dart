@@ -13,13 +13,11 @@ import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
-import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
-import '../../../auth/presentation/providers/auth_prompt_notifier.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -30,7 +28,10 @@ import '../helpers/profile_l10n.dart';
 import '../../domain/entities/body_metric.dart';
 import '../providers/body_metric_notifier.dart';
 import '../../../../core/providers/network_connectivity_provider.dart';
+import '../../../../core/services/account_data_isolation_service.dart';
 import '../../../../core/services/user_data_sync_coordinator.dart';
+import '../../../../core/sync/sync_providers.dart';
+import '../../../../core/sync/sync_trigger.dart';
 import '../providers/conflict_center_provider.dart';
 import '../providers/profile_notifier.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
@@ -174,7 +175,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final profileAsync = ref.watch(profileProvider);
-    final resolved = profileAsync.value ?? const UserProfile(id: 0);
+    final resolved = profileAsync.value ?? const UserProfile(id: '');
 
     final isEditing = _editingTab != _EditingTab.none;
 
@@ -530,11 +531,53 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Future<bool> _confirmSignOutWithUnsyncedData(
+    AppLocalizations l10n,
+    int dirtyCount,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.authSignOutUnsyncedTitle),
+        content: Text(l10n.authSignOutUnsyncedMessage(dirtyCount)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.authSignOutConfirm),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _signOut(AppLocalizations l10n) async {
+    final dirtyCount = await ref.read(pendingSyncDirtyCountProvider.future);
+    if (dirtyCount > 0) {
+      final confirmed = await _confirmSignOutWithUnsyncedData(l10n, dirtyCount);
+      if (!confirmed || !mounted) return;
+    }
+
     setState(() => _isSigningOut = true);
     try {
+      if (ref.read(isNetworkAvailableForSyncProvider)) {
+        try {
+          await ref
+              .read(userDataSyncCoordinatorProvider)
+              .synchronizeAuthenticatedUserData(
+                trigger: SyncTrigger.sessionChange,
+              );
+        } on Exception {
+          // Best-effort sync — proceed with logout regardless.
+        }
+      }
+
+      await ref.read(accountDataIsolationServiceProvider).wipeUserData();
       await ref.read(authProvider.notifier).signOut();
-      await ref.read(localAccessProvider.notifier).reset();
       if (!mounted) return;
       context.go(RoutePaths.authPrompt);
     } on Exception {

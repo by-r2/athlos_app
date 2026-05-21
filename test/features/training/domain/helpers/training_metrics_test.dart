@@ -8,7 +8,8 @@ import 'package:athlos_app/features/training/domain/helpers/training_metrics.dar
 import 'package:flutter_test/flutter_test.dart';
 
 ExecutionSet _set({
-  int id = 1,
+  String id = 'set-1',
+  int setNumber = 1,
   int? reps = 10,
   double? weight = 50,
   bool isCompleted = true,
@@ -21,9 +22,9 @@ ExecutionSet _set({
   List<ExecutionSetSegment> segments = const [],
 }) => ExecutionSet(
   id: id,
-  executionId: 1,
-  exerciseId: 1,
-  setNumber: id,
+  executionId: 'exec-1',
+  exerciseId: 'ex-1',
+  setNumber: setNumber,
   reps: reps,
   weight: weight,
   isCompleted: isCompleted,
@@ -65,22 +66,22 @@ void main() {
       final set = _set(
         segments: const [
           ExecutionSetSegment(
-            id: 1,
-            executionSetId: 1,
+            id: 'seg-1',
+            executionSetId: 'set-1',
             segmentOrder: 1,
             reps: 10,
             weight: 50,
           ),
           ExecutionSetSegment(
-            id: 2,
-            executionSetId: 1,
+            id: 'seg-2',
+            executionSetId: 'set-1',
             segmentOrder: 2,
             reps: 8,
             weight: 40,
           ),
           ExecutionSetSegment(
-            id: 3,
-            executionSetId: 1,
+            id: 'seg-3',
+            executionSetId: 'set-1',
             segmentOrder: 3,
             reps: 6,
             weight: 30,
@@ -95,15 +96,15 @@ void main() {
       final set = _set(
         segments: const [
           ExecutionSetSegment(
-            id: 1,
-            executionSetId: 1,
+            id: 'seg-1',
+            executionSetId: 'set-1',
             segmentOrder: 1,
             reps: 10,
             weight: 50,
           ),
           ExecutionSetSegment(
-            id: 2,
-            executionSetId: 1,
+            id: 'seg-2',
+            executionSetId: 'set-1',
             segmentOrder: 2,
             reps: 8,
             weight: null,
@@ -118,8 +119,8 @@ void main() {
         isWarmup: true,
         segments: const [
           ExecutionSetSegment(
-            id: 1,
-            executionSetId: 1,
+            id: 'seg-1',
+            executionSetId: 'set-1',
             segmentOrder: 1,
             reps: 10,
             weight: 50,
@@ -177,15 +178,15 @@ void main() {
         rightReps: 12,
         segments: const [
           ExecutionSetSegment(
-            id: 1,
-            executionSetId: 1,
+            id: 'seg-1',
+            executionSetId: 'set-1',
             segmentOrder: 1,
             reps: 6,
             weight: 50,
           ),
           ExecutionSetSegment(
-            id: 2,
-            executionSetId: 1,
+            id: 'seg-2',
+            executionSetId: 'set-1',
             segmentOrder: 2,
             reps: 4,
             weight: 40,
@@ -199,7 +200,7 @@ void main() {
 
   group('strengthEffortsForEstimated1Rm', () {
     final bench = Exercise(
-      id: 99,
+      id: 'ex-99',
       name: 'bench',
       muscleGroup: MuscleGroup.chest,
       defaultLoadMode: LoadMode.weighted,
@@ -218,15 +219,15 @@ void main() {
       final s = _set(
         segments: const [
           ExecutionSetSegment(
-            id: 1,
-            executionSetId: 1,
+            id: 'seg-1',
+            executionSetId: 'set-1',
             segmentOrder: 1,
             reps: 4,
             weight: 100,
           ),
           ExecutionSetSegment(
-            id: 2,
-            executionSetId: 1,
+            id: 'seg-2',
+            executionSetId: 'set-1',
             segmentOrder: 2,
             reps: 8,
             weight: 80,
@@ -245,9 +246,9 @@ void main() {
 
     test('unilateral flat set yields left and right', () {
       final s = ExecutionSet(
-        id: 1,
-        executionId: 1,
-        exerciseId: 1,
+        id: 'set-1',
+        executionId: 'exec-1',
+        exerciseId: 'ex-1',
         setNumber: 1,
         reps: 8,
         weight: 20,
@@ -283,10 +284,10 @@ void main() {
   group('computeTotalVolume', () {
     test('sums every set ignoring incomplete and warmup', () {
       final sets = [
-        _set(id: 1, reps: 10, weight: 50), // 500 (work set)
-        _set(id: 2, reps: 8, weight: 60), // 480 (work set)
-        _set(id: 3, reps: 5, weight: 30, isWarmup: true), // 0 (warmup)
-        _set(id: 4, reps: 5, weight: 70, isCompleted: false), // 0 (incomplete)
+        _set(setNumber: 1, reps: 10, weight: 50), // 500 (work set)
+        _set(setNumber: 2, reps: 8, weight: 60), // 480 (work set)
+        _set(setNumber: 3, reps: 5, weight: 30, isWarmup: true), // 0 (warmup)
+        _set(setNumber: 4, reps: 5, weight: 70, isCompleted: false), // 0 (incomplete)
       ];
       expect(computeTotalVolume(sets), 980);
     });
@@ -297,20 +298,21 @@ void main() {
 
     test('mixes drop sets and normal sets correctly', () {
       final sets = [
-        _set(id: 1, reps: 10, weight: 100), // 1000
+        _set(setNumber: 1, reps: 10, weight: 100), // 1000
         _set(
-          id: 2,
+          id: 'set-2',
+          setNumber: 2,
           segments: const [
             ExecutionSetSegment(
-              id: 1,
-              executionSetId: 2,
+              id: 'seg-1',
+              executionSetId: 'set-2',
               segmentOrder: 1,
               reps: 10,
               weight: 80,
             ),
             ExecutionSetSegment(
-              id: 2,
-              executionSetId: 2,
+              id: 'seg-2',
+              executionSetId: 'set-2',
               segmentOrder: 2,
               reps: 6,
               weight: 60,
@@ -421,7 +423,7 @@ void main() {
 
   group('resolveLoadMode', () {
     final exercise = Exercise(
-      id: 1,
+      id: 'ex-1',
       name: 'dip',
       muscleGroup: MuscleGroup.triceps,
       defaultLoadMode: LoadMode.bodyweight,
@@ -434,11 +436,12 @@ void main() {
 
     test('workout exercise override beats catalog default', () {
       final wx = WorkoutExercise(
-        workoutId: 1,
-        exerciseId: 1,
-        order: 0,
+        id: 'wx-1',
+        workoutId: 'workout-1',
+        exerciseId: 'ex-1',
+        sortOrder: 0,
         sets: 3,
-        rest: 60,
+        restSeconds: 60,
         loadModeOverride: LoadMode.weighted,
       );
       expect(
@@ -449,17 +452,18 @@ void main() {
 
     test('execution set override beats workout exercise override', () {
       final wx = WorkoutExercise(
-        workoutId: 1,
-        exerciseId: 1,
-        order: 0,
+        id: 'wx-1',
+        workoutId: 'workout-1',
+        exerciseId: 'ex-1',
+        sortOrder: 0,
         sets: 3,
-        rest: 60,
+        restSeconds: 60,
         loadModeOverride: LoadMode.weighted,
       );
       final persistedSet = ExecutionSet(
-        id: 1,
-        executionId: 1,
-        exerciseId: 1,
+        id: 'set-1',
+        executionId: 'exec-1',
+        exerciseId: 'ex-1',
         setNumber: 1,
         reps: 10,
         weight: null,
@@ -487,7 +491,7 @@ void main() {
 
   group('computeSetVolume with bodyweight exercise', () {
     final pushUp = Exercise(
-      id: 1,
+      id: 'ex-1',
       name: 'pushUp',
       muscleGroup: MuscleGroup.chest,
       defaultLoadMode: LoadMode.bodyweight,
@@ -495,7 +499,7 @@ void main() {
     );
 
     final benchPress = Exercise(
-      id: 2,
+      id: 'ex-2',
       name: 'benchPress',
       muscleGroup: MuscleGroup.chest,
       defaultLoadMode: LoadMode.weighted,
@@ -530,11 +534,12 @@ void main() {
 
     test('workout-level override switches a BW exercise to weighted', () {
       final wx = WorkoutExercise(
-        workoutId: 1,
-        exerciseId: 1,
-        order: 0,
+        id: 'wx-1',
+        workoutId: 'workout-1',
+        exerciseId: 'ex-1',
+        sortOrder: 0,
         sets: 3,
-        rest: 60,
+        restSeconds: 60,
         loadModeOverride: LoadMode.weighted,
       );
       // Same set on a dip machine: weight is read as the machine load,
@@ -558,9 +563,9 @@ void main() {
 
     test('prefers bodyWeightSnapshot over latestBodyWeight fallback', () {
       final set = ExecutionSet(
-        id: 1,
-        executionId: 1,
-        exerciseId: 1,
+        id: 'set-1',
+        executionId: 'exec-1',
+        exerciseId: 'ex-1',
         setNumber: 1,
         reps: 10,
         weight: null,

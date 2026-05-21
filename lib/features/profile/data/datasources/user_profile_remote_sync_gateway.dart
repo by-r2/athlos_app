@@ -6,5 +6,7 @@ abstract interface class UserProfileRemoteSyncGateway {
 
   Future<UserProfile?> fetchCurrentProfile();
 
+  Future<UserProfile?> fetchUpdatedSince(DateTime lastPullAt);
+
   Future<DateTime> upsertCurrentProfile(UserProfile profile);
 }

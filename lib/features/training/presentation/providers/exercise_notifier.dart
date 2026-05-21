@@ -36,7 +36,7 @@ class ExerciseList extends _$ExerciseList {
   }) async {
     final repo = ref.read(exerciseRepositoryProvider);
     final exercise = Exercise(
-      id: 0,
+      id: '',
       name: name,
       muscleGroup: muscleGroup,
       type: type,
@@ -62,7 +62,7 @@ class ExerciseList extends _$ExerciseList {
   }
 
   /// Deletes a user-defined exercise.
-  Future<void> deleteExercise(int id) async {
+  Future<void> deleteExercise(String id) async {
     final repo = ref.read(exerciseRepositoryProvider);
     final result = await repo.delete(id);
     result.getOrThrow();
@@ -83,7 +83,7 @@ Future<List<Exercise>> exercisesByMuscleGroup(
 
 /// Loads variations for a specific exercise.
 @riverpod
-Future<List<Exercise>> exerciseVariations(Ref ref, int exerciseId) async {
+Future<List<Exercise>> exerciseVariations(Ref ref, String exerciseId) async {
   final repo = ref.watch(exerciseRepositoryProvider);
   final result = await repo.getVariations(exerciseId);
   return result.getOrThrow();
@@ -93,7 +93,7 @@ Future<List<Exercise>> exerciseVariations(Ref ref, int exerciseId) async {
 @riverpod
 Future<List<ExerciseMuscleFocus>> exerciseMuscleFoci(
   Ref ref,
-  int exerciseId,
+  String exerciseId,
 ) async {
   final repo = ref.watch(exerciseRepositoryProvider);
   final result = await repo.getMuscleFoci(exerciseId);

@@ -1,6 +1,9 @@
 import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/utils/uuid.dart';
+
+const _devUserId = 'dev-user-uuid';
 
 /// Seeds the database with realistic test data for development.
 ///
@@ -11,13 +14,13 @@ Future<void> seedDevData(AppDatabase db) async {
   final exerciseIds = await _resolveExerciseIds(db);
 
   await _seedDevProfileEquipment(db);
-  await _seedWorkoutsWithExercises(db, exerciseIds);
-  final programId = await _seedProgram(db, exerciseIds);
-  await _seedExecutionHistory(db, exerciseIds, programId);
+  final workoutIds = await _seedWorkoutsWithExercises(db, exerciseIds);
+  final programId = await _seedProgram(db, exerciseIds, workoutIds);
+  await _seedExecutionHistory(db, exerciseIds, programId, workoutIds);
   await _seedBodyMetrics(db);
 }
 
-Future<Map<String, int>> _resolveExerciseIds(AppDatabase db) async {
+Future<Map<String, String>> _resolveExerciseIds(AppDatabase db) async {
   final rows = await db.select(db.exercises).get();
   return {for (final r in rows) r.name: r.id};
 }
@@ -56,7 +59,10 @@ Future<void> _seedDevProfileEquipment(AppDatabase db) async {
     await db
         .into(db.userProfiles)
         .insert(
-          UserProfilesCompanion.insert(ownedEquipmentNames: Value(owned)),
+          UserProfilesCompanion.insert(
+            id: _devUserId,
+            ownedEquipmentNames: Value(owned),
+          ),
         );
   }
 }
@@ -65,20 +71,26 @@ Future<void> _seedDevProfileEquipment(AppDatabase db) async {
 // Workouts with exercises
 // ---------------------------------------------------------------------------
 
-Future<void> _seedWorkoutsWithExercises(
+Future<List<String>> _seedWorkoutsWithExercises(
   AppDatabase db,
-  Map<String, int> exerciseIds,
+  Map<String, String> exerciseIds,
 ) async {
+  final workoutIds = <String>[];
+
   // --- Push Day ---
-  final pushId = await db
+  final pushId = generateUuidV4();
+  await db
       .into(db.workouts)
       .insert(
         WorkoutsCompanion.insert(
+          id: pushId,
+          userId: _devUserId,
           name: 'Push Day',
           description: const Value('Chest, shoulders & triceps'),
           sortOrder: const Value(0),
         ),
       );
+  workoutIds.add(pushId);
   await _insertWorkoutExercises(db, pushId, exerciseIds, [
     _WE('benchPress', order: 0, sets: 4, minReps: 6, maxReps: 8, rest: 90),
     _WE(
@@ -120,15 +132,19 @@ Future<void> _seedWorkoutsWithExercises(
   ]);
 
   // --- Pull Day ---
-  final pullId = await db
+  final pullId = generateUuidV4();
+  await db
       .into(db.workouts)
       .insert(
         WorkoutsCompanion.insert(
+          id: pullId,
+          userId: _devUserId,
           name: 'Pull Day',
           description: const Value('Back & biceps'),
           sortOrder: const Value(1),
         ),
       );
+  workoutIds.add(pullId);
   await _insertWorkoutExercises(db, pullId, exerciseIds, [
     _WE('pullUp', order: 0, sets: 4, minReps: 6, maxReps: 10, rest: 90),
     _WE('bentOverRow', order: 1, sets: 4, minReps: 6, maxReps: 8, rest: 90),
@@ -155,15 +171,19 @@ Future<void> _seedWorkoutsWithExercises(
   ]);
 
   // --- Leg Day ---
-  final legId = await db
+  final legId = generateUuidV4();
+  await db
       .into(db.workouts)
       .insert(
         WorkoutsCompanion.insert(
+          id: legId,
+          userId: _devUserId,
           name: 'Leg Day',
           description: const Value('Quads, hamstrings, glutes & calves'),
           sortOrder: const Value(2),
         ),
       );
+  workoutIds.add(legId);
   await _insertWorkoutExercises(db, legId, exerciseIds, [
     _WE(
       'backSquat',
@@ -203,15 +223,19 @@ Future<void> _seedWorkoutsWithExercises(
   ]);
 
   // --- Cardio Day ---
-  final cardioId = await db
+  final cardioId = generateUuidV4();
+  await db
       .into(db.workouts)
       .insert(
         WorkoutsCompanion.insert(
+          id: cardioId,
+          userId: _devUserId,
           name: 'Cardio Day',
           description: const Value('Endurance & conditioning'),
           sortOrder: const Value(3),
         ),
       );
+  workoutIds.add(cardioId);
   await _insertWorkoutExercises(db, cardioId, exerciseIds, [
     _WE('treadmillRun', order: 0, sets: 1, duration: 1200, rest: 120),
     _WE('stationaryBike', order: 1, sets: 1, duration: 900, rest: 90),
@@ -224,18 +248,22 @@ Future<void> _seedWorkoutsWithExercises(
       .into(db.workouts)
       .insert(
         WorkoutsCompanion.insert(
+          id: generateUuidV4(),
+          userId: _devUserId,
           name: 'Full Body',
           description: const Value('Quick full body session'),
           sortOrder: const Value(4),
           isArchived: const Value(true),
         ),
       );
+
+  return workoutIds;
 }
 
 Future<void> _insertWorkoutExercises(
   AppDatabase db,
-  int workoutId,
-  Map<String, int> exerciseIds,
+  String workoutId,
+  Map<String, String> exerciseIds,
   List<_WE> entries,
 ) async {
   await db.batch((batch) {
@@ -245,15 +273,17 @@ Future<void> _insertWorkoutExercises(
       batch.insert(
         db.workoutExercises,
         WorkoutExercisesCompanion(
+          id: Value(generateUuidV4()),
+          userId: const Value(_devUserId),
           workoutId: Value(workoutId),
           exerciseId: Value(exId),
-          order: Value(e.order),
+          sortOrder: Value(e.order),
           sets: Value(e.sets),
           minReps: Value(e.minReps),
           maxReps: Value(e.maxReps),
           isAmrap: Value(e.isAmrap),
-          rest: Value(e.rest),
-          duration: Value(e.duration),
+          restSeconds: Value(e.rest),
+          durationSeconds: Value(e.duration),
           groupId: Value(e.groupId),
         ),
       );
@@ -267,17 +297,21 @@ Future<void> _insertWorkoutExercises(
 
 Future<void> _seedExecutionHistory(
   AppDatabase db,
-  Map<String, int> exerciseIds,
-  int programId,
+  Map<String, String> exerciseIds,
+  String programId,
+  List<String> workoutIds,
 ) async {
   final now = DateTime.now();
 
   // --- Execution 1: Push Day — 3 days ago (completed) ---
-  final exec1 = await db
+  final exec1 = generateUuidV4();
+  await db
       .into(db.workoutExecutions)
       .insert(
         WorkoutExecutionsCompanion.insert(
-          workoutId: 1,
+          id: exec1,
+          userId: _devUserId,
+          workoutId: workoutIds[0],
           programId: programId,
           startedAt: Value(now.subtract(const Duration(days: 3, hours: 1))),
           finishedAt: Value(now.subtract(const Duration(days: 3, minutes: 10))),
@@ -333,7 +367,6 @@ Future<void> _seedExecutionHistory(
     weights: [15, 15, 15],
     reps: [15, 15, 14],
   );
-  // Triceps pushdown with a drop set on the last set
   await _insertSetsWithDropSet(
     db,
     exec1,
@@ -345,11 +378,14 @@ Future<void> _seedExecutionHistory(
   );
 
   // --- Execution 2: Pull Day — yesterday (completed) ---
-  final exec2 = await db
+  final exec2 = generateUuidV4();
+  await db
       .into(db.workoutExecutions)
       .insert(
         WorkoutExecutionsCompanion.insert(
-          workoutId: 2,
+          id: exec2,
+          userId: _devUserId,
+          workoutId: workoutIds[1],
           programId: programId,
           startedAt: Value(now.subtract(const Duration(days: 1, hours: 1))),
           finishedAt: Value(now.subtract(const Duration(days: 1, minutes: 5))),
@@ -405,11 +441,14 @@ Future<void> _seedExecutionHistory(
   );
 
   // --- Execution 3: Leg Day — today (completed) ---
-  final exec3 = await db
+  final exec3 = generateUuidV4();
+  await db
       .into(db.workoutExecutions)
       .insert(
         WorkoutExecutionsCompanion.insert(
-          workoutId: 3,
+          id: exec3,
+          userId: _devUserId,
+          workoutId: workoutIds[2],
           programId: programId,
           startedAt: Value(now.subtract(const Duration(hours: 2))),
           finishedAt: Value(now.subtract(const Duration(minutes: 30))),
@@ -465,11 +504,14 @@ Future<void> _seedExecutionHistory(
   );
 
   // --- Execution 4: Cardio Day — 2 days ago (completed) ---
-  final exec4 = await db
+  final exec4 = generateUuidV4();
+  await db
       .into(db.workoutExecutions)
       .insert(
         WorkoutExecutionsCompanion.insert(
-          workoutId: 4,
+          id: exec4,
+          userId: _devUserId,
+          workoutId: workoutIds[3],
           programId: programId,
           startedAt: Value(now.subtract(const Duration(days: 2, hours: 1))),
           finishedAt: Value(now.subtract(const Duration(days: 2, minutes: 15))),
@@ -508,8 +550,8 @@ Future<void> _seedExecutionHistory(
 /// Inserts completed normal sets (no drop segments).
 Future<void> _insertCompletedSets(
   AppDatabase db,
-  int executionId,
-  int exerciseId, {
+  String executionId,
+  String exerciseId, {
   required int planned,
   required List<double?> weights,
   required List<int> reps,
@@ -521,6 +563,8 @@ Future<void> _insertCompletedSets(
         .into(db.executionSets)
         .insert(
           ExecutionSetsCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             executionId: executionId,
             exerciseId: exerciseId,
             setNumber: i + 1,
@@ -538,8 +582,8 @@ Future<void> _insertCompletedSets(
 /// Inserts completed cardio sets (duration + optional distance).
 Future<void> _insertCompletedCardioSets(
   AppDatabase db,
-  int executionId,
-  int exerciseId, {
+  String executionId,
+  String exerciseId, {
   required List<int> durations,
   required List<double?> distances,
 }) async {
@@ -549,11 +593,13 @@ Future<void> _insertCompletedCardioSets(
         .into(db.executionSets)
         .insert(
           ExecutionSetsCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             executionId: executionId,
             exerciseId: exerciseId,
             setNumber: i + 1,
-            duration: Value(durations[i]),
-            distance: Value(distances[i]),
+            durationSeconds: Value(durations[i]),
+            distanceMeters: Value(distances[i]),
             isCompleted: const Value(true),
           ),
         );
@@ -563,8 +609,8 @@ Future<void> _insertCompletedCardioSets(
 /// Inserts sets where the last set is a drop set with multiple segments.
 Future<void> _insertSetsWithDropSet(
   AppDatabase db,
-  int executionId,
-  int exerciseId, {
+  String executionId,
+  String exerciseId, {
   required int planned,
   required List<({double weight, int reps})> normalSets,
   required ({double weight, int reps}) dropSetPrimary,
@@ -577,6 +623,8 @@ Future<void> _insertSetsWithDropSet(
         .into(db.executionSets)
         .insert(
           ExecutionSetsCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             executionId: executionId,
             exerciseId: exerciseId,
             setNumber: setNumber++,
@@ -589,10 +637,13 @@ Future<void> _insertSetsWithDropSet(
         );
   }
 
-  final dropSetId = await db
+  final dropSetId = generateUuidV4();
+  await db
       .into(db.executionSets)
       .insert(
         ExecutionSetsCompanion.insert(
+          id: dropSetId,
+          userId: _devUserId,
           executionId: executionId,
           exerciseId: exerciseId,
           setNumber: setNumber,
@@ -608,6 +659,7 @@ Future<void> _insertSetsWithDropSet(
       .into(db.executionSetSegments)
       .insert(
         ExecutionSetSegmentsCompanion.insert(
+          id: generateUuidV4(),
           executionSetId: dropSetId,
           segmentOrder: 1,
           reps: dropSetPrimary.reps,
@@ -620,6 +672,7 @@ Future<void> _insertSetsWithDropSet(
         .into(db.executionSetSegments)
         .insert(
           ExecutionSetSegmentsCompanion.insert(
+            id: generateUuidV4(),
             executionSetId: dropSetId,
             segmentOrder: i + 2,
             reps: dropSegments[i].reps,
@@ -661,20 +714,18 @@ class _WE {
 // Training Program (mesocycle)
 // ---------------------------------------------------------------------------
 
-Future<int> _seedProgram(AppDatabase db, Map<String, int> exerciseIds) async {
-  final activeWorkouts = await db
-      .customSelect(
-        'SELECT id FROM workouts WHERE is_archived = 0 ORDER BY sort_order ASC',
-      )
-      .get();
-
-  // PPL program with first 3 workouts
-  final pplIds = activeWorkouts.take(3).map((r) => r.read<int>('id')).toList();
-
-  final programId = await db
+Future<String> _seedProgram(
+  AppDatabase db,
+  Map<String, String> exerciseIds,
+  List<String> workoutIds,
+) async {
+  final programId = generateUuidV4();
+  await db
       .into(db.programs)
       .insert(
         ProgramsCompanion.insert(
+          id: programId,
+          userId: _devUserId,
           name: 'PPL Hipertrofia',
           focus: 'hypertrophy',
           durationMode: 'sessions',
@@ -688,11 +739,16 @@ Future<int> _seedProgram(AppDatabase db, Map<String, int> exerciseIds) async {
         ),
       );
 
+  // PPL program with first 3 workouts
+  final pplIds = workoutIds.take(3).toList();
+
   for (var i = 0; i < pplIds.length; i++) {
     await db
         .into(db.cycleSteps)
         .insert(
           CycleStepsCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             programId: programId,
             orderIndex: i,
             workoutId: pplIds[i],
@@ -700,7 +756,6 @@ Future<int> _seedProgram(AppDatabase db, Map<String, int> exerciseIds) async {
         );
   }
 
-  // Progression rules for key compound lifts.
   final progressionExercises = {
     'benchPress': 2.5,
     'bentOverRow': 2.5,
@@ -715,6 +770,8 @@ Future<int> _seedProgram(AppDatabase db, Map<String, int> exerciseIds) async {
         .into(db.progressionRules)
         .insert(
           ProgressionRulesCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             programId: programId,
             exerciseId: exId,
             type: 'incrementWeight',
@@ -750,6 +807,8 @@ Future<void> _seedBodyMetrics(AppDatabase db) async {
         .into(db.bodyMetrics)
         .insert(
           BodyMetricsCompanion.insert(
+            id: generateUuidV4(),
+            userId: _devUserId,
             weight: weight,
             bodyFatPercent: Value(bf),
             recordedAt: Value(now.subtract(Duration(days: daysAgo))),

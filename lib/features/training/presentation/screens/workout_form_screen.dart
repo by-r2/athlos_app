@@ -16,7 +16,7 @@ import '../widgets/workout_exercise_tile.dart';
 
 /// Full-screen form for creating or editing a workout.
 class WorkoutFormScreen extends ConsumerStatefulWidget {
-  final int? workoutId;
+  final String? workoutId;
 
   const WorkoutFormScreen({super.key, this.workoutId});
 
@@ -67,8 +67,8 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
             minReps: we.minReps,
             maxReps: we.maxReps,
             isAmrap: we.isAmrap,
-            rest: we.rest,
-            duration: we.duration,
+            rest: we.restSeconds,
+            duration: we.durationSeconds,
             groupId: we.groupId,
             isUnilateral: we.isUnilateral,
             loadModeOverride: we.loadModeOverride,
@@ -170,15 +170,16 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           .entries
           .map(
             (e) => WorkoutExercise(
-              workoutId: widget.workoutId ?? 0,
+              id: '',
+              workoutId: widget.workoutId ?? '',
               exerciseId: e.value.exercise.id,
-              order: e.key,
+              sortOrder: e.key,
               sets: e.value.sets,
               minReps: e.value.minReps,
               maxReps: e.value.maxReps,
               isAmrap: e.value.isAmrap,
-              rest: e.value.rest,
-              duration: e.value.duration,
+              restSeconds: e.value.rest,
+              durationSeconds: e.value.duration,
               groupId: e.value.groupId,
               isUnilateral: e.value.isUnilateral,
               loadModeOverride: e.value.loadModeOverride,

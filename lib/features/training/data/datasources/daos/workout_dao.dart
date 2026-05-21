@@ -11,133 +11,195 @@ part 'workout_dao.g.dart';
 class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
   WorkoutDao(super.db);
 
-  Future<List<Workout>> getAll() => select(workouts).get();
+  Future<void> _markDirty(String id) {
+    final now = DateTime.now().toUtc();
+    return (update(workouts)..where((w) => w.id.equals(id))).write(
+      WorkoutsCompanion(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 
-  Future<List<Workout>> getActive() =>
+  Future<List<Workout>> getAll(String userId) =>
       (select(workouts)
-            ..where((w) => w.isArchived.equals(false))
+            ..where((w) => w.userId.equals(userId) & w.deletedAt.isNull()))
+          .get();
+
+  Future<List<Workout>> getActive(String userId) =>
+      (select(workouts)
+            ..where(
+              (w) =>
+                  w.userId.equals(userId) &
+                  w.isArchived.equals(false) &
+                  w.deletedAt.isNull(),
+            )
             ..orderBy([
               (w) => OrderingTerm.asc(w.sortOrder),
               (w) => OrderingTerm.asc(w.createdAt),
             ]))
           .get();
 
-  Future<List<Workout>> getArchived() =>
+  Future<List<Workout>> getArchived(String userId) =>
       (select(workouts)
-            ..where((w) => w.isArchived.equals(true))
+            ..where(
+              (w) =>
+                  w.userId.equals(userId) &
+                  w.isArchived.equals(true) &
+                  w.deletedAt.isNull(),
+            )
             ..orderBy([(w) => OrderingTerm.asc(w.name)]))
           .get();
 
-  Future<Workout?> getById(int id) =>
-      (select(workouts)..where((w) => w.id.equals(id))).getSingleOrNull();
+  Future<Workout?> getById(String id) =>
+      (select(workouts)
+            ..where((w) => w.id.equals(id) & w.deletedAt.isNull()))
+          .getSingleOrNull();
 
-  Future<int> create(WorkoutsCompanion entry) => into(workouts).insert(entry);
-
-  Future<void> updateById(int id, WorkoutsCompanion entry) =>
-      (update(workouts)..where((w) => w.id.equals(id))).write(entry);
-
-  Future<void> deleteById(int id) async {
-    await (delete(
-      workoutExercises,
-    )..where((we) => we.workoutId.equals(id))).go();
-    await (delete(workouts)..where((w) => w.id.equals(id))).go();
+  Future<void> create(WorkoutsCompanion entry) async {
+    await into(workouts).insert(entry);
+    await _markDirty(entry.id.value);
   }
 
-  Future<void> archive(int id) =>
-      (update(workouts)..where((w) => w.id.equals(id))).write(
-        const WorkoutsCompanion(
-          isArchived: Value(true),
-          sortOrder: Value(null),
+  Future<void> updateById(String id, WorkoutsCompanion entry) async {
+    await (update(workouts)..where((w) => w.id.equals(id))).write(entry);
+    await _markDirty(id);
+  }
+
+  Future<void> deleteById(String id) {
+    final now = DateTime.now().toUtc();
+    return transaction(() async {
+      await (update(workoutExercises)
+            ..where((we) => we.workoutId.equals(id)))
+          .write(
+        WorkoutExercisesCompanion(
+          deletedAt: Value(now),
+          isDirty: const Value(true),
+          updatedAt: Value(now),
         ),
       );
-
-  Future<void> unarchive(int id) =>
-      (update(workouts)..where((w) => w.id.equals(id))).write(
-        const WorkoutsCompanion(isArchived: Value(false)),
+      await (update(workouts)..where((w) => w.id.equals(id))).write(
+        WorkoutsCompanion(
+          deletedAt: Value(now),
+          isDirty: const Value(true),
+          updatedAt: Value(now),
+        ),
       );
+    });
+  }
 
-  Future<int?> duplicate(int id, {required String nameSuffix}) async {
+  Future<void> archive(String id) async {
+    await (update(workouts)..where((w) => w.id.equals(id))).write(
+      const WorkoutsCompanion(
+        isArchived: Value(true),
+        sortOrder: Value(null),
+      ),
+    );
+    await _markDirty(id);
+  }
+
+  Future<void> unarchive(String id) async {
+    await (update(workouts)..where((w) => w.id.equals(id))).write(
+      const WorkoutsCompanion(isArchived: Value(false)),
+    );
+    await _markDirty(id);
+  }
+
+  Future<String?> duplicate(
+    String id, {
+    required String newId,
+    required String userId,
+    required String nameSuffix,
+    required String Function() generateId,
+  }) async {
     final original = await getById(id);
     if (original == null) return null;
 
-    final newId = await into(workouts).insert(
+    await into(workouts).insert(
       WorkoutsCompanion.insert(
+        id: newId,
+        userId: userId,
         name: '${original.name} $nameSuffix',
         description: Value(original.description),
       ),
     );
+    await _markDirty(newId);
 
-    final exercises = await getExercises(id);
-    for (final ex in exercises) {
+    final exerciseList = await getExercises(id);
+    for (final ex in exerciseList) {
+      final newExId = generateId();
       await into(workoutExercises).insert(
         WorkoutExercisesCompanion.insert(
+          id: newExId,
+          userId: userId,
           workoutId: newId,
           exerciseId: ex.exerciseId,
-          order: ex.order,
-          sets: ex.sets,
+          sortOrder: ex.sortOrder,
+          sets: Value(ex.sets),
           minReps: Value(ex.minReps),
           maxReps: Value(ex.maxReps),
           isAmrap: Value(ex.isAmrap),
-          rest: Value(ex.rest),
-          duration: Value(ex.duration),
+          restSeconds: Value(ex.restSeconds),
+          durationSeconds: Value(ex.durationSeconds),
           groupId: Value(ex.groupId),
           isUnilateral: Value(ex.isUnilateral),
+          loadModeOverride: Value(ex.loadModeOverride),
           notes: Value(ex.notes),
         ),
       );
+      await _markWorkoutExerciseDirty(newExId);
     }
 
     return newId;
   }
 
-  Future<void> reorder(List<int> orderedIds) async {
+  Future<void> reorder(List<String> orderedIds) async {
     for (var i = 0; i < orderedIds.length; i++) {
       await (update(workouts)..where((w) => w.id.equals(orderedIds[i]))).write(
         WorkoutsCompanion(sortOrder: Value(i)),
       );
+      await _markDirty(orderedIds[i]);
     }
   }
 
   // --- Workout exercises ---
 
-  Future<List<WorkoutExercise>> getExercises(int workoutId) =>
+  Future<List<WorkoutExercise>> getExercises(String workoutId) =>
       (select(workoutExercises)
-            ..where((we) => we.workoutId.equals(workoutId))
-            ..orderBy([(we) => OrderingTerm.asc(we.order)]))
+            ..where(
+              (we) =>
+                  we.workoutId.equals(workoutId) & we.deletedAt.isNull(),
+            )
+            ..orderBy([(we) => OrderingTerm.asc(we.sortOrder)]))
           .get();
 
   Future<void> setExercises(
-    int workoutId,
+    String workoutId,
     List<WorkoutExercisesCompanion> entries,
   ) async {
-    await (delete(
-      workoutExercises,
-    )..where((we) => we.workoutId.equals(workoutId))).go();
+    final now = DateTime.now().toUtc();
+    await (update(workoutExercises)
+          ..where((we) => we.workoutId.equals(workoutId)))
+        .write(
+      WorkoutExercisesCompanion(
+        deletedAt: Value(now),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
+    );
     for (final entry in entries) {
       await into(workoutExercises).insert(entry);
+      await _markWorkoutExerciseDirty(entry.id.value);
     }
   }
 
-  Future<void> markSynced({
-    required int id,
-    required String remoteId,
-    required DateTime syncedAt,
-  }) =>
-      (update(workouts)..where((w) => w.id.equals(id))).write(
-        WorkoutsCompanion(
-          remoteId: Value(remoteId),
-          lastSyncedAt: Value(syncedAt),
-        ),
-      );
-
-  Future<void> markLocalDirty(int id) {
+  Future<void> _markWorkoutExerciseDirty(String id) {
     final now = DateTime.now().toUtc();
-    return (update(workouts)..where((w) => w.id.equals(id))).write(
-      WorkoutsCompanion(localUpdatedAt: Value(now)),
+    return (update(workoutExercises)..where((we) => we.id.equals(id))).write(
+      WorkoutExercisesCompanion(
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      ),
     );
   }
-
-  Future<Workout?> getByRemoteId(String remoteId) =>
-      (select(workouts)..where((w) => w.remoteId.equals(remoteId)))
-          .getSingleOrNull();
 }

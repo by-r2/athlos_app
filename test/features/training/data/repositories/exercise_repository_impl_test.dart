@@ -1,9 +1,7 @@
 import 'package:athlos_app/core/database/app_database.dart';
-import 'package:athlos_app/core/database/daos/sync_record_dao.dart';
 import 'package:athlos_app/core/errors/result.dart';
-import 'package:athlos_app/core/sync/sync_record_store.dart';
-import 'package:athlos_app/core/sync/user_owned_sync_registry.dart';
 import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
+import 'package:athlos_app/core/utils/uuid.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/exercise_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/exercise_repository_impl.dart';
 import 'package:athlos_app/features/training/domain/entities/exercise.dart'
@@ -26,8 +24,8 @@ void main() {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       repository = ExerciseRepositoryImpl(
         ExerciseDao(db),
-        UserOwnedSyncRunner(UserOwnedSyncRegistry([])),
-        SyncRecordStore(SyncRecordDao(db)),
+        UserOwnedSyncRunner.disabled(),
+        'test-user-id',
       );
       await db.customSelect('SELECT 1').get();
     });
@@ -37,9 +35,10 @@ void main() {
     });
 
     test('create/getById com muscle foci', () async {
+      final exerciseId = generateUuidV4();
       final id = (await repository.create(
-        const domain.Exercise(
-          id: 0,
+        domain.Exercise(
+          id: exerciseId,
           name: 'Supino Teste',
           muscleGroup: MuscleGroup.chest,
           type: ExerciseType.strength,
@@ -55,6 +54,7 @@ void main() {
         ],
       )).getOrThrow();
 
+      expect(id, exerciseId);
       final loaded = (await repository.getById(id)).getOrThrow();
       expect(loaded, isNotNull);
       expect(loaded!.name, 'Supino Teste');
@@ -63,9 +63,10 @@ void main() {
     });
 
     test('findByName case-insensitive e getByMuscleGroup', () async {
+      final exerciseId = generateUuidV4();
       final id = (await repository.create(
-        const domain.Exercise(
-          id: 0,
+        domain.Exercise(
+          id: exerciseId,
           name: 'Rosca Teste',
           muscleGroup: MuscleGroup.biceps,
           type: ExerciseType.strength,
@@ -86,15 +87,15 @@ void main() {
 
     test('variations add/remove', () async {
       final id1 = (await repository.create(
-        const domain.Exercise(
-          id: 0,
+        domain.Exercise(
+          id: generateUuidV4(),
           name: 'Agachamento Teste',
           muscleGroup: MuscleGroup.quadriceps,
         ),
       )).getOrThrow();
       final id2 = (await repository.create(
-        const domain.Exercise(
-          id: 0,
+        domain.Exercise(
+          id: generateUuidV4(),
           name: 'Agachamento Hack Teste',
           muscleGroup: MuscleGroup.quadriceps,
         ),

@@ -1,8 +1,8 @@
 import 'package:athlos_app/core/data/repositories/local_backup_repository_impl.dart';
+import 'package:athlos_app/core/errors/result.dart';
 import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/domain/entities/local_backup_models.dart';
-import 'package:athlos_app/core/errors/result.dart';
-import 'package:athlos_app/features/training/domain/enums/exercise_type.dart';
+import 'package:athlos_app/core/utils/uuid.dart';
 import 'package:athlos_app/features/training/domain/enums/load_mode.dart';
 import 'package:athlos_app/features/training/domain/enums/muscle_group.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
@@ -25,16 +25,21 @@ void main() {
     });
 
     test('confirmDuplicate merges custom loser into verified winner', () async {
-      final verifiedId = await db.into(db.exercises).insert(
+      final verifiedId = generateUuidV4();
+      final customId = generateUuidV4();
+
+      await db.into(db.exercises).insert(
         ExercisesCompanion.insert(
+          id: verifiedId,
           name: 'Supino Reto',
           muscleGroup: MuscleGroup.chest,
           isVerified: const Value(true),
           defaultLoadMode: Value(LoadMode.weighted),
         ),
       );
-      final customId = await db.into(db.exercises).insert(
+      await db.into(db.exercises).insert(
         ExercisesCompanion.insert(
+          id: customId,
           name: 'Supino Reto ',
           muscleGroup: MuscleGroup.chest,
           isVerified: const Value(false),

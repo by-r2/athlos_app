@@ -29,7 +29,7 @@ import '../widgets/exercise_tile.dart';
 final _placeholderExercises = List.generate(
   8,
   (i) => Exercise(
-    id: -(i + 1),
+    id: 'placeholder-$i',
     name: BoneMock.name,
     muscleGroup: MuscleGroup.chest,
     muscles: [],
