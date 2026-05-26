@@ -16,6 +16,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
+import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/entities/user_profile.dart';
@@ -239,24 +240,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildOverviewCategory(UserProfile profile, AppLocalizations l10n) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AthlosSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Avatar placeholder
           Center(
-            child: CircleAvatar(
-              radius: 48,
-              backgroundColor: colorScheme.primaryContainer,
-              child: Icon(
-                Icons.person,
-                size: 48,
-                color: colorScheme.onPrimaryContainer,
-              ),
-            ),
+            child: AthlosInitialsAvatar(displayName: profile.name),
           ),
           const Gap(AthlosSpacing.lg),
 

@@ -5,4 +5,7 @@ abstract final class AthlosComponentSizes {
   /// Chosen as a balanced size: readable with subtitle/action icons, while
   /// keeping list density comfortable for mobile.
   static const double listItemMinHeight = 64;
+
+  /// Large profile-style avatar (diameter = 2 × radius).
+  static const double avatarRadiusLg = 48;
 }
