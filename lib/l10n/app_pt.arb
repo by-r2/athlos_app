@@ -59,6 +59,36 @@
   "@profileDataTab": {
     "description": "Profile tab: account session, cloud sync, duplicates and sync repair (compact tab label)"
   },
+  "profileShortcutsSectionTitle": "Atalhos",
+  "@profileShortcutsSectionTitle": {
+    "description": "Section title above profile shortcut grid on profile hub"
+  },
+  "profileShortcutGoals": "Objetivos",
+  "@profileShortcutGoals": { "description": "Profile hub shortcut: training goals and preferences" },
+  "profileShortcutEquipment": "Equipamentos",
+  "@profileShortcutEquipment": { "description": "Profile hub shortcut: owned equipment" },
+  "profileShortcutPersonal": "Dados",
+  "@profileShortcutPersonal": {
+    "description": "Profile hub shortcut: personal and health details"
+  },
+  "profileShortcutMetrics": "Métricas",
+  "@profileShortcutMetrics": { "description": "Profile hub shortcut: weight history and body metrics" },
+  "profileShortcutAccount": "Conta",
+  "@profileShortcutAccount": { "description": "Profile hub shortcut: session and sync" },
+  "profileHeroNamePlaceholder": "O teu nome",
+  "@profileHeroNamePlaceholder": { "description": "Shown when profile name is empty on profile hub" },
+  "profileHeroSubtitleIncomplete": "Definir objetivo e nível em Objetivos",
+  "@profileHeroSubtitleIncomplete": {
+    "description": "Profile hub subtitle when goal or experience missing"
+  },
+  "profileHeroEditProfileAction": "Editar perfil",
+  "@profileHeroEditProfileAction": { "description": "Primary action under profile hero header" },
+  "profileConsistencySectionTitle": "Consistência",
+  "@profileConsistencySectionTitle": {
+    "description": "Section title above cycle / weekly streak summary on profile hub"
+  },
+  "profileBmiChipLabel": "IMC",
+  "@profileBmiChipLabel": { "description": "Label for BMI quick-stat chip on profile hub" },
   "profileDataConflictsSectionTitle": "Duplicados nos seus dados",
   "@profileDataConflictsSectionTitle": {
     "description": "Profile data section title for duplicate review"

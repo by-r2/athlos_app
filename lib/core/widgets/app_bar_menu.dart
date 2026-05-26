@@ -98,21 +98,21 @@ class _AppMenuSheetBody extends ConsumerWidget {
           ),
           const Gap(AthlosSpacing.sm),
           _MenuNavTile(
-            icon: Icons.home_outlined,
-            title: l10n.backToHub,
-            colorScheme: colorScheme,
-            onTap: () {
-              Navigator.pop(context);
-              router.go(RoutePaths.hub);
-            },
-          ),
-          _MenuNavTile(
             icon: Icons.person_outline,
             title: l10n.profile,
             colorScheme: colorScheme,
             onTap: () {
               Navigator.pop(context);
               router.push(RoutePaths.profile);
+            },
+          ),
+          _MenuNavTile(
+            icon: Icons.home_outlined,
+            title: l10n.backToHub,
+            colorScheme: colorScheme,
+            onTap: () {
+              Navigator.pop(context);
+              router.go(RoutePaths.hub);
             },
           ),
           const Gap(AthlosSpacing.xl),

@@ -13,8 +13,6 @@ import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
-import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
-import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -38,17 +36,26 @@ import '../providers/conflict_center_provider.dart';
 import '../providers/sync_issue_center_provider.dart';
 import '../providers/profile_notifier.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
-import '../widgets/aesthetic_selector.dart';
-import '../widgets/experience_selector.dart';
 import '../widgets/owned_equipment_list.dart';
-import '../widgets/goal_selector.dart';
-import '../widgets/style_selector.dart';
+import '../widgets/body_metrics_dashboard_card.dart';
+import 'profile_overview_edit_screen.dart';
+import 'profile_training_edit_screen.dart';
 
 double? _tryParseDecimal(String value) {
   final normalized = value.trim().replaceAll(',', '.');
   if (normalized.isEmpty) return null;
   return double.tryParse(normalized);
 }
+
+/// Placeholder profile for [Skeletonizer] on the hub.
+const UserProfile _kProfileHubSkeletonPlaceholder = UserProfile(
+  id: '_skeleton',
+  name: 'Alexandre Costa',
+  height: 178,
+  age: 32,
+  goal: TrainingGoal.hypertrophy,
+  experienceLevel: ExperienceLevel.intermediate,
+);
 
 /// Profile view/edit screen (P-04).
 ///
@@ -61,118 +68,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-enum _EditingTab { none, overview, training }
-
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  _EditingTab _editingTab = _EditingTab.none;
   bool _isSigningOut = false;
-
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _workoutMinutesController = TextEditingController();
-  final _injuriesController = TextEditingController();
-  final _bioController = TextEditingController();
-  Gender? _selectedGender;
-  TrainingGoal? _selectedGoal;
-  BodyAesthetic? _selectedAesthetic;
-  TrainingStyle? _selectedStyle;
-  ExperienceLevel? _selectedExperience;
-  int? _trainingFrequency;
-  int? _availableWorkoutMinutes;
-  bool? _trainsAtGym;
-
-  String? _overviewEditBaseline;
-  String? _trainingEditBaseline;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _heightController.dispose();
-    _ageController.dispose();
-    _workoutMinutesController.dispose();
-    _injuriesController.dispose();
-    _bioController.dispose();
-    super.dispose();
-  }
-
-  void _startEditingOverview(UserProfile profile) {
-    _nameController.text = profile.name ?? '';
-    _heightController.text = profile.height?.toString() ?? '';
-    _ageController.text = profile.age?.toString() ?? '';
-    _selectedGender = profile.gender;
-    _injuriesController.text = profile.injuries ?? '';
-    _bioController.text = profile.bio ?? '';
-    _trainingEditBaseline = null;
-    setState(() {
-      _editingTab = _EditingTab.overview;
-      _overviewEditBaseline = _snapshotOverviewEdit();
-    });
-  }
-
-  void _startEditingTraining(UserProfile profile) {
-    _selectedGoal = profile.goal;
-    _selectedAesthetic = profile.bodyAesthetic;
-    _selectedStyle = profile.trainingStyle;
-    _selectedExperience = profile.experienceLevel;
-    _trainingFrequency = profile.trainingFrequency;
-    _availableWorkoutMinutes = profile.availableWorkoutMinutes;
-    _workoutMinutesController.text =
-        profile.availableWorkoutMinutes?.toString() ?? '60';
-    _trainsAtGym = profile.trainsAtGym;
-    _overviewEditBaseline = null;
-    setState(() {
-      _editingTab = _EditingTab.training;
-      _trainingEditBaseline = _snapshotTrainingEdit();
-    });
-  }
-
-  String _snapshotOverviewEdit() => [
-    _nameController.text,
-    _heightController.text,
-    _ageController.text,
-    _injuriesController.text,
-    _bioController.text,
-    _selectedGender?.name ?? 'null',
-  ].join('\u001e');
-
-  String _snapshotTrainingEdit() => [
-    _selectedGoal?.name ?? 'null',
-    _selectedAesthetic?.name ?? 'null',
-    _selectedStyle?.name ?? 'null',
-    _selectedExperience?.name ?? 'null',
-    '${_trainingFrequency ?? -1}',
-    '${_availableWorkoutMinutes ?? -1}',
-    _workoutMinutesController.text,
-    '${_trainsAtGym ?? -1}',
-  ].join('\u001e');
-
-  bool get _isProfileEditDirty {
-    if (_editingTab == _EditingTab.overview && _overviewEditBaseline != null) {
-      return _snapshotOverviewEdit() != _overviewEditBaseline;
-    }
-    if (_editingTab == _EditingTab.training && _trainingEditBaseline != null) {
-      return _snapshotTrainingEdit() != _trainingEditBaseline;
-    }
-    return false;
-  }
-
-  Future<void> _cancelEditing() async {
-    if (!_isProfileEditDirty) {
-      setState(() => _editingTab = _EditingTab.none);
-      return;
-    }
-    final discard = await confirmDiscardUnsavedEdits(context);
-    if (!mounted) return;
-    if (discard) {
-      setState(() {
-        _editingTab = _EditingTab.none;
-        _overviewEditBaseline = null;
-        _trainingEditBaseline = null;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,77 +77,254 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profileAsync = ref.watch(profileProvider);
     final resolved = profileAsync.value ?? const UserProfile(id: '');
 
-    final isEditing = _editingTab != _EditingTab.none;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.profile),
+        actions: [const AppBarMenu()],
+      ),
+      body: profileAsync.hasError
+          ? Center(child: Text(l10n.genericError))
+          : Skeletonizer(
+              enabled: profileAsync.isLoading,
+              child: _buildProfileHub(
+                profileAsync.isLoading
+                    ? _kProfileHubSkeletonPlaceholder
+                    : resolved,
+                l10n,
+              ),
+            ),
+    );
+  }
 
-    return ConfirmNavigationScope(
-      guardActive: _editingTab != _EditingTab.none && _isProfileEditDirty,
-      onConfirmLeave: confirmDiscardUnsavedEdits,
-      onLeaveConfirmed: (_) {
-        if (!mounted) return;
-        setState(() {
-          _editingTab = _EditingTab.none;
-          _overviewEditBaseline = null;
-          _trainingEditBaseline = null;
-        });
+  Widget _buildProfileHub(UserProfile profile, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    final rawName = profile.name?.trim();
+    final displayName =
+        rawName != null && rawName.isNotEmpty ? rawName : l10n.profileHeroNamePlaceholder;
+
+    final latestWeight = ref.watch(latestBodyWeightProvider).value;
+    final subtitleParts = <String>[];
+    if (profile.goal != null) {
+      subtitleParts.add(_goalLabel(profile.goal!, l10n));
+    }
+    if (profile.experienceLevel != null) {
+      subtitleParts.add(_experienceLabel(profile.experienceLevel!, l10n));
+    }
+
+    final bmi =
+        profile.height != null && latestWeight != null && profile.height! > 0
+        ? latestWeight /
+              ((profile.height! / 100.0) * (profile.height! / 100.0))
+        : null;
+    final bmiLabel = bmi == null ? l10n.profileNotSet : bmi.toStringAsFixed(1);
+
+    final conflictAsync = ref.watch(backupConflictCenterProvider);
+    final syncIssuesAsync = ref.watch(syncIssueCenterProvider);
+    final cloudSyncAsync = ref.watch(userCloudSyncStatusProvider);
+    final showAccountBadge = _shortcutAccountShowsBadge(
+      conflictAsync,
+      syncIssuesAsync,
+      cloudSyncAsync,
+    );
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(profileProvider);
+        ref.invalidate(latestBodyWeightProvider);
+        await ref.read(profileProvider.future);
       },
-      child: DefaultTabController(
-        length: 4,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text(l10n.profile),
-            actions: [const AppBarMenu()],
-            bottom: isEditing
-                ? null
-                : TabBar(
-                    isScrollable: true,
-                    tabs: [
-                      Tab(text: l10n.profileOverviewTab),
-                      Tab(text: l10n.profileTrainingPreferencesTab),
-                      Tab(text: l10n.profileEquipmentTab),
-                      Tab(text: l10n.profileDataTab),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                AthlosInitialsAvatar(displayName: profile.name),
+                const Gap(AthlosSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Gap(AthlosSpacing.xxs),
+                      Text(
+                        subtitleParts.isEmpty
+                            ? l10n.profileHeroSubtitleIncomplete
+                            : subtitleParts.join(' · '),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
-          ),
-          body: profileAsync.hasError
-              ? Center(child: Text(l10n.genericError))
-              : isEditing
-              ? _editingTab == _EditingTab.overview
-                    ? _buildOverviewEditView(resolved, l10n)
-                    : _buildTrainingEditView(resolved, l10n)
-              : TabBarView(
-                  children: [
-                    Skeletonizer(
-                      enabled: profileAsync.isLoading,
-                      child: _buildOverviewCategory(resolved, l10n),
+                ),
+              ],
+            ),
+            const Gap(AthlosSpacing.smd),
+            LayoutBuilder(
+              builder: (context, constraints) => _ProfileMetricChipGrid(
+                maxWidth: constraints.maxWidth,
+                chips: [
+                  _ProfileMetricChipData(
+                    label: l10n.profileAge,
+                    value: profile.age != null
+                        ? '${profile.age} ${l10n.yearsUnit}'
+                        : l10n.profileNotSet,
+                  ),
+                  _ProfileMetricChipData(
+                    label: l10n.profileHeight,
+                    value: profile.height != null
+                        ? '${profile.height!.toInt()} ${l10n.heightUnit}'
+                        : l10n.profileNotSet,
+                  ),
+                  _ProfileMetricChipData(
+                    label: l10n.profileWeight,
+                    value: _formatWeight(latestWeight, l10n),
+                  ),
+                  _ProfileMetricChipData(
+                    label: l10n.profileBmiChipLabel,
+                    value: bmiLabel,
+                  ),
+                ],
+              ),
+            ),
+            const Gap(AthlosSpacing.lg),
+            _SectionHeader(title: l10n.profileShortcutsSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return _ProfileShortcutGrid(
+                  maxWidth: constraints.maxWidth,
+                  shortcuts: [
+                    _ProfileShortcutSpec(
+                      icon: Icons.badge_outlined,
+                      label: l10n.profileShortcutPersonal,
+                      onTap: () => _pushPersonalSubpage(
+                        title: l10n.profileOverviewTab,
+                        body: _buildPersonalDetailsCategory,
+                      ),
                     ),
-                    Skeletonizer(
-                      enabled: profileAsync.isLoading,
-                      child: _buildTrainingPreferencesCategory(resolved, l10n),
+                    _ProfileShortcutSpec(
+                      icon: Icons.flag_outlined,
+                      label: l10n.profileShortcutGoals,
+                      onTap: () => _pushPersonalSubpage(
+                        title: l10n.profileSectionTraining,
+                        body: _buildTrainingPreferencesCategory,
+                      ),
                     ),
-                    const OwnedEquipmentList(),
-                    Skeletonizer(
-                      enabled: profileAsync.isLoading,
-                      child: _buildDataCategory(l10n),
+                    _ProfileShortcutSpec(
+                      icon: Icons.monitor_weight_outlined,
+                      label: l10n.profileShortcutMetrics,
+                      onTap: () => _pushPersonalSubpage(
+                        title: l10n.profileShortcutMetrics,
+                        body: (_, l10n) => _buildMetricsDetailCategory(l10n),
+                      ),
+                    ),
+                    _ProfileShortcutSpec(
+                      icon: Icons.inventory_2_outlined,
+                      label: l10n.profileShortcutEquipment,
+                      onTap: () => _pushPersonalSubpage(
+                        title: l10n.profileEquipmentTab,
+                        body: (_, _) => const Padding(
+                          padding: EdgeInsets.all(AthlosSpacing.md),
+                          child: OwnedEquipmentList(),
+                        ),
+                      ),
+                    ),
+                    _ProfileShortcutSpec(
+                      icon: Icons.cloud_outlined,
+                      label: l10n.profileShortcutAccount,
+                      showBadge: showAccountBadge,
+                      onTap: () => _pushPersonalSubpage(
+                        title: l10n.profileDataTab,
+                        body: (_, l10n) => _buildDataCategory(l10n),
+                      ),
                     ),
                   ],
-                ),
+                );
+              },
+            ),
+            const Gap(AthlosSpacing.lg),
+            _SectionHeader(title: l10n.profileConsistencySectionTitle),
+            const Gap(AthlosSpacing.xs),
+            _ProfileStreakSummaryCard(profile: profile, l10n: l10n),
+            const Gap(AthlosSpacing.lg),
+            const BodyMetricsDashboardCard(),
+            const Gap(AthlosSpacing.xl),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildOverviewCategory(UserProfile profile, AppLocalizations l10n) {
+  void _pushPersonalSubpage({
+    required String title,
+    required Widget Function(UserProfile profile, AppLocalizations l10n) body,
+  }) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => Consumer(
+          builder: (context, ref, _) {
+            final subL10n = AppLocalizations.of(context)!;
+            final profileAsync = ref.watch(profileProvider);
+
+            return Scaffold(
+              appBar: AppBar(title: Text(title)),
+              body: profileAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (_, _) => Center(child: Text(subL10n.genericError)),
+                data: (profile) => body(
+                  profile ?? const UserProfile(id: ''),
+                  subL10n,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  bool _shortcutAccountShowsBadge(
+    AsyncValue<ConflictCenterViewData> conflictAsync,
+    AsyncValue<List<SyncIssue>> syncIssuesAsync,
+    AsyncValue<UserCloudSyncStatus> cloudSyncAsync,
+  ) {
+    final duplicates = conflictAsync.value?.localDuplicateCount ?? 0;
+    if (duplicates > 0) return true;
+    final issues = syncIssuesAsync.value?.length ?? 0;
+    if (issues > 0) return true;
+    final cloud = cloudSyncAsync.value;
+    if (cloud != null &&
+        cloud.isAvailable &&
+        (cloud.hasPending || cloud.hasFailed)) {
+      return true;
+    }
+    return false;
+  }
+
+  Widget _buildPersonalDetailsCategory(
+    UserProfile profile,
+    AppLocalizations l10n,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AthlosSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: AthlosInitialsAvatar(displayName: profile.name),
-          ),
-          const Gap(AthlosSpacing.lg),
-
-          // Dados pessoais
           _SectionHeader(title: l10n.profileSectionPersonal),
           const Gap(AthlosSpacing.xs),
           Card(
@@ -300,8 +374,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const Gap(AthlosSpacing.md),
-
-          // Saúde e histórico
           _SectionHeader(title: l10n.profileSectionHealth),
           const Gap(AthlosSpacing.xs),
           Card(
@@ -326,15 +398,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
+          const Gap(AthlosSpacing.lg),
+          FilledButton.icon(
+            onPressed: () => ProfileOverviewEditScreen.open(context),
+            icon: const Icon(Icons.edit_outlined),
+            label: Text(l10n.profileHeroEditProfileAction),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricsDetailCategory(AppLocalizations l10n) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AthlosSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const BodyMetricsDashboardCard(),
           const Gap(AthlosSpacing.md),
           const _BodyMetricsSection(),
-          const Gap(AthlosSpacing.lg),
-
-          FilledButton.icon(
-            onPressed: () => _startEditingOverview(profile),
-            icon: const Icon(Icons.edit),
-            label: Text(l10n.edit),
-          ),
         ],
       ),
     );
@@ -416,7 +499,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const Gap(AthlosSpacing.lg),
           FilledButton.icon(
-            onPressed: () => _startEditingTraining(profile),
+            onPressed: () => ProfileTrainingEditScreen.open(context),
             icon: const Icon(Icons.edit),
             label: Text(l10n.edit),
           ),
@@ -605,344 +688,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  Widget _buildEditBottomBar(UserProfile profile, AppLocalizations l10n) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.md),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _cancelEditing,
-                child: Text(l10n.cancel),
-              ),
-            ),
-            const Gap(AthlosSpacing.smd),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => _saveChanges(profile),
-                child: Text(l10n.save),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOverviewEditView(UserProfile profile, AppLocalizations l10n) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AthlosSpacing.md),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SectionHeader(title: l10n.profileSectionPersonal),
-                  const Gap(AthlosSpacing.sm),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(labelText: l10n.nameLabel),
-                    textCapitalization: TextCapitalization.words,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  TextFormField(
-                    controller: _heightController,
-                    decoration: InputDecoration(
-                      labelText: l10n.heightLabel,
-                      suffixText: l10n.heightUnit,
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-                    ],
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          _tryParseDecimal(value) == null) {
-                        return l10n.invalidNumber;
-                      }
-                      return null;
-                    },
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  TextFormField(
-                    controller: _ageController,
-                    decoration: InputDecoration(
-                      labelText: l10n.ageLabel,
-                      suffixText: l10n.yearsUnit,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          int.tryParse(value) == null) {
-                        return l10n.invalidNumber;
-                      }
-                      return null;
-                    },
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  Text(l10n.profileGender, style: textTheme.titleMedium),
-                  Wrap(
-                    spacing: AthlosSpacing.sm,
-                    children: [
-                      ChoiceChip(
-                        label: Text(l10n.genderMale),
-                        selected: _selectedGender == Gender.male,
-                        onSelected: (_) =>
-                            setState(() => _selectedGender = Gender.male),
-                      ),
-                      ChoiceChip(
-                        label: Text(l10n.genderFemale),
-                        selected: _selectedGender == Gender.female,
-                        onSelected: (_) =>
-                            setState(() => _selectedGender = Gender.female),
-                      ),
-                      ChoiceChip(
-                        label: Text(l10n.setupChatPreferNotToSay),
-                        selected: _selectedGender == null,
-                        onSelected: (_) =>
-                            setState(() => _selectedGender = null),
-                      ),
-                    ],
-                  ),
-                  const Gap(AthlosSpacing.lg),
-                  _SectionHeader(title: l10n.profileSectionHealth),
-                  const Gap(AthlosSpacing.sm),
-                  TextFormField(
-                    controller: _injuriesController,
-                    decoration: InputDecoration(
-                      labelText: l10n.injuriesLabel,
-                      hintText: l10n.injuriesHint,
-                      alignLabelWithHint: true,
-                    ),
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  TextFormField(
-                    controller: _bioController,
-                    decoration: InputDecoration(
-                      labelText: l10n.bioLabel,
-                      hintText: l10n.bioHint,
-                      alignLabelWithHint: true,
-                    ),
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        _buildEditBottomBar(profile, l10n),
-      ],
-    );
-  }
-
-  Widget _buildTrainingEditView(UserProfile profile, AppLocalizations l10n) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AthlosSpacing.md),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _SectionHeader(title: l10n.profileSectionTraining),
-                  const Gap(AthlosSpacing.sm),
-                  GoalSelector(
-                    selected: _selectedGoal,
-                    onSelected: (goal) => setState(() => _selectedGoal = goal),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  AestheticSelector(
-                    selected: _selectedAesthetic,
-                    onSelected: (aesthetic) =>
-                        setState(() => _selectedAesthetic = aesthetic),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  StyleSelector(
-                    selected: _selectedStyle,
-                    onSelected: (style) =>
-                        setState(() => _selectedStyle = style),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  ExperienceSelector(
-                    selected: _selectedExperience,
-                    onSelected: (level) =>
-                        setState(() => _selectedExperience = level),
-                  ),
-                  const Gap(AthlosSpacing.lg),
-                  Text(
-                    l10n.trainingFrequencyLabel,
-                    style: textTheme.titleMedium,
-                  ),
-                  Slider(
-                    value: (_trainingFrequency ?? 3).toDouble(),
-                    min: 1,
-                    max: 7,
-                    divisions: 6,
-                    label: '${_trainingFrequency ?? 3}x',
-                    onChanged: (v) =>
-                        setState(() => _trainingFrequency = v.round()),
-                  ),
-                  Center(
-                    child: Text(
-                      '${_trainingFrequency ?? 3} ${l10n.daysPerWeek}',
-                    ),
-                  ),
-                  const Gap(AthlosSpacing.md),
-                  SwitchListTile(
-                    title: Text(l10n.profileAvailableWorkoutMinutesLabel),
-                    subtitle: Text(
-                      l10n.profileAvailableWorkoutMinutesHint,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    value: _availableWorkoutMinutes != null,
-                    onChanged: (v) {
-                      setState(() => _availableWorkoutMinutes = v ? 60 : null);
-                      if (v) _workoutMinutesController.text = '60';
-                    },
-                  ),
-                  if (_availableWorkoutMinutes != null) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Slider(
-                            value: (_availableWorkoutMinutes!.toDouble()).clamp(
-                              15,
-                              120,
-                            ),
-                            min: 15,
-                            max: 120,
-                            divisions: 21,
-                            label: '$_availableWorkoutMinutes min',
-                            onChanged: (v) {
-                              final rounded = v.round();
-                              setState(
-                                () => _availableWorkoutMinutes = rounded,
-                              );
-                              _workoutMinutesController.text = rounded
-                                  .toString();
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          width: 72,
-                          child: TextFormField(
-                            controller: _workoutMinutesController,
-                            decoration: const InputDecoration(
-                              suffixText: 'min',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: AthlosSpacing.sm,
-                                vertical: AthlosSpacing.xs,
-                              ),
-                            ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (v) {
-                              final parsed = int.tryParse(v);
-                              if (parsed != null && parsed > 0) {
-                                setState(
-                                  () => _availableWorkoutMinutes = parsed,
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const Gap(AthlosSpacing.md),
-                  SwitchListTile(
-                    title: Text(l10n.trainsAtGymLabel),
-                    value: _trainsAtGym ?? false,
-                    onChanged: (v) => setState(() => _trainsAtGym = v),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        _buildEditBottomBar(profile, l10n),
-      ],
-    );
-  }
-
-  Future<void> _saveChanges(UserProfile profile) async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    final UserProfile updated;
-
-    if (_editingTab == _EditingTab.overview) {
-      final name = _nameController.text.trim();
-      final heightText = _heightController.text.trim();
-      final ageText = _ageController.text.trim();
-      final injuries = _injuriesController.text.trim();
-      final bio = _bioController.text.trim();
-      updated = profile.copyWith(
-        name: () => name.isEmpty ? null : name,
-        height: () => heightText.isEmpty ? null : _tryParseDecimal(heightText),
-        age: () => ageText.isEmpty ? null : int.tryParse(ageText),
-        gender: () => _selectedGender,
-        injuries: () => injuries.isEmpty ? null : injuries,
-        bio: () => bio.isEmpty ? null : bio,
-      );
-    } else {
-      updated = profile.copyWith(
-        goal: () => _selectedGoal,
-        bodyAesthetic: () => _selectedAesthetic,
-        trainingStyle: () => _selectedStyle,
-        experienceLevel: () => _selectedExperience,
-        trainingFrequency: () => _trainingFrequency,
-        availableWorkoutMinutes: () => _availableWorkoutMinutes,
-        trainsAtGym: () => _trainsAtGym,
-      );
-    }
-
-    try {
-      await ref.read(profileProvider.notifier).updateProfile(updated);
-      if (mounted) {
-        setState(() {
-          _editingTab = _EditingTab.none;
-          _overviewEditBaseline = null;
-          _trainingEditBaseline = null;
-        });
-      }
-    } on Exception catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
-      }
-    }
-  }
-
   String _formatWeight(double? weight, AppLocalizations l10n) {
     if (weight == null) return l10n.profileNotSet;
     final str = weight % 1 == 0
@@ -965,6 +710,319 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   String _genderLabel(Gender gender, AppLocalizations l10n) =>
       localizedGenderName(gender, l10n);
+}
+
+class _ProfileMetricChipData {
+  const _ProfileMetricChipData({required this.label, required this.value});
+
+  final String label;
+  final String value;
+}
+
+/// Two metric chips per row, each expanding to half the available width.
+class _ProfileMetricChipGrid extends StatelessWidget {
+  const _ProfileMetricChipGrid({
+    required this.maxWidth,
+    required this.chips,
+  });
+
+  static const int _columns = 2;
+  static const double _spacing = AthlosSpacing.sm;
+
+  final double maxWidth;
+  final List<_ProfileMetricChipData> chips;
+
+  @override
+  Widget build(BuildContext context) {
+    final chipWidth = (maxWidth - _spacing) / _columns;
+
+    return Column(
+      children: [
+        for (var row = 0; row < chips.length; row += _columns) ...[
+          if (row > 0) const Gap(_spacing),
+          Row(
+            children: [
+              for (var col = 0; col < _columns; col++) ...[
+                if (col > 0) const Gap(_spacing),
+                SizedBox(
+                  width: chipWidth,
+                  child: _ProfileMetricChip(
+                    label: chips[row + col].label,
+                    value: chips[row + col].value,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProfileMetricChip extends StatelessWidget {
+  const _ProfileMetricChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AthlosSpacing.smd,
+        vertical: AthlosSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AthlosRadius.mdAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileShortcutSpec {
+  const _ProfileShortcutSpec({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.showBadge = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool showBadge;
+}
+
+/// Three equal-width shortcut tiles per row with uniform height.
+class _ProfileShortcutGrid extends StatelessWidget {
+  const _ProfileShortcutGrid({
+    required this.maxWidth,
+    required this.shortcuts,
+  });
+
+  static const int _columns = 3;
+  static const double _spacing = AthlosSpacing.sm;
+  static const double _tileHeight = 110;
+
+  final double maxWidth;
+  final List<_ProfileShortcutSpec> shortcuts;
+
+  @override
+  Widget build(BuildContext context) {
+    final tileWidth = (maxWidth - _spacing * (_columns - 1)) / _columns;
+
+    return Column(
+      children: [
+        for (var row = 0; row < shortcuts.length; row += _columns) ...[
+          if (row > 0) const Gap(_spacing),
+          Row(
+            children: [
+              for (var col = 0; col < _columns; col++) ...[
+                if (col > 0) const Gap(_spacing),
+                if (row + col < shortcuts.length)
+                  _ProfileHubShortcutTile(
+                    width: tileWidth,
+                    height: _tileHeight,
+                    icon: shortcuts[row + col].icon,
+                    label: shortcuts[row + col].label,
+                    showBadge: shortcuts[row + col].showBadge,
+                    onTap: shortcuts[row + col].onTap,
+                  )
+                else
+                  SizedBox(width: tileWidth, height: _tileHeight),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ProfileHubShortcutTile extends StatelessWidget {
+  const _ProfileHubShortcutTile({
+    required this.width,
+    required this.height,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.showBadge = false,
+  });
+
+  final double width;
+  final double height;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool showBadge;
+
+  static const double _labelAreaHeight = 36;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Material(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: AthlosRadius.mdAll,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AthlosSpacing.sm,
+              horizontal: AthlosSpacing.xs,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Badge(
+                  isLabelVisible: showBadge,
+                  backgroundColor: colorScheme.error,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: AthlosRadius.mdAll,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AthlosSpacing.smd),
+                      child: Icon(
+                        icon,
+                        color: colorScheme.onPrimaryContainer,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
+                const Gap(AthlosSpacing.sm),
+                SizedBox(
+                  height: _labelAreaHeight,
+                  width: double.infinity,
+                  child: Center(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileStreakSummaryCard extends StatelessWidget {
+  const _ProfileStreakSummaryCard({
+    required this.profile,
+    required this.l10n,
+  });
+
+  final UserProfile profile;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final cycle = profile.currentCycleStreak;
+    final freq = profile.currentFrequencyStreak;
+    final bestCycle = profile.bestCycleStreak;
+    final bestFreq = profile.bestFrequencyStreak;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.bolt_outlined, color: colorScheme.primary, size: 22),
+                  const Gap(AthlosSpacing.xs),
+                  Text(
+                    l10n.dashboardCycleStreakCount(cycle),
+                    style: textTheme.titleSmall,
+                  ),
+                  if (bestCycle > 0) ...[
+                    const Gap(AthlosSpacing.xxs),
+                    Text(
+                      l10n.dashboardStreakBestCycle(bestCycle),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    color: colorScheme.tertiary,
+                    size: 22,
+                  ),
+                  const Gap(AthlosSpacing.xs),
+                  Text(
+                    l10n.dashboardConsistencyStreak(freq),
+                    style: textTheme.titleSmall,
+                  ),
+                  if (bestFreq > 0) ...[
+                    const Gap(AthlosSpacing.xxs),
+                    Text(
+                      l10n.dashboardStreakBestFrequency(bestFreq),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Section title in profile (read and edit views).
