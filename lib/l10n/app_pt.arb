@@ -75,6 +75,125 @@
   "@profileShortcutMetrics": { "description": "Profile hub shortcut: weight history and body metrics" },
   "profileShortcutAccount": "Conta",
   "@profileShortcutAccount": { "description": "Profile hub shortcut: session and sync" },
+  "profileShortcutKleos": "Kleos",
+  "@profileShortcutKleos": {
+    "description": "Profile hub shortcut: Kleos gamification hub"
+  },
+  "kleosScreenTitle": "Kleos",
+  "@kleosScreenTitle": { "description": "App bar title for Kleos hub screen" },
+  "kleosPurposeTitle": "O que ficou registado",
+  "@kleosPurposeTitle": {
+    "description": "Plain heading under AppBar explaining Kleos focus"
+  },
+  "kleosPurposeBody": "Os teus melhores registos de força estimados por grupo muscular, mais um resumo direto da consistência. Nada fictício — só o que já registaste nos treinos.",
+  "@kleosPurposeBody": { "description": "Short explanatory copy for Kleos" },
+  "kleosHeroSubtitle": "Sessões concluídas, PRs estimados por músculo, consistência e evolução recente.",
+  "@kleosHeroSubtitle": { "description": "Compact hero subtitle on Kleos screen" },
+  "kleosMetricSessionsLabel": "Treinos concluídos",
+  "@kleosMetricSessionsLabel": { "description": "Kleos KPI tile: total finished sessions" },
+  "kleosMetricPrsLabel": "PRs estimados",
+  "@kleosMetricPrsLabel": { "description": "Kleos KPI tile: estimated PR count" },
+  "kleosMetricMuscleGroupsLabel": "Cobertura de força",
+  "@kleosMetricMuscleGroupsLabel": { "description": "Kleos KPI tile: muscle groups with PR data" },
+  "kleosMetricMuscleGroupsValue": "{count,plural, =1{1 grupo com PR} other{{count} grupos com PR}}",
+  "@kleosMetricMuscleGroupsValue": {
+    "description": "Kleos KPI value for muscle groups covered",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "kleosWeeklyRhythmTitle": "Ritmo desta semana",
+  "@kleosWeeklyRhythmTitle": { "description": "Title for weekly dot progress on Kleos" },
+  "kleosWeeklyTargetMet": "Meta semanal cumprida — mantém o ritmo.",
+  "@kleosWeeklyTargetMet": { "description": "Positive note when weekly target is met" },
+  "kleosOpenExerciseHint": "Ver exercício",
+  "@kleosOpenExerciseHint": { "description": "Tap hint on muscle PR card" },
+  "kleosLinkFullPrListHint": "Lista completa com todos os recordes estimados.",
+  "@kleosLinkFullPrListHint": { "description": "Subtitle for Kleos PR list link" },
+  "kleosLinkWeeklyVolumeHint": "Gráfico de séries de trabalho por grupo muscular.",
+  "@kleosLinkWeeklyVolumeHint": { "description": "Subtitle for Kleos volume trend link" },
+  "kleosSectionSnapshotTitle": "Resumo",
+  "@kleosSectionSnapshotTitle": {
+    "description": "Objective facts heading before streaks"
+  },
+  "kleosObjectiveSessions": "{count,plural, =0{Nenhum treino concluído ainda} =1{1 treino concluído} other{{count} treinos concluídos}}",
+  "@kleosObjectiveSessions": {
+    "description": "Kleos snapshot: finished sessions",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "kleosObjectivePrs": "{count,plural, =0{Nenhum PR estimado nos exercícios} =1{1 PR estimado nos exercícios} other{{count} PRs estimados nos exercícios}}",
+  "@kleosObjectivePrs": {
+    "description": "Kleos snapshot: exercises with computed PR",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "kleosObjectiveWeek": "Esta semana: {current} de {target}",
+  "@kleosObjectiveWeek": {
+    "description": "Kleos snapshot: weekly session progress vs target",
+    "placeholders": {
+      "current": { "type": "int" },
+      "target": { "type": "int" }
+    }
+  },
+  "kleosMusclePickerLabel": "Grupo muscular",
+  "@kleosMusclePickerLabel": {
+    "description": "Dropdown label to pick muscle for PR preview"
+  },
+  "kleosSectionStrengthByMuscle": "Força por grupo muscular",
+  "@kleosSectionStrengthByMuscle": {
+    "description": "Kleos PR leaderboard section title"
+  },
+  "kleosSectionStrengthByMuscleHint": "Escolhe o grupo muscular para ver o teu melhor 1RM estimado e em que exercício ocorreu.",
+  "@kleosSectionStrengthByMuscleHint": {
+    "description": "Subtitle for muscle PR leaderboard"
+  },
+  "kleosMuscleEstimated1rmValue": "~{value} kg",
+  "@kleosMuscleEstimated1rmValue": {
+    "description": "Displayed estimated best 1RM for leader row",
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "kleosMuscleEstimated1rmLegend": "1RM estim.",
+  "@kleosMuscleEstimated1rmLegend": {
+    "description": "Short legend below estimated 1RM value"
+  },
+  "kleosRelatedTitle": "Aprofundar",
+  "@kleosRelatedTitle": {
+    "description": "Heading above optional deep-report links from Kleos"
+  },
+  "kleosLinkFullPrList": "Todos os recordes pessoais",
+  "@kleosLinkFullPrList": { "description": "Kleos link to full PR screen" },
+  "kleosLinkWeeklyVolume": "Volume semanal (gráfico)",
+  "@kleosLinkWeeklyVolume": { "description": "Kleos link to volume trend chart" },
+  "kleosSectionConsistency": "Consistência",
+  "@kleosSectionConsistency": { "description": "Kleos: streaks + weekly rhythm section" },
+  "kleosSectionConsistencyHint": "Sequências de ciclo, meta semanal e ritmo atual.",
+  "@kleosSectionConsistencyHint": { "description": "Subtitle for Kleos consistency" },
+  "kleosConsistencyPlaceholder": "Carrega ou completa o teu perfil para ver sequências completas.",
+  "@kleosConsistencyPlaceholder": {
+    "description": "When profile is unavailable on Kleos"
+  },
+  "kleosEvolutionSectionTitle": "Última evolução",
+  "@kleosEvolutionSectionTitle": { "description": "Kleos: compact recent workout comparison" },
+  "kleosEvolutionSectionHint": "Últimas duas sessões do mesmo modelo: volume e tendência.",
+  "@kleosEvolutionSectionHint": { "description": "Subtitle Kleos evolution" },
+  "kleosStrengthEmpty": "Ainda não dá para mostrar líderes por grupo muscular neste formato. Quando os recordes forem inferidos nos treinos, aparecem aqui.",
+  "@kleosStrengthEmpty": {
+    "description": "Fallback when Kleos leaderboard cannot be populated"
+  },
+  "kleosNoPrDataYet": "Ainda não há PRs estimados. Regista cargas nos treinos para ver o melhor 1RM por grupo aqui.",
+  "@kleosNoPrDataYet": {
+    "description": "Kleos muscle section when allExercisePRs is empty"
+  },
+  "kleosPrCountInMuscle": "{count} PRs",
+  "@kleosPrCountInMuscle": {
+    "description": "PR count label beside muscle group on Kleos",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "kleosEmptyTitle": "Sem dados suficientes ainda",
+  "@kleosEmptyTitle": {
+    "description": "Headline when there is nothing meaningful to display on Kleos"
+  },
+  "kleosEmptyBody": "Completa pelo menos algumas sessões para ver grupos musculares, recordes estimados e consistência.",
+  "@kleosEmptyBody": {
+    "description": "Body when Kleos has no substantive training-derived content"
+  },
   "profileHeroNamePlaceholder": "O teu nome",
   "@profileHeroNamePlaceholder": { "description": "Shown when profile name is empty on profile hub" },
   "profileHeroSubtitleIncomplete": "Definir objetivo e nível em Objetivos",

@@ -14,3 +14,7 @@ This folder groups module-specific documentation.
 ## Diet
 
 - [Diet Module Overview](./diet/README.md)
+
+## Kleos
+
+- [Kleos (Gamification)](./kleos.md)

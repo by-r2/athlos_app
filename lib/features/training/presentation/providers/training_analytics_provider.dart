@@ -69,6 +69,24 @@ Future<TrainingHomeAnalytics> trainingHomeAnalytics(Ref ref) async {
   );
 }
 
+/// Finished workout sessions whose [WorkoutExecution.finishedAt] falls in the
+/// last 7 rolling days (local time).
+@riverpod
+Future<int> finishedSessionsLast7Days(Ref ref) async {
+  final execRepo = ref.watch(workoutExecutionRepositoryProvider);
+  final allExecutionsResult = await execRepo.getAll();
+  final allExecutions = allExecutionsResult.getOrThrow();
+  final cutoff = DateTime.now().subtract(const Duration(days: 7));
+  return allExecutions
+      .where(
+        (e) =>
+            e.isFinished &&
+            e.finishedAt != null &&
+            !e.finishedAt!.isBefore(cutoff),
+      )
+      .length;
+}
+
 /// Last two finished executions with volume for a given workout (evolution).
 @riverpod
 Future<ExecutionComparison?> lastVsPreviousComparison(

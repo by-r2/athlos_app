@@ -38,6 +38,7 @@ import '../providers/profile_notifier.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
 import '../widgets/owned_equipment_list.dart';
 import '../widgets/body_metrics_dashboard_card.dart';
+import '../../../kleos/presentation/screens/kleos_screen.dart';
 import 'profile_overview_edit_screen.dart';
 import 'profile_training_edit_screen.dart';
 
@@ -230,6 +231,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         title: l10n.profileShortcutMetrics,
                         body: (_, l10n) => _buildMetricsDetailCategory(l10n),
                       ),
+                    ),
+                    _ProfileShortcutSpec(
+                      icon: Icons.emoji_events_outlined,
+                      label: l10n.profileShortcutKleos,
+                      onTap: () => KleosScreen.open(context),
                     ),
                     _ProfileShortcutSpec(
                       icon: Icons.inventory_2_outlined,
