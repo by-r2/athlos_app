@@ -32,7 +32,9 @@ import '../../../../core/services/account_data_isolation_service.dart';
 import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../../../core/sync/sync_trigger.dart';
+import '../../../../core/sync/sync_issue.dart';
 import '../providers/conflict_center_provider.dart';
+import '../providers/sync_issue_center_provider.dart';
 import '../providers/profile_notifier.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
 import '../widgets/aesthetic_selector.dart';
@@ -435,9 +437,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildDataCategory(AppLocalizations l10n) {
     final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
+    final syncIssuesAsync = ref.watch(syncIssueCenterProvider);
     final authAsync = ref.watch(authProvider);
     final authUser = authAsync.value;
-    final isDataLoading = authAsync.isLoading || conflictCenterAsync.isLoading;
+    final isDataLoading =
+        authAsync.isLoading || conflictCenterAsync.isLoading || syncIssuesAsync.isLoading;
 
     return Skeletonizer(
       enabled: isDataLoading,
@@ -519,6 +523,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: l10n.conflictCenterTitle,
                       subtitle: l10n.tapToOpen,
                       onTap: () => context.push(RoutePaths.profileConflicts),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Gap(AthlosSpacing.md),
+            _SectionHeader(title: l10n.profileDataSyncIssuesSectionTitle),
+            const Gap(AthlosSpacing.xs),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AthlosSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SyncIssueStatusBanner(syncIssuesAsync: syncIssuesAsync),
+                    const Gap(AthlosSpacing.md),
+                    _ProfileDataNavRow(
+                      icon: Icons.sync_problem_outlined,
+                      title: l10n.syncIssueCenterTitle,
+                      subtitle: l10n.tapToOpen,
+                      onTap: () => context.push(RoutePaths.profileSyncIssues),
                     ),
                   ],
                 ),
@@ -1066,6 +1091,55 @@ class _ProfileConflictStatusBanner extends StatelessWidget {
   }
 }
 
+class _SyncIssueStatusBanner extends StatelessWidget {
+  const _SyncIssueStatusBanner({required this.syncIssuesAsync});
+
+  final AsyncValue<List<SyncIssue>> syncIssuesAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
+
+    return syncIssuesAsync.when(
+      loading: () => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        foregroundColor: colorScheme.onSurfaceVariant,
+        icon: Icons.hourglass_empty_outlined,
+        message: l10n.profileDataSyncIssueSummaryLoading,
+      ),
+      error: (_, _) => _ProfileConflictStatusSurface(
+        backgroundColor: colorScheme.errorContainer,
+        foregroundColor: colorScheme.onErrorContainer,
+        icon: Icons.error_outline,
+        message: l10n.profileDataSyncIssueSummaryError,
+      ),
+      data: (issues) {
+        final count = issues.length;
+        if (count == 0) {
+          return _ProfileConflictStatusSurface(
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            foregroundColor: colorScheme.onSurfaceVariant,
+            iconColor: colorScheme.primary,
+            icon: Icons.check_circle_outline,
+            message: l10n.profileDataSyncIssueStatusClear,
+          );
+        }
+
+        final warningStyle = customColors.duplicateWarningCallout(colorScheme);
+        return _ProfileConflictStatusSurface(
+          backgroundColor: warningStyle.background,
+          foregroundColor: warningStyle.foreground,
+          iconColor: warningStyle.icon,
+          icon: Icons.sync_problem_outlined,
+          message: l10n.profileDataSyncIssueSummaryCount(count),
+        );
+      },
+    );
+  }
+}
+
 class _ProfileConflictStatusSurface extends StatelessWidget {
   const _ProfileConflictStatusSurface({
     required this.backgroundColor,
@@ -1408,7 +1482,7 @@ class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
 
     setState(() => _isRetrying = true);
     try {
-      await ref.read(userDataSyncCoordinatorProvider).retryPendingUserDataSync();
+      await ref.read(userDataSyncCoordinatorProvider).synchronizeManual();
       if (!mounted) return;
 
       final status = await ref.read(userCloudSyncStatusProvider.future);

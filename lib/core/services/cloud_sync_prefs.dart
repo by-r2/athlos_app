@@ -8,6 +8,9 @@ part 'cloud_sync_prefs.g.dart';
 const _lastSuccessKey = 'cloud_sync_last_success_at';
 const _lastAttemptKey = 'cloud_sync_last_attempt_at';
 
+/// Minimum interval between automatic full syncs (Hub scheduled sync).
+const scheduledSyncInterval = Duration(hours: 24);
+
 /// Persists user-visible cloud sync timestamps (device-local).
 class CloudSyncPrefs {
   const CloudSyncPrefs(this._prefs);
@@ -17,6 +20,13 @@ class CloudSyncPrefs {
   DateTime? get lastSuccessAt => _parse(_prefs.getString(_lastSuccessKey));
 
   DateTime? get lastAttemptAt => _parse(_prefs.getString(_lastAttemptKey));
+
+  /// True when no successful sync yet or last success is older than [scheduledSyncInterval].
+  bool get isScheduledSyncDue {
+    final last = lastSuccessAt;
+    if (last == null) return true;
+    return DateTime.now().toUtc().difference(last) >= scheduledSyncInterval;
+  }
 
   Future<void> recordAttempt() => _write(_lastAttemptKey, DateTime.now().toUtc());
 

@@ -122,6 +122,64 @@ void main() {
       expect(failure.exception, isA<NotFoundException>());
     });
 
+    test(
+      'update with same workout exercise ids succeeds when renaming workout',
+      () async {
+        final workoutId = generateUuidV4();
+        final weId = generateUuidV4();
+
+        await repository.create(
+          domain.Workout(
+            id: workoutId,
+            name: 'Original Name',
+            createdAt: DateTime.now(),
+          ),
+          [
+            domain.WorkoutExercise(
+              id: weId,
+              workoutId: workoutId,
+              exerciseId: 'ex-keep',
+              sortOrder: 0,
+              sets: 3,
+              minReps: 8,
+              maxReps: 10,
+              restSeconds: 60,
+            ),
+          ],
+        );
+
+        final updateResult = await repository.update(
+          domain.Workout(
+            id: workoutId,
+            name: 'Renamed',
+            createdAt: DateTime.now(),
+          ),
+          [
+            domain.WorkoutExercise(
+              id: weId,
+              workoutId: workoutId,
+              exerciseId: 'ex-keep',
+              sortOrder: 0,
+              sets: 3,
+              minReps: 8,
+              maxReps: 10,
+              restSeconds: 60,
+            ),
+          ],
+        );
+        expect(updateResult.isSuccess, isTrue);
+
+        final workout = (await repository.getById(workoutId)).getOrThrow();
+        expect(workout!.name, 'Renamed');
+
+        final exercises = (await repository.getExercises(
+          workoutId,
+        )).getOrThrow();
+        expect(exercises.length, 1);
+        expect(exercises.single.id, weId);
+      },
+    );
+
     test('duplicate e reorder funcionam', () async {
       final id1 = (await repository.create(
         domain.Workout(
@@ -159,6 +217,69 @@ void main() {
         id1,
         duplicatedId,
       ]);
+    });
+
+    test('create generates UUIDs when workout and row ids are empty', () async {
+      final result = await repository.create(
+        domain.Workout(id: '', name: 'New', createdAt: DateTime.now()),
+        [
+          domain.WorkoutExercise(
+            id: '',
+            workoutId: '',
+            exerciseId: 'ex-catalog',
+            sortOrder: 0,
+            sets: 2,
+            minReps: 10,
+            maxReps: 10,
+            restSeconds: 60,
+          ),
+        ],
+      );
+
+      expect(result.isSuccess, isTrue);
+      final workoutId = result.getOrThrow();
+      expect(workoutId, isNotEmpty);
+      final exercises =
+          (await repository.getExercises(workoutId)).getOrThrow();
+      expect(exercises.length, 1);
+      expect(exercises.single.id, isNotEmpty);
+      expect(exercises.single.workoutId, workoutId);
+      expect(exercises.single.exerciseId, 'ex-catalog');
+    });
+
+    test('create fails ValidationException when exercise id is empty', () async {
+      final result = await repository.create(
+        domain.Workout(
+          id: generateUuidV4(),
+          name: 'X',
+          createdAt: DateTime.now(),
+        ),
+        [
+          domain.WorkoutExercise(
+            id: generateUuidV4(),
+            workoutId: generateUuidV4(),
+            exerciseId: '   ',
+            sortOrder: 0,
+            sets: 1,
+            minReps: 1,
+            maxReps: 1,
+            restSeconds: 0,
+          ),
+        ],
+      );
+      expect(result.isFailure, isTrue);
+      final failure = result as Failure<String>;
+      expect(failure.exception, isA<ValidationException>());
+    });
+
+    test('update fails ValidationException when workout id is empty', () async {
+      final result = await repository.update(
+        domain.Workout(id: '', name: 'X', createdAt: DateTime.now()),
+        [],
+      );
+      expect(result.isFailure, isTrue);
+      final failure = result as Failure<void>;
+      expect(failure.exception, isA<ValidationException>());
     });
   });
 }

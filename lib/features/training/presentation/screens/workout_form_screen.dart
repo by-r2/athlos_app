@@ -62,6 +62,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       if (exercise != null) {
         _entries.add(
           WorkoutExerciseEntry(
+            workoutExerciseRowId: we.id.isEmpty ? null : we.id,
             exercise: exercise,
             sets: we.sets,
             minReps: we.minReps,
@@ -170,7 +171,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           .entries
           .map(
             (e) => WorkoutExercise(
-              id: '',
+              id: e.value.workoutExerciseRowId ?? '',
               workoutId: widget.workoutId ?? '',
               exerciseId: e.value.exercise.id,
               sortOrder: e.key,

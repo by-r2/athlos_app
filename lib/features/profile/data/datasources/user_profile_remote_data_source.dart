@@ -71,30 +71,45 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     UserProfile profile, {
     required String userId,
     required DateTime syncedAt,
-  }) => <String, dynamic>{
-    'id': userId,
-    'name': profile.name,
-    'height': profile.height,
-    'age': profile.age,
-    'goal': profile.goal?.name,
-    'body_aesthetic': profile.bodyAesthetic?.name,
-    'training_style': profile.trainingStyle?.name,
-    'experience_level': profile.experienceLevel?.name,
-    'gender': profile.gender?.name,
-    'training_frequency': profile.trainingFrequency,
-    'available_workout_minutes': profile.availableWorkoutMinutes,
-    'trains_at_gym': profile.trainsAtGym,
-    'injuries': profile.injuries,
-    'bio': profile.bio,
-    'owned_equipment_names': profile.ownedEquipmentNames,
-    'last_active_module': profile.lastActiveModule.name,
-    'current_cycle_streak': profile.currentCycleStreak,
-    'best_cycle_streak': profile.bestCycleStreak,
-    'current_frequency_streak': profile.currentFrequencyStreak,
-    'best_frequency_streak': profile.bestFrequencyStreak,
-    'training_streaks_schema': profile.trainingStreaksSchema,
-    'updated_at': syncedAt.toIso8601String(),
-  };
+  }) {
+    // IMPORTANT:
+    // Do NOT send nullable fields as `null` because Postgres UPSERT would
+    // overwrite existing remote values. Omitting keys preserves remote data.
+    final json = <String, dynamic>{
+      'id': userId,
+      'last_active_module': profile.lastActiveModule.name,
+      'current_cycle_streak': profile.currentCycleStreak,
+      'best_cycle_streak': profile.bestCycleStreak,
+      'current_frequency_streak': profile.currentFrequencyStreak,
+      'best_frequency_streak': profile.bestFrequencyStreak,
+      'training_streaks_schema': profile.trainingStreaksSchema,
+      'updated_at': syncedAt.toIso8601String(),
+    };
+
+    void putIfNotNull(String key, Object? value) {
+      if (value != null) json[key] = value;
+    }
+
+    putIfNotNull('name', profile.name);
+    putIfNotNull('height', profile.height);
+    putIfNotNull('age', profile.age);
+    putIfNotNull('goal', profile.goal?.name);
+    putIfNotNull('body_aesthetic', profile.bodyAesthetic?.name);
+    putIfNotNull('training_style', profile.trainingStyle?.name);
+    putIfNotNull('experience_level', profile.experienceLevel?.name);
+    putIfNotNull('gender', profile.gender?.name);
+    putIfNotNull('training_frequency', profile.trainingFrequency);
+    putIfNotNull('available_workout_minutes', profile.availableWorkoutMinutes);
+    putIfNotNull('trains_at_gym', profile.trainsAtGym);
+    putIfNotNull('injuries', profile.injuries);
+    putIfNotNull('bio', profile.bio);
+
+    if (profile.ownedEquipmentNames.isNotEmpty) {
+      json['owned_equipment_names'] = profile.ownedEquipmentNames;
+    }
+
+    return json;
+  }
 
   UserProfile _fromJson(Map<String, dynamic> row) => UserProfile(
     id: row['id'] as String,
@@ -144,9 +159,6 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     if (value is num) return value.toDouble();
     return null;
   }
-
-  DateTime? _asDateTime(Object? value) =>
-      value is String ? DateTime.tryParse(value) : null;
 
   List<String> _asStringList(Object? value) {
     if (value is! List) return const [];

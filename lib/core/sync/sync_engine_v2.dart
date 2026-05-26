@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sync_adapter.dart';
+import 'sync_issue_prefs.dart';
 
 /// Single-pass sync engine: push dirty → push tombstones → pull newer.
 ///
@@ -11,11 +12,14 @@ class SyncEngineV2 {
   SyncEngineV2({
     required List<SyncAdapter<dynamic>> adapters,
     required SharedPreferences prefs,
+    SyncIssuePrefs? issuePrefs,
   })  : _adapters = adapters,
-        _prefs = prefs;
+        _prefs = prefs,
+        _issuePrefs = issuePrefs;
 
   final List<SyncAdapter<dynamic>> _adapters;
   final SharedPreferences _prefs;
+  final SyncIssuePrefs? _issuePrefs;
 
   Future<void> synchronize() async {
     for (final adapter in _adapters) {
@@ -54,6 +58,12 @@ class SyncEngineV2 {
       await _setLastPullAt(adapter.tableName, DateTime.now());
     } on Exception catch (e) {
       debugPrint('[SyncV2] ${adapter.tableName} failed: $e');
+      // Best-effort issue recording (must never crash sync).
+      try {
+        await _issuePrefs?.add(tableName: adapter.tableName, message: '$e');
+      } on Exception {
+        // ignore
+      }
     }
   }
 

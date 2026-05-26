@@ -45,7 +45,6 @@ WorkoutRepository workoutRepository(Ref ref) => WorkoutRepositoryImpl(
 WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>
     WorkoutExecutionRepositoryImpl(
       ref.watch(workoutExecutionDaoProvider),
-      ref.watch(userOwnedSyncRunnerProvider),
       _requireUserId(ref),
     );
 

@@ -11,6 +11,7 @@ import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/conflict_center_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_setup_screen.dart';
+import '../../features/profile/presentation/screens/sync_issue_center_screen.dart';
 import '../../features/training/presentation/screens/execution_detail_screen.dart';
 import '../../features/training/presentation/screens/exercise_detail_screen.dart';
 import '../../features/training/presentation/screens/exercise_load_chart_screen.dart';
@@ -129,6 +130,13 @@ GoRouter appRouter(Ref ref) {
         path: RoutePaths.profileConflicts,
         pageBuilder: (context, state) =>
             AthlosRouterPages.fadeThrough(state, const ConflictCenterScreen()),
+      ),
+      GoRoute(
+        path: RoutePaths.profileSyncIssues,
+        pageBuilder: (context, state) => AthlosRouterPages.fadeThrough(
+          state,
+          const SyncIssueCenterScreen(),
+        ),
       ),
 
       // Training module — shell with bottom navigation

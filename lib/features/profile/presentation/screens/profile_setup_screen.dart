@@ -5,15 +5,22 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
+import '../../../../core/providers/network_connectivity_provider.dart';
+import '../../../../core/router/route_paths.dart';
+import '../../../../core/services/supabase_config.dart';
 import '../../../../core/theme/athlos_durations.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
-import '../../../../core/router/route_paths.dart';
-import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
-import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../data/repositories/profile_providers.dart';
+import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
 import '../../domain/enums/gender.dart';
@@ -32,6 +39,23 @@ double? _tryParseDecimal(String value) {
   final normalized = value.trim().replaceAll(',', '.');
   if (normalized.isEmpty) return null;
   return double.tryParse(normalized);
+}
+
+bool profileSetupLooksFilled(UserProfile? profile) {
+  if (profile == null) return false;
+  if (profile.name != null && profile.name!.trim().isNotEmpty) return true;
+  if (profile.age != null || profile.height != null) return true;
+  if (profile.goal != null) return true;
+  if (profile.bodyAesthetic != null || profile.trainingStyle != null) return true;
+  if (profile.experienceLevel != null || profile.gender != null) return true;
+  if (profile.trainingFrequency != null ||
+      profile.availableWorkoutMinutes != null ||
+      profile.trainsAtGym != null) {
+    return true;
+  }
+  if ((profile.injuries ?? '').trim().isNotEmpty) return true;
+  if ((profile.bio ?? '').trim().isNotEmpty) return true;
+  return profile.ownedEquipmentNames.isNotEmpty;
 }
 
 /// Chat-style profile setup screen shown on first launch.
@@ -112,7 +136,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startConversation());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final recovered = await _maybeOfferRemoteProfileRecovery();
+      if (!mounted || recovered) return;
+      _startConversation();
+    });
   }
 
   @override
@@ -124,6 +152,104 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     _heightCtrl.dispose();
     _ageCtrl.dispose();
     super.dispose();
+  }
+
+  Future<bool> _maybeOfferRemoteProfileRecovery() async {
+    final uid = ref.read(authProvider).value?.id;
+    if (uid == null || !isSupabaseConfigured) return false;
+
+    await waitForNetworkAvailableForSync(
+      ref,
+      timeout: const Duration(seconds: 6),
+    );
+
+    final repo = ref.read(userProfileRepositoryProvider);
+    final localProfile = (await repo.get()).getOrThrow();
+    if (profileSetupLooksFilled(localProfile)) return false;
+
+    final remoteFetched = switch (await repo.fetchRemoteSnapshot()) {
+      Success(:final value) => value,
+      Failure() => null,
+    };
+    if (remoteFetched == null || !profileSetupLooksFilled(remoteFetched)) {
+      return false;
+    }
+
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showAthlosDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.profileSetupRemoteProfileTitle),
+        content: Text(l10n.profileSetupRemoteProfileBody),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(ctx, 'continue_setup'),
+                child: Text(l10n.profileSetupRemoteProfileContinueAction),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(ctx, 'load_remote'),
+                child: Text(l10n.profileSetupRemoteProfileLoadAction),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (choice != 'load_remote' || !mounted) return false;
+
+    switch (await repo.restoreFromRemote(remoteFetched)) {
+      case Failure():
+        return false;
+      case Success():
+        break;
+    }
+    ref.invalidate(profileProvider);
+    ref.read(hasProfileProvider.notifier).markAsCreated();
+    if (!mounted) return true;
+    context.go(RoutePaths.hub);
+    return true;
+  }
+
+  Future<void> _onSkipAppBarTap() async {
+    if (_isSaving) return;
+    final auth = ref.read(authProvider).value;
+    final l10n = AppLocalizations.of(context)!;
+    if (auth != null && isSupabaseConfigured) {
+      final confirmed = await showAthlosDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.profileSetupSkipCloudTitle),
+          content: Text(l10n.profileSetupSkipCloudBody),
+          actions: [
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.profileSetupSkipCloudConfirmAction),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    await _persist();
   }
 
   void _startConversation() {
@@ -622,7 +748,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: _isSaving ? null : _persist,
+              onPressed: _isSaving ? null : () => _onSkipAppBarTap(),
               child: Text(l10n.skip),
             ),
           ],

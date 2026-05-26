@@ -14,6 +14,7 @@ import '../database/app_database.dart';
 import '../providers/last_module_provider.dart';
 import '../services/supabase_config.dart';
 import 'sync_engine_v2.dart';
+import 'sync_issue_prefs.dart';
 import 'user_owned_sync_runner.dart';
 
 part 'sync_providers.g.dart';
@@ -68,6 +69,7 @@ SyncEngineV2? syncEngineV2(Ref ref) {
       ),
     ],
     prefs: ref.watch(sharedPreferencesProvider),
+    issuePrefs: SyncIssuePrefs(ref.watch(sharedPreferencesProvider)),
   );
 }
 

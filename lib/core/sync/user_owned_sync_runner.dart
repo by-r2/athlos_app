@@ -1,31 +1,29 @@
+import '../../features/training/data/sync/training_sync_table_names.dart';
 import 'sync_engine_v2.dart';
 import 'sync_trigger.dart';
 
-/// Wraps [SyncEngineV2] with debouncing for resume triggers.
+/// Wraps [SyncEngineV2] for authenticated user-owned data.
 class UserOwnedSyncRunner {
   UserOwnedSyncRunner(this._engine);
 
   final SyncEngineV2? _engine;
-  DateTime? _lastResumeSyncAt;
 
-  static const Duration resumeDebounce = Duration(seconds: 30);
-
-  UserOwnedSyncRunner.disabled() : _engine = null, _lastResumeSyncAt = null;
+  UserOwnedSyncRunner.disabled() : _engine = null;
 
   Future<void> synchronizeAuthenticatedUserData({
     required SyncTrigger trigger,
   }) async {
     final engine = _engine;
     if (engine == null) return;
-
-    if (trigger == SyncTrigger.resume) {
-      final last = _lastResumeSyncAt;
-      final now = DateTime.now();
-      if (last != null && now.difference(last) < resumeDebounce) return;
-      _lastResumeSyncAt = now;
-    }
-
     await engine.synchronize();
+  }
+
+  /// Push/pull only workout execution tables (post-workout or cancel).
+  Future<void> syncWorkoutSessionTables() async {
+    final engine = _engine;
+    if (engine == null) return;
+    await engine.synchronizeTable(TrainingSyncTableNames.workoutExecutions);
+    await engine.synchronizeTable(TrainingSyncTableNames.executionSets);
   }
 
   Future<void> synchronizeTable(String tableName) async {

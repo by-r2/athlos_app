@@ -23,6 +23,66 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     await _syncRunner.synchronizeTable(TrainingSyncTableNames.workoutExercises);
   }
 
+  /// Ensures Postgres-safe UUIDs: empty workout / row ids become v4 UUIDs,
+  /// and every exercise row references the persisted workout id.
+  Result<
+      ({
+        domain.Workout workout,
+        List<domain.WorkoutExercise> exercises,
+      })> _normalizeWorkoutPayload(
+    domain.Workout workout,
+    List<domain.WorkoutExercise> exercises, {
+    required bool forCreate,
+  }) {
+    for (final e in exercises) {
+      if (e.exerciseId.trim().isEmpty) {
+        return const Failure(
+          ValidationException(
+            'Each workout exercise must reference a catalog exercise',
+          ),
+        );
+      }
+    }
+
+    late final domain.Workout resolvedWorkout;
+    if (forCreate) {
+      final workoutId =
+          workout.id.trim().isEmpty ? generateUuidV4() : workout.id;
+      resolvedWorkout = workout.copyWith(id: workoutId);
+    } else {
+      if (workout.id.trim().isEmpty) {
+        return const Failure(
+          ValidationException('Workout id required for update'),
+        );
+      }
+      resolvedWorkout = workout;
+    }
+
+    final workoutId = resolvedWorkout.id;
+    final resolvedExercises = exercises
+        .map(
+          (e) => domain.WorkoutExercise(
+            id: e.id.trim().isEmpty ? generateUuidV4() : e.id,
+            workoutId: workoutId,
+            exerciseId: e.exerciseId,
+            sortOrder: e.sortOrder,
+            sets: e.sets,
+            minReps: e.minReps,
+            maxReps: e.maxReps,
+            isAmrap: e.isAmrap,
+            restSeconds: e.restSeconds,
+            durationSeconds: e.durationSeconds,
+            groupId: e.groupId,
+            isUnilateral: e.isUnilateral,
+            loadModeOverride: e.loadModeOverride,
+            notes: e.notes,
+          ),
+        )
+        .toList();
+
+    return Success((workout: resolvedWorkout, exercises: resolvedExercises));
+  }
+
   @override
   Future<Result<List<domain.Workout>>> getAll() async {
     try {
@@ -68,21 +128,31 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     domain.Workout workout,
     List<domain.WorkoutExercise> exercises,
   ) async {
+    final ({
+      domain.Workout workout,
+      List<domain.WorkoutExercise> exercises,
+    }) normalized;
+    switch (_normalizeWorkoutPayload(workout, exercises, forCreate: true)) {
+      case Failure(:final exception):
+        return Failure(exception);
+      case Success(:final value):
+        normalized = value;
+    }
     try {
       await _dao.create(
         WorkoutsCompanion.insert(
-          id: workout.id,
+          id: normalized.workout.id,
           userId: _userId,
-          name: workout.name,
-          description: Value(workout.description),
+          name: normalized.workout.name,
+          description: Value(normalized.workout.description),
         ),
       );
       await _dao.setExercises(
-        workout.id,
-        exercises.map(_workoutExerciseToCompanion).toList(),
+        normalized.workout.id,
+        normalized.exercises.map(_workoutExerciseToCompanion).toList(),
       );
       await _syncWorkoutTables();
-      return Success(workout.id);
+      return Success(normalized.workout.id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create workout: $e'));
     }
@@ -93,17 +163,27 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     domain.Workout workout,
     List<domain.WorkoutExercise> exercises,
   ) async {
+    final ({
+      domain.Workout workout,
+      List<domain.WorkoutExercise> exercises,
+    }) normalized;
+    switch (_normalizeWorkoutPayload(workout, exercises, forCreate: false)) {
+      case Failure(:final exception):
+        return Failure(exception);
+      case Success(:final value):
+        normalized = value;
+    }
     try {
       await _dao.updateById(
-        workout.id,
+        normalized.workout.id,
         WorkoutsCompanion(
-          name: Value(workout.name),
-          description: Value(workout.description),
+          name: Value(normalized.workout.name),
+          description: Value(normalized.workout.description),
         ),
       );
       await _dao.setExercises(
-        workout.id,
-        exercises.map(_workoutExerciseToCompanion).toList(),
+        normalized.workout.id,
+        normalized.exercises.map(_workoutExerciseToCompanion).toList(),
       );
       await _syncWorkoutTables();
       return const Success(null);

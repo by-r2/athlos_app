@@ -18,6 +18,8 @@ Color supersetColorFor(int groupIndex, ColorScheme colorScheme) =>
 
 /// Configuration of an exercise within the workout form (mutable in-memory).
 class WorkoutExerciseEntry {
+  /// Stable `workout_exercises.id` when editing an existing row; null for new rows.
+  final String? workoutExerciseRowId;
   final Exercise exercise;
   int sets;
   int? minReps;
@@ -31,6 +33,7 @@ class WorkoutExerciseEntry {
   String? notes;
 
   WorkoutExerciseEntry({
+    this.workoutExerciseRowId,
     required this.exercise,
     this.sets = 3,
     this.minReps = 12,

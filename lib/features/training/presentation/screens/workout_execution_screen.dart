@@ -36,7 +36,9 @@ import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_notifier.dart';
+import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_share_summary_gate.dart';
+import '../widgets/ghost_exercise_recovery_panel.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
 enum _ViewMode {
@@ -155,12 +157,55 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       workoutExercisesProvider(widget.workoutId),
     );
     final execState = ref.watch(activeExecutionProvider);
+    final exerciseCatalogAsync = ref.watch(exerciseListProvider);
+    final danglingAsync = ref.watch(danglingExecutionProvider);
     final timerState = ref.watch(restTimerProvider);
     final cardioState = ref.watch(cardioTimerProvider);
-    ref.watch(exerciseListProvider);
     ref.listen<RestTimerState>(restTimerProvider, (previous, next) {
       _syncRestTimerNotification(previous: previous, next: next);
     });
+
+    // If the workout references exercises that no longer exist in the local
+    // catalog, we must stop and offer a recovery path instead of crashing.
+    if (execState != null && exerciseCatalogAsync is AsyncData) {
+      final allExercises = exerciseCatalogAsync.value ?? const <Exercise>[];
+      final missingExerciseIds = execState.exercises
+          .map((e) => e.exerciseId)
+          .where((id) => !allExercises.any((e) => e.id == id))
+          .toSet()
+          .toList()
+        ..sort();
+
+      if (missingExerciseIds.isNotEmpty) {
+        final l10n = AppLocalizations.of(context)!;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.ghostExerciseRecoveryTitle),
+            leading: IconButton(
+              tooltip: l10n.back,
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
+          ),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AthlosSpacing.md),
+              child: GhostExerciseRecoveryPanel(
+                missingExerciseIds: missingExerciseIds,
+                workoutId: widget.workoutId,
+                onResolved: () => setState(() {}),
+                onCancelExecution: () async {
+                  await ref
+                      .read(activeExecutionProvider.notifier)
+                      .cancelExecution();
+                  if (context.mounted) context.pop();
+                },
+              ),
+            ),
+          ),
+        );
+      }
+    }
 
     if (!_isInitialized &&
         exercisesAsync is AsyncData<List<WorkoutExercise>> &&
@@ -171,6 +216,26 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         final l10n = AppLocalizations.of(context)!;
         final router = GoRouter.of(context);
         try {
+          final dangling = danglingAsync.value;
+          if (dangling != null && dangling.workoutId == widget.workoutId) {
+            final programRepo = ref.read(programRepositoryProvider);
+            final activeProgram = (await programRepo.getActive()).getOrThrow();
+            final allExercises = ref.read(exerciseListProvider).value ?? [];
+            final isometricIds = {
+              for (final e in allExercises)
+                if (e.isIsometric) e.id,
+            };
+            await ref.read(activeExecutionProvider.notifier).resumeExecution(
+                  dangling.id,
+                  dangling.workoutId,
+                  exercisesAsync.value,
+                  programId: dangling.programId,
+                  defaultRestSeconds: activeProgram?.defaultRestSeconds ?? 0,
+                  isometricExerciseIds: isometricIds,
+                );
+            return;
+          }
+
           final programRepo = ref.read(programRepositoryProvider);
           final activeProgram = (await programRepo.getActive()).getOrThrow();
           if (activeProgram == null) throw Exception('No active program');
@@ -341,10 +406,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   String _exerciseName(String exerciseId) {
     final l10n = AppLocalizations.of(context)!;
     final allExercises = ref.read(exerciseListProvider).value;
-    final entity = allExercises?.firstWhere(
-      (e) => e.id == exerciseId,
-      orElse: () => throw StateError('Exercise $exerciseId not found'),
-    );
+    final entity = allExercises?.where((e) => e.id == exerciseId).firstOrNull;
     if (entity == null) return l10n.unknownExerciseId(exerciseId);
     return localizedExerciseName(
       entity.name,
@@ -356,20 +418,14 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   String _muscleGroupName(String exerciseId) {
     final l10n = AppLocalizations.of(context)!;
     final allExercises = ref.read(exerciseListProvider).value;
-    final entity = allExercises?.firstWhere(
-      (e) => e.id == exerciseId,
-      orElse: () => throw StateError('Exercise $exerciseId not found'),
-    );
+    final entity = allExercises?.where((e) => e.id == exerciseId).firstOrNull;
     if (entity == null) return '';
     return localizedMuscleGroupName(entity.muscleGroup, l10n);
   }
 
   Exercise? _exerciseEntity(String exerciseId) {
     final allExercises = ref.read(exerciseListProvider).value;
-    return allExercises?.firstWhere(
-      (e) => e.id == exerciseId,
-      orElse: () => throw StateError('Exercise $exerciseId not found'),
-    );
+    return allExercises?.where((e) => e.id == exerciseId).firstOrNull;
   }
 
   LoadMode _resolvedLoadModeFor(

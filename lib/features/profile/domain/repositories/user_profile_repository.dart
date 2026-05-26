@@ -13,4 +13,10 @@ abstract interface class UserProfileRepository {
 
   /// Pushes the local profile to the remote account when a session is active.
   Future<Result<void>> pushPendingLocalChanges();
+
+  /// Read-only snapshot from Supabase for the current session (no DB write).
+  Future<Result<UserProfile?>> fetchRemoteSnapshot();
+
+  /// Overwrites local cached profile with remote data without marking dirty.
+  Future<Result<void>> restoreFromRemote(UserProfile profile);
 }

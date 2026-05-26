@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/utils/uuid.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -41,8 +42,10 @@ class ProfileNotifier extends _$ProfileNotifier {
     String? bio,
   }) async {
     final repo = ref.read(userProfileRepositoryProvider);
+    final userId = ref.read(authProvider).value?.id;
+    final id = userId ?? generateUuidV4();
     final profile = UserProfile(
-      id: generateUuidV4(),
+      id: id,
       name: name,
       height: height,
       age: age,
@@ -91,7 +94,18 @@ class HasProfile extends _$HasProfile {
   /// Creates an empty profile (used when skipping setup) and marks as created.
   Future<void> createEmpty() async {
     final repo = ref.read(userProfileRepositoryProvider);
-    final emptyProfile = UserProfile(id: generateUuidV4());
+    final userId = ref.read(authProvider).value?.id;
+    if (userId == null) {
+      // Skip-only mode without auth (legacy/offline). Keep local-only.
+      final emptyProfile = UserProfile(id: generateUuidV4());
+      final result = await repo.create(emptyProfile);
+      result.getOrThrow();
+      state = const AsyncData(true);
+      return;
+    }
+
+    // When authenticated, always use the auth user id so pull/upsert stays stable.
+    final emptyProfile = UserProfile(id: userId);
     final result = await repo.create(emptyProfile);
     result.getOrThrow();
     state = const AsyncData(true);

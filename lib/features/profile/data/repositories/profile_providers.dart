@@ -14,6 +14,7 @@ UserProfileRepository userProfileRepository(Ref ref) =>
     UserProfileRepositoryImpl(
       ref.watch(userProfileDaoProvider),
       ref.watch(userOwnedSyncRunnerProvider),
+      remoteGateway: ref.watch(userProfileRemoteDataSourceProvider),
     );
 
 @riverpod

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/last_module_provider.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -34,11 +37,24 @@ import '../widgets/module_card.dart';
 ///
 /// 6. **Widget extraction** — break complex builds into smaller methods or
 ///    separate widget classes (like `ModuleCard`).
-class HubScreen extends ConsumerWidget {
+class HubScreen extends ConsumerStatefulWidget {
   const HubScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HubScreen> createState() => _HubScreenState();
+}
+
+class _HubScreenState extends ConsumerState<HubScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(ref.read(userDataSyncCoordinatorProvider).maybeRunScheduledSync());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // --- How to get localized strings ---
     final l10n = AppLocalizations.of(context)!;
 

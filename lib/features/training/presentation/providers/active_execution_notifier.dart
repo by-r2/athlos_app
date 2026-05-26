@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/deload_config.dart';
 import '../../domain/entities/execution_set.dart';
@@ -32,7 +34,18 @@ part 'active_execution_notifier.g.dart';
 @Riverpod(keepAlive: true)
 class ActiveExecution extends _$ActiveExecution {
   @override
-  ActiveExecutionState? build() => null;
+  ActiveExecutionState? build() {
+    ref.onDispose(() {
+      for (final t in _draftPersistTimers.values) {
+        t.cancel();
+      }
+      _draftPersistTimers.clear();
+    });
+    return null;
+  }
+
+  static const Duration _draftPersistDebounce = Duration(milliseconds: 600);
+  final Map<String, Timer> _draftPersistTimers = {};
 
   /// Start a new execution, creating the DB record and pre-populating sets
   /// from the workout template. Applies deload and progression adjustments.
@@ -194,6 +207,8 @@ class ActiveExecution extends _$ActiveExecution {
     state = current.copyWith(
       exerciseSets: {...current.exerciseSets, exerciseId: updated},
     );
+
+    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
   }
 
   /// Add a drop segment to a set (in-memory only, persisted on complete).
@@ -225,6 +240,8 @@ class ActiveExecution extends _$ActiveExecution {
     state = current.copyWith(
       exerciseSets: {...current.exerciseSets, exerciseId: updated},
     );
+
+    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
   }
 
   /// Remove a drop segment by index.
@@ -275,6 +292,119 @@ class ActiveExecution extends _$ActiveExecution {
 
     state = current.copyWith(
       exerciseSets: {...current.exerciseSets, exerciseId: updated},
+    );
+
+    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
+  }
+
+  void _scheduleDraftPersist({
+    required String exerciseId,
+    required int setNumber,
+  }) {
+    final current = state;
+    if (current == null) return;
+
+    final key = '${current.executionId}:$exerciseId:$setNumber';
+    _draftPersistTimers.remove(key)?.cancel();
+    _draftPersistTimers[key] = Timer(
+      _draftPersistDebounce,
+      () => unawaited(
+        _persistDraftSet(exerciseId: exerciseId, setNumber: setNumber),
+      ),
+    );
+  }
+
+  Future<void> _persistDraftSet({
+    required String exerciseId,
+    required int setNumber,
+  }) async {
+    final current = state;
+    if (current == null) return;
+
+    final sets = current.exerciseSets[exerciseId];
+    if (sets == null) return;
+
+    final entry = sets.where((s) => s.setNumber == setNumber).firstOrNull;
+    if (entry == null) return;
+
+    // Avoid writing empty drafts (keeps DB cleaner and reduces IO).
+    final hasAnyValue =
+        entry.reps != null ||
+        entry.weight != null ||
+        entry.duration != null ||
+        entry.distance != null ||
+        entry.rpe != null ||
+        entry.leftReps != null ||
+        entry.leftWeight != null ||
+        entry.rightReps != null ||
+        entry.rightWeight != null ||
+        entry.loadModeOverride != null ||
+        entry.segments.isNotEmpty;
+    if (!hasAnyValue) return;
+
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final set = ExecutionSet(
+      id: entry.id ?? '',
+      executionId: current.executionId,
+      exerciseId: exerciseId,
+      setNumber: setNumber,
+      plannedReps: entry.plannedReps,
+      plannedWeight: entry.plannedWeight,
+      reps: entry.reps,
+      weight: entry.weight,
+      durationSeconds: entry.duration,
+      distanceMeters: entry.distance,
+      isCompleted: entry.isCompleted,
+      isWarmup: entry.isWarmup,
+      rpe: entry.rpe,
+      bodyWeightSnapshot: null,
+      loadModeOverride: entry.loadModeOverride,
+      leftReps: entry.leftReps,
+      leftWeight: entry.leftWeight,
+      rightReps: entry.rightReps,
+      rightWeight: entry.rightWeight,
+      isUnilateral: (entry.leftReps != null ||
+          entry.leftWeight != null ||
+          entry.rightReps != null ||
+          entry.rightWeight != null),
+    );
+
+    final String persistedId;
+    if ((entry.id ?? '').isEmpty) {
+      persistedId = (await repo.logSet(set)).getOrThrow();
+    } else {
+      await repo.updateSet(set).then((r) => r.getOrThrow());
+      persistedId = entry.id!;
+    }
+
+    if (entry.segments.length > 1) {
+      final segments = entry.segments
+          .asMap()
+          .entries
+          .map(
+            (e) => ExecutionSetSegment(
+              id: '',
+              executionSetId: persistedId,
+              segmentOrder: e.key + 1,
+              reps: e.value.reps,
+              weight: e.value.weight,
+            ),
+          )
+          .toList();
+      await repo.saveSegments(persistedId, segments).then((r) => r.getOrThrow());
+    }
+
+    // Ensure the in-memory entry is linked to the persisted row.
+    final latest = state;
+    if (latest == null) return;
+    final latestSets = latest.exerciseSets[exerciseId];
+    if (latestSets == null) return;
+    final linked = [
+      for (final s in latestSets)
+        if (s.setNumber == setNumber) s.copyWith(id: persistedId) else s,
+    ];
+    state = latest.copyWith(
+      exerciseSets: {...latest.exerciseSets, exerciseId: linked},
     );
   }
 
@@ -417,14 +547,15 @@ class ActiveExecution extends _$ActiveExecution {
     final result = await repo.finish(current.executionId);
     result.getOrThrow();
 
+    state = null;
+    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
+
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
     ref.invalidate(programSessionCountProvider);
 
     await ref.read(recalculateTrainingStreaksProvider.notifier).run();
     ref.invalidate(profileProvider);
-
-    state = null;
   }
 
   /// Resume a previously started but unfinished execution.
@@ -441,6 +572,10 @@ class ActiveExecution extends _$ActiveExecution {
 
     final setsResult = await repo.getSets(executionId);
     final dbSets = setsResult.getOrThrow();
+
+    final exerciseIds = exercises.map((e) => e.exerciseId).toList();
+    final lastWeights = (await repo.getLastWeightsForExercises(exerciseIds))
+        .getOrThrow();
 
     final exerciseSets = <String, List<SetEntry>>{};
     for (final ex in exercises) {
@@ -483,11 +618,14 @@ class ActiveExecution extends _$ActiveExecution {
         final isIso = isometricExerciseIds.contains(ex.exerciseId);
         final isCardio = ex.durationSeconds != null && !isIso;
         final usesDuration = isCardio || isIso;
+        final lastWeight = lastWeights[ex.exerciseId];
         return SetEntry(
           setNumber: setNum,
           plannedReps: usesDuration ? null : ex.targetReps,
+          plannedWeight: usesDuration ? null : lastWeight,
           plannedDuration: usesDuration ? ex.durationSeconds : null,
           reps: usesDuration ? null : ex.targetReps,
+          weight: usesDuration ? null : lastWeight,
           duration: usesDuration ? ex.durationSeconds : null,
         );
       });
@@ -511,10 +649,11 @@ class ActiveExecution extends _$ActiveExecution {
     final result = await repo.delete(current.executionId);
     result.getOrThrow();
 
+    state = null;
+    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
+
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
-
-    state = null;
   }
 
 }

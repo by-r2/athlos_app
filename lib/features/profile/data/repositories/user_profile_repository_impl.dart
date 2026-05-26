@@ -8,12 +8,18 @@ import '../../../../core/sync/user_owned_sync_runner.dart';
 import '../../domain/entities/user_profile.dart' as domain;
 import '../../domain/repositories/user_profile_repository.dart';
 import '../datasources/daos/user_profile_dao.dart';
+import '../datasources/user_profile_remote_sync_gateway.dart';
 
 class UserProfileRepositoryImpl implements UserProfileRepository {
-  UserProfileRepositoryImpl(this._dao, this._syncRunner);
+  UserProfileRepositoryImpl(
+    this._dao,
+    this._syncRunner, {
+    UserProfileRemoteSyncGateway? remoteGateway,
+  }) : _remoteGateway = remoteGateway;
 
   final UserProfileDao _dao;
   final UserOwnedSyncRunner _syncRunner;
+  final UserProfileRemoteSyncGateway? _remoteGateway;
 
   @override
   Future<Result<domain.UserProfile?>> get() async {
@@ -83,6 +89,55 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       return Failure(e);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to push profile: $e'));
+    }
+  }
+
+  @override
+  Future<Result<domain.UserProfile?>> fetchRemoteSnapshot() async {
+    try {
+      final gw = _remoteGateway;
+      if (gw?.currentUserId == null) {
+        return const Success(null);
+      }
+      return Success(await gw!.fetchCurrentProfile());
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to fetch remote profile: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> restoreFromRemote(domain.UserProfile profile) async {
+    try {
+      final base = _toCompanion(profile);
+      await _dao.upsert(
+        UserProfilesCompanion(
+          id: base.id,
+          name: base.name,
+          height: base.height,
+          age: base.age,
+          goal: base.goal,
+          bodyAesthetic: base.bodyAesthetic,
+          trainingStyle: base.trainingStyle,
+          experienceLevel: base.experienceLevel,
+          gender: base.gender,
+          trainingFrequency: base.trainingFrequency,
+          availableWorkoutMinutes: base.availableWorkoutMinutes,
+          trainsAtGym: base.trainsAtGym,
+          injuries: base.injuries,
+          bio: base.bio,
+          ownedEquipmentNames: base.ownedEquipmentNames,
+          lastActiveModule: base.lastActiveModule,
+          currentCycleStreak: base.currentCycleStreak,
+          bestCycleStreak: base.bestCycleStreak,
+          currentFrequencyStreak: base.currentFrequencyStreak,
+          bestFrequencyStreak: base.bestFrequencyStreak,
+          trainingStreaksSchema: base.trainingStreaksSchema,
+          isDirty: const Value(false),
+        ),
+      );
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to restore profile locally: $e'));
     }
   }
 

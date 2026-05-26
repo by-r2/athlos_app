@@ -1,6 +1,5 @@
 import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/errors/result.dart';
-import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/workout_execution_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/workout_execution_repository_impl.dart';
 import 'package:athlos_app/features/training/domain/entities/execution_set.dart'
@@ -21,7 +20,6 @@ void main() {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       repository = WorkoutExecutionRepositoryImpl(
         WorkoutExecutionDao(db),
-        UserOwnedSyncRunner.disabled(),
         'test-user-id',
       );
       await db.customSelect('SELECT 1').get();

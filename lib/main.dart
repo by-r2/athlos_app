@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:ui' show AppExitResponse;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -12,7 +9,6 @@ import 'l10n/app_localizations.dart';
 import 'core/providers/last_module_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/services/supabase_config.dart';
-import 'core/services/user_data_sync_coordinator.dart';
 import 'core/theme/athlos_theme.dart';
 import 'core/theme/theme_mode_provider.dart';
 
@@ -34,38 +30,11 @@ void main() async {
   );
 }
 
-class AthlosApp extends ConsumerStatefulWidget {
+class AthlosApp extends ConsumerWidget {
   const AthlosApp({super.key});
 
   @override
-  ConsumerState<AthlosApp> createState() => _AthlosAppState();
-}
-
-class _AthlosAppState extends ConsumerState<AthlosApp> {
-  late final AppLifecycleListener _appLifecycleListener;
-
-  @override
-  void initState() {
-    super.initState();
-    _appLifecycleListener = AppLifecycleListener(
-      onExitRequested: () async => AppExitResponse.cancel,
-      onResume: () {
-        if (!isSupabaseConfigured) return;
-        unawaited(
-          ref.read(userDataSyncCoordinatorProvider).retryPendingUserDataSync(),
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _appLifecycleListener.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
 

@@ -13,22 +13,89 @@ import '../../features/profile/presentation/providers/body_metric_notifier.dart'
 import '../../features/profile/presentation/providers/body_metrics_dashboard_provider.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/auth/presentation/providers/auth_notifier.dart';
-import '../../features/training/presentation/providers/active_execution_notifier.dart';
 import '../../features/training/presentation/providers/exercise_notifier.dart';
 import '../../features/training/presentation/providers/program_notifier.dart';
 import '../../features/training/presentation/providers/workout_execution_notifier.dart';
 import '../../features/training/presentation/providers/workout_notifier.dart';
+import 'workout_sync_guard.dart';
 
 part 'user_data_sync_coordinator.g.dart';
 
+/// Coordinates full-user sync and post-workout session sync.
+///
+/// Full sync runs on login, manual retry, and Hub scheduled (24h) — never on
+/// app resume or connectivity changes. Blocked while a workout is active.
 class UserDataSyncCoordinator {
-  const UserDataSyncCoordinator(this._ref);
+  UserDataSyncCoordinator(this._ref);
 
   final Ref _ref;
+  bool _scheduledSyncAttemptedThisSession = false;
 
   Future<void> synchronizeAuthenticatedUserData({
     required SyncTrigger trigger,
   }) async {
+    if (!isSupabaseConfigured) return;
+    if (_ref.read(authProvider).value == null) return;
+
+    if (!_ref.read(isNetworkAvailableForSyncProvider)) {
+      if (trigger == SyncTrigger.sessionChange ||
+          trigger == SyncTrigger.manual) {
+        final hasNetwork = await waitForNetworkAvailableForSync(_ref);
+        if (!hasNetwork) return;
+      } else {
+        return;
+      }
+    }
+
+    if (trigger != SyncTrigger.sessionChange &&
+        _ref.read(isWorkoutSessionBlockingCloudSyncProvider)) {
+      return;
+    }
+
+    final prefs = _ref.read(cloudSyncPrefsProvider);
+    await prefs.recordAttempt();
+
+    try {
+      await _ref
+          .read(userOwnedSyncRunnerProvider)
+          .synchronizeAuthenticatedUserData(trigger: trigger);
+      await prefs.recordSuccess();
+    } on Exception catch (e) {
+      debugPrint('[UserDataSyncCoordinator] full sync failed: $e');
+      rethrow;
+    }
+
+    _refreshProvidersAfterFullSync();
+  }
+
+  /// Once per app session when opening Hub, if last success was 24h+ ago.
+  Future<void> maybeRunScheduledSync() async {
+    if (_scheduledSyncAttemptedThisSession) return;
+    _scheduledSyncAttemptedThisSession = true;
+
+    if (!isSupabaseConfigured) return;
+    if (_ref.read(authProvider).value == null) return;
+    if (!_ref.read(isNetworkAvailableForSyncProvider)) return;
+    if (_ref.read(isWorkoutSessionBlockingCloudSyncProvider)) return;
+
+    final prefs = _ref.read(cloudSyncPrefsProvider);
+    if (!prefs.isScheduledSyncDue) return;
+
+    try {
+      await synchronizeAuthenticatedUserData(trigger: SyncTrigger.scheduled);
+    } on Exception catch (e) {
+      debugPrint('[UserDataSyncCoordinator] scheduled sync failed: $e');
+    }
+  }
+
+  Future<void> reconcileOnSessionChange() =>
+      synchronizeAuthenticatedUserData(trigger: SyncTrigger.sessionChange);
+
+  Future<void> synchronizeManual() =>
+      synchronizeAuthenticatedUserData(trigger: SyncTrigger.manual);
+
+  /// Push finished or cancelled workout session to the cloud (no full pull).
+  Future<void> syncWorkoutSessionToCloud() async {
     if (!isSupabaseConfigured) return;
     if (_ref.read(authProvider).value == null) return;
     if (!_ref.read(isNetworkAvailableForSyncProvider)) return;
@@ -36,40 +103,41 @@ class UserDataSyncCoordinator {
     final prefs = _ref.read(cloudSyncPrefsProvider);
     await prefs.recordAttempt();
 
-    await _ref
-        .read(userOwnedSyncRunnerProvider)
-        .synchronizeAuthenticatedUserData(trigger: trigger);
+    try {
+      await _ref.read(userOwnedSyncRunnerProvider).syncWorkoutSessionTables();
+      await prefs.recordSuccess();
+    } on Exception catch (e) {
+      debugPrint('[UserDataSyncCoordinator] workout session sync failed: $e');
+    }
 
-    await prefs.recordSuccess();
-
-    _invalidateUserDataProviders();
+    _refreshProvidersAfterWorkoutSessionSync();
   }
 
-  Future<void> reconcileOnSessionChange() =>
-      synchronizeAuthenticatedUserData(trigger: SyncTrigger.sessionChange);
-
-  Future<void> retryPendingUserDataSync() =>
-      synchronizeAuthenticatedUserData(trigger: SyncTrigger.resume);
-
-  void _invalidateUserDataProviders() {
+  void _refreshProvidersAfterFullSync() {
     _ref.invalidate(profileProvider);
-    _ref.invalidate(hasProfileProvider);
     _ref.invalidate(userCloudSyncStatusProvider);
     _ref.invalidate(bodyMetricListProvider);
     _ref.invalidate(bodyMetricsDashboardProvider);
     _ref.invalidate(latestBodyWeightProvider);
     _ref.invalidate(pendingSyncDirtyCountProvider);
-    _invalidateTrainingProviders();
+    _invalidateTrainingListProviders();
   }
 
-  void _invalidateTrainingProviders() {
+  void _refreshProvidersAfterWorkoutSessionSync() {
+    _ref.invalidate(userCloudSyncStatusProvider);
+    _ref.invalidate(pendingSyncDirtyCountProvider);
+    _ref.invalidate(workoutExecutionListProvider);
+    _ref.invalidate(lastFinishedWorkoutIdProvider);
+  }
+
+  void _invalidateTrainingListProviders() {
     _ref.invalidate(workoutListProvider);
     _ref.invalidate(archivedWorkoutListProvider);
     _ref.invalidate(exerciseListProvider);
     _ref.invalidate(programListProvider);
     _ref.invalidate(activeProgramProvider);
     _ref.invalidate(workoutExecutionListProvider);
-    _ref.invalidate(activeExecutionProvider);
+    _ref.invalidate(danglingExecutionProvider);
   }
 }
 
@@ -77,18 +145,8 @@ class UserDataSyncCoordinator {
 UserDataSyncCoordinator userDataSyncCoordinator(Ref ref) =>
     UserDataSyncCoordinator(ref);
 
+/// Reserved for future online/offline UI hints — does not trigger sync.
 @Riverpod(keepAlive: true)
 void userDataCloudSyncConnectivityListener(Ref ref) {
-  ref.listen(networkConnectivityProvider, (previous, next) {
-    final wasOnline = previous?.value ?? false;
-    final isOnline = next.value ?? false;
-    if (wasOnline || !isOnline) return;
-    if (ref.read(authProvider).value == null) return;
-
-    unawaited(
-      ref
-          .read(userDataSyncCoordinatorProvider)
-          .synchronizeAuthenticatedUserData(trigger: SyncTrigger.connectivity),
-    );
-  });
+  ref.listen(networkConnectivityProvider, (_, _) {});
 }

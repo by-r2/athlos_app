@@ -178,8 +178,28 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
     List<WorkoutExercisesCompanion> entries,
   ) async {
     final now = DateTime.now().toUtc();
+    final newIds = entries.map((e) => e.id.value).toSet();
+
+    if (newIds.isEmpty) {
+      await (update(workoutExercises)
+            ..where((we) => we.workoutId.equals(workoutId)))
+          .write(
+        WorkoutExercisesCompanion(
+          deletedAt: Value(now),
+          isDirty: const Value(true),
+          updatedAt: Value(now),
+        ),
+      );
+      return;
+    }
+
+    // Tombstone workout rows that were removed (still needed for sync).
     await (update(workoutExercises)
-          ..where((we) => we.workoutId.equals(workoutId)))
+          ..where(
+            (we) =>
+                we.workoutId.equals(workoutId) &
+                we.id.isNotIn(newIds.toList()),
+          ))
         .write(
       WorkoutExercisesCompanion(
         deletedAt: Value(now),
@@ -187,9 +207,31 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
         updatedAt: Value(now),
       ),
     );
+
+    // Re-use or revive existing rows without violating PK UNIQUE (same id can
+    // still exist physically after soft-delete).
     for (final entry in entries) {
-      await into(workoutExercises).insert(entry);
-      await _markWorkoutExerciseDirty(entry.id.value);
+      final merged = WorkoutExercisesCompanion(
+        id: entry.id,
+        userId: entry.userId,
+        workoutId: entry.workoutId,
+        exerciseId: entry.exerciseId,
+        sortOrder: entry.sortOrder,
+        sets: entry.sets,
+        minReps: entry.minReps,
+        maxReps: entry.maxReps,
+        isAmrap: entry.isAmrap,
+        restSeconds: entry.restSeconds,
+        durationSeconds: entry.durationSeconds,
+        groupId: entry.groupId,
+        isUnilateral: entry.isUnilateral,
+        loadModeOverride: entry.loadModeOverride,
+        notes: entry.notes,
+        deletedAt: const Value(null),
+        isDirty: const Value(true),
+        updatedAt: Value(now),
+      );
+      await into(workoutExercises).insertOnConflictUpdate(merged);
     }
   }
 
@@ -201,5 +243,29 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
         updatedAt: Value(now),
       ),
     );
+  }
+
+  /// Purges obviously corrupted local rows that cannot be synced (e.g. empty
+  /// UUID strings in PK/FK columns). These rows are unrecoverable because
+  /// their references cannot be inferred safely.
+  ///
+  /// This is intended as a "sync repair" action surfaced in the UI.
+  Future<int> purgeCorruptedRowsForUser(String userId) async {
+    return transaction(() async {
+      var deleted = 0;
+      deleted += await (delete(workoutExercises)
+            ..where(
+              (we) =>
+                  we.userId.equals(userId) &
+                  (we.id.equals('') |
+                      we.workoutId.equals('') |
+                      we.exerciseId.equals('')),
+            ))
+          .go();
+      deleted += await (delete(workouts)
+            ..where((w) => w.userId.equals(userId) & w.id.equals('')))
+          .go();
+      return deleted;
+    });
   }
 }

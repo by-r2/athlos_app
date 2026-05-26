@@ -55,13 +55,84 @@
   "@profileEquipmentTab": {
     "description": "Profile tab: user's owned equipment list (not a catalog screen)"
   },
-  "profileDataTab": "Dados",
+  "profileDataTab": "Conta e nuvem",
   "@profileDataTab": {
-    "description": "Profile tab label for data backup/import category"
+    "description": "Profile tab: account session, cloud sync, duplicates and sync repair (compact tab label)"
   },
   "profileDataConflictsSectionTitle": "Duplicados nos seus dados",
   "@profileDataConflictsSectionTitle": {
     "description": "Profile data section title for duplicate review"
+  },
+  "profileDataSyncIssuesSectionTitle": "Problemas de sincronização",
+  "@profileDataSyncIssuesSectionTitle": {
+    "description": "Profile data section title for sync issues center"
+  },
+  "profileDataSyncIssueSummaryLoading": "Verificando problemas de sincronização…",
+  "@profileDataSyncIssueSummaryLoading": {
+    "description": "Sync issue banner while loading"
+  },
+  "profileDataSyncIssueSummaryError": "Não foi possível carregar os problemas de sincronização.",
+  "@profileDataSyncIssueSummaryError": {
+    "description": "Sync issue banner on error"
+  },
+  "profileDataSyncIssueStatusClear": "Nenhum problema de sincronização detectado.",
+  "@profileDataSyncIssueStatusClear": {
+    "description": "Sync issue banner when clear"
+  },
+  "profileDataSyncIssueSummaryCount": "{count,plural, =1{1 problema de sincronização detectado.} other{{count} problemas de sincronização detectados.}}",
+  "@profileDataSyncIssueSummaryCount": {
+    "description": "Sync issue banner with count",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "syncIssueCenterTitle": "Central de sincronização",
+  "@syncIssueCenterTitle": { "description": "Title for sync issue center screen" },
+  "syncIssueCenterDescription": "Aqui aparecem falhas de sincronização recentes e ações de reparo quando possível.",
+  "@syncIssueCenterDescription": { "description": "Description shown at top of sync issue center screen" },
+  "syncIssueCenterOverviewTitle": "Visão geral",
+  "@syncIssueCenterOverviewTitle": { "description": "Overview section title in sync issue center" },
+  "syncIssueCenterOverviewCount": "{count,plural, =0{Nenhum problema registrado.} =1{1 problema registrado.} other{{count} problemas registrados.}}",
+  "@syncIssueCenterOverviewCount": {
+    "description": "Total count of recorded sync issues",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "syncIssueCenterRepairAction": "Tentar corrigir automaticamente",
+  "@syncIssueCenterRepairAction": { "description": "Button label to run automatic repairs" },
+  "syncIssueCenterClearAction": "Limpar histórico",
+  "@syncIssueCenterClearAction": { "description": "Button label to clear sync issues list" },
+  "syncIssueCenterEmpty": "Nenhuma falha recente registrada.",
+  "@syncIssueCenterEmpty": { "description": "Empty state in sync issue center" },
+  "syncIssueCenterRepairDone": "Reparo concluído.",
+  "@syncIssueCenterRepairDone": { "description": "Snack message when repair finishes with no deletions" },
+  "syncIssueCenterRepairDoneWithDeletes": "Reparo concluído. Linhas corrompidas removidas: {count}.",
+  "@syncIssueCenterRepairDoneWithDeletes": {
+    "description": "Snack message when repair deletes corrupted rows",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "syncIssueCenterAutoRepairDetailsTitle": "O que faz o reparo automático?",
+  "@syncIssueCenterAutoRepairDetailsTitle": {
+    "description": "Expansion title explaining automatic repair behavior"
+  },
+  "syncIssueCenterAutoRepairDetailsBody": "Quando há falhas do tipo UUID vazio em exercícios de treinos, o aplicativo pode apagar do dispositivo as linhas locais irreparáveis (identificadores ou vínculos vazios), limpar esse aviso aqui só para esse caso e tentar sincronizar a tabela novamente.\nIsso pode remover alguns exercícios de um modelo de treino se estiverem só corrompidos aqui — não há como recuperar conteúdo que nunca foi enviado ao servidor.",
+  "@syncIssueCenterAutoRepairDetailsBody": {
+    "description": "Explains purge + sync for workout exercise UUID corruption"
+  },
+  "syncIssueCenterManualSectionTitle": "Correção manual",
+  "@syncIssueCenterManualSectionTitle": {
+    "description": "Title for manual fix guidance"
+  },
+  "syncIssueCenterManualSectionBody": "Sem usar o reparo automático:\n• Em Treinos, abra cada treino, edite-o e guarde novamente — assim os exercícios voltam com IDs válidos.\n• Se um treino perdeu exercícios ou ficou incompleto, volte a adicioná-los no editor ou recrie o treino.\n• Duplicados no catálogo local são outro tema: use a Central de duplicados no perfil.",
+  "@syncIssueCenterManualSectionBody": {
+    "description": "Steps for fixing sync/workout rows without purge"
+  },
+  "syncIssueCenterOpenTrainingAction": "Ir para treinos",
+  "@syncIssueCenterOpenTrainingAction": {
+    "description": "Button to navigate to workouts list"
+  },
+  "syncIssueCenterOpenDuplicatesAction": "Abrir Central de duplicados",
+  "@syncIssueCenterOpenDuplicatesAction": {
+    "description": "Button to open duplicate conflict center"
   },
   "profileDataAccountSessionLabel": "Sessão",
   "@profileDataAccountSessionLabel": {
@@ -1615,6 +1686,101 @@
     "placeholders": {
       "id": { "type": "String" }
     }
+  },
+  "ghostExerciseRecoveryTitle": "Exercício indisponível",
+  "@ghostExerciseRecoveryTitle": {
+    "description": "Title when workout references exercises missing from catalog"
+  },
+  "ghostExerciseRecoveryDescription": "Este treino referencia exercícios que não estão mais no seu catálogo. Escolha o exercício correto para corrigir todos os seus registros com esse ID.",
+  "@ghostExerciseRecoveryDescription": {
+    "description": "Explanation for ghost exercise recovery flow"
+  },
+  "ghostExerciseRecoveryMissingId": "ID ausente: {id}",
+  "@ghostExerciseRecoveryMissingId": {
+    "description": "Shows the missing exercise uuid",
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  },
+  "ghostExerciseRecoveryDeletedHint": "Este exercício foi removido do catálogo.",
+  "@ghostExerciseRecoveryDeletedHint": {
+    "description": "Hint when ghost row exists but is soft-deleted"
+  },
+  "ghostExerciseRecoveryLinkAction": "Vincular ao exercício correto",
+  "@ghostExerciseRecoveryLinkAction": {
+    "description": "Opens catalog picker to remap ghost id"
+  },
+  "ghostExerciseRecoverySameExercise": "Escolha um exercício diferente do ID ausente.",
+  "@ghostExerciseRecoverySameExercise": {
+    "description": "Snackbar when user picks the same id as ghost"
+  },
+  "ghostExerciseRecoveryConfirmTitle": "Corrigir referências?",
+  "@ghostExerciseRecoveryConfirmTitle": {
+    "description": "Confirm dialog title for ghost exercise remap"
+  },
+  "ghostExerciseRecoveryConfirmMessage": "Todos os seus dados com o ID ausente serão atualizados para \"{exerciseName}\":\n\n• {workoutExerciseCount} vínculos em treinos\n• {executionSetCount} séries registradas\n• {progressionRuleCount} regras de progressão",
+  "@ghostExerciseRecoveryConfirmMessage": {
+    "description": "Confirm dialog body listing affected row counts",
+    "placeholders": {
+      "workoutExerciseCount": { "type": "int" },
+      "executionSetCount": { "type": "int" },
+      "progressionRuleCount": { "type": "int" },
+      "exerciseName": { "type": "String" }
+    }
+  },
+  "ghostExerciseRecoveryConfirmAction": "Corrigir tudo",
+  "@ghostExerciseRecoveryConfirmAction": {
+    "description": "Confirm button for ghost exercise remap"
+  },
+  "ghostExerciseRecoverySuccess": "Referências corrigidas. Você pode continuar o treino.",
+  "@ghostExerciseRecoverySuccess": {
+    "description": "Snackbar after successful ghost exercise remap"
+  },
+  "ghostExerciseRecoveryUsedInWorkouts": "Aparece em: {workouts}",
+  "@ghostExerciseRecoveryUsedInWorkouts": {
+    "description": "Shows workout names where the ghost id is referenced",
+    "placeholders": {
+      "workouts": { "type": "String" }
+    }
+  },
+  "ghostExerciseRecoveryWorkoutListUnknown": "treinos não identificados",
+  "@ghostExerciseRecoveryWorkoutListUnknown": {
+    "description": "Fallback when no workout names can be listed"
+  },
+  "ghostExerciseRecoveryWorkoutListMore": "+{count} outros",
+  "@ghostExerciseRecoveryWorkoutListMore": {
+    "description": "Suffix for workout sample when there are more workouts than the shown list",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "profileSetupRemoteProfileTitle": "Dados encontrados na sua conta",
+  "@profileSetupRemoteProfileTitle": {
+    "description": "Title when saved profile exists remotely during setup"
+  },
+  "profileSetupRemoteProfileBody": "Encontramos informações salvas na nuvem vinculadas a esta conta. Deseja carregar esse perfil agora?",
+  "@profileSetupRemoteProfileBody": {
+    "description": "Body prompting to restore cloud profile during onboarding"
+  },
+  "profileSetupRemoteProfileLoadAction": "Carregar da nuvem",
+  "@profileSetupRemoteProfileLoadAction": {
+    "description": "Restore profile from Supabase during setup"
+  },
+  "profileSetupRemoteProfileContinueAction": "Continuar assim mesmo",
+  "@profileSetupRemoteProfileContinueAction": {
+    "description": "Dismiss restore dialog and proceed with onboarding"
+  },
+  "profileSetupSkipCloudTitle": "Pular configuração",
+  "@profileSetupSkipCloudTitle": {
+    "description": "Title before skipping onboarding while signed into cloud-capable session"
+  },
+  "profileSetupSkipCloudBody": "Você está com conta ativa e dados podem sincronizar com a nuvem. Ao pular, o aplicativo vai gravar este perfil mínimo neste dispositivo. Confirme se é isso que deseja.",
+  "@profileSetupSkipCloudBody": {
+    "description": "Destructive-ish warning before skip when authenticated"
+  },
+  "profileSetupSkipCloudConfirmAction": "Pular mesmo assim",
+  "@profileSetupSkipCloudConfirmAction": {
+    "description": "Confirm skipping onboarding despite cloud sync context"
   },
   "executionFeedbackWeightTooLight": "Peso leve, considere aumentar a carga",
   "@executionFeedbackWeightTooLight": {
