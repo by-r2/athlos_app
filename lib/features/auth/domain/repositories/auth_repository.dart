@@ -12,6 +12,9 @@ abstract interface class AuthRepository {
     required String password,
   });
 
+  /// Sends another signup confirmation email (rate-limit on UI).
+  Future<Result<void>> resendSignupConfirmation({required String email});
+
   Future<Result<AuthUser>> signInWithEmail({
     required String email,
     required String password,

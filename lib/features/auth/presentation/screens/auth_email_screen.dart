@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ import '../../../../core/services/supabase_config.dart';
 import '../../../../core/theme/athlos_durations.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
+import '../../../../core/widgets/layout/athlos_chat_scroll_fade.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/auth_providers.dart';
 import '../../domain/entities/auth_error_code.dart';
@@ -56,6 +59,8 @@ class _AuthChatEntry {
 }
 
 class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
+  static const _signupResendCooldownSeconds = 60;
+
   final _formKey = GlobalKey<FormState>();
   final _chatScrollController = ScrollController();
   final _emailController = TextEditingController();
@@ -67,6 +72,11 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
   int? _editingIndex;
   _SignUpStep? _editingStep;
   bool _isSubmitting = false;
+  bool _isAwaitingEmailVerification = false;
+  bool _isCheckingEmailVerified = false;
+  bool _isResendingSignupEmail = false;
+  int _resendCooldownRemaining = 0;
+  Timer? _resendCooldownTimer;
 
   @override
   void initState() {
@@ -78,11 +88,97 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
 
   @override
   void dispose() {
+    _resendCooldownTimer?.cancel();
     _chatScrollController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _chatController.dispose();
     super.dispose();
+  }
+
+  void _startSignupResendCooldown() {
+    _resendCooldownTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _resendCooldownRemaining = _signupResendCooldownSeconds);
+    _resendCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendCooldownRemaining <= 1) {
+        timer.cancel();
+        setState(() => _resendCooldownRemaining = 0);
+      } else {
+        setState(() => _resendCooldownRemaining--);
+      }
+    });
+  }
+
+  Future<void> _resendSignupConfirmationFromBar() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_resendCooldownRemaining > 0 ||
+        _isResendingSignupEmail ||
+        _isCheckingEmailVerified) {
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      _addAssistantMessage(l10n.authSupabaseNotConfigured);
+      return;
+    }
+
+    setState(() => _isResendingSignupEmail = true);
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .resendSignupConfirmationEmail(
+            email: _emailController.text.trim(),
+          );
+      if (!mounted) return;
+      _addAssistantMessage(l10n.authSignUpChatResendSuccess);
+      _startSignupResendCooldown();
+    } on Object catch (error) {
+      if (!mounted) return;
+      _addAssistantMessage(_authErrorMessage(error, l10n));
+    } finally {
+      if (mounted) setState(() => _isResendingSignupEmail = false);
+    }
+  }
+
+  Future<void> _verifyEmailAndSignIn() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_isCheckingEmailVerified || _isResendingSignupEmail) return;
+
+    if (!isSupabaseConfigured) {
+      _addAssistantMessage(l10n.authSupabaseNotConfigured);
+      return;
+    }
+
+    setState(() => _isCheckingEmailVerified = true);
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .signInWithEmail(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+      if (!mounted) return;
+      _addAssistantMessage(l10n.authSignUpChatSuccess);
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        context.go(RoutePaths.splash);
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      if (error is AuthAppException &&
+          error.message == AuthErrorCode.emailNotConfirmed) {
+        _addAssistantMessage(l10n.authSignUpChatVerificationPending);
+      } else {
+        _addAssistantMessage(_authErrorMessage(error, l10n));
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingEmailVerified = false);
+    }
   }
 
   void _goBack() {
@@ -99,6 +195,9 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
         AuthErrorCode.invalidCredentials => l10n.authInvalidCredentials,
         AuthErrorCode.emailNotConfirmed => l10n.authEmailNotConfirmed,
         AuthErrorCode.accountAlreadyExists => l10n.authAccountAlreadyExists,
+        AuthErrorCode.rateLimited => l10n.authRateLimited,
+        AuthErrorCode.weakPassword => l10n.authWeakPasswordServer,
+        AuthErrorCode.signUpDisabled => l10n.authSignUpDisabled,
         _ => l10n.authGenericError,
       };
     }
@@ -309,19 +408,27 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
         if (!mounted) return;
         context.go(RoutePaths.splash);
       });
-    } on Object catch (error) {
+    } on Object catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('[Auth] signUp failed: $error\n$stackTrace');
       if (error is AuthAppException &&
           error.message == AuthErrorCode.emailNotConfirmed) {
-        if (!mounted) return;
-        _addAssistantMessage(l10n.authSignUpChatGoToLogin);
-        Future.delayed(const Duration(milliseconds: 900), () {
-          if (!mounted) return;
-          context.go(RoutePaths.authSignIn);
-        });
+        final email = _emailController.text.trim();
+        _addAssistantMessage(l10n.authSignUpChatCheckEmail(email));
+        _startSignupResendCooldown();
+        setState(() => _isAwaitingEmailVerification = true);
         return;
       }
       _addAssistantMessage(_authErrorMessage(error, l10n));
+      if (error is AuthAppException) {
+        final code = error.message;
+        if (code == AuthErrorCode.rateLimited ||
+            code == AuthErrorCode.accountAlreadyExists ||
+            code == AuthErrorCode.weakPassword ||
+            code == AuthErrorCode.signUpDisabled) {
+          return;
+        }
+      }
       setState(() {
         _signUpStep = _SignUpStep.password;
         _editingIndex = null;
@@ -503,41 +610,54 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       child: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _chatScrollController,
-              padding: const EdgeInsets.fromLTRB(
-                AthlosSpacing.md,
-                AthlosSpacing.xl,
-                AthlosSpacing.md,
-                AthlosSpacing.sm,
+            child: AthlosChatScrollFade(
+              scrollController: _chatScrollController,
+              child: ListView.builder(
+                controller: _chatScrollController,
+                padding: const EdgeInsets.fromLTRB(
+                  AthlosSpacing.md,
+                  0,
+                  AthlosSpacing.md,
+                  AthlosSpacing.sm,
+                ),
+                itemCount: _chatEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = _chatEntries[index];
+                  return AthlosChatBubble(
+                    key: ValueKey('signup-chat-$index'),
+                    text: entry.text,
+                    isUser: entry.isUser,
+                    isEditing: _editingIndex == index,
+                    onTap:
+                        !_isAwaitingEmailVerification &&
+                            entry.isUser &&
+                            entry.inputStep != null &&
+                            !_isSubmitting &&
+                            (_editingIndex == null || _editingIndex == index)
+                        ? () => _startEditingSignUpAnswer(index)
+                        : null,
+                  );
+                },
               ),
-              itemCount: _chatEntries.length,
-              itemBuilder: (context, index) {
-                final entry = _chatEntries[index];
-                return AthlosChatBubble(
-                  key: ValueKey('signup-chat-$index'),
-                  text: entry.text,
-                  isUser: entry.isUser,
-                  isEditing: _editingIndex == index,
-                  onTap:
-                      entry.isUser &&
-                          entry.inputStep != null &&
-                          !_isSubmitting &&
-                          (_editingIndex == null || _editingIndex == index)
-                      ? () => _startEditingSignUpAnswer(index)
-                      : null,
-                );
-              },
             ),
           ),
-          _SignUpInputBar(
-            step: activeStep,
-            controller: _chatController,
-            isSubmitting: _isSubmitting,
-            onSubmitted: _handleSignUpChatInput,
-            onCreateAccount: _submitSignUpFromChat,
-            onGoToSignIn: () => context.go(RoutePaths.authSignIn),
-          ),
+          _isAwaitingEmailVerification
+              ? _SignUpEmailVerificationBar(
+                  resendCooldownRemaining: _resendCooldownRemaining,
+                  isCheckingVerified: _isCheckingEmailVerified,
+                  isResendingSignupEmail: _isResendingSignupEmail,
+                  onResend: _resendSignupConfirmationFromBar,
+                  onVerified: _verifyEmailAndSignIn,
+                  onGoToSignIn: () => context.go(RoutePaths.authSignIn),
+                )
+              : _SignUpInputBar(
+                  step: activeStep,
+                  controller: _chatController,
+                  isSubmitting: _isSubmitting,
+                  onSubmitted: _handleSignUpChatInput,
+                  onCreateAccount: _submitSignUpFromChat,
+                  onGoToSignIn: () => context.go(RoutePaths.authSignIn),
+                ),
         ],
       ),
     );
@@ -547,6 +667,88 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
     final atIndex = email.indexOf('@');
     final dotIndex = email.lastIndexOf('.');
     return atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < email.length - 1;
+  }
+}
+
+class _SignUpEmailVerificationBar extends StatelessWidget {
+  const _SignUpEmailVerificationBar({
+    required this.resendCooldownRemaining,
+    required this.isCheckingVerified,
+    required this.isResendingSignupEmail,
+    required this.onResend,
+    required this.onVerified,
+    required this.onGoToSignIn,
+  });
+
+  final int resendCooldownRemaining;
+  final bool isCheckingVerified;
+  final bool isResendingSignupEmail;
+  final VoidCallback onResend;
+  final VoidCallback onVerified;
+  final VoidCallback onGoToSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isBusy = isCheckingVerified || isResendingSignupEmail;
+    final canResend = resendCooldownRemaining <= 0 && !isBusy;
+    final resendLabel = resendCooldownRemaining > 0
+        ? l10n.authSignUpChatResendCooldown(resendCooldownRemaining)
+        : l10n.authSignUpChatResendConfirmation;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            AthlosSpacing.sm,
+            AthlosSpacing.md,
+            AthlosSpacing.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FilledButton(
+                onPressed: isBusy ? null : onVerified,
+                child: isCheckingVerified
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(l10n.authSignUpChatVerifiedAction),
+              ),
+              const Gap(AthlosSpacing.smd),
+              OutlinedButton(
+                onPressed: canResend ? onResend : null,
+                child: isResendingSignupEmail
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(resendLabel),
+              ),
+              const Gap(AthlosSpacing.sm),
+              TextButton(
+                onPressed: isBusy ? null : onGoToSignIn,
+                child: Text(l10n.authHaveAccountAction),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

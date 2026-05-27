@@ -2983,9 +2983,39 @@
   "@authSignUpChatSuccess": {
     "description": "Chat-style success message after creating an account"
   },
-  "authSignUpChatGoToLogin": "Conta criada. Agora entre com seu e-mail e senha.",
-  "@authSignUpChatGoToLogin": {
-    "description": "Chat-style message shown when signup created an account without an active session"
+  "authSignUpChatCheckEmail": "Enviamos um link de confirmação para {email}. Abra sua caixa de entrada (e a pasta de spam) e use o link para ativar a conta.",
+  "@authSignUpChatCheckEmail": {
+    "description": "Instructions after signup when the user must confirm email",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authSignUpChatResendConfirmation": "Reenviar e-mail de confirmação",
+  "@authSignUpChatResendConfirmation": {
+    "description": "Button to request another signup confirmation email"
+  },
+  "authSignUpChatResendCooldown": "Reenviar em {seconds}s",
+  "@authSignUpChatResendCooldown": {
+    "description": "Resend confirmation disabled until cooldown expires",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authSignUpChatVerifiedAction": "Já verifiquei",
+  "@authSignUpChatVerifiedAction": {
+    "description": "After email confirmation user taps so the app attempts sign-in"
+  },
+  "authSignUpChatResendSuccess": "Enviamos outro e-mail com o link.",
+  "@authSignUpChatResendSuccess": {
+    "description": "Shown after signup confirmation email was resent successfully"
+  },
+  "authSignUpChatVerificationPending": "Ainda não conseguimos concluir o login — confira se clicou no link do e-mail. Se já fez, aguarde um instante e toque novamente.",
+  "@authSignUpChatVerificationPending": {
+    "description": "When user taps already verified but sign-in shows email still not confirmed or similar"
   },
   "authEmailLabel": "E-mail",
   "@authEmailLabel": {
@@ -3018,6 +3048,18 @@
   "authGenericError": "Não foi possível concluir a autenticação agora.",
   "@authGenericError": {
     "description": "Generic auth error shown to users"
+  },
+  "authRateLimited": "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.",
+  "@authRateLimited": {
+    "description": "Auth error when Supabase rate-limits sign-up or sign-in"
+  },
+  "authWeakPasswordServer": "A senha não atende às regras do servidor. Use pelo menos 6 caracteres e evite senhas muito comuns.",
+  "@authWeakPasswordServer": {
+    "description": "Auth error when Supabase rejects password strength"
+  },
+  "authSignUpDisabled": "Novos cadastros estão desativados neste ambiente.",
+  "@authSignUpDisabled": {
+    "description": "Auth error when Supabase disallows sign-ups"
   },
   "authInvalidCredentials": "E-mail ou senha inválidos.",
   "@authInvalidCredentials": {

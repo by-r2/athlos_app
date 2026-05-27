@@ -153,6 +153,10 @@ class _FakeAuthRepository implements AuthRepository {
   Stream<AuthUser?> authStateChanges() => _controller.stream;
 
   @override
+  Future<Result<void>> resendSignupConfirmation({required String email}) async =>
+      const Success(null);
+
+  @override
   Future<Result<AuthUser>> signInWithEmail({
     required String email,
     required String password,

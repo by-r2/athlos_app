@@ -70,6 +70,28 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<void>> resendSignupConfirmation({required String email}) async {
+    final client = _client;
+    if (client == null) {
+      return const Failure(AuthAppException(AuthErrorCode.generic));
+    }
+
+    try {
+      final requestedEmail = _normalizeEmail(email);
+      await client.auth.resend(
+        type: supabase.OtpType.signup,
+        email: requestedEmail,
+        emailRedirectTo: supabaseRedirectUrl,
+      );
+      return const Success(null);
+    } on supabase.AuthException catch (e) {
+      return Failure(AuthAppException(_mapAuthException(e)));
+    } on Exception catch (e) {
+      return Failure(NetworkException('Failed to resend signup confirmation: $e'));
+    }
+  }
+
+  @override
   Future<Result<AuthUser>> signInWithEmail({
     required String email,
     required String password,
@@ -202,14 +224,36 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
       return AuthErrorCode.invalidCredentials;
     }
     if (message.contains('email not confirmed') ||
-        message.contains('confirm your email')) {
+        message.contains('confirm your email') ||
+        message.contains('verify your email') ||
+        (message.contains('confirmation') && message.contains('email'))) {
       return AuthErrorCode.emailNotConfirmed;
     }
     if (message.contains('already registered') ||
         message.contains('already exists') ||
-        message.contains('user already')) {
+        message.contains('user already') ||
+        message.contains('already been registered')) {
       return AuthErrorCode.accountAlreadyExists;
     }
+    if (message.contains('rate limit') ||
+        message.contains('too many requests') ||
+        message.contains('too many attempts')) {
+      return AuthErrorCode.rateLimited;
+    }
+    if (message.contains('password') &&
+        (message.contains('weak') ||
+            message.contains('at least') ||
+            message.contains('short') ||
+            message.contains('easy to guess'))) {
+      return AuthErrorCode.weakPassword;
+    }
+    if (message.contains('signup') && message.contains('disabled')) {
+      return AuthErrorCode.signUpDisabled;
+    }
+    debugPrint(
+      '[Auth] unmapped AuthException: ${exception.message} '
+      '(status: ${exception.statusCode})',
+    );
     return AuthErrorCode.generic;
   }
 

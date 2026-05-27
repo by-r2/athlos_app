@@ -56,6 +56,14 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
+  /// Resends signup confirmation email ([AuthRepository.resendSignupConfirmation]).
+  Future<void> resendSignupConfirmationEmail({required String email}) async {
+    final result = await ref
+        .read(authRepositoryProvider)
+        .resendSignupConfirmation(email: email);
+    result.getOrThrow();
+  }
+
   Future<AuthUser> signInWithEmail({
     required String email,
     required String password,
