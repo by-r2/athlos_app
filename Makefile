@@ -1,7 +1,5 @@
--include .env
-export
-
-SIM_DEVICE ?= iPhone 17 Pro
+# Shared config: .env is shell-sourced in run/build recipes (not `-include` — spaces break Make).
+SIM_DEVICE := iPhone 17 Pro
 SIM_UDID ?=
 IOS_SIM_TARGET := $(if $(SIM_UDID),$(SIM_UDID),$(SIM_DEVICE))
 IOS_DEVICE_UDID ?=
@@ -11,15 +9,12 @@ ANDROID_DEVICE ?= android
 CHIRON_DEBUG_TRACE ?= false
 SEED ?= 1
 
-DART_DEFINES = \
-	--dart-define=SUPABASE_URL=$(SUPABASE_URL) \
-	--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY) \
-	--dart-define=SUPABASE_REDIRECT_URL=$(or $(SUPABASE_REDIRECT_URL),athlos://auth-callback) \
-	--dart-define=GEMINI_API_KEY=$(GEMINI_API_KEY)
+# run-ios: local by default; override with `make run-ios SUPABASE_ENV=prod`
+SUPABASE_ENV ?= local
+SUPABASE_ENV_FILE_local := .env.local
+SUPABASE_ENV_FILE_prod := .env.prod
 
 _SEED_DEFINE = $(if $(filter 0,$(SEED)),--dart-define=SKIP_DEV_SEED=true)
-DEBUG_DART_DEFINES = $(DART_DEFINES) $(_SEED_DEFINE)
-PROD_DART_DEFINES = $(DART_DEFINES) --dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) --dart-define=ENV=prod
 
 .PHONY: help run-ios run-ios-device run-android ios-sim-open ios-sim-list android-sim-open android-emu-list build-apk build-aab build-ipa gen gen-l10n analyze clean
 
@@ -30,6 +25,13 @@ help: ## Show organized command list
 	@printf "  %-20s %s\n" "SIM_DEVICE" "$(SIM_DEVICE)"
 	@printf "  %-20s %s\n" "IOS_DEVICE_UDID" "$(if $(IOS_DEVICE_UDID),<definido>,<não definido>)"
 	@printf "  %-20s %s\n" "ANDROID_EMULATOR" "$(ANDROID_EMULATOR)"
+	@printf "  %-20s %s\n" "SUPABASE_ENV (run-ios)" "$(SUPABASE_ENV)"
+	@echo ""
+	@echo "Supabase:"
+	@echo "  run-ios          → .env.local (sim + Supabase local)"
+	@echo "  run-ios SUPABASE_ENV=prod → .env.prod"
+	@echo "  run-ios-device   → .env.prod (iPhone físico + cloud)"
+	@echo "  run-android      → .env.local"
 	@echo ""
 	@awk '\
 		BEGIN { CYAN="\033[36m"; BOLD="\033[1m"; RESET="\033[0m"; } \
@@ -44,27 +46,62 @@ help: ## Show organized command list
 		}' Makefile
 	@echo ""
 	@echo "Exemplos:"
-	@echo "  make run-ios"
+	@echo "  make run-ios              # sim + Supabase local"
 	@echo "  make run-ios SEED=0"
-	@echo "  make run-ios-device IOS_DEVICE_UDID=<your_device_udid>"
-	@echo "  make run-android ANDROID_EMULATOR=dev_pixel7_api34"
+	@echo "  make run-ios SUPABASE_ENV=prod"
+	@echo "  make run-ios-device IOS_DEVICE_UDID=<udid>"
+	@echo "  make run-android"
 	@echo ""
 
+# Sources .env then $(SUPABASE_ENV_FILE) and runs flutter with dart-defines from the shell env.
+define flutter_run
+	@test -f $(1) || ( \
+		echo "ERROR: missing $(1). Copy from .env.example (see Supabase sections)."; \
+		exit 1); \
+	set -a && \
+	[ -f .env ] && . ./.env; \
+	. ./$(1); \
+	set +a && \
+	test -n "$$SUPABASE_URL" && test -n "$$SUPABASE_ANON_KEY" || ( \
+		echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set in $(1)"; \
+		exit 1); \
+	flutter run $(2) \
+		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
+		--dart-define=SUPABASE_ANON_KEY="$$SUPABASE_ANON_KEY" \
+		--dart-define=SUPABASE_REDIRECT_URL="$${SUPABASE_REDIRECT_URL:-athlos://auth-callback}" \
+		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY" \
+		$(_SEED_DEFINE) \
+		$(3)
+endef
+
+# Release/build: hosted Supabase from .env.prod
+define flutter_build_defines
+	@test -f .env.prod || ( \
+		echo "ERROR: missing .env.prod. Copy from .env.example."; \
+		exit 1); \
+	set -a && \
+	[ -f .env ] && . ./.env; \
+	. ./.env.prod; \
+	set +a && \
+	echo "$$SUPABASE_URL" "$$SUPABASE_ANON_KEY" > /dev/null
+endef
+
 ## Run
-run-ios: ## Run debug on iOS simulator (name or UDID)
+run-ios: ## iOS simulator — Supabase local (.env.local); SUPABASE_ENV=prod uses .env.prod
 	@xcrun simctl boot "$(IOS_SIM_TARGET)" 2>/dev/null || true
-	flutter run -d "$(IOS_SIM_TARGET)" $(DEBUG_DART_DEFINES)
+	$(call flutter_run,$(if $(filter prod,$(SUPABASE_ENV)),$(SUPABASE_ENV_FILE_prod),$(SUPABASE_ENV_FILE_local)),-d "$(IOS_SIM_TARGET)",)
 
-run-ios-device: ## Run profile on physical iPhone (near-prod, free signing)
-	@if [ -z "$(IOS_DEVICE_UDID)" ]; then \
-		echo "ERROR: set IOS_DEVICE_UDID=<your_device_udid>"; \
+run-ios-device: ## Physical iPhone (profile) — Supabase prod (.env.prod)
+	@set -a && [ -f .env ] && . ./.env; set +a; \
+	if [ -z "$$IOS_DEVICE_UDID" ]; then \
+		echo "ERROR: set IOS_DEVICE_UDID=<your_device_udid> in .env"; \
 		exit 1; \
-	fi
-	flutter run --profile -d "$(IOS_DEVICE_UDID)" $(PROD_DART_DEFINES)
+	fi; \
+	$(call flutter_run,$(SUPABASE_ENV_FILE_prod),--profile -d "$$IOS_DEVICE_UDID",--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) --dart-define=ENV=prod)
 
-run-android: ## Run debug on Android emulator
+run-android: ## Android emulator — Supabase local (.env.local)
 	@flutter emulators --launch "$(ANDROID_EMULATOR)" 2>/dev/null || true
-	flutter run -d "$(ANDROID_DEVICE)" $(DEBUG_DART_DEFINES)
+	$(call flutter_run,$(SUPABASE_ENV_FILE_local),-d "$(ANDROID_DEVICE)",)
 
 ## Devices
 ios-sim-open: ## Open iOS Simulator app
@@ -81,14 +118,33 @@ android-emu-list: ## List available Android emulators
 	flutter emulators
 
 ## Build
-build-apk: ## Build Android APK release
-	flutter build apk --release $(DART_DEFINES) --dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE)
+build-apk: ## Build Android APK release (Supabase from .env.prod)
+	@$(call flutter_build_defines); \
+	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
+	flutter build apk --release \
+		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
+		--dart-define=SUPABASE_ANON_KEY="$$SUPABASE_ANON_KEY" \
+		--dart-define=SUPABASE_REDIRECT_URL="$${SUPABASE_REDIRECT_URL:-athlos://auth-callback}" \
+		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY" \
+		--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE)
 
-build-aab: ## Build Android App Bundle release
-	flutter build appbundle --release $(DART_DEFINES)
+build-aab: ## Build Android App Bundle release (.env.prod)
+	@$(call flutter_build_defines); \
+	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
+	flutter build appbundle --release \
+		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
+		--dart-define=SUPABASE_ANON_KEY="$$SUPABASE_ANON_KEY" \
+		--dart-define=SUPABASE_REDIRECT_URL="$${SUPABASE_REDIRECT_URL:-athlos://auth-callback}" \
+		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY"
 
-build-ipa: ## Build iOS IPA release (no codesign)
-	flutter build ipa --release --no-codesign $(DART_DEFINES)
+build-ipa: ## Build iOS IPA release (.env.prod)
+	@$(call flutter_build_defines); \
+	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
+	flutter build ipa --release --no-codesign \
+		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
+		--dart-define=SUPABASE_ANON_KEY="$$SUPABASE_ANON_KEY" \
+		--dart-define=SUPABASE_REDIRECT_URL="$${SUPABASE_REDIRECT_URL:-athlos://auth-callback}" \
+		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY"
 
 ## Generate
 gen: ## Run build_runner one-shot

@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/sync/sync_providers.dart';
+import '../../../../core/sync/sync_user_id.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/repositories/cycle_repository.dart';
 import '../../domain/repositories/exercise_repository.dart';
@@ -21,10 +22,10 @@ part 'training_providers.g.dart';
 
 String _requireUserId(Ref ref) {
   final userId = ref.watch(authProvider).value?.id;
-  if (userId == null) {
+  if (!isValidSyncUserId(userId)) {
     throw StateError('Training repositories require an authenticated user');
   }
-  return userId;
+  return userId!;
 }
 
 @riverpod

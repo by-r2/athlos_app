@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/database/app_database.dart';
 import '../../../../core/sync/sync_adapter.dart';
+import '../../../../core/sync/sync_user_id.dart';
 import 'training_remote_client.dart';
 import 'training_sync_json.dart';
 import 'training_sync_store.dart';
@@ -34,17 +37,33 @@ abstract class _TrainingRowSyncAdapter<Row> implements SyncAdapter<Row> {
 
   @override
   Future<void> pushToRemote(List<Row> rows) async {
+    if (!isValidSyncUserId(userId)) return;
+
     for (final row in rows) {
-      await remote.upsert(table: tableName, row: toJson(row));
+      final payload = Map<String, dynamic>.from(toJson(row));
+      final rowUserId = payload['user_id'] as String?;
+      if (!isValidSyncUserId(rowUserId)) {
+        payload['user_id'] = userId;
+      }
+      final id = payload['id'] as String?;
+      if (id == null || id.trim().isEmpty || !isValidSyncUserId(id)) {
+        debugPrint('[SyncV2] skip push $tableName: missing row id');
+        continue;
+      }
+      await remote.upsert(table: tableName, row: payload);
     }
   }
 
   @override
   Future<void> pushDeletes(List<Row> rows) async {
+    if (!isValidSyncUserId(userId)) return;
+
     for (final row in rows) {
+      final id = rowId(row);
+      if (!isValidSyncUserId(id)) continue;
       await remote.deleteRow(
         table: tableName,
-        id: rowId(row),
+        id: id,
         userId: deleteUserId,
         ownerColumn: deleteOwnerColumn,
         ownerId: deleteOwnerId,
@@ -54,6 +73,11 @@ abstract class _TrainingRowSyncAdapter<Row> implements SyncAdapter<Row> {
 
   @override
   Future<List<Row>> pullFromRemote(DateTime lastPullAt) async {
+    if (!isValidSyncUserId(userId) &&
+        (pullOwnerColumn == null || !isValidSyncUserId(pullOwnerId))) {
+      return const [];
+    }
+
     final jsonRows = await remote.fetchUpdatedSince(
       table: tableName,
       userId: userId,

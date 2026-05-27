@@ -11,6 +11,7 @@ import '../../domain/enums/deload_strategy.dart';
 import '../../domain/enums/duration_mode.dart';
 import '../../domain/enums/program_focus.dart';
 import '../../domain/repositories/program_repository.dart';
+import '../../../../core/utils/uuid.dart';
 import '../datasources/daos/program_dao.dart';
 
 class ProgramRepositoryImpl implements ProgramRepository {
@@ -57,10 +58,11 @@ class ProgramRepositoryImpl implements ProgramRepository {
   @override
   Future<Result<String>> create(TrainingProgram program) async {
     try {
+      final idToUse = program.id.trim().isEmpty ? generateUuidV4() : program.id;
       final dc = program.deloadConfig;
       await _dao.create(
         ProgramsCompanion.insert(
-          id: program.id,
+          id: idToUse,
           userId: _userId,
           name: program.name,
           focus: program.focus.name,
@@ -75,7 +77,7 @@ class ProgramRepositoryImpl implements ProgramRepository {
         ),
       );
       await _syncPrograms();
-      return Success(program.id);
+      return Success(idToUse);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create program: $e'));
     }

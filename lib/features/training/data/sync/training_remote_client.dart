@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/services/supabase_config.dart';
+import '../../../../core/sync/sync_user_id.dart';
 
 /// Supabase push/pull for user-owned training tables.
 class TrainingRemoteClient {
@@ -21,10 +22,13 @@ class TrainingRemoteClient {
     final client = _client;
     if (client == null) return const [];
 
+    if (ownerColumn == null && !isValidSyncUserId(userId)) return const [];
+    if (ownerColumn != null && !isValidSyncUserId(ownerId)) return const [];
+
     var query = client.from(table).select();
 
     if (ownerColumn != null && ownerId != null) {
-      query = query.eq(ownerColumn, ownerId);
+      query = query.eq(ownerColumn, ownerId!);
     } else {
       final column = userIdColumn ?? 'user_id';
       query = query.eq(column, userId);
@@ -62,8 +66,8 @@ class TrainingRemoteClient {
     var query = client.from(table).delete().eq('id', id);
     if (ownerColumn != null && ownerId != null) {
       query = query.eq(ownerColumn, ownerId);
-    } else if (userId != null) {
-      query = query.eq(userIdColumn ?? 'user_id', userId);
+    } else if (isValidSyncUserId(userId)) {
+      query = query.eq(userIdColumn ?? 'user_id', userId!);
     }
     await query;
   }

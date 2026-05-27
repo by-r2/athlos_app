@@ -6,7 +6,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../providers/network_connectivity_provider.dart';
 import '../../features/profile/presentation/providers/user_cloud_sync_status_provider.dart';
 import 'cloud_sync_prefs.dart';
+import '../services/account_data_isolation_service.dart';
 import '../services/supabase_config.dart';
+import '../sync/sync_user_id.dart';
 import '../sync/sync_trigger.dart';
 import '../sync/sync_providers.dart';
 import '../../features/profile/presentation/providers/body_metric_notifier.dart';
@@ -35,7 +37,10 @@ class UserDataSyncCoordinator {
     required SyncTrigger trigger,
   }) async {
     if (!isSupabaseConfigured) return;
-    if (_ref.read(authProvider).value == null) return;
+    final userId = _ref.read(authProvider).value?.id;
+    if (!isValidSyncUserId(userId)) return;
+
+    await _claimOrphanedDataIfNeeded(userId!);
 
     if (!_ref.read(isNetworkAvailableForSyncProvider)) {
       if (trigger == SyncTrigger.sessionChange ||
@@ -128,6 +133,13 @@ class UserDataSyncCoordinator {
     _ref.invalidate(pendingSyncDirtyCountProvider);
     _ref.invalidate(workoutExecutionListProvider);
     _ref.invalidate(lastFinishedWorkoutIdProvider);
+  }
+
+  Future<void> _claimOrphanedDataIfNeeded(String userId) async {
+    final isolation = _ref.read(accountDataIsolationServiceProvider);
+    if (!await isolation.hasOrphanedUserData()) return;
+    await isolation.claimOrphanedData(userId);
+    await isolation.markAllDirtyForUser(userId);
   }
 
   void _invalidateTrainingListProviders() {

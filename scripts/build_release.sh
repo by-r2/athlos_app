@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 # Build release with Supabase dart-defines.
 # Usage: ./scripts/build_release.sh [appbundle|ipa]
-# Requires .env in project root with SUPABASE_URL and SUPABASE_ANON_KEY.
+# Requires .env (shared) + .env.prod (hosted Supabase).
 
 set -e
 cd "$(dirname "$0")/.."
 
-if [ -f .env ]; then
-  set -a
-  source .env
-  set +a
-fi
+set -a
+[ -f .env ] && source .env
+[ -f .env.prod ] && source .env.prod
+set +a
 
 if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
-  echo "Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set."
-  echo "Create a .env file in the project root (see .env.example) or export them."
+  echo "Error: SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env.prod"
+  echo "See .env.example"
   exit 1
 fi
 

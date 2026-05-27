@@ -17,6 +17,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
+import '../../../../core/utils/uuid.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../data/repositories/profile_providers.dart';
@@ -702,7 +703,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     };
 
     final program = TrainingProgram(
-      id: '',
+      id: generateUuidV4(),
       name: 'Meu Programa',
       focus: focus,
       durationMode: DurationMode.sessions,
