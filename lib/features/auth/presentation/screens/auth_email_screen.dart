@@ -443,7 +443,38 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
                   child: Text(l10n.authForgotPasswordAction),
                 ),
               ),
-              const Gap(AthlosSpacing.sm),
+              const Gap(AthlosSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                height: 2,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0),
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.12),
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.12),
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.12),
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0),
+                      ],
+                      stops: const [0, 0.25, 0.5, 0.75, 1],
+                    ),
+                  ),
+                ),
+              ),
+              const Gap(AthlosSpacing.md),
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
@@ -626,10 +657,7 @@ class _SignUpInputBar extends StatelessWidget {
 }
 
 class _ForgotPasswordDialog extends StatefulWidget {
-  const _ForgotPasswordDialog({
-    required this.initialEmail,
-    required this.ref,
-  });
+  const _ForgotPasswordDialog({required this.initialEmail, required this.ref});
 
   final String initialEmail;
   final WidgetRef ref;
@@ -671,9 +699,9 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
     } on Object catch (error) {
       debugPrint('[ForgotPassword] error: $error');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.authForgotPasswordError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.authForgotPasswordError)));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
