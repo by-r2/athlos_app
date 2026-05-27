@@ -48,19 +48,61 @@ void _openAppMenuSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     useSafeArea: true,
-    showDragHandle: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: false,
+    // Keep the route background transparent so it doesn't "freeze" the
+    // previous theme color while the sheet is open.
+    backgroundColor: Colors.transparent,
     builder: (sheetContext) {
-      final colorScheme = Theme.of(sheetContext).colorScheme;
-      return Material(
-        color: colorScheme.surface,
-        child: SizedBox(
-          width: double.infinity,
-          child: const _AppMenuSheetBody(),
+      final theme = Theme.of(sheetContext);
+      final colorScheme = theme.colorScheme;
+
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AthlosRadius.lg),
+        ),
+        child: Material(
+          color: colorScheme.surface,
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                _SheetDragHandle(),
+                Gap(AthlosSpacing.xs),
+                _AppMenuSheetBody(),
+              ],
+            ),
+          ),
         ),
       );
     },
   );
+}
+
+class _SheetDragHandle extends StatelessWidget {
+  const _SheetDragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: AthlosSpacing.md,
+        bottom: AthlosSpacing.sm,
+      ),
+      child: Center(
+        child: Container(
+          width: 44,
+          height: 4,
+          decoration: BoxDecoration(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AppMenuSheetBody extends ConsumerWidget {
@@ -126,18 +168,24 @@ class _AppMenuSheetBody extends ConsumerWidget {
             segments: [
               ButtonSegment<ThemeMode>(
                 value: ThemeMode.light,
-                icon: const Icon(Icons.light_mode_outlined, size: 20),
-                label: Text(l10n.themeModeLight),
+                label: _ThemeModeSegmentLabel(
+                  icon: Icons.light_mode_outlined,
+                  label: l10n.themeModeLight,
+                ),
               ),
               ButtonSegment<ThemeMode>(
                 value: ThemeMode.dark,
-                icon: const Icon(Icons.dark_mode_outlined, size: 20),
-                label: Text(l10n.themeModeDark),
+                label: _ThemeModeSegmentLabel(
+                  icon: Icons.dark_mode_outlined,
+                  label: l10n.themeModeDark,
+                ),
               ),
               ButtonSegment<ThemeMode>(
                 value: ThemeMode.system,
-                icon: const Icon(Icons.brightness_auto_outlined, size: 20),
-                label: Text(l10n.themeModeSystem),
+                label: _ThemeModeSegmentLabel(
+                  icon: Icons.brightness_auto_outlined,
+                  label: l10n.themeModeSystem,
+                ),
               ),
             ],
             emptySelectionAllowed: false,
@@ -151,6 +199,40 @@ class _AppMenuSheetBody extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Icon above label so three segments fit narrow widths without wrapping text.
+class _ThemeModeSegmentLabel extends StatelessWidget {
+  const _ThemeModeSegmentLabel({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 20),
+        const Gap(AthlosSpacing.xxs),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.center,
+            style: textTheme.labelSmall,
+          ),
+        ),
+      ],
     );
   }
 }
