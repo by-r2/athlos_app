@@ -45,12 +45,6 @@ class UserProfile {
   /// Last module the user was in. Defaults to training.
   final AppModule lastActiveModule;
 
-  /// Consecutive sessions following expected cycle order (may span programs).
-  final int currentCycleStreak;
-
-  /// Best cycle streak ever recorded.
-  final int bestCycleStreak;
-
   /// Consecutive weeks hitting the weekly session target.
   final int currentFrequencyStreak;
 
@@ -77,8 +71,6 @@ class UserProfile {
     this.bio,
     this.ownedEquipmentNames = const [],
     this.lastActiveModule = AppModule.training,
-    this.currentCycleStreak = 0,
-    this.bestCycleStreak = 0,
     this.currentFrequencyStreak = 0,
     this.bestFrequencyStreak = 0,
     this.trainingStreaksSchema = 0,
@@ -101,8 +93,6 @@ class UserProfile {
     String? Function()? bio,
     List<String>? ownedEquipmentNames,
     AppModule? lastActiveModule,
-    int? currentCycleStreak,
-    int? bestCycleStreak,
     int? currentFrequencyStreak,
     int? bestFrequencyStreak,
     int? trainingStreaksSchema,
@@ -129,8 +119,6 @@ class UserProfile {
     bio: bio != null ? bio() : this.bio,
     ownedEquipmentNames: ownedEquipmentNames ?? this.ownedEquipmentNames,
     lastActiveModule: lastActiveModule ?? this.lastActiveModule,
-    currentCycleStreak: currentCycleStreak ?? this.currentCycleStreak,
-    bestCycleStreak: bestCycleStreak ?? this.bestCycleStreak,
     currentFrequencyStreak:
         currentFrequencyStreak ?? this.currentFrequencyStreak,
     bestFrequencyStreak: bestFrequencyStreak ?? this.bestFrequencyStreak,

@@ -1,4 +1,4 @@
-// Calendar weeks (Monday 00:00 local) aligned with streak / consistency logic.
+// Calendar weeks (Monday 00:00 local) aligned with weekly consistency logic.
 
 /// Strips time; keeps calendar date in the local timezone of [instant].
 DateTime dateOnly(DateTime instant) =>

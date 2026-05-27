@@ -7,6 +7,10 @@ import '../entities/workout_execution.dart';
 /// Contract for workout execution data operations.
 abstract interface class WorkoutExecutionRepository {
   Future<Result<List<WorkoutExecution>>> getAll();
+
+  /// Count of finished, non-deleted executions for the current user.
+  Future<Result<int>> countFinished();
+
   Future<Result<List<WorkoutExecution>>> getByWorkout(String workoutId);
   Future<Result<WorkoutExecution?>> getById(String id);
   Future<Result<WorkoutExecution?>> getLastFinished();

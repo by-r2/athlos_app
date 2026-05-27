@@ -8,6 +8,7 @@ import '../database/app_database.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
 import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/profile/presentation/providers/profile_notifier.dart';
+import '../../features/training/presentation/providers/recalculate_training_streaks.dart';
 import '../sync/sync_providers.dart';
 import '../providers/network_connectivity_provider.dart';
 import '../services/account_data_isolation_service.dart';
@@ -83,8 +84,6 @@ class SessionBootstrap extends _$SessionBootstrap {
               bio: Value(remoteProfile.bio),
               ownedEquipmentNames: Value(remoteProfile.ownedEquipmentNames),
               lastActiveModule: Value(remoteProfile.lastActiveModule),
-              currentCycleStreak: Value(remoteProfile.currentCycleStreak),
-              bestCycleStreak: Value(remoteProfile.bestCycleStreak),
               currentFrequencyStreak: Value(remoteProfile.currentFrequencyStreak),
               bestFrequencyStreak: Value(remoteProfile.bestFrequencyStreak),
               trainingStreaksSchema: Value(remoteProfile.trainingStreaksSchema),
@@ -95,6 +94,8 @@ class SessionBootstrap extends _$SessionBootstrap {
           ref.invalidate(profileProvider);
         }
       }
+
+      await ref.read(trainingStreaksMaterializedProvider.future);
     } on Exception catch (e) {
       debugPrint('[SessionBootstrap] failed: $e');
     } finally {

@@ -46,6 +46,19 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(e) => OrderingTerm.desc(e.startedAt)]))
           .get();
 
+  /// Total finished, non-deleted executions for [userId].
+  Future<int> countFinished(String userId) async {
+    final count = countAll(
+      filter:
+          workoutExecutions.userId.equals(userId) &
+          workoutExecutions.finishedAt.isNotNull() &
+          workoutExecutions.deletedAt.isNull(),
+    );
+    final query = selectOnly(workoutExecutions)..addColumns([count]);
+    final row = await query.getSingle();
+    return row.read(count) ?? 0;
+  }
+
   Future<WorkoutExecution?> getLastFinished(String userId) =>
       (select(workoutExecutions)
             ..where(

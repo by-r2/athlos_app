@@ -132,6 +132,7 @@ int get schemaVersion => 35;
 - **Versions 25–27** mandatory program model, execution snapshot support, catalog seed expansion, and unilateral execution flag.
 - **Version 28** isometric exercise flag, reps→duration migration for isometric history, and isometric catalog expansion (seedV7).
 - **Version 29** training streak counters on `user_profiles`.
+- **Version 41** drops cycle streak columns (`current_cycle_streak`, `best_cycle_streak`); session totals are derived from `workout_executions`.
 - **Version 30** removal of local equipment catalog tables (`equipments`, links); `owned_equipment_names` on profile; exercise canonical renames + merges (see [catalog_exercises.md](./catalog_exercises.md)).
 - **Version 31** `seedExercisesV8` — additive squat variants and variation edges (details in `exercise_seeder.dart`).
 - **Version 32** `seedExercisesV9` — additive catalog rows + variation edges (details in `exercise_seeder.dart`).

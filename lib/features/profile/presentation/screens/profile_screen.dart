@@ -39,6 +39,7 @@ import '../providers/user_cloud_sync_status_provider.dart';
 import '../widgets/owned_equipment_list.dart';
 import '../widgets/body_metrics_dashboard_card.dart';
 import '../../../kleos/presentation/screens/kleos_screen.dart';
+import '../../../training/presentation/providers/training_analytics_provider.dart';
 import 'profile_overview_edit_screen.dart';
 import 'profile_training_edit_screen.dart';
 
@@ -952,7 +953,7 @@ class _ProfileHubShortcutTile extends StatelessWidget {
   }
 }
 
-class _ProfileStreakSummaryCard extends StatelessWidget {
+class _ProfileStreakSummaryCard extends ConsumerWidget {
   const _ProfileStreakSummaryCard({
     required this.profile,
     required this.l10n,
@@ -962,12 +963,11 @@ class _ProfileStreakSummaryCard extends StatelessWidget {
   final AppLocalizations l10n;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final cycle = profile.currentCycleStreak;
+    final sessionCount = ref.watch(finishedSessionCountProvider).value ?? 0;
     final freq = profile.currentFrequencyStreak;
-    final bestCycle = profile.bestCycleStreak;
     final bestFreq = profile.bestFrequencyStreak;
 
     return Card(
@@ -980,21 +980,16 @@ class _ProfileStreakSummaryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.bolt_outlined, color: colorScheme.primary, size: 22),
+                  Icon(
+                    Icons.fitness_center_outlined,
+                    color: colorScheme.primary,
+                    size: 22,
+                  ),
                   const Gap(AthlosSpacing.xs),
                   Text(
-                    l10n.dashboardCycleStreakCount(cycle),
+                    l10n.dashboardFinishedSessionsCount(sessionCount),
                     style: textTheme.titleSmall,
                   ),
-                  if (bestCycle > 0) ...[
-                    const Gap(AthlosSpacing.xxs),
-                    Text(
-                      l10n.dashboardStreakBestCycle(bestCycle),
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

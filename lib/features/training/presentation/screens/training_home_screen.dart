@@ -396,7 +396,7 @@ class _StatPillsRow extends ConsumerWidget {
         children: [
           Expanded(child: _FrequencyPill(l10n: l10n)),
           const Gap(AthlosSpacing.sm),
-          Expanded(child: _CycleStreakPill(l10n: l10n)),
+          Expanded(child: _FinishedSessionsPill(l10n: l10n)),
         ],
       ),
     );
@@ -515,23 +515,22 @@ class _FrequencyPill extends ConsumerWidget {
   }
 }
 
-class _CycleStreakPill extends ConsumerWidget {
+class _FinishedSessionsPill extends ConsumerWidget {
   final AppLocalizations l10n;
 
-  const _CycleStreakPill({required this.l10n});
+  const _FinishedSessionsPill({required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final profileAsync = ref.watch(profileProvider);
-    final cycleStreak = profileAsync.value?.currentCycleStreak ?? 0;
-    final bestCycleStreak = profileAsync.value?.bestCycleStreak ?? 0;
-    final isActive = cycleStreak > 0;
+    final sessionCount =
+        ref.watch(finishedSessionCountProvider).value ?? 0;
+    final hasSessions = sessionCount > 0;
 
     return Tooltip(
-      message: l10n.dashboardCycleTooltip,
+      message: l10n.dashboardFinishedSessionsTooltip,
       triggerMode: TooltipTriggerMode.tap,
       preferBelow: true,
       child: Card(
@@ -542,10 +541,14 @@ class _CycleStreakPill extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.repeat, size: 16, color: colorScheme.primary),
+                  Icon(
+                    Icons.fitness_center_outlined,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
                   const Gap(AthlosSpacing.xs),
                   Text(
-                    l10n.dashboardCycleTitle,
+                    l10n.dashboardFinishedSessionsTitle,
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -556,30 +559,21 @@ class _CycleStreakPill extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.workspace_premium,
+                    Icons.check_circle_outline,
                     size: 20,
-                    color: isActive
+                    color: hasSessions
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,
                   ),
                   const Gap(AthlosSpacing.xs),
                   Text(
-                    l10n.dashboardCycleStreakCount(cycleStreak),
+                    l10n.dashboardFinishedSessionsCount(sessionCount),
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              if (bestCycleStreak > 0) ...[
-                const Gap(AthlosSpacing.xxs),
-                Text(
-                  l10n.dashboardStreakBestCycle(bestCycleStreak),
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

@@ -2671,20 +2671,19 @@
     "description": "Best weekly frequency streak",
     "placeholders": { "count": { "type": "int" } }
   },
-  "dashboardStreakBestCycle": "Melhor: {count} treinos",
-  "@dashboardStreakBestCycle": {
-    "description": "Best cycle streak (consecutive workouts)",
+  "dashboardFinishedSessionsTitle": "Sessões",
+  "@dashboardFinishedSessionsTitle": {
+    "description": "Title for total finished training sessions stat pill"
+  },
+  "dashboardFinishedSessionsCount": "{count} concluídas",
+  "@dashboardFinishedSessionsCount": {
+    "description": "Total finished training sessions in history",
     "placeholders": { "count": { "type": "int" } }
   },
-  "dashboardCycleTitle": "Ciclo",
-  "@dashboardCycleTitle": { "description": "Title for the cycle streak stat pill" },
-  "dashboardCycleStreakCount": "{count} treinos",
-  "@dashboardCycleStreakCount": {
-    "description": "Cycle streak count in consecutive workouts",
-    "placeholders": { "count": { "type": "int" } }
+  "dashboardFinishedSessionsTooltip": "Total de sessões de treino concluídas no teu histórico.",
+  "@dashboardFinishedSessionsTooltip": {
+    "description": "Tooltip explaining the finished sessions count metric"
   },
-  "dashboardCycleTooltip": "Treinos consecutivos seguindo a ordem correta do ciclo (ex: A → B → C → A).",
-  "@dashboardCycleTooltip": { "description": "Tooltip explaining the cycle streak metric" },
   "dashboardVolumeTargetRange": "{min}–{max}",
   "@dashboardVolumeTargetRange": {
     "description": "Volume target range display",

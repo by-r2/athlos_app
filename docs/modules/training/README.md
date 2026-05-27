@@ -290,7 +290,7 @@ Charts and records computed from existing execution data — zero additional use
 
 **UI approach:** charts live in **dedicated detail screens** reached by tapping summary cards or exercise entries — never on the main flow. Training Home shows at most 1-2 small summary cards (e.g. "volume this week", "recent PR"); tapping drills into the chart. The principle is: **surface → summary card, drill-down → full chart**. No carousels, no chart walls.
 
-> **Note:** progress data (PRs, volume trends, consistency streaks) are the natural input for the future **Kleos** gamification module — achievements, streaks, and challenges built on top of real training metrics.
+> **Note:** progress data (PRs, volume trends, weekly frequency streaks, total finished sessions) are the natural input for the future **Kleos** gamification module — achievements, streaks, and challenges built on top of real training metrics. Cycle-order streaks are not tracked; session totals are derived from execution history.
 
 ### Future Considerations (low priority)
 

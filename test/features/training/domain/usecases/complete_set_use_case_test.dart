@@ -187,6 +187,9 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<int>> countFinished() => _unsupported();
+
+  @override
   Future<Result<List<WorkoutExecution>>> getAll() => _unsupported();
   @override
   Future<Result<List<WorkoutExecution>>> getByWorkout(String workoutId) =>

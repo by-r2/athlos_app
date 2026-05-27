@@ -87,8 +87,6 @@ class UserProfileSyncAdapter implements SyncAdapter<domain.UserProfile> {
     bio: row.bio,
     ownedEquipmentNames: row.ownedEquipmentNames ?? const [],
     lastActiveModule: row.lastActiveModule,
-    currentCycleStreak: row.currentCycleStreak,
-    bestCycleStreak: row.bestCycleStreak,
     currentFrequencyStreak: row.currentFrequencyStreak,
     bestFrequencyStreak: row.bestFrequencyStreak,
     trainingStreaksSchema: row.trainingStreaksSchema,
@@ -112,8 +110,6 @@ class UserProfileSyncAdapter implements SyncAdapter<domain.UserProfile> {
         bio: Value(profile.bio),
         ownedEquipmentNames: Value(profile.ownedEquipmentNames),
         lastActiveModule: Value(profile.lastActiveModule),
-        currentCycleStreak: Value(profile.currentCycleStreak),
-        bestCycleStreak: Value(profile.bestCycleStreak),
         currentFrequencyStreak: Value(profile.currentFrequencyStreak),
         bestFrequencyStreak: Value(profile.bestFrequencyStreak),
         trainingStreaksSchema: Value(

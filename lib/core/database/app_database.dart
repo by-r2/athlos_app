@@ -92,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 40;
+  int get schemaVersion => 41;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -854,6 +854,15 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 40) {
         await _migrateToUuidFirst(m);
+      }
+
+      if (from < 41) {
+        await customStatement(
+          'ALTER TABLE user_profiles DROP COLUMN current_cycle_streak',
+        );
+        await customStatement(
+          'ALTER TABLE user_profiles DROP COLUMN best_cycle_streak',
+        );
       }
     },
   );

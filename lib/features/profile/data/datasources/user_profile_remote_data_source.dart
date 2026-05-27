@@ -78,8 +78,6 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     final json = <String, dynamic>{
       'id': userId,
       'last_active_module': profile.lastActiveModule.name,
-      'current_cycle_streak': profile.currentCycleStreak,
-      'best_cycle_streak': profile.bestCycleStreak,
       'current_frequency_streak': profile.currentFrequencyStreak,
       'best_frequency_streak': profile.bestFrequencyStreak,
       'training_streaks_schema': profile.trainingStreaksSchema,
@@ -133,8 +131,6 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
     lastActiveModule:
         _enumByName(AppModule.values, row['last_active_module']) ??
         AppModule.training,
-    currentCycleStreak: _asInt(row['current_cycle_streak']) ?? 0,
-    bestCycleStreak: _asInt(row['best_cycle_streak']) ?? 0,
     currentFrequencyStreak: _asInt(row['current_frequency_streak']) ?? 0,
     bestFrequencyStreak: _asInt(row['best_frequency_streak']) ?? 0,
     trainingStreaksSchema: _asInt(row['training_streaks_schema']) ?? 0,

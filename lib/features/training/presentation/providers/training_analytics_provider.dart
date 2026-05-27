@@ -7,8 +7,6 @@ import '../../domain/entities/execution_comparison.dart';
 import '../../domain/entities/workout.dart';
 import 'workout_notifier.dart';
 
-import '../../../profile/presentation/providers/profile_notifier.dart';
-
 part 'training_analytics_provider.g.dart';
 
 /// Single item in the cycle list for display.
@@ -252,9 +250,9 @@ Future<int?> nextCycleStepIndex(Ref ref) async {
   return lastStepIndex < 0 ? 0 : (lastStepIndex + 1) % steps.length;
 }
 
-/// Persisted consecutive cycle streak (may span programs). See profile fields.
+/// Total finished workout sessions in history (derived from executions table).
 @riverpod
-Future<int> executionStreak(Ref ref) async {
-  final profile = await ref.watch(profileProvider.future);
-  return profile?.currentCycleStreak ?? 0;
+Future<int> finishedSessionCount(Ref ref) async {
+  final execRepo = ref.watch(workoutExecutionRepositoryProvider);
+  return (await execRepo.countFinished()).getOrThrow();
 }

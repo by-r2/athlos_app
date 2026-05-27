@@ -7,11 +7,12 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../training/presentation/providers/training_metrics_provider.dart';
 
-/// Cycle streak, weekly frequency streak, and current-week rhythm.
+/// Finished session total, weekly frequency streak, and current-week rhythm.
 class KleosConsistencyPanel extends StatelessWidget {
   const KleosConsistencyPanel({
     super.key,
     required this.profile,
+    required this.finishedSessionCount,
     required this.thisWeekCount,
     required this.weeklyTarget,
     required this.consistency,
@@ -19,6 +20,7 @@ class KleosConsistencyPanel extends StatelessWidget {
   });
 
   final UserProfile profile;
+  final int finishedSessionCount;
   final int thisWeekCount;
   final int weeklyTarget;
   final ConsistencyStatus consistency;
@@ -28,13 +30,11 @@ class KleosConsistencyPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final cycle = profile.currentCycleStreak;
     final freq = profile.currentFrequencyStreak;
-    final bestCycle = profile.bestCycleStreak;
     final bestFreq = profile.bestFrequencyStreak;
     final dotCount =
         thisWeekCount > weeklyTarget ? thisWeekCount : weeklyTarget;
-    final isCycleActive = cycle > 0;
+    final hasSessions = finishedSessionCount > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,15 +45,14 @@ class KleosConsistencyPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: _StreakCard(
-                  icon: Icons.repeat_rounded,
-                  iconColor: isCycleActive
+                  icon: Icons.fitness_center_outlined,
+                  iconColor: hasSessions
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
-                  title: l10n.dashboardCycleTitle,
-                  value: l10n.dashboardCycleStreakCount(cycle),
-                  subtitle: bestCycle > 0
-                      ? l10n.dashboardStreakBestCycle(bestCycle)
-                      : null,
+                  title: l10n.dashboardFinishedSessionsTitle,
+                  value: l10n.dashboardFinishedSessionsCount(
+                    finishedSessionCount,
+                  ),
                 ),
               ),
               const Gap(AthlosSpacing.sm),

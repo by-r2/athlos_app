@@ -1,63 +1,7 @@
 import '../entities/workout_execution.dart';
 
-/// Bump when [computeCycleStreaks] / [computeFrequencyStreaks] semantics change.
+/// Bump when [computeFrequencyStreaks] semantics change.
 const kTrainingStreaksSchemaVersion = 1;
-
-({int current, int best}) computeCycleStreaks(
-  List<WorkoutExecution> chronological,
-  Map<String, List<String>> cycleWorkoutIdsByProgramId,
-) {
-  if (chronological.isEmpty) {
-    return (current: 0, best: 0);
-  }
-
-  var running = 0;
-  var best = 0;
-  WorkoutExecution? prev;
-
-  for (final curr in chronological) {
-    if (prev == null) {
-      running = 1;
-    } else if (_isValidCycleTransition(
-      prev: prev,
-      curr: curr,
-      cycleWorkoutIdsByProgramId: cycleWorkoutIdsByProgramId,
-    )) {
-      running++;
-    } else {
-      running = 1;
-    }
-    if (running > best) best = running;
-    prev = curr;
-  }
-
-  return (current: running, best: best);
-}
-
-bool _isValidCycleTransition({
-  required WorkoutExecution prev,
-  required WorkoutExecution curr,
-  required Map<String, List<String>> cycleWorkoutIdsByProgramId,
-}) {
-  if (prev.programId != curr.programId) {
-    return true;
-  }
-
-  final cycle = cycleWorkoutIdsByProgramId[curr.programId] ?? [];
-  if (cycle.isEmpty) {
-    return true;
-  }
-
-  final expectedPrevId = _previousWorkoutInCycle(curr.workoutId, cycle);
-  return prev.workoutId == expectedPrevId;
-}
-
-String? _previousWorkoutInCycle(String workoutId, List<String> cycleWorkoutIds) {
-  final idx = cycleWorkoutIds.indexOf(workoutId);
-  if (idx < 0) return null;
-  return cycleWorkoutIds[(idx - 1 + cycleWorkoutIds.length) %
-      cycleWorkoutIds.length];
-}
 
 /// [chronological]: finished executions, oldest → newest (by [WorkoutExecution.startedAt]).
 ({int current, int best}) computeFrequencyStreaks(

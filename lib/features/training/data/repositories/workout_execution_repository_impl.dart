@@ -43,6 +43,16 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<int>> countFinished() async {
+    try {
+      final count = await _dao.countFinished(_userId);
+      return Success(count);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to count finished executions: $e'));
+    }
+  }
+
+  @override
   Future<Result<List<domain.WorkoutExecution>>> getByWorkout(
     String workoutId,
   ) async {

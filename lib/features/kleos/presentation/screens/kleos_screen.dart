@@ -24,17 +24,16 @@ Future<void> _invalidateKleosData(WidgetRef ref) async {
   ref.invalidate(profileProvider);
   ref.invalidate(allExercisePRsProvider);
   ref.invalidate(trainingHomeAnalyticsProvider);
+  ref.invalidate(finishedSessionCountProvider);
   ref.invalidate(thisWeekSessionCountProvider);
   ref.invalidate(consistencyStatusProvider);
   ref.invalidate(lastExecutedWorkoutComparisonProvider);
   await ref.read(allExercisePRsProvider.future);
 }
 
-bool _hasStreakSignal(UserProfile? profile) {
+bool _hasFrequencyStreakSignal(UserProfile? profile) {
   if (profile == null) return false;
-  return profile.currentCycleStreak > 0 ||
-      profile.currentFrequencyStreak > 0 ||
-      profile.bestCycleStreak > 0 ||
+  return profile.currentFrequencyStreak > 0 ||
       profile.bestFrequencyStreak > 0;
 }
 
@@ -57,6 +56,7 @@ class KleosScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final prsAsync = ref.watch(allExercisePRsProvider);
     final analyticsAsync = ref.watch(trainingHomeAnalyticsProvider);
+    final finishedCountAsync = ref.watch(finishedSessionCountProvider);
     final thisWeekAsync = ref.watch(thisWeekSessionCountProvider);
     final consistencyAsync = ref.watch(consistencyStatusProvider);
 
@@ -78,9 +78,9 @@ class KleosScreen extends ConsumerWidget {
     final profile = profileAsync.value;
     final prs = prsAsync.value ?? const [];
     final analytics = analyticsAsync.value;
-    final finishedTotal = analytics != null
-        ? finishedSessionsFromAnalytics(analytics)
-        : 0;
+    final finishedTotal = finishedCountAsync.value ??
+        (analytics != null ? finishedSessionsFromAnalytics(analytics) : 0);
+    final finishedSessionCount = finishedCountAsync.value ?? finishedTotal;
 
     final thisWeek = thisWeekAsync.value ?? 0;
     final weeklyTarget =
@@ -94,7 +94,9 @@ class KleosScreen extends ConsumerWidget {
     final hasStrengthData = prs.isNotEmpty;
     final hasMeaningfulData =
         profile != null &&
-        (finishedTotal > 0 || hasStrengthData || _hasStreakSignal(profile));
+        (finishedTotal > 0 ||
+            hasStrengthData ||
+            _hasFrequencyStreakSignal(profile));
 
     List<MapEntry<String, ExercisePRRecord>> muscleEntries;
     if (!hasStrengthData) {
@@ -182,6 +184,7 @@ class KleosScreen extends ConsumerWidget {
             icon: Icons.local_fire_department_outlined,
             child: KleosConsistencyPanel(
               profile: profile,
+              finishedSessionCount: finishedSessionCount,
               thisWeekCount: thisWeek,
               weeklyTarget: weeklyTarget,
               consistency: consistency,

@@ -28,6 +28,7 @@ import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../helpers/rep_performance.dart';
 import 'recalculate_training_streaks.dart';
+import 'training_analytics_provider.dart';
 
 part 'active_execution_notifier.g.dart';
 
@@ -556,6 +557,8 @@ class ActiveExecution extends _$ActiveExecution {
 
     await ref.read(recalculateTrainingStreaksProvider.notifier).run();
     ref.invalidate(profileProvider);
+    ref.invalidate(finishedSessionCountProvider);
+    ref.invalidate(trainingHomeAnalyticsProvider);
   }
 
   /// Resume a previously started but unfinished execution.

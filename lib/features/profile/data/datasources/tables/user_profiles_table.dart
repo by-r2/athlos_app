@@ -46,9 +46,6 @@ class UserProfiles extends Table {
       text().nullable().map(const StringListJsonConverter())();
   TextColumn get lastActiveModule =>
       textEnum<AppModule>().withDefault(Constant(AppModule.training.name))();
-  IntColumn get currentCycleStreak =>
-      integer().withDefault(const Constant(0))();
-  IntColumn get bestCycleStreak => integer().withDefault(const Constant(0))();
   IntColumn get currentFrequencyStreak =>
       integer().withDefault(const Constant(0))();
   IntColumn get bestFrequencyStreak =>
