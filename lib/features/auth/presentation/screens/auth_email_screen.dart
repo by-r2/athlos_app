@@ -507,7 +507,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
               controller: _chatScrollController,
               padding: const EdgeInsets.fromLTRB(
                 AthlosSpacing.md,
-                AthlosSpacing.md,
+                AthlosSpacing.xl,
                 AthlosSpacing.md,
                 AthlosSpacing.sm,
               ),
