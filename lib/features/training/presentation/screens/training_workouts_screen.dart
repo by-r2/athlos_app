@@ -22,7 +22,7 @@ import '../../domain/enums/program_focus.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
-import '../widgets/program_settings_section_card.dart';
+import '../../../../core/widgets/layout/athlos_section.dart';
 
 /// First logical line of workout notes (before the first newline). Null if empty.
 String? _workoutNotesFirstLine(String? raw) {
@@ -318,8 +318,14 @@ class _ActiveProgramCycleViewState
           children: [
             if (program != null) _ProgramSummaryCard(program: program),
             const Gap(AthlosSpacing.md),
-            _EmptyCycleCard(
-              onAddWorkout: () => _showAddWorkoutPicker(context, workouts, ids),
+            AthlosSection(
+              title: l10n.programCycleSection,
+              subtitle: l10n.programCycleHint,
+              icon: Icons.repeat_rounded,
+            ),
+            _CycleAddWorkoutButton(
+              label: l10n.trainingCycleAddWorkout,
+              onPressed: () => _showAddWorkoutPicker(context, workouts, ids),
             ),
           ],
         ),
@@ -343,11 +349,13 @@ class _ActiveProgramCycleViewState
             AthlosSpacing.md,
             AthlosSpacing.md,
             AthlosSpacing.md,
-            AthlosSpacing.xs,
+            0,
           ),
-          child: _CycleSectionHeader(
-            workoutCount: ids.length,
-            l10n: l10n,
+          child: AthlosSection(
+            title: l10n.programCycleSection,
+            subtitle: l10n.programCycleHint,
+            icon: Icons.repeat_rounded,
+            trailing: _CycleWorkoutCountBadge(count: ids.length),
           ),
         ),
         Expanded(
@@ -562,47 +570,34 @@ class _ProgramSummaryCard extends ConsumerWidget {
   }
 }
 
-class _CycleSectionHeader extends StatelessWidget {
-  const _CycleSectionHeader({
-    required this.workoutCount,
-    required this.l10n,
-  });
+class _CycleWorkoutCountBadge extends StatelessWidget {
+  const _CycleWorkoutCountBadge({required this.count});
 
-  final int workoutCount;
-  final AppLocalizations l10n;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            l10n.programCycleSection,
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AthlosSpacing.sm,
+        vertical: AthlosSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AthlosRadius.smAll,
+      ),
+      child: Text(
+        '$count',
+        style: textTheme.labelSmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
         ),
-        if (workoutCount > 0)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AthlosSpacing.sm,
-              vertical: AthlosSpacing.xxs,
-            ),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: AthlosRadius.smAll,
-            ),
-            child: Text(
-              '$workoutCount',
-              style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -831,25 +826,3 @@ class _CycleAddWorkoutButton extends StatelessWidget {
   }
 }
 
-// ── Empty cycle card ──────────────────────────────────────────────────
-
-class _EmptyCycleCard extends StatelessWidget {
-  const _EmptyCycleCard({required this.onAddWorkout});
-
-  final VoidCallback onAddWorkout;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return ProgramSettingsSectionCard(
-      icon: Icons.repeat_rounded,
-      title: l10n.programCycleSection,
-      subtitle: l10n.programCycleHint,
-      child: _CycleAddWorkoutButton(
-        label: l10n.trainingCycleAddWorkout,
-        onPressed: onAddWorkout,
-      ),
-    );
-  }
-}

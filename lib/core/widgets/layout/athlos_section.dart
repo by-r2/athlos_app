@@ -12,13 +12,21 @@ class AthlosSection extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.icon,
+    this.trailing,
     this.child,
+    this.contentSpacing = AthlosSpacing.md,
   });
 
   final String title;
   final String? subtitle;
   final IconData? icon;
+
+  /// Optional widget aligned to the right of the title row (e.g. a count badge).
+  final Widget? trailing;
   final Widget? child;
+
+  /// Gap between the title block (title + subtitle) and [child] / content below.
+  final double contentSpacing;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +51,7 @@ class AthlosSection extends StatelessWidget {
                 ),
               ),
             ),
+            ?trailing,
           ],
         ),
         if (subtitle != null) ...[
@@ -55,10 +64,8 @@ class AthlosSection extends StatelessWidget {
             ),
           ),
         ],
-        if (child != null) ...[
-          const Gap(AthlosSpacing.md),
-          child!,
-        ],
+        if (contentSpacing > 0) Gap(contentSpacing),
+        ?child,
       ],
     );
   }
