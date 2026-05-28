@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
@@ -207,15 +208,11 @@ class _ProgramCard extends ConsumerWidget {
                             ref.invalidate(activeProgramProvider);
                             ref.invalidate(cycleStepsProvider);
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(l10n.programActivated)),
-                              );
+                              context.showAthlosSuccessSnack(l10n.programActivated);
                             }
                           } on Exception catch (_) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(l10n.genericError)),
-                              );
+                              context.showAthlosErrorSnack(l10n.genericError);
                             }
                           }
                         },
@@ -260,15 +257,11 @@ class _ProgramCard extends ConsumerWidget {
                         .deleteProgram(program.id);
                     ref.invalidate(programListProvider);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.programDeleted)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.programDeleted);
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 },

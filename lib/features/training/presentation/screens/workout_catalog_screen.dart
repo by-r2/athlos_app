@@ -9,6 +9,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
@@ -178,17 +179,13 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     try {
       await ref.read(workoutListProvider.notifier).archiveWorkout(id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.workoutArchived),
-          ),
+        context.showAthlosSuccessSnack(
+          AppLocalizations.of(context)!.workoutArchived,
         );
       }
     } on Exception catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
   }
@@ -197,17 +194,13 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     try {
       await ref.read(workoutListProvider.notifier).unarchiveWorkout(id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.workoutUnarchived),
-          ),
+        context.showAthlosSuccessSnack(
+          AppLocalizations.of(context)!.workoutUnarchived,
         );
       }
     } on Exception catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
   }
@@ -219,17 +212,13 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
           .read(workoutListProvider.notifier)
           .duplicateWorkout(id, nameSuffix: l10n.workoutCopySuffix);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.duplicatedWorkout),
-          ),
+        context.showAthlosSuccessSnack(
+          AppLocalizations.of(context)!.duplicatedWorkout,
         );
       }
     } on Exception catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
   }
@@ -259,12 +248,8 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
                         .deleteWorkout(workout.id);
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.genericError,
-                          ),
-                        ),
+                      context.showAthlosErrorSnack(
+                        AppLocalizations.of(context)!.genericError,
                       );
                     }
                   }

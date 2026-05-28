@@ -10,6 +10,7 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../core/widgets/layout/athlos_section.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -628,19 +629,13 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
       }
     } on ConflictException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.exerciseDuplicateGeneric,
-            ),
-          ),
+        context.showAthlosWarningSnack(
+          AppLocalizations.of(context)!.exerciseDuplicateGeneric,
         );
       }
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     } finally {
       if (mounted) {

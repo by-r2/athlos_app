@@ -183,6 +183,21 @@ class AthlosTheme {
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: AthlosTextTheme.textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onInverseSurface,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: AthlosRadius.mdAll),
+        elevation: AthlosElevation.md,
+        showCloseIcon: true,
+        closeIconColor: colorScheme.onInverseSurface,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AthlosSpacing.md,
+          vertical: AthlosSpacing.sm,
+        ),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         height: 64,
         elevation: AthlosElevation.none,

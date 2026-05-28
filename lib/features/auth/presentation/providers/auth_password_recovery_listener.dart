@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -55,7 +56,7 @@ void _showRecoveryLinkError(Ref ref, Object error) {
       ? l10n.authRecoveryLinkExpired
       : l10n.authGenericError;
 
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  context.showAthlosSnack(message);
 }
 
 /// Navigator key owned by [appRouter] for auth recovery dialogs.
@@ -97,14 +98,10 @@ class _SetNewPasswordDialogState extends State<_SetNewPasswordDialog> {
       result.getOrThrow();
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.authPasswordResetSuccess)),
-      );
+      context.showAthlosSuccessSnack(l10n.authPasswordResetSuccess);
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.authPasswordResetError)),
-      );
+      context.showAthlosErrorSnack(l10n.authPasswordResetError);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

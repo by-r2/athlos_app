@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
@@ -147,9 +148,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       });
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
   }
@@ -158,9 +157,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_entries.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.workoutNeedsExercises)));
+      context.showAthlosWarningSnack(l10n.workoutNeedsExercises);
       return;
     }
 
@@ -224,9 +221,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       if (mounted) context.pop();
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

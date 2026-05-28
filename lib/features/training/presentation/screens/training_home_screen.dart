@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
@@ -156,9 +157,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         }
       } on Exception catch (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.genericError)));
+          context.showAthlosErrorSnack(l10n.genericError);
         }
       }
     } else {
@@ -168,9 +167,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         ref.invalidate(danglingExecutionProvider);
       } on Exception catch (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.genericError)));
+          context.showAthlosErrorSnack(l10n.genericError);
         }
       }
     }

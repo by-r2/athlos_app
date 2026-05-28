@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/presentation/dialogs/confirm_destructive_action_dialog.dart';
@@ -78,14 +79,10 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
       await ref.read(userDataSyncCoordinatorProvider).synchronizeManual();
       if (!mounted) return;
       _refreshAfterAction();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncSuccessSnack)),
-      );
+      context.showAthlosSuccessSnack(l10n.profileDataCloudSyncSuccessSnack);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncRetryError)),
-      );
+      context.showAthlosErrorSnack(l10n.profileDataCloudSyncRetryError);
     } finally {
       if (mounted) setState(() => _isBusy = false);
     }
@@ -118,23 +115,17 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
               .synchronizeTable(TrainingSyncTableNames.workoutExercises);
           if (!mounted) return;
           _refreshAfterAction();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                value > 0
-                    ? l10n.syncIssueCenterRepairDoneWithDeletes(value)
-                    : l10n.syncIssueCenterRepairDone,
-              ),
-            ),
+          context.showAthlosSuccessSnack(
+            value > 0
+                ? l10n.syncIssueCenterRepairDoneWithDeletes(value)
+                : l10n.syncIssueCenterRepairDone,
           );
         case Failure():
           throw Exception('repair failed');
       }
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.genericError)),
-      );
+      context.showAthlosErrorSnack(l10n.genericError);
     } finally {
       if (mounted) setState(() => _isBusy = false);
     }
@@ -155,14 +146,10 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
       await SyncIssuePrefs(prefs).clearAll();
       if (!mounted) return;
       _refreshAfterAction();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.syncIssueCenterClearDoneSnack)),
-      );
+      context.showAthlosSnack(l10n.syncIssueCenterClearDoneSnack);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.genericError)),
-      );
+      context.showAthlosErrorSnack(l10n.genericError);
     } finally {
       if (mounted) setState(() => _isBusy = false);
     }

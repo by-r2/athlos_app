@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/constants/athlos_assets.dart';
 import '../../../../core/providers/internet_connection_provider.dart';
@@ -21,9 +22,7 @@ class AccountPromptScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (!isSupabaseConfigured) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authSupabaseNotConfigured)));
+      context.showAthlosErrorSnack(l10n.authSupabaseNotConfigured);
       return;
     }
 
@@ -32,14 +31,10 @@ class AccountPromptScreen extends ConsumerWidget {
           .read(authProvider.notifier)
           .signInWithSocialProvider(SocialAuthProvider.google);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authGoogleStarted)));
+      context.showAthlosSnack(l10n.authGoogleStarted);
     } on Exception {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
+      context.showAthlosErrorSnack(l10n.authGenericError);
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/providers/network_connectivity_provider.dart';
 import '../../../../core/router/route_paths.dart';
@@ -677,9 +678,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       context.go(RoutePaths.authPrompt);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authGenericError)));
+      context.showAthlosErrorSnack(l10n.authGenericError);
     } finally {
       if (mounted) setState(() => _isSigningOut = false);
     }
@@ -1265,9 +1264,7 @@ class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
 
   Future<void> _retryCloudSync(AppLocalizations l10n) async {
     if (!ref.read(isNetworkAvailableForSyncProvider)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncOfflineSnack)),
-      );
+      context.showAthlosErrorSnack(l10n.profileDataCloudSyncOfflineSnack);
       return;
     }
 
@@ -1281,28 +1278,19 @@ class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
 
       ref.invalidate(userCloudSyncStatusProvider);
 
-      final messenger = ScaffoldMessenger.of(context);
       if (status.isUpToDate) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.profileDataCloudSyncSuccessSnack)),
-        );
+        context.showAthlosSuccessSnack(l10n.profileDataCloudSyncSuccessSnack);
       } else if (status.hasFailed || status.hasPending) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n.profileDataCloudSyncFailedSnack(
-                status.failedCount,
-                status.pendingCount,
-              ),
-            ),
+        context.showAthlosErrorSnack(
+          l10n.profileDataCloudSyncFailedSnack(
+            status.failedCount,
+            status.pendingCount,
           ),
         );
       }
     } on Exception catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncRetryError)),
-      );
+      context.showAthlosErrorSnack(l10n.profileDataCloudSyncRetryError);
     } finally {
       if (mounted) setState(() => _isRetrying = false);
     }

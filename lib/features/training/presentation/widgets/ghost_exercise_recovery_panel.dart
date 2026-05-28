@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/services/ghost_exercise_remap_providers.dart';
@@ -103,9 +104,7 @@ class _GhostExerciseRecoveryPanelState
     final picked = await showExercisePickerSheet(context);
     if (picked == null || !context.mounted) return;
     if (picked.id == ghostId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.ghostExerciseRecoverySameExercise)),
-      );
+      context.showAthlosSnack(l10n.ghostExerciseRecoverySameExercise);
       return;
     }
 
@@ -118,9 +117,7 @@ class _GhostExerciseRecoveryPanelState
       );
     } on Exception catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.genericError)),
-      );
+      context.showAthlosErrorSnack(l10n.genericError);
       return;
     }
 
@@ -174,15 +171,11 @@ class _GhostExerciseRecoveryPanelState
       ref.invalidate(workoutListProvider);
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.ghostExerciseRecoverySuccess)),
-      );
+      context.showAthlosSuccessSnack(l10n.ghostExerciseRecoverySuccess);
       widget.onResolved();
     } on Exception catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.genericError)),
-      );
+      context.showAthlosErrorSnack(l10n.genericError);
     } finally {
       if (mounted) setState(() => _processingGhostId = null);
     }

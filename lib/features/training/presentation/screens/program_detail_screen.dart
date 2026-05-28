@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
@@ -516,15 +517,11 @@ class _ActionsSection extends ConsumerWidget {
                     ref.invalidate(activeProgramProvider);
                     if (context.mounted) {
                       context.go(RoutePaths.trainingHome);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.programDeleted)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.programDeleted);
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 },

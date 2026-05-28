@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -268,7 +269,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 isometricExerciseIds: isometricIds,
               );
         } on Exception catch (_) {
-          messenger.showSnackBar(SnackBar(content: Text(l10n.genericError)));
+          context.showAthlosErrorSnack(l10n.genericError);
           router.pop();
         }
       });
@@ -3217,9 +3218,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       rest = r;
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
       return;
     }
@@ -3310,9 +3309,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       suggestedWeight = result.$2;
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
       return;
     }
@@ -3320,15 +3317,11 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (!mounted) return;
 
     if (suggestedWeight != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(
-              context,
-            )!.suggestedWeightIncrease(suggestedWeight.toStringAsFixed(1)),
-          ),
-          duration: const Duration(seconds: 4),
-        ),
+      context.showAthlosSnack(
+        AppLocalizations.of(
+          context,
+        )!.suggestedWeightIncrease(suggestedWeight.toStringAsFixed(1)),
+        duration: const Duration(seconds: 4),
       );
     }
 
@@ -3365,9 +3358,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       rest = r;
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
       return;
     }
@@ -3400,9 +3391,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       ref.read(cardioTimerProvider.notifier).reset();
       if (context.mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.workoutFinished)));
+        context.showAthlosSuccessSnack(l10n.workoutFinished);
 
         final program = ref.read(activeProgramProvider).value;
 
@@ -3437,9 +3426,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       }
     } on Exception catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
   }
@@ -3563,12 +3550,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     if (context.mounted) context.pop();
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.genericError,
-                          ),
-                        ),
+                      context.showAthlosErrorSnack(
+                        AppLocalizations.of(context)!.genericError,
                       );
                     }
                   }

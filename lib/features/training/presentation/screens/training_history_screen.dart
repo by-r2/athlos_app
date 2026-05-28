@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
@@ -425,15 +426,11 @@ class _ExecutionCard extends ConsumerWidget {
                         .read(workoutExecutionListProvider.notifier)
                         .deleteExecution(execution.id);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.executionDeleted)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.executionDeleted);
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 },

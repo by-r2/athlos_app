@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -112,9 +113,7 @@ class _ProfileOverviewEditScreenState
       Navigator.of(context).pop();
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-      );
+      context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

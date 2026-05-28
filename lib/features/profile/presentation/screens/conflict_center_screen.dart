@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
@@ -231,9 +232,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
             await _syncAfterDuplicateResolution(l10n, payload: value);
           }
         case Failure(:final exception):
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_resolveErrorMessage(exception, l10n))),
-          );
+          context.showAthlosErrorSnack(_resolveErrorMessage(exception, l10n));
       }
     } finally {
       if (mounted) {
@@ -257,14 +256,10 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
         payload: payload,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncSuccessSnack)),
-      );
+      context.showAthlosSuccessSnack(l10n.profileDataCloudSyncSuccessSnack);
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileDataCloudSyncRetryError)),
-      );
+      context.showAthlosErrorSnack(l10n.profileDataCloudSyncRetryError);
     }
   }
 }

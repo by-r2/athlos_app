@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -139,12 +140,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.genericError,
-                          ),
-                        ),
+                      context.showAthlosErrorSnack(
+                        AppLocalizations.of(context)!.genericError,
                       );
                     }
                   }
@@ -634,9 +631,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
       }
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     } finally {
       if (mounted) {

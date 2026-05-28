@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -221,9 +222,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!isSupabaseConfigured) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authSupabaseNotConfigured)));
+      context.showAthlosErrorSnack(l10n.authSupabaseNotConfigured);
       return;
     }
 
@@ -239,9 +238,7 @@ class _AuthEmailScreenState extends ConsumerState<AuthEmailScreen> {
       context.go(RoutePaths.splash);
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_authErrorMessage(error, l10n))));
+      context.showAthlosErrorSnack(_authErrorMessage(error, l10n));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -901,9 +898,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
     } on Object catch (error) {
       debugPrint('[ForgotPassword] error: $error');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.authForgotPasswordError)));
+      context.showAthlosErrorSnack(l10n.authForgotPasswordError);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

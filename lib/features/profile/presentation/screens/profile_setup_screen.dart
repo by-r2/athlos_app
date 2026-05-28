@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
@@ -411,9 +412,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final a = int.tryParse(_ageCtrl.text.trim());
 
     if (bf != null && w == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.setupChatBodyFatNeedsWeight)));
+      context.showAthlosWarningSnack(l10n.setupChatBodyFatNeedsWeight);
       return;
     }
 
@@ -679,9 +678,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     } catch (e, st) {
       debugPrint('[ProfileSetup] Save failed: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

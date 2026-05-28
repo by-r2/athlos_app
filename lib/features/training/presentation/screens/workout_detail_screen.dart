@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
@@ -101,16 +102,12 @@ class WorkoutDetailScreen extends ConsumerWidget {
                         .read(workoutListProvider.notifier)
                         .archiveWorkout(displayWorkout.id);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.workoutArchived)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.workoutArchived);
                       context.pop();
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 case 'unarchive':
@@ -119,16 +116,12 @@ class WorkoutDetailScreen extends ConsumerWidget {
                         .read(workoutListProvider.notifier)
                         .unarchiveWorkout(displayWorkout.id);
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.workoutUnarchived)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.workoutUnarchived);
                       context.pop();
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 case 'duplicate':
@@ -140,15 +133,11 @@ class WorkoutDetailScreen extends ConsumerWidget {
                           nameSuffix: l10n.workoutCopySuffix,
                         );
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.duplicatedWorkout)),
-                      );
+                      context.showAthlosSuccessSnack(l10n.duplicatedWorkout);
                     }
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 case 'delete':
@@ -360,9 +349,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
                     if (context.mounted) context.pop();
                   } on Exception catch (_) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.genericError)),
-                      );
+                      context.showAthlosErrorSnack(l10n.genericError);
                     }
                   }
                 },

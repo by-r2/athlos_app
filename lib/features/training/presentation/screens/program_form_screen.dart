@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
@@ -149,20 +150,12 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
 
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditing ? l10n.programUpdated : l10n.programCreated,
-            ),
-          ),
-        );
+        context.showAthlosSuccessSnack(_isEditing ? l10n.programUpdated : l10n.programCreated,);
         context.pop();
       }
     } on Exception catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.genericError)),
-        );
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
