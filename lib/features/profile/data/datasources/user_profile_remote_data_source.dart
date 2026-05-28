@@ -17,8 +17,10 @@ class UserProfileRemoteDataSource implements UserProfileRemoteSyncGateway {
   supabase.SupabaseClient? get _client =>
       isSupabaseConfigured ? supabase.Supabase.instance.client : null;
 
+  @override
   String? get currentUserId => _client?.auth.currentUser?.id;
 
+  @override
   Future<UserProfile?> fetchCurrentProfile() async {
     final client = _client;
     final userId = currentUserId;

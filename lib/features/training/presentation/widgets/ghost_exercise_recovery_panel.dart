@@ -274,7 +274,7 @@ class _GhostExerciseCard extends ConsumerWidget {
                           ? l10n.ghostExerciseRecoveryWorkoutListUnknown
                           : [
                               sample,
-                              if (suffix != null) suffix,
+                              ?suffix,
                             ].join(' ');
 
                       return Text(

@@ -28,7 +28,7 @@ class TrainingRemoteClient {
     var query = client.from(table).select();
 
     if (ownerColumn != null && ownerId != null) {
-      query = query.eq(ownerColumn, ownerId!);
+      query = query.eq(ownerColumn, ownerId);
     } else {
       final column = userIdColumn ?? 'user_id';
       query = query.eq(column, userId);

@@ -251,7 +251,6 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   void _reorderExercises(int oldIndex, int newIndex) {
     _markDirty();
     setState(() {
-      if (newIndex > oldIndex) newIndex--;
       final item = _entries.removeAt(oldIndex);
       _entries.insert(newIndex, item);
 
@@ -409,7 +408,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
                       )
                     : ReorderableListView.builder(
                         itemCount: _entries.length,
-                        onReorder: _reorderExercises,
+                        onReorderItem: _reorderExercises,
                         itemBuilder: (context, index) {
                           final entry = _entries[index];
                           final isLast = index == _entries.length - 1;

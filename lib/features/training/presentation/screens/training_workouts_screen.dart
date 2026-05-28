@@ -106,7 +106,6 @@ class _ActiveProgramCycleViewState
 
   void _reorder(int oldIndex, int newIndex) {
     setState(() {
-      if (oldIndex < newIndex) newIndex -= 1;
       final ids = [...?_workoutIds];
       final item = ids.removeAt(oldIndex);
       ids.insert(newIndex, item);
@@ -368,7 +367,7 @@ class _ActiveProgramCycleViewState
               AthlosSpacing.fabClearance,
             ),
             itemCount: ids.length + 1,
-            onReorder: (oldIndex, newIndex) {
+            onReorderItem: (oldIndex, newIndex) {
               if (oldIndex >= ids.length || newIndex > ids.length) return;
               _reorder(oldIndex, newIndex);
             },

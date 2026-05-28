@@ -1495,16 +1495,6 @@ class AppDatabase extends _$AppDatabase {
     await customStatement('ALTER TABLE $table ADD COLUMN $column $definition');
   }
 
-  Future<void> _createTableIfNotExists(Migrator m, TableInfo table) async {
-    final tableName = table.actualTableName;
-    final exists = await customSelect(
-      "SELECT 1 AS present FROM sqlite_master "
-      "WHERE type = 'table' AND name = '$tableName' LIMIT 1",
-    ).getSingleOrNull();
-    if (exists != null) return;
-    await m.createTable(table);
-  }
-
 }
 
 @Riverpod(keepAlive: true)

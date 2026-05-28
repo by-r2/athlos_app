@@ -257,6 +257,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 isometricExerciseIds: isometricIds,
               );
         } on Exception catch (_) {
+          if (!context.mounted) return;
           context.showAthlosErrorSnack(l10n.genericError);
           router.pop();
         }

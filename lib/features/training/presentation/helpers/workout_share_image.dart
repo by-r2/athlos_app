@@ -20,6 +20,7 @@ Future<void> shareRepaintBoundaryAsPng({
   final pixelRatio = MediaQuery.devicePixelRatioOf(context).clamp(2.0, 4.0);
 
   await WidgetsBinding.instance.endOfFrame;
+  if (!context.mounted) return;
   final object = boundaryKey.currentContext?.findRenderObject();
   final boundary = object is RenderRepaintBoundary ? object : null;
   if (boundary == null || !boundary.hasSize) {
@@ -42,6 +43,7 @@ Future<void> shareRepaintBoundaryAsPng({
       ShareParams(files: [XFile(file.path)], text: shareText),
     );
   } on Exception catch (_) {
+    if (!context.mounted) return;
     context.showAthlosErrorSnack(l10n.workoutShareSummaryShareError);
   }
 }
