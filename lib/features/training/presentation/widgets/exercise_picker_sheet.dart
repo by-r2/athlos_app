@@ -4,7 +4,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
-import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -38,7 +37,9 @@ Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
         expand: false,
         builder: (context, scrollController) => AthlosBottomSheetShell(
           expand: true,
-          child: _ExercisePickerBody(scrollController: scrollController),
+          child: Expanded(
+            child: _ExercisePickerBody(scrollController: scrollController),
+          ),
         ),
       ),
     );
@@ -73,19 +74,7 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
 
     return Column(
       children: [
-        const SizedBox(height: AthlosSpacing.sm),
-        Container(
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            borderRadius: AthlosRadius.xsAll,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(AthlosSpacing.md),
-          child: Text(l10n.selectExercise, style: textTheme.titleMedium),
-        ),
+        AthlosBottomSheetHeader(title: l10n.selectExercise),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
           child: TextField(
