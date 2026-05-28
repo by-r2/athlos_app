@@ -16,7 +16,7 @@ SUPABASE_ENV_FILE_prod := .env.prod
 
 _SEED_DEFINE = $(if $(filter 0,$(SEED)),--dart-define=SKIP_DEV_SEED=true)
 
-.PHONY: help run-ios run-ios-device run-android ios-sim-open ios-sim-list android-sim-open android-emu-list build-apk build-aab build-ipa gen gen-l10n analyze clean
+.PHONY: help run-ios install-ios-device install-ios-device-prod run-ios-device run-android ios-sim-open ios-sim-list android-sim-open android-emu-list build-apk build-aab build-ipa gen gen-l10n analyze clean
 
 help: ## Show organized command list
 	@echo ""
@@ -30,8 +30,9 @@ help: ## Show organized command list
 	@echo "Supabase:"
 	@echo "  run-ios          → .env.local (sim + Supabase local)"
 	@echo "  run-ios SUPABASE_ENV=prod → .env.prod"
-	@echo "  run-ios-device   → .env.prod (iPhone físico + cloud)"
-	@echo "  run-android      → .env.local"
+	@echo "  install-ios-device      → iPhone físico: profile + .env.prod (uso diário)"
+	@echo "  install-ios-device-prod → iPhone físico: release + .env.prod (paridade máxima)"
+	@echo "  run-android             → .env.local"
 	@echo ""
 	@awk '\
 		BEGIN { CYAN="\033[36m"; BOLD="\033[1m"; RESET="\033[0m"; } \
@@ -49,7 +50,8 @@ help: ## Show organized command list
 	@echo "  make run-ios              # sim + Supabase local"
 	@echo "  make run-ios SEED=0"
 	@echo "  make run-ios SUPABASE_ENV=prod"
-	@echo "  make run-ios-device IOS_DEVICE_UDID=<udid>"
+	@echo "  make install-ios-device"
+	@echo "  make install-ios-device-prod"
 	@echo "  make run-android"
 	@echo ""
 
@@ -86,18 +88,48 @@ define flutter_build_defines
 	echo "$$SUPABASE_URL" "$$SUPABASE_ANON_KEY" > /dev/null
 endef
 
+# Physical iPhone: $(1) = flutter build mode (profile | release), prod backend, no flutter run / VM.
+define flutter_ios_device_install
+	test -f $(SUPABASE_ENV_FILE_prod) || ( \
+		echo "ERROR: missing $(SUPABASE_ENV_FILE_prod). Copy from .env.example."; \
+		exit 1); \
+	set -a && \
+	[ -f .env ] && . ./.env; \
+	. ./$(SUPABASE_ENV_FILE_prod); \
+	set +a; \
+	if [ -z "$$IOS_DEVICE_UDID" ]; then \
+		echo "ERROR: set IOS_DEVICE_UDID=<your_device_udid> in .env"; \
+		exit 1; \
+	fi; \
+	test -n "$$SUPABASE_URL" && test -n "$$SUPABASE_ANON_KEY" || ( \
+		echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set in $(SUPABASE_ENV_FILE_prod)"; \
+		exit 1); \
+	flutter build ios --$(1) \
+		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
+		--dart-define=SUPABASE_ANON_KEY="$$SUPABASE_ANON_KEY" \
+		--dart-define=SUPABASE_REDIRECT_URL="$${SUPABASE_REDIRECT_URL:-athlos://auth-callback}" \
+		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY" \
+		--dart-define=SKIP_DEV_SEED=true \
+		--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) \
+		--dart-define=ENV=prod && \
+	flutter install --$(1) -d "$$IOS_DEVICE_UDID" && \
+	echo "" && \
+	echo "Athlos installed on your iPhone ($(1), Supabase prod)." && \
+	echo "Open the app from the home screen — use run-ios on the simulator for hot reload."
+endef
+
 ## Run
 run-ios: ## iOS simulator — Supabase local (.env.local); SUPABASE_ENV=prod uses .env.prod
 	@xcrun simctl boot "$(IOS_SIM_TARGET)" 2>/dev/null || true
 	@$(call flutter_run,$(if $(filter prod,$(SUPABASE_ENV)),$(SUPABASE_ENV_FILE_prod),$(SUPABASE_ENV_FILE_local)),-d "$(IOS_SIM_TARGET)",)
 
-run-ios-device: ## Physical iPhone (profile) — Supabase prod (.env.prod)
-	@set -a && [ -f .env ] && . ./.env; set +a; \
-	if [ -z "$$IOS_DEVICE_UDID" ]; then \
-		echo "ERROR: set IOS_DEVICE_UDID=<your_device_udid> in .env"; \
-		exit 1; \
-	fi
-	@$(call flutter_run,$(SUPABASE_ENV_FILE_prod),--profile -d "$$IOS_DEVICE_UDID",--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) --dart-define=ENV=prod)
+install-ios-device: ## Physical iPhone — profile + .env.prod (daily driver, no App Store)
+	@$(call flutter_ios_device_install,profile)
+
+install-ios-device-prod: ## Physical iPhone — release + .env.prod (max prod parity, slower build)
+	@$(call flutter_ios_device_install,release)
+
+run-ios-device: install-ios-device ## Alias for install-ios-device
 
 run-android: ## Android emulator — Supabase local (.env.local)
 	@flutter emulators --launch "$(ANDROID_EMULATOR)" 2>/dev/null || true
