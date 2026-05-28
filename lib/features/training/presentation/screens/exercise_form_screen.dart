@@ -189,7 +189,8 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
       child: TextFormField(
         controller: _nameController,
         decoration: InputDecoration(hintText: l10n.exerciseNameLabel),
-        textCapitalization: TextCapitalization.sentences,
+        textCapitalization: TextCapitalization.none,
+        autocorrect: true,
         autofocus: true,
         onChanged: (_) => _touchDirty(),
         validator: (value) {
@@ -373,7 +374,7 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
               alignLabelWithHint: true,
             ),
             maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
+            textCapitalization: TextCapitalization.none,
             onChanged: (_) => _touchDirty(),
           ),
         ],
@@ -439,6 +440,8 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
           const Gap(AthlosSpacing.sm),
         ],
         TextField(
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
           decoration: InputDecoration(
             hintText: l10n.searchMuscles,
             prefixIcon: const Icon(Icons.search, size: 20),
