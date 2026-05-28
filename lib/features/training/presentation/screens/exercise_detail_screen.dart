@@ -6,7 +6,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
-import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -16,7 +15,6 @@ import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/exercise_type.dart';
-import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
@@ -24,7 +22,7 @@ import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
-import '../providers/training_metrics_provider.dart';
+import '../widgets/exercise_detail_body.dart';
 
 const _placeholderExercise = Exercise(
   id: '',
@@ -45,7 +43,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     final allExercisesAsync = ref.watch(exerciseListProvider);
 
@@ -98,144 +95,8 @@ class ExerciseDetailScreen extends ConsumerWidget {
       ),
       body: Skeletonizer(
         enabled: allExercisesAsync.isLoading,
-        child: ListView(
-          padding: const EdgeInsets.all(AthlosSpacing.md),
-          children: [
-            if (displayExercise.description != null &&
-                displayExercise.description!.isNotEmpty) ...[
-              Text(
-                displayExercise.description!,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Gap(AthlosSpacing.lg),
-            ],
-            _buildInfoSection(
-              context,
-              icon: Icons.sports_gymnastics,
-              title: l10n.exerciseDetailMuscleGroup,
-              value: localizedMuscleGroupName(
-                displayExercise.muscleGroup,
-                l10n,
-              ),
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            ),
-            const Gap(AthlosSpacing.md),
-            _buildInfoSection(
-              context,
-              icon: Icons.category,
-              title: l10n.exerciseDetailType,
-              value: displayExercise.type == ExerciseType.strength
-                  ? l10n.exerciseTypeStrength
-                  : l10n.exerciseTypeCardio,
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            ),
-            if (displayExercise.movementPattern != null) ...[
-              const Gap(AthlosSpacing.md),
-              _buildInfoSection(
-                context,
-                icon: Icons.swap_horiz,
-                title: l10n.movementPatternLabel,
-                value: localizedMovementPattern(
-                  displayExercise.movementPattern!,
-                  l10n,
-                ),
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ],
-            if (displayExercise.muscles.isNotEmpty) ...[
-              const Gap(AthlosSpacing.md),
-              _buildMusclesSection(
-                context,
-                muscles: displayExercise.muscles,
-                l10n: l10n,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ],
-            if (displayExercise.defaultLoadMode == LoadMode.bodyweight) ...[
-              const Gap(AthlosSpacing.md),
-              _buildInfoSection(
-                context,
-                icon: Icons.accessibility_new,
-                title: l10n.bodyweightExercise,
-                value: '',
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ],
-            if (displayExercise.isIsometric) ...[
-              const Gap(AthlosSpacing.md),
-              _buildInfoSection(
-                context,
-                icon: Icons.timer,
-                title: l10n.isometricLabel,
-                value: '',
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-              ),
-            ],
-            const Gap(AthlosSpacing.lg),
-            _PRSection(exerciseId: exerciseId),
-            const Gap(AthlosSpacing.lg),
-            _VariationsSection(
-              exerciseId: exerciseId,
-              currentExerciseName: displayName,
-            ),
-          ],
-        ),
+        child: ExerciseDetailBody(exercise: displayExercise),
       ),
-    );
-  }
-
-  Widget _buildMusclesSection(
-    BuildContext context, {
-    required List<ExerciseMuscleFocus> muscles,
-    required AppLocalizations l10n,
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.my_location, size: 20, color: colorScheme.primary),
-        const Gap(AthlosSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.exerciseDetailTargetMuscles,
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Gap(AthlosSpacing.xs),
-              ...muscles.map((focus) {
-                final muscleName = localizedTargetMuscle(focus.muscle, l10n);
-                if (focus.region != null) {
-                  final regionName = localizedMuscleRegion(focus.region!, l10n);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                    child: Text(
-                      l10n.muscleWithRegion(muscleName, regionName),
-                      style: textTheme.bodyLarge,
-                    ),
-                  );
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-                  child: Text(muscleName, style: textTheme.bodyLarge),
-                );
-              }),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -302,37 +163,6 @@ class ExerciseDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoSection(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String value,
-    required ColorScheme colorScheme,
-    required TextTheme textTheme,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: colorScheme.primary),
-        const Gap(AthlosSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const Gap(AthlosSpacing.xs),
-              Text(value, style: textTheme.bodyLarge),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 /// Bottom sheet for editing a custom exercise with progressive disclosure.
@@ -813,171 +643,5 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
         setState(() => _isSaving = false);
       }
     }
-  }
-}
-
-/// Shows exercise variations.
-class _VariationsSection extends ConsumerWidget {
-  final String exerciseId;
-  final String currentExerciseName;
-
-  const _VariationsSection({
-    required this.exerciseId,
-    required this.currentExerciseName,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    final variationsAsync = ref.watch(exerciseVariationsProvider(exerciseId));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.swap_horiz, size: 20, color: colorScheme.primary),
-            const Gap(AthlosSpacing.sm),
-            Text(
-              l10n.exerciseDetailVariations,
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const Gap(AthlosSpacing.sm),
-        variationsAsync.when(
-          loading: () => const SizedBox(
-            height: 32,
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          ),
-          error: (error, _) => Text('$error'),
-          data: (variations) {
-            if (variations.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.only(left: AthlosSpacing.lg),
-                child: Text(
-                  l10n.exerciseNoVariations,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              );
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(left: AthlosSpacing.lg),
-              child: Column(
-                children: variations.map((v) {
-                  final name = localizedExerciseName(
-                    v.name,
-                    isVerified: v.isVerified,
-                    l10n: l10n,
-                  );
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(name),
-                    subtitle: Text(
-                      localizedMuscleGroupName(v.muscleGroup, l10n),
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    onTap: () {
-                      context.push('${RoutePaths.trainingExercises}/${v.id}');
-                    },
-                  );
-                }).toList(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _PRSection extends ConsumerWidget {
-  final String exerciseId;
-  const _PRSection({required this.exerciseId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    final prAsync = ref.watch(exercisePRProvider(exerciseId));
-
-    return prAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (pr) {
-        if (pr == null) return const SizedBox.shrink();
-        final e1rmStr = pr.best1RM.toStringAsFixed(1);
-        final weightStr = pr.weight % 1 == 0
-            ? pr.weight.toInt().toString()
-            : pr.weight.toStringAsFixed(1);
-        return Card(
-          color: colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(AthlosSpacing.md),
-            child: Row(
-              children: [
-                Icon(Icons.emoji_events, color: colorScheme.primary, size: 28),
-                const Gap(AthlosSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.prBadge,
-                        style: textTheme.titleSmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        l10n.prEstimated1rm(e1rmStr),
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                      Text(
-                        l10n.prBestSet(weightStr, pr.reps),
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer.withValues(
-                            alpha: 0.7,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.show_chart,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                  tooltip: l10n.loadChartTitle,
-                  onPressed: () => context.push(
-                    RoutePaths.trainingExerciseLoadChart(exerciseId),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }

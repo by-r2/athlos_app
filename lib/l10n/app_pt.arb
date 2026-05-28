@@ -1184,6 +1184,49 @@
   "@exerciseNoEquipment": { "description": "No equipment needed" },
   "exerciseNoVariations": "Nenhuma variação cadastrada",
   "@exerciseNoVariations": { "description": "No variations registered" },
+  "exerciseDetailSectionLoad": "Carga e execução",
+  "@exerciseDetailSectionLoad": {
+    "description": "Section title for load mode and bodyweight factor on exercise detail"
+  },
+  "exerciseDetailSectionLoadSubtitle": "Modo de carga padrão e como o volume é calculado.",
+  "@exerciseDetailSectionLoadSubtitle": {
+    "description": "Section subtitle for load block on exercise detail"
+  },
+  "exerciseDetailBodyweightFactor": "Fator de peso corporal",
+  "@exerciseDetailBodyweightFactor": {
+    "description": "Label for bodyweight load factor percentage"
+  },
+  "exerciseDetailBodyweightFactorValue": "{percent}% do peso corporal",
+  "@exerciseDetailBodyweightFactorValue": {
+    "description": "Bodyweight load factor as percent of body weight",
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
+  "exerciseDetailLoadModeAdjustable": "Modos no treino",
+  "@exerciseDetailLoadModeAdjustable": {
+    "description": "Label when exercise supports load mode override in workouts"
+  },
+  "exerciseDetailLoadModeAdjustableValue": "Peso corporal, carga externa ou assistido",
+  "@exerciseDetailLoadModeAdjustableValue": {
+    "description": "Value explaining load modes can be changed per workout"
+  },
+  "exerciseDetailSectionPerformance": "Seu desempenho",
+  "@exerciseDetailSectionPerformance": {
+    "description": "Section title for PR block on exercise detail"
+  },
+  "exerciseDetailSourceLabel": "Origem",
+  "@exerciseDetailSourceLabel": {
+    "description": "Label for catalog vs custom exercise source on detail screen"
+  },
+  "exerciseDetailMusclesEmpty": "Nenhum músculo alvo cadastrado.",
+  "@exerciseDetailMusclesEmpty": {
+    "description": "Empty state when exercise has no target muscles on detail screen"
+  },
+  "exerciseDetailValueNotSet": "—",
+  "@exerciseDetailValueNotSet": {
+    "description": "Placeholder for optional unset exercise fields on detail screen"
+  },
   "editExercise": "Editar exercício",
   "@editExercise": { "description": "Title for edit exercise sheet" },
   "deleteExerciseTitle": "Excluir exercício",
