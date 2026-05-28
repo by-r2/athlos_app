@@ -250,6 +250,22 @@
   "@syncIssueCenterRepairAction": { "description": "Button label to run automatic repairs" },
   "syncIssueCenterClearAction": "Limpar histórico",
   "@syncIssueCenterClearAction": { "description": "Button label to clear sync issues list" },
+  "syncIssueCenterConfirmRepairTitle": "Executar reparo automático?",
+  "@syncIssueCenterConfirmRepairTitle": {
+    "description": "Destructive confirm title before running automatic sync repair"
+  },
+  "syncIssueCenterConfirmRepairMessage": "O aplicativo pode apagar do dispositivo linhas locais irreparáveis, limpar avisos relacionados e tentar sincronizar novamente. Exercícios corrompidos em modelos de treino podem ser perdidos se nunca foram enviados ao servidor.",
+  "@syncIssueCenterConfirmRepairMessage": {
+    "description": "Destructive confirm body before running automatic sync repair"
+  },
+  "syncIssueCenterConfirmClearTitle": "Limpar histórico de falhas?",
+  "@syncIssueCenterConfirmClearTitle": {
+    "description": "Destructive confirm title before clearing sync issue log"
+  },
+  "syncIssueCenterConfirmClearMessage": "Todos os avisos de falha de sincronização serão removidos desta lista. Os dados nos treinos e no catálogo não serão alterados.",
+  "@syncIssueCenterConfirmClearMessage": {
+    "description": "Destructive confirm body before clearing sync issue log"
+  },
   "syncIssueCenterEmpty": "Nenhuma falha recente registrada.",
   "@syncIssueCenterEmpty": { "description": "Empty state in sync issue center" },
   "syncIssueCenterRepairDone": "Reparo concluído.",
@@ -476,6 +492,37 @@
   "conflictCenterConfirmDuplicateAction": "Está duplicado",
   "@conflictCenterConfirmDuplicateAction": {
     "description": "Action to confirm duplicate when one side is verified (verified wins)"
+  },
+  "conflictCenterConfirmDuplicateTitle": "Confirmar duplicado?",
+  "@conflictCenterConfirmDuplicateTitle": {
+    "description": "Destructive confirm title when verified duplicate wins"
+  },
+  "conflictCenterConfirmDuplicateMessage": "A cópia personalizada será removida e as referências passarão a apontar para o item verificado do catálogo. Esta ação não pode ser desfeita.",
+  "@conflictCenterConfirmDuplicateMessage": {
+    "description": "Destructive confirm body when verified duplicate wins"
+  },
+  "conflictCenterConfirmKeepTitle": "Manter item {side}?",
+  "@conflictCenterConfirmKeepTitle": {
+    "description": "Destructive confirm title when keeping one local duplicate",
+    "placeholders": {
+      "side": { "type": "String" }
+    }
+  },
+  "conflictCenterConfirmKeepMessage": "O item \"{removedName}\" será removido e as referências serão redirecionadas para \"{keptName}\". Esta ação não pode ser desfeita.",
+  "@conflictCenterConfirmKeepMessage": {
+    "description": "Destructive confirm body when keeping one local duplicate",
+    "placeholders": {
+      "removedName": { "type": "String" },
+      "keptName": { "type": "String" }
+    }
+  },
+  "conflictCenterConfirmMergeTitle": "Aplicar mesclagem?",
+  "@conflictCenterConfirmMergeTitle": {
+    "description": "Destructive confirm title before applying attribute merge"
+  },
+  "conflictCenterConfirmMergeMessage": "Os atributos escolhidos serão aplicados e um dos itens será removido. Esta ação não pode ser desfeita.",
+  "@conflictCenterConfirmMergeMessage": {
+    "description": "Destructive confirm body before applying attribute merge"
   },
   "conflictCenterResolveError": "Não foi possível aplicar esta decisão. Tente novamente.",
   "@conflictCenterResolveError": {

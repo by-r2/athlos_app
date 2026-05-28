@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
 
+import '../../../../core/presentation/dialogs/confirm_destructive_action_dialog.dart';
 import '../../../../core/providers/last_module_provider.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/sync/sync_issue.dart';
@@ -141,6 +142,14 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
     final authUser = ref.read(authProvider).value;
     if (authUser == null) return;
 
+    final confirmed = await confirmDestructiveAction(
+      context,
+      title: l10n.syncIssueCenterConfirmRepairTitle,
+      message: l10n.syncIssueCenterConfirmRepairMessage,
+      confirmLabel: l10n.syncIssueCenterRepairAction,
+    );
+    if (!confirmed || !mounted) return;
+
     setState(() => _isRepairing = true);
     try {
       final prefs = ref.read(sharedPreferencesProvider);
@@ -196,6 +205,15 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
 
   Future<void> _clearAll() async {
     final l10n = AppLocalizations.of(context)!;
+
+    final confirmed = await confirmDestructiveAction(
+      context,
+      title: l10n.syncIssueCenterConfirmClearTitle,
+      message: l10n.syncIssueCenterConfirmClearMessage,
+      confirmLabel: l10n.syncIssueCenterClearAction,
+    );
+    if (!confirmed || !mounted) return;
+
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final store = SyncIssuePrefs(prefs);

@@ -9,6 +9,7 @@ import '../../../../core/domain/entities/local_backup_models.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
+import '../../../../core/presentation/dialogs/confirm_destructive_action_dialog.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -98,6 +99,15 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
   }
 
   Future<void> _handleConfirmDuplicate(BackupPendingReview review) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await confirmDestructiveAction(
+      context,
+      title: l10n.conflictCenterConfirmDuplicateTitle,
+      message: l10n.conflictCenterConfirmDuplicateMessage,
+      confirmLabel: l10n.conflictCenterConfirmDuplicateAction,
+    );
+    if (!confirmed || !mounted) return;
+
     final winnerId = review.isLeftVerified
         ? review.leftEntityId
         : review.isRightVerified
@@ -111,6 +121,28 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
   }
 
   Future<void> _handleKeep(BackupPendingReview review, String winnerId) async {
+    final l10n = AppLocalizations.of(context)!;
+    final isKeepA = winnerId == review.leftEntityId;
+    final keptLabel = _resolveLabel(
+      review.entityType,
+      isKeepA ? review.importedLabel : (review.existingLabel ?? '-'),
+      l10n,
+    );
+    final removedLabel = _resolveLabel(
+      review.entityType,
+      isKeepA ? (review.existingLabel ?? '-') : review.importedLabel,
+      l10n,
+    );
+    final confirmed = await confirmDestructiveAction(
+      context,
+      title: l10n.conflictCenterConfirmKeepTitle(isKeepA ? 'A' : 'B'),
+      message: l10n.conflictCenterConfirmKeepMessage(removedLabel, keptLabel),
+      confirmLabel: isKeepA
+          ? l10n.conflictCenterKeepAAction
+          : l10n.conflictCenterKeepBAction,
+    );
+    if (!confirmed || !mounted) return;
+
     await _resolve(
       review: review,
       decision: RuntimeDuplicateDecision.confirmDuplicate,
@@ -119,6 +151,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
   }
 
   Future<void> _handleMergeAttributes(BackupPendingReview review) async {
+    final l10n = AppLocalizations.of(context)!;
     final leftId = review.leftEntityId;
     final rightId = review.rightEntityId;
     if (leftId == null || rightId == null) return;
@@ -145,7 +178,15 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
       idA: leftId,
       idB: rightId,
     );
-    if (result == null) return;
+    if (result == null || !mounted) return;
+
+    final confirmed = await confirmDestructiveAction(
+      context,
+      title: l10n.conflictCenterConfirmMergeTitle,
+      message: l10n.conflictCenterConfirmMergeMessage,
+      confirmLabel: l10n.conflictCenterMergeDialogConfirm,
+    );
+    if (!confirmed || !mounted) return;
 
     await _resolve(
       review: review,
