@@ -34,6 +34,20 @@ void main() {
       await db.close();
     });
 
+    test('create assigns UUID when id is empty', () async {
+      final id = (await repository.create(
+        const domain.Exercise(
+          id: '',
+          name: 'Exercício Sem Id',
+          muscleGroup: MuscleGroup.chest,
+        ),
+      )).getOrThrow();
+
+      expect(id, isNotEmpty);
+      final loaded = (await repository.getById(id)).getOrThrow();
+      expect(loaded?.name, 'Exercício Sem Id');
+    });
+
     test('create/getById com muscle foci', () async {
       final exerciseId = generateUuidV4();
       final id = (await repository.create(

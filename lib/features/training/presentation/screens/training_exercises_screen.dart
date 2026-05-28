@@ -248,7 +248,7 @@ class _TrainingExercisesScreenState
                       targetMusclesLabel: musclesSummary.isNotEmpty
                           ? musclesSummary
                           : null,
-                      onTap: isLoading
+                      onTap: isLoading || exercise.id.trim().isEmpty
                           ? null
                           : () => context.push(
                               '${RoutePaths.trainingExercises}/${exercise.id}',

@@ -482,7 +482,7 @@ class _EditExerciseSheetState extends ConsumerState<_EditExerciseSheet> {
                             labelText: l10n.exerciseNameLabel,
                             border: const OutlineInputBorder(),
                           ),
-                          textCapitalization: TextCapitalization.sentences,
+                          textCapitalization: TextCapitalization.words,
                           onChanged: (_) => _touchDirty(),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {

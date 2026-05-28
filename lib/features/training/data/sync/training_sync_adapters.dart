@@ -41,10 +41,7 @@ abstract class _TrainingRowSyncAdapter<Row> implements SyncAdapter<Row> {
 
     for (final row in rows) {
       final payload = Map<String, dynamic>.from(toJson(row));
-      final rowUserId = payload['user_id'] as String?;
-      if (!isValidSyncUserId(rowUserId)) {
-        payload['user_id'] = userId;
-      }
+      _ensurePushOwnerId(payload);
       final id = payload['id'] as String?;
       if (id == null || id.trim().isEmpty || !isValidSyncUserId(id)) {
         debugPrint('[SyncV2] skip push $tableName: missing row id');
@@ -130,6 +127,26 @@ abstract class _TrainingRowSyncAdapter<Row> implements SyncAdapter<Row> {
 
   String? get pullOwnerColumn => null;
   String? get pullOwnerId => null;
+
+  /// Fills the owner column present in [payload] (`user_id` or `created_by`).
+  ///
+  /// Exercises use [created_by]; other training tables use [user_id]. Must not
+  /// inject [user_id] into the exercises upsert — remote schema has no such column.
+  void _ensurePushOwnerId(Map<String, dynamic> payload) {
+    if (payload.containsKey('user_id')) {
+      final rowUserId = payload['user_id'] as String?;
+      if (!isValidSyncUserId(rowUserId)) {
+        payload['user_id'] = userId;
+      }
+      return;
+    }
+    if (payload.containsKey('created_by')) {
+      final owner = payload['created_by'] as String?;
+      if (!isValidSyncUserId(owner)) {
+        payload['created_by'] = userId;
+      }
+    }
+  }
 }
 
 class ExerciseSyncAdapter extends _TrainingRowSyncAdapter<Exercise> {

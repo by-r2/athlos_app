@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'exercise_canonical_merge.dart';
+import 'exercise_empty_id_repair.dart';
 import 'exercise_migration_maps.dart';
 import 'tables/local_duplicate_feedback_table.dart';
 import '../../features/profile/data/datasources/daos/body_metric_dao.dart';
@@ -97,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 43;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -907,6 +908,10 @@ class AppDatabase extends _$AppDatabase {
             AND program_name_snapshot IS NULL
         ''');
         await _backfillExecutionContextFallbackV42();
+      }
+
+      if (from < 43) {
+        await repairExercisesWithEmptyIds(this);
       }
     },
   );

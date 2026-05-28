@@ -189,8 +189,9 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
       child: TextFormField(
         controller: _nameController,
         decoration: InputDecoration(hintText: l10n.exerciseNameLabel),
-        textCapitalization: TextCapitalization.none,
-        autocorrect: true,
+        textCapitalization: TextCapitalization.words,
+        autocorrect: false,
+        enableSuggestions: false,
         autofocus: true,
         onChanged: (_) => _touchDirty(),
         validator: (value) {
@@ -374,7 +375,7 @@ class _ExerciseFormScreenState extends ConsumerState<ExerciseFormScreen> {
               alignLabelWithHint: true,
             ),
             maxLines: 3,
-            textCapitalization: TextCapitalization.none,
+            textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => _touchDirty(),
           ),
         ],

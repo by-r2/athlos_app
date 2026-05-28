@@ -45,14 +45,19 @@ class RecalculateTrainingStreaks extends _$RecalculateTrainingStreaks {
 }
 
 /// Ensures legacy installs get frequency streak columns filled once (schema 0 in DB).
+///
+/// Runs once per session from [sessionBootstrapProvider]; uses [Ref.read] for
+/// [profileProvider] so we never [Ref.invalidate] a dependency we are watching
+/// (that breaks Riverpod pause/subscription accounting on hot restart).
 @Riverpod(keepAlive: true)
 Future<void> trainingStreaksMaterialized(Ref ref) async {
-  final profile = await ref.watch(profileProvider.future);
+  final profile = await ref.read(profileProvider.future);
   if (profile == null) return;
   if (profile.trainingStreaksSchema >= kTrainingStreaksSchemaVersion) {
     return;
   }
 
   await ref.read(recalculateTrainingStreaksProvider.notifier).run();
-  ref.invalidate(profileProvider);
+  if (!ref.mounted) return;
+  await ref.read(profileProvider.notifier).reloadFromDatabase();
 }

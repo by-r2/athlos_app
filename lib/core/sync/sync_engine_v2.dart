@@ -56,6 +56,11 @@ class SyncEngineV2 {
       }
 
       await _setLastPullAt(adapter.tableName, DateTime.now());
+      try {
+        await _issuePrefs?.clearTable(adapter.tableName);
+      } on Exception {
+        // ignore
+      }
     } on Exception catch (e) {
       debugPrint('[SyncV2] ${adapter.tableName} failed: $e');
       // Best-effort issue recording (must never crash sync).

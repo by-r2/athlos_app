@@ -239,7 +239,7 @@ class ConsistencyStatus {
 @riverpod
 Future<ConsistencyStatus> consistencyStatus(Ref ref) async {
   final execRepo = ref.watch(workoutExecutionRepositoryProvider);
-  final profile = await ref.watch(profileProvider.future);
+  final profile = await ref.watch(profileProvider.selectAsync((p) => p));
   final target = profile?.trainingFrequency ?? kDefaultTrainingFrequency;
 
   final allResult = await execRepo.getAll();
@@ -294,8 +294,9 @@ Future<ConsistencyStatus> consistencyStatus(Ref ref) async {
 /// Backward-compatible streak count for existing call sites.
 @riverpod
 Future<int> consistencyStreak(Ref ref) async {
-  final status = await ref.watch(consistencyStatusProvider.future);
-  return status.streakCount;
+  return ref.watch(
+    consistencyStatusProvider.selectAsync((status) => status.streakCount),
+  );
 }
 
 // ── Phase 10: Progress Visualization providers ──────────────────────

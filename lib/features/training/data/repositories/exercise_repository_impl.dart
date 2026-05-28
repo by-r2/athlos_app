@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/sync/user_owned_sync_runner.dart';
+import '../../../../core/utils/uuid.dart';
 import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/exercise.dart' as domain;
 import '../../domain/enums/muscle_group.dart';
@@ -137,9 +138,12 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         );
       }
 
+      final idToUse =
+          exercise.id.trim().isEmpty ? generateUuidV4() : exercise.id;
+
       await _dao.create(
         ExercisesCompanion.insert(
-          id: exercise.id,
+          id: idToUse,
           createdBy: exercise.isVerified
               ? const Value.absent()
               : Value(_userId),
@@ -155,12 +159,12 @@ class ExerciseRepositoryImpl implements ExerciseRepository {
         ),
       );
       if (muscles.isNotEmpty) {
-        await _dao.setMuscleFoci(exercise.id, muscles);
+        await _dao.setMuscleFoci(idToUse, muscles);
       }
       if (!exercise.isVerified) {
         await _syncRunner.synchronizeTable(TrainingSyncTableNames.exercises);
       }
-      return Success(exercise.id);
+      return Success(idToUse);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create exercise: $e'));
     }

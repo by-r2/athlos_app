@@ -65,6 +65,14 @@ class ProfileNotifier extends _$ProfileNotifier {
     state = AsyncData(created ?? profile);
   }
 
+  /// Reloads profile from local storage (e.g. after background streak migration).
+  Future<void> reloadFromDatabase() async {
+    final repo = ref.read(userProfileRepositoryProvider);
+    final refreshed = (await repo.get()).getOrThrow();
+    if (!ref.mounted) return;
+    state = AsyncData(refreshed);
+  }
+
   /// Updates an existing user profile and refreshes the state.
   Future<void> updateProfile(UserProfile profile) async {
     final repo = ref.read(userProfileRepositoryProvider);
