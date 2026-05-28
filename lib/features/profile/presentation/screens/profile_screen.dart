@@ -12,11 +12,11 @@ import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../../../core/sync/sync_issue.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../../../core/sync/sync_trigger.dart';
-import '../../../../core/theme/athlos_component_sizes.dart';
-import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
+import '../../../../core/widgets/cards/athlos_nav_row.dart';
+import '../../../../core/widgets/feedback/athlos_status_callout.dart';
 import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -588,7 +588,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ),
                     const Gap(AthlosSpacing.md),
-                    _ProfileDataNavRow(
+                    AthlosNavRow(
                       icon: Icons.rule_folder_outlined,
                       title: l10n.conflictCenterTitle,
                       subtitle: l10n.tapToOpen,
@@ -609,7 +609,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     _SyncIssueStatusBanner(syncIssuesAsync: syncIssuesAsync),
                     const Gap(AthlosSpacing.md),
-                    _ProfileDataNavRow(
+                    AthlosNavRow(
                       icon: Icons.sync_problem_outlined,
                       title: l10n.syncIssueCenterTitle,
                       subtitle: l10n.tapToOpen,
@@ -1079,40 +1079,28 @@ class _ProfileConflictStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
-
     return conflictCenterAsync.when(
-      loading: () => _ProfileConflictStatusSurface(
-        backgroundColor: colorScheme.surfaceContainerHigh,
-        foregroundColor: colorScheme.onSurfaceVariant,
+      loading: () => AthlosStatusCallout(
         icon: Icons.hourglass_empty_outlined,
         message: l10n.profileDataConflictSummaryLoading,
       ),
-      error: (_, _) => _ProfileConflictStatusSurface(
-        backgroundColor: colorScheme.errorContainer,
-        foregroundColor: colorScheme.onErrorContainer,
+      error: (_, _) => AthlosStatusCallout(
+        tone: AthlosStatusCalloutTone.error,
         icon: Icons.error_outline,
         message: l10n.profileDataConflictSummaryError,
       ),
       data: (summary) {
         final duplicateCount = summary.localDuplicateCount;
         if (duplicateCount == 0) {
-          return _ProfileConflictStatusSurface(
-            backgroundColor: colorScheme.surfaceContainerHigh,
-            foregroundColor: colorScheme.onSurfaceVariant,
-            iconColor: colorScheme.primary,
+          return AthlosStatusCallout(
+            tone: AthlosStatusCalloutTone.success,
             icon: Icons.check_circle_outline,
             message: l10n.profileDataConflictStatusClear,
           );
         }
 
-        final warningStyle = customColors.duplicateWarningCallout(colorScheme);
-
-        return _ProfileConflictStatusSurface(
-          backgroundColor: warningStyle.background,
-          foregroundColor: warningStyle.foreground,
-          iconColor: warningStyle.icon,
+        return AthlosStatusCallout(
+          tone: AthlosStatusCalloutTone.warning,
           icon: Icons.warning_amber_rounded,
           message: l10n.profileDataLocalConflictSummary(duplicateCount),
         );
@@ -1129,146 +1117,32 @@ class _SyncIssueStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
-
     return syncIssuesAsync.when(
-      loading: () => _ProfileConflictStatusSurface(
-        backgroundColor: colorScheme.surfaceContainerHigh,
-        foregroundColor: colorScheme.onSurfaceVariant,
+      loading: () => AthlosStatusCallout(
         icon: Icons.hourglass_empty_outlined,
         message: l10n.profileDataSyncIssueSummaryLoading,
       ),
-      error: (_, _) => _ProfileConflictStatusSurface(
-        backgroundColor: colorScheme.errorContainer,
-        foregroundColor: colorScheme.onErrorContainer,
+      error: (_, _) => AthlosStatusCallout(
+        tone: AthlosStatusCalloutTone.error,
         icon: Icons.error_outline,
         message: l10n.profileDataSyncIssueSummaryError,
       ),
       data: (issues) {
         final count = issues.length;
         if (count == 0) {
-          return _ProfileConflictStatusSurface(
-            backgroundColor: colorScheme.surfaceContainerHigh,
-            foregroundColor: colorScheme.onSurfaceVariant,
-            iconColor: colorScheme.primary,
+          return AthlosStatusCallout(
+            tone: AthlosStatusCalloutTone.success,
             icon: Icons.check_circle_outline,
             message: l10n.profileDataSyncIssueStatusClear,
           );
         }
 
-        final warningStyle = customColors.duplicateWarningCallout(colorScheme);
-        return _ProfileConflictStatusSurface(
-          backgroundColor: warningStyle.background,
-          foregroundColor: warningStyle.foreground,
-          iconColor: warningStyle.icon,
+        return AthlosStatusCallout(
+          tone: AthlosStatusCalloutTone.warning,
           icon: Icons.sync_problem_outlined,
           message: l10n.profileDataSyncIssueSummaryCount(count),
         );
       },
-    );
-  }
-}
-
-class _ProfileConflictStatusSurface extends StatelessWidget {
-  const _ProfileConflictStatusSurface({
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.icon,
-    required this.message,
-    this.iconColor,
-  });
-
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final IconData icon;
-  final String message;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AthlosSpacing.md),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: AthlosRadius.mdAll,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, color: iconColor ?? foregroundColor),
-          const Gap(AthlosSpacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: textTheme.bodyMedium?.copyWith(color: foregroundColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileDataNavRow extends StatelessWidget {
-  const _ProfileDataNavRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Material(
-      color: colorScheme.surfaceContainerHigh,
-      borderRadius: AthlosRadius.mdAll,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: ListTile(
-          minTileHeight: AthlosComponentSizes.listItemMinHeight,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AthlosSpacing.md,
-            vertical: AthlosSpacing.xs,
-          ),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              borderRadius: AthlosRadius.mdAll,
-            ),
-            alignment: Alignment.center,
-            child: Icon(icon, size: 22, color: colorScheme.onPrimaryContainer),
-          ),
-          title: Text(
-            title,
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
-          ),
-          subtitle: Text(
-            subtitle,
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right_rounded,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
     );
   }
 }

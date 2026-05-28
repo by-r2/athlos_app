@@ -14,9 +14,9 @@ import '../../../../core/localization/domain_label_resolver.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/presentation/dialogs/confirm_destructive_action_dialog.dart';
-import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_status_callout.dart';
 import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -386,8 +386,6 @@ class _ConflictCenterErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AthlosSpacing.md),
@@ -395,9 +393,8 @@ class _ConflictCenterErrorState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ConflictCenterStatusSurface(
-              backgroundColor: colorScheme.errorContainer,
-              foregroundColor: colorScheme.onErrorContainer,
+            AthlosStatusCallout(
+              tone: AthlosStatusCalloutTone.error,
               icon: Icons.error_outline,
               message: message,
             ),
@@ -486,70 +483,19 @@ class _ConflictCenterStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
 
     if (duplicateCount == 0) {
-      return _ConflictCenterStatusSurface(
-        backgroundColor: colorScheme.surfaceContainerHigh,
-        foregroundColor: colorScheme.onSurfaceVariant,
-        iconColor: colorScheme.primary,
+      return AthlosStatusCallout(
+        tone: AthlosStatusCalloutTone.success,
         icon: Icons.check_circle_outline,
         message: l10n.conflictCenterEmptyState,
       );
     }
 
-    final warningStyle = customColors.duplicateWarningCallout(colorScheme);
-
-    return _ConflictCenterStatusSurface(
-      backgroundColor: warningStyle.background,
-      foregroundColor: warningStyle.foreground,
-      iconColor: warningStyle.icon,
+    return AthlosStatusCallout(
+      tone: AthlosStatusCalloutTone.warning,
       icon: Icons.warning_amber_rounded,
       message: l10n.conflictCenterDuplicatesFound(duplicateCount),
-    );
-  }
-}
-
-class _ConflictCenterStatusSurface extends StatelessWidget {
-  const _ConflictCenterStatusSurface({
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.icon,
-    required this.message,
-    this.iconColor,
-  });
-
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final IconData icon;
-  final String message;
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AthlosSpacing.md),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: AthlosRadius.mdAll,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, color: iconColor ?? foregroundColor),
-          const Gap(AthlosSpacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: textTheme.bodyMedium?.copyWith(color: foregroundColor),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -639,9 +585,7 @@ class _DuplicateCard extends StatelessWidget {
               l10n: l10n,
             ),
             const Gap(AthlosSpacing.sm),
-            _ConflictCenterStatusSurface(
-              backgroundColor: colorScheme.surfaceContainerHigh,
-              foregroundColor: colorScheme.onSurfaceVariant,
+            AthlosStatusCallout(
               icon: Icons.percent,
               message: l10n.conflictCenterSimilarity(similarityPercent),
             ),

@@ -34,16 +34,19 @@ class AthlosCustomColors extends ThemeExtension<AthlosCustomColors> {
   }
 
   /// Warning callout for duplicate-review status banners.
-  ({Color background, Color foreground, Color icon}) duplicateWarningCallout(
-    ColorScheme colorScheme,
-  ) {
+  ({Color background, Color foreground, Color icon, Color border})
+  duplicateWarningCallout(ColorScheme colorScheme) {
     return (
       background: Color.alphaBlend(
-        warning.withValues(alpha: 0.18),
-        colorScheme.surfaceContainerHigh,
+        warning.withValues(alpha: 0.14),
+        colorScheme.surfaceContainerLow,
       ),
       foreground: colorScheme.onSurface,
       icon: warning,
+      border: Color.alphaBlend(
+        warning.withValues(alpha: 0.45),
+        colorScheme.outlineVariant,
+      ),
     );
   }
 }
