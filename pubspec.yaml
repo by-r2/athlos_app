@@ -44,6 +44,7 @@ dependencies:
   animations: ^2.2.0
   flutter_svg: ^2.0.17
   connectivity_plus: ^7.1.1
+  audioplayers: ^6.5.0
 
 dev_dependencies:
   flutter_test:
@@ -66,4 +67,5 @@ flutter:
     - assets/athlos-icon-gradient.svg
     - assets/athlos-icon-flat.svg
     - assets/athlos-symbol.svg
+    - assets/sounds/
     - assets/google-g-logo.svg

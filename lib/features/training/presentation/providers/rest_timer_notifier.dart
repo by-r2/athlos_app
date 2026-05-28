@@ -4,15 +4,29 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'rest_timer_notifier.g.dart';
 
+/// Why the rest timer reached zero remaining seconds.
+enum RestTimerFinishReason {
+  /// Timer was reset, never started, or is still counting down.
+  none,
+
+  /// Countdown reached zero on its own.
+  natural,
+
+  /// User skipped the remaining rest time.
+  skipped,
+}
+
 class RestTimerState {
   final int remainingSeconds;
   final int totalSeconds;
   final bool isRunning;
+  final RestTimerFinishReason finishReason;
 
   const RestTimerState({
     this.remainingSeconds = 0,
     this.totalSeconds = 0,
     this.isRunning = false,
+    this.finishReason = RestTimerFinishReason.none,
   });
 
   bool get isActive => remainingSeconds > 0 || isRunning;
@@ -23,10 +37,12 @@ class RestTimerState {
     int? remainingSeconds,
     int? totalSeconds,
     bool? isRunning,
+    RestTimerFinishReason? finishReason,
   }) => RestTimerState(
     remainingSeconds: remainingSeconds ?? this.remainingSeconds,
     totalSeconds: totalSeconds ?? this.totalSeconds,
     isRunning: isRunning ?? this.isRunning,
+    finishReason: finishReason ?? this.finishReason,
   );
 }
 
@@ -83,7 +99,11 @@ class RestTimer extends _$RestTimer {
   void skip() {
     _cancelTicker();
     _endsAtUtc = null;
-    state = state.copyWith(remainingSeconds: 0, isRunning: false);
+    state = state.copyWith(
+      remainingSeconds: 0,
+      isRunning: false,
+      finishReason: RestTimerFinishReason.skipped,
+    );
   }
 
   void reset() {
@@ -116,7 +136,11 @@ class RestTimer extends _$RestTimer {
     if (nextRemaining <= 0) {
       _cancelTicker();
       _endsAtUtc = null;
-      state = state.copyWith(remainingSeconds: 0, isRunning: false);
+      state = state.copyWith(
+        remainingSeconds: 0,
+        isRunning: false,
+        finishReason: RestTimerFinishReason.natural,
+      );
       return;
     }
     if (nextRemaining != state.remainingSeconds) {

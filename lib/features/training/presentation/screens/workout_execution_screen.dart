@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
+import '../../../../core/services/workout_timer_feedback_service.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
@@ -105,6 +106,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   bool _isInBackground = false;
 
   final _restTimerNotificationService = RestTimerNotificationService.instance;
+  final _timerFeedbackService = WorkoutTimerFeedbackService.instance;
 
   int _focusedExerciseIndex = 0;
   int _focusedSetNumber = 1;
@@ -142,14 +144,15 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final wasInBackground = _isInBackground;
-    if (state == AppLifecycleState.resumed) {
-      ref.read(restTimerProvider.notifier).syncWithClock();
-    }
     _isInBackground = switch (state) {
       AppLifecycleState.resumed => false,
       AppLifecycleState.inactive => false,
       _ => true,
     };
+
+    if (state == AppLifecycleState.resumed) {
+      ref.read(restTimerProvider.notifier).syncWithClock();
+    }
 
     if (_isInBackground == wasInBackground) return;
     _syncRestTimerNotification(next: ref.read(restTimerProvider));
@@ -167,6 +170,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final cardioState = ref.watch(cardioTimerProvider);
     ref.listen<RestTimerState>(restTimerProvider, (previous, next) {
       _syncRestTimerNotification(previous: previous, next: next);
+      _maybePlayRestFinishedFeedback(previous, next);
+    });
+    ref.listen<CardioTimerState>(cardioTimerProvider, (previous, next) {
+      _maybePlayGoalReachedFeedback(previous, next);
     });
 
     // If the workout references exercises that no longer exist in the local
@@ -375,6 +382,30 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (!next.isActive) {
       await _restTimerNotificationService.cancelAllForRestTimer();
     }
+  }
+
+  void _maybePlayRestFinishedFeedback(
+    RestTimerState? previous,
+    RestTimerState next,
+  ) {
+    if (_isInBackground) return;
+    if (next.finishReason != RestTimerFinishReason.natural) return;
+    if (previous?.finishReason == RestTimerFinishReason.natural) return;
+
+    _timerFeedbackService.play(WorkoutTimerFeedbackEvent.restFinished);
+  }
+
+  void _maybePlayGoalReachedFeedback(
+    CardioTimerState? previous,
+    CardioTimerState next,
+  ) {
+    if (_isInBackground) return;
+    if (next.goalSeconds <= 0) return;
+
+    final hadReachedGoal = previous?.hasReachedGoal ?? false;
+    if (hadReachedGoal || !next.hasReachedGoal) return;
+
+    _timerFeedbackService.play(WorkoutTimerFeedbackEvent.goalReached);
   }
 
   String _restTimerNextBody(AppLocalizations l10n) {
