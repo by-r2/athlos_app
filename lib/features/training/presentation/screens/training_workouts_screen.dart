@@ -44,64 +44,12 @@ class TrainingWorkoutsScreen extends ConsumerWidget {
     final programAsync = ref.watch(activeProgramProvider);
     final program = programAsync.value;
 
-    final nextWorkoutAsync = ref.watch(nextWorkoutToStartProvider);
-    final nextWorkout = nextWorkoutAsync.value;
-
     return Scaffold(
       body: program == null
           ? programAsync.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : const _NoProgramActiveView()
           : _ActiveProgramCycleView(programId: program.id),
-      floatingActionButton: _StartNextWorkoutFab(nextWorkout: nextWorkout),
-    );
-  }
-}
-
-// ── Start Next Workout FAB ────────────────────────────────────────────
-
-class _StartNextWorkoutFab extends ConsumerWidget {
-  final dynamic nextWorkout;
-
-  const _StartNextWorkoutFab({this.nextWorkout});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final hasActiveProgram = ref.watch(activeProgramProvider).value != null;
-
-    if (!hasActiveProgram) {
-      return FloatingActionButton(
-        heroTag: 'workouts_fab',
-        onPressed: () => context.push(RoutePaths.trainingProgramNew),
-        tooltip: l10n.noProgramActiveCreateAction,
-        child: const Icon(Icons.add),
-      );
-    }
-
-    if (nextWorkout == null) {
-      final steps =
-          ref.watch(effectiveCycleStepsProvider).value ??
-          const <TrainingCycleStep>[];
-      if (steps.isNotEmpty) {
-        return const SizedBox.shrink();
-      }
-      return FloatingActionButton(
-        heroTag: 'workouts_fab',
-        onPressed: () =>
-            context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery()),
-        tooltip: l10n.trainingCycleAddWorkout,
-        child: const Icon(Icons.add),
-      );
-    }
-
-    return FloatingActionButton(
-      heroTag: 'workouts_fab',
-      onPressed: () => context.push(
-        '${RoutePaths.trainingWorkouts}/${nextWorkout.id}/execute',
-      ),
-      tooltip: nextWorkout.name,
-      child: const Icon(Icons.play_arrow),
     );
   }
 }

@@ -49,9 +49,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final nextWorkoutAsync = ref.watch(nextWorkoutToStartProvider);
-    final nextWorkout = nextWorkoutAsync.value;
-
     ref.listen(danglingExecutionProvider, (prev, next) {
       if (_danglingDialogShown) return;
       final execution = next.value;
@@ -83,7 +80,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: _StartNextWorkoutFab(nextWorkout: nextWorkout),
     );
   }
 
@@ -278,55 +274,6 @@ class _CompactProgramBanner extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ── Start Next Workout FAB ────────────────────────────────────────────
-
-class _StartNextWorkoutFab extends ConsumerWidget {
-  final dynamic nextWorkout;
-
-  const _StartNextWorkoutFab({this.nextWorkout});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final hasActiveProgram = ref.watch(activeProgramProvider).value != null;
-
-    if (!hasActiveProgram) {
-      return FloatingActionButton(
-        heroTag: 'dashboard_fab',
-        onPressed: () => context.push(RoutePaths.trainingProgramNew),
-        tooltip: l10n.noProgramActiveCreateAction,
-        child: const Icon(Icons.add),
-      );
-    }
-
-    final hasCycleSteps =
-        (ref.watch(effectiveCycleStepsProvider).value ?? const []).isNotEmpty;
-
-    if (nextWorkout == null) {
-      if (hasCycleSteps) {
-        return const SizedBox.shrink();
-      }
-      return FloatingActionButton(
-        heroTag: 'dashboard_fab',
-        onPressed: () {
-          context.go(RoutePaths.trainingWorkoutsOpenCyclePickerQuery());
-        },
-        tooltip: l10n.trainingCycleAddWorkout,
-        child: const Icon(Icons.add),
-      );
-    }
-
-    return FloatingActionButton(
-      heroTag: 'dashboard_fab',
-      onPressed: () => context.push(
-        '${RoutePaths.trainingWorkouts}/${nextWorkout.id}/execute',
-      ),
-      tooltip: nextWorkout.name,
-      child: const Icon(Icons.play_arrow),
     );
   }
 }

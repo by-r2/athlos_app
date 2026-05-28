@@ -87,12 +87,6 @@ class ProgramListScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(child: Text(l10n.genericError)),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'programs_fab',
-        onPressed: () => context.push(RoutePaths.trainingProgramNew),
-        tooltip: l10n.programCreateTitle,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

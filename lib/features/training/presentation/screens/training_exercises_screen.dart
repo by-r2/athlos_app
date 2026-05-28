@@ -27,6 +27,18 @@ import '../providers/exercise_notifier.dart';
 import '../widgets/exercise_catalog_filters.dart';
 import '../widgets/exercise_tile.dart';
 
+/// Opens the add-exercise bottom sheet (used by shell FAB and in-screen actions).
+void showTrainingExerciseAddSheet(
+  BuildContext context, {
+  String initialName = '',
+}) {
+  showAthlosModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => _AddExerciseSheet(initialName: initialName),
+  );
+}
+
 final _placeholderExercises = List.generate(
   8,
   (i) => Exercise(
@@ -91,13 +103,6 @@ class _TrainingExercisesScreenState
     final exercisesAsync = ref.watch(exerciseListProvider);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context),
-        tooltip: l10n.addExercise,
-        heroTag: 'training_exercises_fab',
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Column(
         children: [
           Padding(
@@ -224,7 +229,7 @@ class _TrainingExercisesScreenState
                         ),
                         const Gap(AthlosSpacing.lg),
                         FilledButton.icon(
-                          onPressed: () => _showAddSheet(
+                          onPressed: () => showTrainingExerciseAddSheet(
                             context,
                             initialName: _searchQuery.trim().isNotEmpty
                                 ? _searchQuery.trim()
@@ -279,14 +284,6 @@ class _TrainingExercisesScreenState
           ),
         ],
       ),
-    );
-  }
-
-  void _showAddSheet(BuildContext context, {String initialName = ''}) {
-    showAthlosModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => _AddExerciseSheet(initialName: initialName),
     );
   }
 

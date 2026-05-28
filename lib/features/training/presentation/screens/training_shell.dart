@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/athlos_router_pages.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_elevation.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../widgets/training_shell_fab.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
 import 'program_list_screen.dart';
@@ -130,6 +132,7 @@ class _TrainingShell extends ConsumerWidget {
         );
       },
       child: Scaffold(
+        extendBody: true,
         appBar: AppBar(
           leading: isSubPage
               ? IconButton(
@@ -146,47 +149,64 @@ class _TrainingShell extends ConsumerWidget {
           actions: const [AppBarMenu()],
         ),
         body: child,
-        bottomNavigationBar: SafeArea(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(
-              AthlosSpacing.md,
-              0,
-              AthlosSpacing.md,
-              AthlosSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: AthlosRadius.lgAll,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: AthlosSpacing.sm,
-                  offset: const Offset(0, -AthlosSpacing.xxs),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: AthlosRadius.lgAll,
-              child: NavigationBar(
-                selectedIndex: _indexFromPath(currentPath),
-                onDestinationSelected: (index) => _onTabTap(context, index),
-                destinations: [
-                  NavigationDestination(
-                    icon: const Icon(Icons.dashboard_outlined),
-                    selectedIcon: const Icon(Icons.dashboard),
-                    label: l10n.tabDashboard,
+        floatingActionButton: buildTrainingShellFloatingActionButton(
+          context,
+          ref,
+          currentPath,
+        ),
+        bottomNavigationBar: ColoredBox(
+          color: Colors.transparent,
+          child: SafeArea(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(
+                AthlosSpacing.md,
+                0,
+                AthlosSpacing.md,
+                AthlosSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainer,
+                borderRadius: AthlosRadius.lgAll,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: AthlosSpacing.xxl,
+                    spreadRadius: AthlosSpacing.xxs,
+                    offset: const Offset(0, -AthlosSpacing.sm),
                   ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.fitness_center_outlined),
-                    selectedIcon: const Icon(Icons.fitness_center),
-                    label: l10n.tabTraining,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.timeline_outlined),
-                    selectedIcon: const Icon(Icons.timeline),
-                    label: l10n.tabHistory,
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    blurRadius: AthlosSpacing.md,
+                    offset: const Offset(0, -AthlosSpacing.xs),
                   ),
                 ],
+              ),
+              child: ClipRRect(
+                borderRadius: AthlosRadius.lgAll,
+                child: NavigationBar(
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: AthlosElevation.none,
+                  selectedIndex: _indexFromPath(currentPath),
+                  onDestinationSelected: (index) => _onTabTap(context, index),
+                  destinations: [
+                    NavigationDestination(
+                      icon: const Icon(Icons.dashboard_outlined),
+                      selectedIcon: const Icon(Icons.dashboard),
+                      label: l10n.tabDashboard,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.fitness_center_outlined),
+                      selectedIcon: const Icon(Icons.fitness_center),
+                      label: l10n.tabTraining,
+                    ),
+                    NavigationDestination(
+                      icon: const Icon(Icons.timeline_outlined),
+                      selectedIcon: const Icon(Icons.timeline),
+                      label: l10n.tabHistory,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

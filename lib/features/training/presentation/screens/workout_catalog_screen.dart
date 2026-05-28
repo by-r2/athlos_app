@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
@@ -30,25 +29,8 @@ class WorkoutCatalogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final workoutsAsync = ref.watch(workoutListProvider);
-    final workoutCount = workoutsAsync.value?.length ?? 0;
-
-    return Scaffold(
-      body: const _WorkoutCatalogBody(),
-      floatingActionButton: _ExpandableWorkoutFab(
-        chironLabel: workoutCount == 0
-            ? l10n.chironCreateWorkoutShortcut
-            : l10n.chironAnalyzeWorkoutsShortcut,
-        createManualLabel: l10n.trainingWorkoutActionCreateManual,
-        onChiron: () => showChironSheet(
-          context,
-          initialMessage: workoutCount == 0
-              ? l10n.chironAskToCreateWorkout
-              : l10n.chironAnalyzeWorkoutsMessage,
-        ),
-        onCreateManual: () => context.push(RoutePaths.trainingWorkoutNew),
-      ),
+    return const Scaffold(
+      body: _WorkoutCatalogBody(),
     );
   }
 }
@@ -475,137 +457,6 @@ class _ArchivedWorkoutTile extends StatelessWidget {
             icon: const Icon(Icons.copy_outlined),
             tooltip: l10n.duplicateWorkout,
             onPressed: onDuplicate,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Expandable FAB ────────────────────────────────────────────────────
-
-class _ExpandableWorkoutFab extends StatefulWidget {
-  final String chironLabel;
-  final String createManualLabel;
-  final VoidCallback onChiron;
-  final VoidCallback onCreateManual;
-
-  const _ExpandableWorkoutFab({
-    required this.chironLabel,
-    required this.createManualLabel,
-    required this.onChiron,
-    required this.onCreateManual,
-  });
-
-  @override
-  State<_ExpandableWorkoutFab> createState() => _ExpandableWorkoutFabState();
-}
-
-class _ExpandableWorkoutFabState extends State<_ExpandableWorkoutFab> {
-  bool _expanded = false;
-
-  void _toggle() {
-    setState(() => _expanded = !_expanded);
-  }
-
-  void _onAction(VoidCallback action) {
-    action();
-    _toggle();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          alignment: Alignment.bottomCenter,
-          child: _expanded
-              ? Padding(
-                  padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _ActionChip(
-                        icon: Icons.auto_awesome,
-                        label: widget.chironLabel,
-                        onPressed: () => _onAction(widget.onChiron),
-                      ),
-                      const SizedBox(height: AthlosSpacing.sm),
-                      _ActionChip(
-                        icon: Icons.edit_note,
-                        label: widget.createManualLabel,
-                        onPressed: () => _onAction(widget.onCreateManual),
-                      ),
-                    ],
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
-        FloatingActionButton(
-          heroTag: 'catalog_fab',
-          onPressed: _toggle,
-          tooltip: _expanded ? '' : widget.createManualLabel,
-          child: AnimatedRotation(
-            turns: _expanded ? 0.125 : 0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            child: const Icon(Icons.add),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  const _ActionChip({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Material(
-            color: colorScheme.surfaceContainerHigh,
-            borderRadius: AthlosRadius.mdAll,
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AthlosSpacing.sm,
-                vertical: AthlosSpacing.xs,
-              ),
-              child: AthlosTruncatedText(
-                label,
-                style: textTheme.labelLarge,
-                maxLines: 1,
-              ),
-            ),
-          ),
-          const SizedBox(width: AthlosSpacing.sm),
-          FloatingActionButton.small(
-            heroTag: null,
-            onPressed: onPressed,
-            tooltip: label,
-            child: Icon(icon),
           ),
         ],
       ),

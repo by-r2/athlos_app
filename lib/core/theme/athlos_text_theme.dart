@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Custom typography for Athlos.
-/// Cinzel only on [AppBar] titles; Inter everywhere else.
+/// Cinzel on [AppBar] titles and explicit brand surfaces ([brandDisplay]);
+/// Inter everywhere else.
 class AthlosTextTheme {
   AthlosTextTheme._();
 
@@ -24,10 +25,26 @@ class AthlosTextTheme {
     labelSmall: GoogleFonts.inter(),
   );
 
-  /// App bar titles — sole Cinzel usage in the app chrome.
+  /// App bar titles.
   static TextStyle appBarTitle(ColorScheme colorScheme) => GoogleFonts.cinzel(
     fontSize: 22,
     fontWeight: FontWeight.w600,
     color: colorScheme.onSurface,
   );
+
+  /// Splash, auth hero, and other brand lockups — not tied to [TextTheme].
+  static TextStyle brandDisplay(
+    Color color, {
+    double fontSize = 32,
+    FontWeight fontWeight = FontWeight.bold,
+    double? letterSpacing,
+    double? height,
+  }) =>
+      GoogleFonts.cinzel(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+      );
 }

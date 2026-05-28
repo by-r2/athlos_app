@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../theme/athlos_spacing.dart';
+import '../../theme/athlos_text_theme.dart';
 
 /// Displayed while the app resolves initial async state (e.g. hasProfile).
 ///
@@ -24,8 +25,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: Center(
@@ -34,10 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Text(
               'Athlos',
-              style: textTheme.headlineLarge?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AthlosTextTheme.brandDisplay(colorScheme.primary),
             ),
             const SizedBox(height: AthlosSpacing.xl),
             SizedBox(

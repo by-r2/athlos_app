@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import '../../../../core/constants/athlos_assets.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/theme/athlos_text_theme.dart';
 
 /// Overlap between the hero gradient and the content sheet.
 const _sheetOverlap = 20.0;
@@ -251,8 +252,9 @@ class _AuthHeroBranding extends StatelessWidget {
 
   TextStyle? get _titleStyle {
     if (brandTitle) {
-      return textTheme.headlineMedium?.copyWith(
-        color: colorScheme.onPrimary,
+      return AthlosTextTheme.brandDisplay(
+        colorScheme.onPrimary,
+        fontSize: 28,
         fontWeight: FontWeight.w700,
         letterSpacing: 2.8,
         height: 1.15,
