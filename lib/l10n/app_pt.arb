@@ -979,6 +979,8 @@
   "@trainingCycleAddStep": { "description": "Add workout to cycle" },
   "trainingCycleAddWorkout": "Adicionar treino",
   "@trainingCycleAddWorkout": { "description": "Add workout to cycle" },
+  "trainingCycleAddWorkoutSubtitle": "Selecione um treino da lista ou crie um novo.",
+  "@trainingCycleAddWorkoutSubtitle": { "description": "Subtitle for add-workout bottom sheet" },
   "trainingCycleRemoveWorkout": "Remover do ciclo",
   "@trainingCycleRemoveWorkout": {
     "description": "Remove a workout from the active program cycle (does not delete the workout template)"
@@ -2477,7 +2479,10 @@
   "volumeOverTarget": "Acima do alvo",
 
   "bodyMetricsSectionTitle": "Peso corporal",
-  "bodyMetricsRecordWeight": "Registar peso",
+  "bodyMetricsRecordWeight": "Nova medição",
+  "bodyMetricsAddSheetTitle": "Nova medição",
+  "bodyMetricsAddSheetSubtitle": "Indique o peso em kg. A percentagem de gordura corporal é opcional.",
+  "bodyMetricsSaveAction": "Salvar",
   "bodyMetricsWeightLabel": "Peso (kg)",
   "bodyMetricsBodyFatLabel": "Gordura corporal (%)",
   "bodyMetricsBodyFatHint": "Opcional",
@@ -2490,8 +2495,9 @@
   "bodyMetricsEmpty": "Sem registos de peso",
   "bodyMetricsEmptyHint": "Registe o seu peso para acompanhar a evolução.",
   "bodyMetricsHistory": "Histórico de peso",
+  "bodyMetricsHistorySubtitle": "Registos ordenados do mais recente ao mais antigo.",
   "bodyMetricsDeleteConfirm": "Eliminar este registo?",
-  "bodyMetricsWeeklyPromptTitle": "Registar peso?",
+  "bodyMetricsWeeklyPromptTitle": "Atualizar medição?",
   "bodyMetricsWeeklyPromptMessage": "Já passou uma semana desde o último registo. Quer atualizar?",
   "bodyMetricsWeeklyPromptSkip": "Agora não",
   "bodyMetricsWeeklyPromptRecord": "Registar",

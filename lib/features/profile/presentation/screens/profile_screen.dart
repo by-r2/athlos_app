@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
@@ -15,13 +14,10 @@ import '../../../../core/sync/sync_providers.dart';
 import '../../../../core/sync/sync_trigger.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
-import '../../../../core/theme/athlos_bottom_sheet.dart';
-import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../core/widgets/layout/athlos_scaffold.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
@@ -41,15 +37,10 @@ import '../providers/profile_notifier.dart';
 import '../providers/sync_issue_center_provider.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
 import '../widgets/body_metrics_dashboard_card.dart';
+import '../widgets/body_metrics_sheets.dart';
 import '../widgets/owned_equipment_list.dart';
 import 'profile_overview_edit_screen.dart';
 import 'profile_training_edit_screen.dart';
-
-double? _tryParseDecimal(String value) {
-  final normalized = value.trim().replaceAll(',', '.');
-  if (normalized.isEmpty) return null;
-  return double.tryParse(normalized);
-}
 
 /// Placeholder profile for [Skeletonizer] on the hub.
 const UserProfile _kProfileHubSkeletonPlaceholder = UserProfile(
@@ -1318,7 +1309,8 @@ class _BodyMetricsSection extends ConsumerWidget {
                       ),
                       const Gap(AthlosSpacing.sm),
                       FilledButton.tonal(
-                        onPressed: () => _showRecordDialog(context, ref),
+                        onPressed: () =>
+                            showBodyMetricRecordSheet(context: context, ref: ref),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -1354,7 +1346,10 @@ class _BodyMetricsSection extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(Icons.add),
                           tooltip: l10n.bodyMetricsRecordWeight,
-                          onPressed: () => _showRecordDialog(context, ref),
+                          onPressed: () => showBodyMetricRecordSheet(
+                            context: context,
+                            ref: ref,
+                          ),
                         ),
                       ],
                     ),
@@ -1365,8 +1360,10 @@ class _BodyMetricsSection extends ConsumerWidget {
                     if (metrics.length > 1) ...[
                       const Gap(AthlosSpacing.xs),
                       TextButton(
-                        onPressed: () =>
-                            _showFullHistory(context, ref, metrics),
+                        onPressed: () => showBodyMetricHistorySheet(
+                          context: context,
+                          metrics: metrics,
+                        ),
                         child: Text(l10n.bodyMetricsHistory),
                       ),
                     ],
@@ -1377,129 +1374,6 @@ class _BodyMetricsSection extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  void _showRecordDialog(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final weightCtrl = TextEditingController();
-    final bfCtrl = TextEditingController();
-
-    showAthlosDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.bodyMetricsRecordWeight),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: weightCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.bodyMetricsWeightLabel,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-              ],
-              autofocus: true,
-            ),
-            const Gap(AthlosSpacing.md),
-            TextField(
-              controller: bfCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.bodyMetricsBodyFatLabel,
-                hintText: l10n.bodyMetricsBodyFatHint,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          AthlosStackedDialogActions(
-            children: [
-              TextButton(
-                style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-              ),
-              FilledButton(
-                style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                onPressed: () {
-                  final w = _tryParseDecimal(weightCtrl.text);
-                  if (w == null || w <= 0) return;
-                  final bf = _tryParseDecimal(bfCtrl.text);
-                  ref
-                      .read(bodyMetricListProvider.notifier)
-                      .add(weight: w, bodyFatPercent: bf);
-                  Navigator.pop(ctx);
-                },
-                child: Text(l10n.programSaveAction),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showFullHistory(
-    BuildContext context,
-    WidgetRef ref,
-    List<BodyMetric> metrics,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    showAthlosModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      wrapInShell: false,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (ctx, scrollCtrl) => AthlosBottomSheetShell(
-          expand: true,
-          child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Text(
-                l10n.bodyMetricsHistory,
-                style: Theme.of(ctx).textTheme.titleMedium,
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollCtrl,
-                itemCount: metrics.length,
-                itemBuilder: (ctx, i) {
-                  final m = metrics[i];
-                  final date =
-                      '${m.recordedAt.day}/${m.recordedAt.month}/${m.recordedAt.year}';
-                  final weightStr = m.weight % 1 == 0
-                      ? m.weight.toInt().toString()
-                      : m.weight.toStringAsFixed(1);
-                  return ListTile(
-                    title: Text('$weightStr kg'),
-                    subtitle: Text(date),
-                    trailing: m.bodyFatPercent != null
-                        ? Text('${m.bodyFatPercent!.toStringAsFixed(1)}%')
-                        : null,
-                  );
-                },
-              ),
-            ),
-          ],
-          ),
-        ),
-      ),
     );
   }
 }

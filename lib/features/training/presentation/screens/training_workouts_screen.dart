@@ -9,8 +9,10 @@ import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../data/repositories/training_providers.dart';
@@ -211,24 +213,18 @@ class _ActiveProgramCycleViewState
                 bottom: MediaQuery.paddingOf(ctx).bottom,
               ),
               children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AthlosSpacing.md,
-                  AthlosSpacing.sm,
-                  AthlosSpacing.md,
-                  AthlosSpacing.md,
+                AthlosBottomSheetHeader(
+                  title: l10n.trainingCycleAddWorkout,
+                  subtitle: l10n.trainingCycleAddWorkoutSubtitle,
+                  icon: Icons.playlist_add_rounded,
                 ),
-                child: Text(
-                  l10n.trainingCycleAddWorkout,
-                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ...workouts.map((w) {
+                ...workouts.map((w) {
                 final isInCycle = cycleWorkoutIds.contains(w.id);
                 return ListTile(
                   minTileHeight: AthlosComponentSizes.listItemMinHeight,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AthlosSpacing.md,
+                  ),
                   leading: Icon(
                     isInCycle ? Icons.check_circle : Icons.fitness_center,
                     color: isInCycle
@@ -246,34 +242,40 @@ class _ActiveProgramCycleViewState
                 );
               }),
               const Divider(height: 1),
-              ListTile(
-                minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                leading: Icon(Icons.edit_note, color: colorScheme.primary),
-                title: Text(
-                  l10n.trainingWorkoutActionCreateManual,
-                  style: TextStyle(color: colorScheme.primary),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AthlosSpacing.md,
+                  AthlosSpacing.md,
+                  AthlosSpacing.md,
+                  AthlosSpacing.sm,
                 ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  context.push(RoutePaths.trainingWorkoutNew);
-                },
-              ),
-              ListTile(
-                minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                leading: Icon(Icons.auto_awesome, color: colorScheme.primary),
-                title: Text(
-                  l10n.chironCreateWorkoutShortcut,
-                  style: TextStyle(color: colorScheme.primary),
+                child: AthlosStackedActions(
+                  children: [
+                    TextButton.icon(
+                      style: AthlosScreenButtonStyles.stackedGhost(ctx),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        showChironSheet(
+                          context,
+                          initialMessage: l10n.chironAskToCreateWorkout,
+                        );
+                      },
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      label: Text(l10n.chironCreateWorkoutShortcut),
+                    ),
+                    FilledButton.icon(
+                      style: AthlosScreenButtonStyles.stackedFilled(ctx),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        context.push(RoutePaths.trainingWorkoutNew);
+                      },
+                      icon: const Icon(Icons.edit_note_outlined),
+                      label: Text(l10n.trainingWorkoutActionCreateManual),
+                    ),
+                  ],
                 ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  showChironSheet(
-                    context,
-                    initialMessage: l10n.chironAskToCreateWorkout,
-                  );
-                },
               ),
-              ],
+            ],
             ),
           ),
         ),

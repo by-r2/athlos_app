@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
-import '../../../../core/theme/athlos_bottom_sheet.dart';
-import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/body_metric_notifier.dart';
 import '../providers/body_metrics_dashboard_provider.dart';
-
-double? _tryParseDecimal(String value) {
-  final normalized = value.trim().replaceAll(',', '.');
-  if (normalized.isEmpty) return null;
-  return double.tryParse(normalized);
-}
-
-String _formatWeight(double weight) =>
-    weight % 1 == 0 ? weight.toInt().toString() : weight.toStringAsFixed(1);
+import 'body_metrics_sheets.dart';
 
 /// Unified dashboard card for body-metrics (weight + optional body fat).
 ///
@@ -68,18 +58,10 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               ),
             ),
             const Gap(AthlosSpacing.smd),
-            AthlosDialogButtonTheme.wrap(
-              context,
-              Builder(
-                builder: (innerCtx) => SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    style: AthlosDialogButtonStyles.stackedFilled(innerCtx),
-                    onPressed: () => _showRecordDialog(context, ref),
-                    child: Text(l10n.bodyMetricsRecordWeight),
-                  ),
-                ),
-              ),
+            FilledButton(
+              style: AthlosScreenButtonStyles.stackedFilled(context),
+              onPressed: () => showBodyMetricRecordSheet(context: context, ref: ref),
+              child: Text(l10n.bodyMetricsRecordWeight),
             ),
           ],
         ),
@@ -125,7 +107,7 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '${_formatWeight(state.latestWeight!)} kg',
+                  '${formatBodyMetricWeight(state.latestWeight!)} kg',
                   style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -161,26 +143,27 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               ),
             ],
             const Gap(AthlosSpacing.smd),
-            AthlosDialogButtonTheme.wrap(
-              context,
-              Builder(
-                builder: (innerCtx) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextButton(
-                      style: AthlosDialogButtonStyles.stackedGhost(innerCtx),
-                      onPressed: () => _showHistory(context, ref),
-                      child: Text(l10n.bodyMetricsHistory),
-                    ),
-                    const SizedBox(height: AthlosSpacing.xs),
-                    FilledButton(
-                      style: AthlosDialogButtonStyles.stackedFilled(innerCtx),
-                      onPressed: () => _showRecordDialog(context, ref),
-                      child: Text(l10n.bodyMetricsRecordWeight),
-                    ),
-                  ],
+            AthlosStackedActions(
+              children: [
+                TextButton(
+                  style: AthlosScreenButtonStyles.stackedGhost(context),
+                  onPressed: () {
+                    final metrics = ref.read(bodyMetricListProvider).value;
+                    if (metrics == null || metrics.isEmpty) return;
+                    showBodyMetricHistorySheet(
+                      context: context,
+                      metrics: metrics,
+                    );
+                  },
+                  child: Text(l10n.bodyMetricsHistory),
                 ),
-              ),
+                FilledButton(
+                  style: AthlosScreenButtonStyles.stackedFilled(context),
+                  onPressed: () =>
+                      showBodyMetricRecordSheet(context: context, ref: ref),
+                  child: Text(l10n.bodyMetricsRecordWeight),
+                ),
+              ],
             ),
           ],
         ),
@@ -264,130 +247,6 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  // ── Record dialog ────────────────────────────────────────────────────
-
-  void _showRecordDialog(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final weightCtrl = TextEditingController();
-    final bfCtrl = TextEditingController();
-
-    showAthlosDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.bodyMetricsRecordWeight),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: weightCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.bodyMetricsWeightLabel,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-              ],
-              autofocus: true,
-            ),
-            const Gap(AthlosSpacing.md),
-            TextField(
-              controller: bfCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.bodyMetricsBodyFatLabel,
-                hintText: l10n.bodyMetricsBodyFatHint,
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          AthlosStackedDialogActions(
-            children: [
-              TextButton(
-                style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
-              ),
-              FilledButton(
-                style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                onPressed: () {
-                  final w = _tryParseDecimal(weightCtrl.text);
-                  if (w == null || w <= 0) return;
-                  final bf = _tryParseDecimal(bfCtrl.text);
-                  ref
-                      .read(bodyMetricListProvider.notifier)
-                      .add(weight: w, bodyFatPercent: bf);
-                  Navigator.pop(ctx);
-                },
-                child: Text(l10n.bodyMetricsWeeklyPromptRecord),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── History bottom sheet ─────────────────────────────────────────────
-
-  void _showHistory(BuildContext context, WidgetRef ref) {
-    final metrics = ref.read(bodyMetricListProvider).value;
-    if (metrics == null || metrics.isEmpty) return;
-
-    final l10n = AppLocalizations.of(context)!;
-    showAthlosModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      wrapInShell: false,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (ctx, scrollCtrl) => AthlosBottomSheetShell(
-          expand: true,
-          child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Text(
-                l10n.bodyMetricsHistory,
-                style: Theme.of(ctx).textTheme.titleMedium,
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollCtrl,
-                itemCount: metrics.length,
-                itemBuilder: (ctx, i) {
-                  final m = metrics[i];
-                  final date =
-                      '${m.recordedAt.day}/${m.recordedAt.month}/${m.recordedAt.year}';
-                  return ListTile(
-                    key: ValueKey(m.id),
-                    title: Text('${_formatWeight(m.weight)} kg'),
-                    subtitle: Text(date),
-                    trailing: m.bodyFatPercent != null
-                        ? Text('${m.bodyFatPercent!.toStringAsFixed(1)}%')
-                        : null,
-                  );
-                },
-              ),
-            ),
-          ],
-          ),
-        ),
-      ),
     );
   }
 }

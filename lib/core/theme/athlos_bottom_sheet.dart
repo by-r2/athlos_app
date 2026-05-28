@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 
 import 'athlos_radius.dart';
 import 'athlos_spacing.dart';
@@ -84,6 +85,106 @@ class AthlosBottomSheetShell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Title + optional subtitle for modal bottom sheets (filters, forms, lists).
+class AthlosBottomSheetHeader extends StatelessWidget {
+  const AthlosBottomSheetHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.icon,
+    this.padding = const EdgeInsets.fromLTRB(
+      AthlosSpacing.md,
+      AthlosSpacing.sm,
+      AthlosSpacing.md,
+      AthlosSpacing.md,
+    ),
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final titleStyle = textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+
+    return Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: colorScheme.primary),
+                const Gap(AthlosSpacing.xs),
+              ],
+              Expanded(child: Text(title, style: titleStyle)),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const Gap(AthlosSpacing.xs),
+            Text(
+              subtitle!,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Contrasting inset block on [ColorScheme.bottomSheet].
+class AthlosBottomSheetContainer extends StatelessWidget {
+  const AthlosBottomSheetContainer({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: colorScheme.bottomSheetContainer,
+      borderRadius: AthlosRadius.mdAll,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AthlosSpacing.smd,
+          AthlosSpacing.md,
+          AthlosSpacing.smd,
+          AthlosSpacing.md,
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Standard horizontal insets + safe-area / keyboard bottom for sheet bodies.
+EdgeInsets athlosBottomSheetBodyPadding(BuildContext context) {
+  return EdgeInsets.only(
+    left: AthlosSpacing.md,
+    right: AthlosSpacing.md,
+    top: AthlosSpacing.sm,
+    bottom:
+        MediaQuery.paddingOf(context).bottom +
+        MediaQuery.viewInsetsOf(context).bottom +
+        AthlosSpacing.md,
+  );
 }
 
 /// Like [showModalBottomSheet], with Athlos surface color and shape.
