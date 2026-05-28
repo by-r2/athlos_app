@@ -14,6 +14,7 @@ import '../../../../core/theme/athlos_durations.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_chat_bubble.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
@@ -732,7 +733,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       onLeaveConfirmed: (ctx) {
         if (ctx.mounted) ctx.pop();
       },
-      child: Scaffold(
+      child: AthlosScaffold(
         appBar: AppBar(
           title: Text(l10n.profileSetupTitle),
           automaticallyImplyLeading: false,

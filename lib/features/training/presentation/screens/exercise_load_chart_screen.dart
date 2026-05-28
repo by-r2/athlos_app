@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
@@ -47,7 +48,7 @@ class _ExerciseLoadChartScreenState
       exerciseLoadHistoryProvider(widget.exerciseId, range: _range),
     );
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(exerciseName)),
       body: Padding(
         padding: const EdgeInsets.all(AthlosSpacing.md),

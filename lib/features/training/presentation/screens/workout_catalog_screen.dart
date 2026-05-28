@@ -29,9 +29,7 @@ class WorkoutCatalogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
-      body: _WorkoutCatalogBody(),
-    );
+    return const _WorkoutCatalogBody();
   }
 }
 

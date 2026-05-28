@@ -6,6 +6,7 @@ import 'package:gap/gap.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
@@ -138,7 +139,7 @@ class _ProfileTrainingEditScreenState
     return ConfirmNavigationScope(
       guardActive: _isDirty && !_isSaving,
       onConfirmLeave: confirmDiscardUnsavedEdits,
-      child: Scaffold(
+      child: AthlosScaffold(
         appBar: AppBar(
           title: Text(l10n.profileSectionTraining),
           leading: BackButton(onPressed: _cancel),

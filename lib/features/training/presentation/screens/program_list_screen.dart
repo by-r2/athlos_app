@@ -26,9 +26,7 @@ class ProgramListScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final programsAsync = ref.watch(programListProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.programListTitle)),
-      body: programsAsync.when(
+    return programsAsync.when(
         data: (programs) {
           if (programs.isEmpty) {
             return Center(
@@ -86,8 +84,7 @@ class ProgramListScreen extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(child: Text(l10n.genericError)),
-      ),
-    );
+      );
   }
 }
 

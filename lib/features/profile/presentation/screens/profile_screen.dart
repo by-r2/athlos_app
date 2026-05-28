@@ -20,6 +20,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -80,7 +81,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profileAsync = ref.watch(profileProvider);
     final resolved = profileAsync.value ?? const UserProfile(id: '');
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(l10n.profile), actions: [const AppBarMenu()]),
       body: profileAsync.hasError
           ? Center(child: Text(l10n.genericError))
@@ -284,7 +285,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             final subL10n = AppLocalizations.of(context)!;
             final profileAsync = ref.watch(profileProvider);
 
-            return Scaffold(
+            return AthlosScaffold(
               appBar: AppBar(title: Text(title)),
               body: profileAsync.when(
                 loading: () => const Center(

@@ -14,6 +14,7 @@ import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
@@ -180,7 +181,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
       if (missingExerciseIds.isNotEmpty) {
         final l10n = AppLocalizations.of(context)!;
-        return Scaffold(
+        return AthlosScaffold(
           appBar: AppBar(
             title: Text(l10n.ghostExerciseRecoveryTitle),
             leading: IconButton(
@@ -1116,7 +1117,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final total = _totalSetCount;
     final next = _findNextPendingSet(exec);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
         automaticallyImplyLeading: false,
@@ -1437,7 +1438,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       );
     }
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -2449,7 +2450,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _cardioAppBar(name, sets.length),
       body: Center(
         child: Padding(
@@ -2518,7 +2519,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         ? colorScheme.primary
         : colorScheme.onSurface;
 
-    return Scaffold(
+    return AthlosScaffold(
       backgroundColor: isPaused ? colorScheme.surfaceContainerHighest : null,
       appBar: _cardioAppBar(name, sets.length),
       body: Padding(
@@ -2636,7 +2637,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _cardioAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
@@ -2709,7 +2710,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
         .toList();
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _cardioAppBar(
         name,
         sets.length,
@@ -2818,7 +2819,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.durationSeconds ?? 0;
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _timedAppBar(name, sets.length),
       body: Center(
         child: Padding(
@@ -2897,7 +2898,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _timedAppBar(name, sets.length),
       body: Center(
         child: Column(
@@ -2934,7 +2935,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         ? colorScheme.primary
         : colorScheme.onSurface;
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _timedAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
@@ -3058,7 +3059,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       diffLabel = '';
     }
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _timedAppBar(name, sets.length),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.lg),
@@ -3157,7 +3158,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         .where((s) => !s.isCompleted && s.setNumber > _focusedSetNumber)
         .toList();
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: _timedAppBar(
         name,
         sets.length,

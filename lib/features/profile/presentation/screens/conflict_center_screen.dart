@@ -12,6 +12,7 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/conflict_center_provider.dart';
@@ -34,7 +35,7 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
     final l10n = AppLocalizations.of(context)!;
     final asyncSnapshot = ref.watch(backupConflictCenterProvider);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(l10n.conflictCenterTitle)),
       body: asyncSnapshot.when(
         loading: () => Skeletonizer(

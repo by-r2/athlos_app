@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout.dart';
@@ -289,7 +290,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
           allExercisesAsync.hasValue;
 
       if (!allReady) {
-        return Scaffold(
+        return AthlosScaffold(
           appBar: AppBar(title: Text(l10n.editWorkout)),
           body: const Center(child: CircularProgressIndicator()),
         );
@@ -297,7 +298,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
 
       final workout = workoutAsync.value;
       if (workout == null) {
-        return Scaffold(
+        return AthlosScaffold(
           appBar: AppBar(title: Text(l10n.editWorkout)),
           body: Center(child: Text(l10n.workoutNotFound)),
         );
@@ -316,7 +317,7 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
       onLeaveConfirmed: (ctx) {
         if (ctx.mounted) ctx.pop();
       },
-      child: Scaffold(
+      child: AthlosScaffold(
         appBar: AppBar(
           title: Text(widget.isEditing ? l10n.editWorkout : l10n.createWorkout),
           actions: [

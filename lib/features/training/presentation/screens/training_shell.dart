@@ -9,8 +9,8 @@ import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/widgets/layout/athlos_scroll_top_fade.dart';
 import '../widgets/training_shell_fab.dart';
-import '../widgets/training_shell_scroll_fade.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
 import 'program_list_screen.dart';
@@ -115,8 +115,9 @@ class _TrainingShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final currentPath =
-        GoRouterState.of(context).fullPath ?? RoutePaths.trainingHome;
+    final routerState = GoRouterState.of(context);
+    final currentPath = routerState.fullPath ?? RoutePaths.trainingHome;
+    final scrollFadeRouteKey = routerState.uri.toString();
 
     final isSubPage = _isSubPage(currentPath);
 
@@ -149,7 +150,10 @@ class _TrainingShell extends ConsumerWidget {
           title: Text(_TrainingShell._appBarTitle(currentPath, l10n)),
           actions: const [AppBarMenu()],
         ),
-        body: TrainingShellScrollFade(child: child),
+        body: AthlosScrollTopFade(
+          key: ValueKey(scrollFadeRouteKey),
+          child: child,
+        ),
         floatingActionButton: buildTrainingShellFloatingActionButton(
           context,
           ref,

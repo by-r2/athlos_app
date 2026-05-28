@@ -9,6 +9,7 @@ import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
@@ -63,14 +64,14 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final workout = workoutAsync.value;
 
     if (workoutAsync.hasError) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(),
         body: Center(child: Text(l10n.genericError)),
       );
     }
 
     if (!workoutAsync.isLoading && workout == null) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(),
         body: Center(child: Text(l10n.workoutNotFound)),
       );
@@ -79,7 +80,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
     final displayWorkout = workout ?? _placeholderWorkout;
     final isNext = nextWorkout?.id == displayWorkout.id;
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         title: Text(displayWorkout.name),
         actions: [

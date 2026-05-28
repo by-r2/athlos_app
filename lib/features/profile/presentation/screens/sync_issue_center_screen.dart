@@ -10,6 +10,7 @@ import '../../../../core/sync/sync_issue.dart';
 import '../../../../core/sync/sync_issue_prefs.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../../training/data/sync/training_sync_table_names.dart';
@@ -33,7 +34,7 @@ class _SyncIssueCenterScreenState extends ConsumerState<SyncIssueCenterScreen> {
     final l10n = AppLocalizations.of(context)!;
     final asyncIssues = ref.watch(syncIssueCenterProvider);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(l10n.syncIssueCenterTitle)),
       body: asyncIssues.when(
         loading: () => const Center(child: CircularProgressIndicator()),

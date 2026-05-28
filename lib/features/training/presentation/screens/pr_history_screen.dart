@@ -8,6 +8,7 @@ import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../helpers/exercise_l10n.dart';
@@ -25,7 +26,7 @@ class PRHistoryScreen extends ConsumerWidget {
 
     final prsAsync = ref.watch(allExercisePRsProvider);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         title: Text(l10n.prHistoryTitle),
         actions: [

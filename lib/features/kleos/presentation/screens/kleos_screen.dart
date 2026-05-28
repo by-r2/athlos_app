@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
@@ -69,7 +70,7 @@ class KleosScreen extends ConsumerWidget {
         (profileAsync.hasError ||
             prsAsync.hasError ||
             analyticsAsync.hasError)) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.kleosScreenTitle)),
         body: Center(child: Text(l10n.genericError)),
       );
@@ -280,7 +281,7 @@ class KleosScreen extends ConsumerWidget {
       ]);
     }
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(l10n.kleosScreenTitle)),
       body: Skeletonizer(
         enabled: isLoading,

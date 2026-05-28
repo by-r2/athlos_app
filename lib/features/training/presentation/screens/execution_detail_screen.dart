@@ -7,6 +7,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
@@ -54,8 +55,29 @@ class ExecutionDetailScreen extends ConsumerStatefulWidget {
       _ExecutionDetailScreenState();
 }
 
-class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
+class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey _shareCaptureKey = GlobalKey();
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +94,14 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     final execution = executions?.where((e) => e.id == executionId).firstOrNull;
 
     if (executionsAsync.hasError) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
     }
 
     if (!executionsAsync.isLoading && execution == null) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
@@ -102,7 +124,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     }
 
     if (setsAsync.hasError) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.tabHistory)),
         body: Center(child: Text(l10n.genericError)),
       );
@@ -152,75 +174,75 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
       }
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.tabHistory),
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(
-              AthlosSpacing.sm + 24 + AthlosSpacing.xs + kTextTabBarHeight,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AthlosSpacing.md,
-                    AthlosSpacing.xs,
-                    AthlosSpacing.md,
-                    AthlosSpacing.xs,
-                  ),
-                  child: AthlosTruncatedText(
-                    workoutName,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                  ),
-                ),
-                TabBar(
-                  tabs: [
-                    Tab(text: l10n.executionDetailTabSummary),
-                    Tab(text: l10n.executionDetailTabDetails),
-                  ],
-                ),
-              ],
-            ),
+    return AthlosScaffold(
+      scrollFadeKey: _tabController.index,
+      appBar: AppBar(
+        title: Text(l10n.tabHistory),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(
+            AthlosSpacing.sm + 24 + AthlosSpacing.xs + kTextTabBarHeight,
           ),
-        ),
-        body: Skeletonizer(
-          enabled: setsAsync.isLoading,
-          child: TabBarView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _ExecutionShareSummaryTab(
-                captureKey: _shareCaptureKey,
-                execution: execution ?? _placeholderExecution,
-                sets: sets,
-                workoutName: workoutName,
-                exerciseById: exerciseByIdMerged.isEmpty ? null : exerciseByIdMerged,
-                workoutExerciseByExerciseId: workoutExerciseByExerciseId.isEmpty
-                    ? null
-                    : workoutExerciseByExerciseId,
-                profileBodyWeightOnExecutionDate: historicProfileWeight,
-                latestBodyWeight: profileWeight,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AthlosSpacing.md,
+                  AthlosSpacing.xs,
+                  AthlosSpacing.md,
+                  AthlosSpacing.xs,
+                ),
+                child: AthlosTruncatedText(
+                  workoutName,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                ),
               ),
-              _ExecutionDetailBody(
-                execution: execution ?? _placeholderExecution,
-                sets: sets,
-                sessionContext: sessionContext,
-                workoutExerciseByExerciseId: workoutExerciseByExerciseId,
-                profileBodyWeightOnExecutionDate: historicProfileWeight,
-                latestBodyWeight: profileWeight,
-                prSetIdsPerExercise: prSetIdsPerExercise,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-                l10n: l10n,
+              TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(text: l10n.executionDetailTabSummary),
+                  Tab(text: l10n.executionDetailTabDetails),
+                ],
               ),
             ],
           ),
+        ),
+      ),
+      body: Skeletonizer(
+        enabled: setsAsync.isLoading,
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _ExecutionShareSummaryTab(
+              captureKey: _shareCaptureKey,
+              execution: execution ?? _placeholderExecution,
+              sets: sets,
+              workoutName: workoutName,
+              exerciseById: exerciseByIdMerged.isEmpty ? null : exerciseByIdMerged,
+              workoutExerciseByExerciseId: workoutExerciseByExerciseId.isEmpty
+                  ? null
+                  : workoutExerciseByExerciseId,
+              profileBodyWeightOnExecutionDate: historicProfileWeight,
+              latestBodyWeight: profileWeight,
+            ),
+            _ExecutionDetailBody(
+              execution: execution ?? _placeholderExecution,
+              sets: sets,
+              sessionContext: sessionContext,
+              workoutExerciseByExerciseId: workoutExerciseByExerciseId,
+              profileBodyWeightOnExecutionDate: historicProfileWeight,
+              latestBodyWeight: profileWeight,
+              prSetIdsPerExercise: prSetIdsPerExercise,
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+              l10n: l10n,
+            ),
+          ],
         ),
       ),
     );

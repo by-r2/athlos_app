@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
@@ -79,14 +80,14 @@ class _WorkoutShareSummaryScreenState
     }
 
     if (executionsAsync.hasError || setsAsync.hasError) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.workoutShareSummaryTitle)),
         body: Center(child: Text(l10n.genericError)),
       );
     }
 
     if (!executionsAsync.isLoading && execution == null) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(title: Text(l10n.workoutShareSummaryTitle)),
         body: Center(child: Text(l10n.genericError)),
       );
@@ -128,7 +129,7 @@ class _WorkoutShareSummaryScreenState
     final sets = setsAsync.value ?? _placeholderSets;
     final isLoading = executionsAsync.isLoading || setsAsync.isLoading;
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(title: Text(l10n.workoutShareSummaryTitle)),
       body: SafeArea(
         child: Padding(

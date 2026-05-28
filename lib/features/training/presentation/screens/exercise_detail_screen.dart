@@ -11,6 +11,7 @@ import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
@@ -53,14 +54,14 @@ class ExerciseDetailScreen extends ConsumerWidget {
         .firstOrNull;
 
     if (allExercisesAsync.hasError) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(),
         body: Center(child: Text(l10n.genericError)),
       );
     }
 
     if (!allExercisesAsync.isLoading && exercise == null) {
-      return Scaffold(
+      return AthlosScaffold(
         appBar: AppBar(),
         body: Center(child: Text(l10n.exerciseNotFound)),
       );
@@ -73,7 +74,7 @@ class ExerciseDetailScreen extends ConsumerWidget {
       l10n: l10n,
     );
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         title: Text(displayName),
         actions: [

@@ -9,6 +9,7 @@ import 'dart:math' as math;
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/layout/athlos_scaffold.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../../domain/enums/muscle_group.dart';
@@ -39,7 +40,7 @@ class _VolumeTrendChartScreenState
     final experienceLevel = profileAsync.value?.experienceLevel?.name;
     final target = volumeTargetForLevel(experienceLevel);
 
-    return Scaffold(
+    return AthlosScaffold(
       appBar: AppBar(
         title: Text(l10n.volumeTrendTitle),
         actions: [
