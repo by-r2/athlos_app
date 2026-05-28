@@ -81,7 +81,6 @@ class KleosScreen extends ConsumerWidget {
     final analytics = analyticsAsync.value;
     final finishedTotal = finishedCountAsync.value ??
         (analytics != null ? finishedSessionsFromAnalytics(analytics) : 0);
-    final finishedSessionCount = finishedCountAsync.value ?? finishedTotal;
 
     final thisWeek = thisWeekAsync.value ?? 0;
     final weeklyTarget =
@@ -185,7 +184,6 @@ class KleosScreen extends ConsumerWidget {
             icon: Icons.local_fire_department_outlined,
             child: KleosConsistencyPanel(
               profile: profile,
-              finishedSessionCount: finishedSessionCount,
               thisWeekCount: thisWeek,
               weeklyTarget: weeklyTarget,
               consistency: consistency,

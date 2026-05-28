@@ -2828,6 +2828,10 @@
     "description": "Total finished training sessions in history",
     "placeholders": { "count": { "type": "int" } }
   },
+  "dashboardFinishedSessionsCompletedLabel": "concluídas",
+  "@dashboardFinishedSessionsCompletedLabel": {
+    "description": "Suffix label under the finished sessions count on the dashboard pill"
+  },
   "dashboardFinishedSessionsTooltip": "Total de sessões de treino concluídas no teu histórico.",
   "@dashboardFinishedSessionsTooltip": {
     "description": "Tooltip explaining the finished sessions count metric"

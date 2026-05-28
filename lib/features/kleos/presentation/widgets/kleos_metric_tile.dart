@@ -49,7 +49,17 @@ class KleosMetricTile extends StatelessWidget {
                     color: iconColor ?? colorScheme.primary,
                   ),
                 ),
-                const Spacer(),
+                const Gap(AthlosSpacing.xs),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             const Gap(AthlosSpacing.sm),
@@ -58,13 +68,6 @@ class KleosMetricTile extends StatelessWidget {
               style: textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 height: 1.1,
-              ),
-            ),
-            const Gap(AthlosSpacing.xxs),
-            Text(
-              label,
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
               ),
             ),
             if (footer != null) ...[

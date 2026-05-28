@@ -12,7 +12,6 @@ class KleosConsistencyPanel extends StatelessWidget {
   const KleosConsistencyPanel({
     super.key,
     required this.profile,
-    required this.finishedSessionCount,
     required this.thisWeekCount,
     required this.weeklyTarget,
     required this.consistency,
@@ -20,7 +19,6 @@ class KleosConsistencyPanel extends StatelessWidget {
   });
 
   final UserProfile profile;
-  final int finishedSessionCount;
   final int thisWeekCount;
   final int weeklyTarget;
   final ConsistencyStatus consistency;
@@ -34,43 +32,20 @@ class KleosConsistencyPanel extends StatelessWidget {
     final bestFreq = profile.bestFrequencyStreak;
     final dotCount =
         thisWeekCount > weeklyTarget ? thisWeekCount : weeklyTarget;
-    final hasSessions = finishedSessionCount > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _StreakCard(
-                  icon: Icons.fitness_center_outlined,
-                  iconColor: hasSessions
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                  title: l10n.dashboardFinishedSessionsTitle,
-                  value: l10n.dashboardFinishedSessionsCount(
-                    finishedSessionCount,
-                  ),
-                ),
-              ),
-              const Gap(AthlosSpacing.sm),
-              Expanded(
-                child: _StreakCard(
-                  icon: Icons.local_fire_department_outlined,
-                  iconColor: consistency.isCurrentWeekSecured
-                      ? colorScheme.error
-                      : colorScheme.tertiary,
-                  title: l10n.dashboardFrequencyTitle,
-                  value: l10n.dashboardConsistencyStreak(freq),
-                  subtitle: bestFreq > 0
-                      ? l10n.dashboardStreakBestFrequency(bestFreq)
-                      : null,
-                ),
-              ),
-            ],
-          ),
+        _StreakCard(
+          icon: Icons.local_fire_department_outlined,
+          iconColor: consistency.isCurrentWeekSecured
+              ? colorScheme.error
+              : colorScheme.tertiary,
+          title: l10n.dashboardFrequencyTitle,
+          value: l10n.dashboardConsistencyStreak(freq),
+          subtitle: bestFreq > 0
+              ? l10n.dashboardStreakBestFrequency(bestFreq)
+              : null,
         ),
         const Gap(AthlosSpacing.sm),
         Card(
@@ -193,22 +168,30 @@ class _StreakCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(AthlosSpacing.xs),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: AthlosRadius.smAll,
-              ),
-              child: Icon(icon, size: 18, color: iconColor),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AthlosSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.12),
+                    borderRadius: AthlosRadius.smAll,
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const Gap(AthlosSpacing.xs),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
             const Gap(AthlosSpacing.sm),
-            Text(
-              title,
-              style: textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const Gap(AthlosSpacing.xxs),
             Text(
               value,
               style: textTheme.titleMedium?.copyWith(

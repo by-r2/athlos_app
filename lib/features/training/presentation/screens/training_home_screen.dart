@@ -52,8 +52,14 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   @override
   void dispose() {
-    _dialogSession.cancelHomePrompt();
+    // Riverpod forbids notifier writes during dispose / tree finalization.
+    final session = _dialogSession;
+    Future.microtask(session.cancelHomePrompt);
     super.dispose();
+  }
+
+  void _deferDialogSessionUpdate(void Function() update) {
+    Future.microtask(update);
   }
 
   void _onDanglingExecutionChanged(AsyncValue<WorkoutExecution?> next) {
@@ -61,7 +67,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     next.when(
       data: (execution) {
         if (execution == null) {
-          _dialogSession.clear();
+          _deferDialogSessionUpdate(_dialogSession.clear);
           return;
         }
         if (!_dialogSession.shouldShowHomePrompt(execution.id)) {
@@ -429,6 +435,16 @@ class _FinishedSessionsPill extends ConsumerWidget {
         ref.watch(finishedSessionCountProvider).value ?? 0;
     final hasSessions = sessionCount > 0;
 
+    final countColor = hasSessions
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
+    final countStyle = textTheme.headlineSmall?.copyWith(
+      fontWeight: FontWeight.w800,
+      height: 1,
+      color: countColor,
+    );
+    final countFontSize = countStyle?.fontSize ?? 24;
+
     return Tooltip(
       message: l10n.dashboardFinishedSessionsTooltip,
       triggerMode: TooltipTriggerMode.tap,
@@ -437,81 +453,67 @@ class _FinishedSessionsPill extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(AthlosSpacing.md),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.fitness_center_outlined,
-                    size: 16,
-                    color: colorScheme.primary,
+                  Container(
+                    padding: const EdgeInsets.all(AthlosSpacing.xs),
+                    decoration: BoxDecoration(
+                      color: countColor.withValues(alpha: 0.12),
+                      borderRadius: AthlosRadius.smAll,
+                    ),
+                    child: Icon(
+                      Icons.fitness_center_outlined,
+                      size: 16,
+                      color: countColor,
+                    ),
                   ),
                   const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.dashboardFinishedSessionsTitle,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      l10n.dashboardFinishedSessionsTitle,
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const Gap(AthlosSpacing.sm),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 20,
-                    color: hasSessions
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                  const Gap(AthlosSpacing.xs),
-                  Expanded(
-                    child: _DashboardPillValueText(
-                      l10n.dashboardFinishedSessionsCount(sessionCount),
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: Center(
+                  child: sessionCount >= 1000
+                      ? SizedBox(
+                          height: countFontSize * 1.15,
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '$sessionCount',
+                              style: countStyle,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          '$sessionCount',
+                          style: countStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                ),
+              ),
+              Text(
+                l10n.dashboardFinishedSessionsCompletedLabel,
+                textAlign: TextAlign.center,
+                style: textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Value line in dashboard stat pills: wraps on up to two lines and scales
-/// down when the label is long or the count is large.
-class _DashboardPillValueText extends StatelessWidget {
-  final String text;
-  final TextStyle? style;
-
-  const _DashboardPillValueText(this.text, {this.style});
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: constraints.maxWidth,
-            child: Text(
-              text,
-              style: style,
-              maxLines: 2,
-              softWrap: true,
-            ),
-          ),
-        );
-      },
     );
   }
 }
