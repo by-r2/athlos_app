@@ -8,13 +8,14 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../helpers/workout_share_image.dart';
 import '../providers/exercise_notifier.dart';
+import '../providers/execution_session_context.dart';
 import '../providers/workout_execution_notifier.dart';
-import '../providers/workout_notifier.dart';
 import '../widgets/workout_execution_share_summary.dart';
 
 class WorkoutShareSummaryScreen extends ConsumerStatefulWidget {
@@ -91,24 +92,30 @@ class _WorkoutShareSummaryScreenState
       );
     }
 
-    final workoutTitle = execution != null
-        ? ref.watch(workoutByIdProvider(execution.workoutId)).value?.name ??
-              l10n.unknownWorkout
-        : l10n.unknownWorkout;
-
-    final exercisesAsync = ref.watch(exerciseListProvider);
-    final exerciseById =
-        exercisesAsync.hasValue && (exercisesAsync.value?.isNotEmpty ?? false)
-        ? {for (final e in exercisesAsync.value!) e.id: e}
+    final sessionContextAsync = execution != null
+        ? ref.watch(executionSessionContextProvider(execution))
         : null;
+    final sessionContext = sessionContextAsync?.value;
+    final workoutTitle = sessionContext?.resolveWorkoutName(l10n) ??
+        l10n.unknownWorkout;
 
-    final exerciseConfigAsync = execution != null
-        ? ref.watch(executionExerciseConfigProvider(execution))
-        : null;
+    final exerciseById = <String, Exercise>{
+      for (final e in ref.watch(exerciseListProvider).value ?? const <Exercise>[])
+        e.id: e,
+    };
+    final setsForIds = setsAsync.value ?? _placeholderSets;
+    if (sessionContext != null) {
+      for (final exId in setsForIds.map((s) => s.exerciseId).toSet()) {
+        final resolved = sessionContext.catalogExerciseFor(exId);
+        if (resolved != null) exerciseById[exId] = resolved;
+      }
+    }
+
     final workoutExerciseByExerciseId = <String, WorkoutExercise>{};
-    if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
-      for (final we in wes) {
-        workoutExerciseByExerciseId[we.exerciseId] = we;
+    if (sessionContext != null) {
+      for (final exId in setsForIds.map((s) => s.exerciseId).toSet()) {
+        final we = sessionContext.workoutExerciseFor(exId);
+        if (we != null) workoutExerciseByExerciseId[exId] = we;
       }
     }
 
@@ -138,7 +145,7 @@ class _WorkoutShareSummaryScreenState
                       execution: exec,
                       sets: sets,
                       workoutName: workoutTitle,
-                      exerciseById: exerciseById,
+                      exerciseById: exerciseById.isEmpty ? null : exerciseById,
                       workoutExerciseByExerciseId:
                           workoutExerciseByExerciseId.isEmpty
                           ? null

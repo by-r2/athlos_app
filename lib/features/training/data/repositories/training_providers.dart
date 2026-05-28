@@ -10,6 +10,7 @@ import '../../domain/repositories/progression_rule_repository.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/repositories/workout_repository.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
+import '../../domain/usecases/finish_workout_execution.dart';
 import '../training_dao_providers.dart';
 import 'cycle_repository_impl.dart';
 import 'exercise_repository_impl.dart';
@@ -74,3 +75,12 @@ ProgressionRuleRepository progressionRuleRepository(Ref ref) =>
 @riverpod
 CompleteSetUseCase completeSetUseCase(Ref ref) =>
     CompleteSetUseCase(ref.watch(workoutExecutionRepositoryProvider));
+
+@riverpod
+FinishWorkoutExecution finishWorkoutExecution(Ref ref) =>
+    FinishWorkoutExecution(
+      ref.watch(workoutExecutionRepositoryProvider),
+      ref.watch(workoutRepositoryProvider),
+      ref.watch(programRepositoryProvider),
+      ref.watch(exerciseRepositoryProvider),
+    );

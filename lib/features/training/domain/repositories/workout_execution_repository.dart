@@ -1,5 +1,6 @@
 import '../../../../core/errors/result.dart';
 import '../entities/execution_comparison.dart';
+import '../entities/execution_context_fallback.dart';
 import '../entities/execution_set.dart';
 import '../entities/execution_set_segment.dart';
 import '../entities/workout_execution.dart';
@@ -36,6 +37,14 @@ abstract interface class WorkoutExecutionRepository {
   /// Deletes executions referencing workouts that no longer exist.
   Future<Result<void>> deleteOrphaned();
   Future<Result<void>> finish(String executionId);
+
+  /// Marks [executionId] finished and stores history fallback snapshots.
+  Future<Result<void>> finishWithSnapshot({
+    required String executionId,
+    required String workoutNameSnapshot,
+    String? programNameSnapshot,
+    required ExecutionContextFallback contextFallback,
+  });
   Future<Result<void>> delete(String id);
   Future<Result<List<ExecutionSet>>> getSets(String executionId);
   Future<Result<String>> logSet(ExecutionSet set);

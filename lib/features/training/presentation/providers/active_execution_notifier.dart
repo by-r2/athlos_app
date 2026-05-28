@@ -18,6 +18,7 @@ import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_type.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
+import '../../domain/usecases/finish_workout_execution.dart';
 import 'active_execution_state.dart';
 export 'active_execution_state.dart';
 import 'program_notifier.dart';
@@ -50,7 +51,6 @@ class ActiveExecution extends _$ActiveExecution {
 
   /// Start a new execution, creating the DB record and pre-populating sets
   /// from the workout template. Applies deload and progression adjustments.
-  /// Snapshots the exercise configuration as JSON for robust history.
   Future<void> startExecution(
     String workoutId,
     List<WorkoutExercise> exercises, {
@@ -544,8 +544,16 @@ class ActiveExecution extends _$ActiveExecution {
 
     state = current.copyWith(isFinishing: true);
 
-    final repo = ref.read(workoutExecutionRepositoryProvider);
-    final result = await repo.finish(current.executionId);
+    final programId = ref.read(activeProgramProvider).value?.id;
+    final finishUseCase = ref.read(finishWorkoutExecutionProvider);
+    final result = await finishUseCase(
+      FinishWorkoutExecutionParams(
+        executionId: current.executionId,
+        workoutId: current.workoutId,
+        programId: programId,
+        templateExercises: current.exercises,
+      ),
+    );
     result.getOrThrow();
 
     state = null;

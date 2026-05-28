@@ -1,6 +1,7 @@
 import 'package:athlos_app/core/errors/app_exception.dart';
 import 'package:athlos_app/core/errors/result.dart';
 import 'package:athlos_app/features/training/domain/entities/execution_comparison.dart';
+import 'package:athlos_app/features/training/domain/entities/execution_context_fallback.dart';
 import 'package:athlos_app/features/training/domain/entities/execution_set.dart';
 import 'package:athlos_app/features/training/domain/entities/execution_set_segment.dart';
 import 'package:athlos_app/features/training/domain/entities/workout_execution.dart';
@@ -209,6 +210,14 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   }) => _unsupported();
   @override
   Future<Result<void>> finish(String executionId) => _unsupported();
+
+  @override
+  Future<Result<void>> finishWithSnapshot({
+    required String executionId,
+    required String workoutNameSnapshot,
+    String? programNameSnapshot,
+    required ExecutionContextFallback contextFallback,
+  }) => _unsupported();
   @override
   Future<Result<void>> delete(String id) => _unsupported();
   @override

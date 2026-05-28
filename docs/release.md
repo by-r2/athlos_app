@@ -133,6 +133,7 @@ int get schemaVersion => 35;
 - **Version 28** isometric exercise flag, reps→duration migration for isometric history, and isometric catalog expansion (seedV7).
 - **Version 29** training streak counters on `user_profiles`.
 - **Version 41** drops cycle streak columns (`current_cycle_streak`, `best_cycle_streak`); session totals are derived from `workout_executions`.
+- **Version 42** execution history fallback on `workout_executions`: `workout_name_snapshot`, `program_name_snapshot`, `context_fallback` (JSON). Filled at finish; backfills names from live `workouts`/`programs` and JSON where template still exists. Pair with `supabase/migrations/20260527130000_execution_context_fallback.sql`.
 - **Version 30** removal of local equipment catalog tables (`equipments`, links); `owned_equipment_names` on profile; exercise canonical renames + merges (see [catalog_exercises.md](./catalog_exercises.md)).
 - **Version 31** `seedExercisesV8` — additive squat variants and variation edges (details in `exercise_seeder.dart`).
 - **Version 32** `seedExercisesV9` — additive catalog rows + variation edges (details in `exercise_seeder.dart`).

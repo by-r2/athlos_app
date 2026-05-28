@@ -315,7 +315,8 @@ class _ExecutionCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final workoutName = workout?.name ?? l10n.unknownWorkout;
+    final workoutName =
+        workout?.name ?? execution.workoutNameSnapshot ?? l10n.unknownWorkout;
     final dateStr = _formatDate(execution.startedAt, context);
     final durationStr = formatWorkoutTotalDuration(execution.duration, l10n);
 

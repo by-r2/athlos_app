@@ -16,13 +16,12 @@ import '../../domain/entities/workout_execution.dart';
 import '../../domain/helpers/training_metrics.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../helpers/duration_format.dart';
-import '../helpers/exercise_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../helpers/workout_share_image.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/training_metrics_provider.dart';
+import '../providers/execution_session_context.dart';
 import '../providers/workout_execution_notifier.dart';
-import '../providers/workout_notifier.dart';
 import '../widgets/workout_execution_share_summary.dart';
 
 final _placeholderExecution = WorkoutExecution(
@@ -86,20 +85,19 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
       );
     }
 
-    final workoutAsync = execution != null
-        ? ref.watch(workoutByIdProvider(execution.workoutId))
+    final sessionContextAsync = execution != null
+        ? ref.watch(executionSessionContextProvider(execution))
         : null;
-    final workoutName = workoutAsync?.value?.name ?? l10n.unknownWorkout;
+    final sessionContext = sessionContextAsync?.value;
+    final workoutName =
+        sessionContext?.resolveWorkoutName(l10n) ?? l10n.unknownWorkout;
 
-    final exerciseConfigAsync = execution != null
-        ? ref.watch(executionExerciseConfigProvider(execution))
-        : null;
-    final unilateralMap = <String, bool>{};
     final workoutExerciseByExerciseId = <String, WorkoutExercise>{};
-    if (exerciseConfigAsync?.value case final List<WorkoutExercise> wes) {
-      for (final we in wes) {
-        unilateralMap[we.exerciseId] = we.isUnilateral;
-        workoutExerciseByExerciseId[we.exerciseId] = we;
+    if (sessionContext != null) {
+      for (final exId in setsAsync.value?.map((s) => s.exerciseId).toSet() ??
+          const <String>{}) {
+        final we = sessionContext.workoutExerciseFor(exId);
+        if (we != null) workoutExerciseByExerciseId[exId] = we;
       }
     }
 
@@ -112,9 +110,17 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
 
     final sets = setsAsync.value ?? _placeholderSets;
 
+    final exerciseByIdMerged = <String, Exercise>{
+      for (final e in exercisesAsync.value ?? const <Exercise>[]) e.id: e,
+    };
+    if (sessionContext != null) {
+      for (final exId in sets.map((s) => s.exerciseId).toSet()) {
+        final resolved = sessionContext.catalogExerciseFor(exId);
+        if (resolved != null) exerciseByIdMerged[exId] = resolved;
+      }
+    }
+
     final prSetIdsPerExercise = <String, Set<String>>{};
-    final allExercises = exercisesAsync.value ?? <Exercise>[];
-    final exerciseMapLocal = {for (final e in allExercises) e.id: e};
     final profileWeight = ref.watch(latestBodyWeightProvider).value;
     final historicProfileWeight = execution != null
         ? ref.watch(profileBodyWeightAtProvider(execution.startedAt)).value
@@ -122,7 +128,8 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
     for (final exId in sets.map((s) => s.exerciseId).toSet()) {
       final pr = ref.watch(exercisePRProvider(exId)).value;
       if (pr == null) continue;
-      final ex = exerciseMapLocal[exId];
+      final ex = sessionContext?.catalogExerciseFor(exId) ??
+          exercisesAsync.value?.where((e) => e.id == exId).firstOrNull;
       if (ex == null) continue;
       for (final s in sets.where((s) => s.exerciseId == exId)) {
         if (!s.isCompleted) continue;
@@ -193,7 +200,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
                 execution: execution ?? _placeholderExecution,
                 sets: sets,
                 workoutName: workoutName,
-                exerciseById: exercisesAsync.hasValue ? exerciseMapLocal : null,
+                exerciseById: exerciseByIdMerged.isEmpty ? null : exerciseByIdMerged,
                 workoutExerciseByExerciseId: workoutExerciseByExerciseId.isEmpty
                     ? null
                     : workoutExerciseByExerciseId,
@@ -203,8 +210,7 @@ class _ExecutionDetailScreenState extends ConsumerState<ExecutionDetailScreen> {
               _ExecutionDetailBody(
                 execution: execution ?? _placeholderExecution,
                 sets: sets,
-                exercisesAsync: exercisesAsync,
-                unilateralMap: unilateralMap,
+                sessionContext: sessionContext,
                 workoutExerciseByExerciseId: workoutExerciseByExerciseId,
                 profileBodyWeightOnExecutionDate: historicProfileWeight,
                 latestBodyWeight: profileWeight,
@@ -289,8 +295,7 @@ class _ExecutionShareSummaryTabState extends State<_ExecutionShareSummaryTab> {
 class _ExecutionDetailBody extends StatelessWidget {
   final WorkoutExecution execution;
   final List<ExecutionSet> sets;
-  final AsyncValue<List<Exercise>> exercisesAsync;
-  final Map<String, bool> unilateralMap;
+  final ExecutionSessionContext? sessionContext;
   final Map<String, WorkoutExercise> workoutExerciseByExerciseId;
   final double? profileBodyWeightOnExecutionDate;
   final double? latestBodyWeight;
@@ -302,8 +307,7 @@ class _ExecutionDetailBody extends StatelessWidget {
   const _ExecutionDetailBody({
     required this.execution,
     required this.sets,
-    required this.exercisesAsync,
-    required this.unilateralMap,
+    this.sessionContext,
     required this.workoutExerciseByExerciseId,
     this.profileBodyWeightOnExecutionDate,
     this.latestBodyWeight,
@@ -315,9 +319,12 @@ class _ExecutionDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allExercises = exercisesAsync.value ?? <Exercise>[];
-    final exerciseMap = {for (final e in allExercises) e.id: e};
     final exerciseIds = sets.map((s) => s.exerciseId).toSet().toList();
+    final exerciseMap = <String, Exercise>{
+      for (final exId in exerciseIds)
+        if (sessionContext?.catalogExerciseFor(exId) case final Exercise ex)
+          exId: ex,
+    };
 
     final totalVolume = computeTotalVolume(
       sets,
@@ -419,24 +426,18 @@ class _ExecutionDetailBody extends StatelessWidget {
         // Per-exercise breakdown
         ...exerciseIds.map((exId) {
           final exerciseSets = sets.where((s) => s.exerciseId == exId).toList();
-          final ex = exerciseMap[exId];
-          final name = ex != null
-              ? localizedExerciseName(
-                  ex.name,
-                  isVerified: ex.isVerified,
-                  l10n: l10n,
-                )
-              : l10n.unknownExerciseId(exId);
-          final group = ex != null
-              ? localizedMuscleGroupName(ex.muscleGroup, l10n)
-              : '';
+          final name = sessionContext?.exerciseDisplayName(exId, l10n) ??
+              l10n.unknownExerciseId(exId);
+          final group =
+              sessionContext?.muscleGroupLabel(exId, l10n) ?? '';
 
           final prSetIds = prSetIdsPerExercise[exId] ?? {};
 
           final wasUnilateral =
               exerciseSets.any((s) => s.isUnilateral == true) ||
               (exerciseSets.every((s) => s.isUnilateral == null) &&
-                  (unilateralMap[exId] ?? false));
+                  (sessionContext?.isUnilateralForExercise(exId) ?? false));
+          final ex = sessionContext?.catalogExerciseFor(exId);
 
           return SliverToBoxAdapter(
             child: Padding(
@@ -445,7 +446,8 @@ class _ExecutionDetailBody extends StatelessWidget {
                 exerciseName: name,
                 muscleGroup: group,
                 isUnilateral: wasUnilateral,
-                isIsometric: ex?.isIsometric ?? false,
+                isIsometric:
+                    ex?.isIsometric ?? sessionContext?.isExerciseIsometric(exId) ?? false,
                 sets: exerciseSets,
                 workoutExercise: workoutExerciseByExerciseId[exId],
                 prSetIds: prSetIds,

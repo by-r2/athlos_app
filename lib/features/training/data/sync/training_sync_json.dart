@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../domain/entities/execution_context_fallback.dart';
 import '../../domain/enums/exercise_type.dart';
 import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/movement_pattern.dart';
@@ -234,6 +237,9 @@ Map<String, dynamic> workoutExecutionToJson(WorkoutExecution row) =>
       'program_id': row.programId,
       'started_at': row.startedAt.toUtc().toIso8601String(),
       'finished_at': isoOrNull(row.finishedAt),
+      'workout_name_snapshot': row.workoutNameSnapshot,
+      'program_name_snapshot': row.programNameSnapshot,
+      'context_fallback': row.contextFallback?.toJson(),
       'updated_at': row.updatedAt.toUtc().toIso8601String(),
       'deleted_at': isoOrNull(row.deletedAt),
     };
@@ -246,10 +252,32 @@ WorkoutExecutionsCompanion workoutExecutionFromJson(Map<String, dynamic> json) =
       programId: Value(json['program_id'] as String),
       startedAt: Value(parseUtcDateTime(json['started_at']) ?? _utcNow()),
       finishedAt: Value(parseUtcDateTime(json['finished_at'])),
+      workoutNameSnapshot: Value(json['workout_name_snapshot'] as String?),
+      programNameSnapshot: Value(json['program_name_snapshot'] as String?),
+      contextFallback: Value(_contextFallbackFromJson(json['context_fallback'])),
       updatedAt: Value(parseUtcDateTime(json['updated_at']) ?? _utcNow()),
       deletedAt: Value(parseUtcDateTime(json['deleted_at'])),
       isDirty: const Value(false),
     );
+
+ExecutionContextFallback? _contextFallbackFromJson(Object? raw) {
+  if (raw == null) return null;
+  if (raw is String && raw.isEmpty) return null;
+  if (raw is String) {
+    return ExecutionContextFallback.fromJson(
+      jsonDecode(raw) as Map<String, dynamic>,
+    );
+  }
+  if (raw is Map<String, dynamic>) {
+    return ExecutionContextFallback.fromJson(raw);
+  }
+  if (raw is Map) {
+    return ExecutionContextFallback.fromJson(
+      raw.map((k, v) => MapEntry(k.toString(), v)),
+    );
+  }
+  return null;
+}
 
 Map<String, dynamic> executionSetToJson(ExecutionSet row) => <String, dynamic>{
   'id': row.id,

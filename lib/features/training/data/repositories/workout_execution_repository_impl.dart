@@ -5,6 +5,7 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/utils/uuid.dart';
 import '../../domain/entities/execution_comparison.dart';
+import '../../domain/entities/execution_context_fallback.dart';
 import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../domain/entities/execution_set.dart' as domain;
 import '../../domain/entities/execution_set_segment.dart' as domain;
@@ -269,6 +270,28 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<void>> finishWithSnapshot({
+    required String executionId,
+    required String workoutNameSnapshot,
+    String? programNameSnapshot,
+    required ExecutionContextFallback contextFallback,
+  }) async {
+    try {
+      await _dao.finishWithSnapshot(
+        executionId,
+        workoutNameSnapshot: workoutNameSnapshot,
+        programNameSnapshot: programNameSnapshot,
+        contextFallback: contextFallback,
+      );
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(
+        DatabaseException('Failed to finish execution with snapshot: $e'),
+      );
+    }
+  }
+
+  @override
   Future<Result<void>> delete(String id) async {
     try {
       await _dao.deleteById(id);
@@ -458,6 +481,9 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         programId: row.programId,
         startedAt: row.startedAt,
         finishedAt: row.finishedAt,
+        workoutNameSnapshot: row.workoutNameSnapshot,
+        programNameSnapshot: row.programNameSnapshot,
+        contextFallback: row.contextFallback,
       );
 
   domain.ExecutionSet _setToDomain(ExecutionSet row) => domain.ExecutionSet(

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../../../core/database/app_database.dart';
+import '../../../domain/entities/execution_context_fallback.dart';
 import '../tables/execution_set_segments_table.dart';
 import '../tables/execution_sets_table.dart';
 import '../tables/workout_executions_table.dart';
@@ -97,6 +98,25 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
       WorkoutExecutionsCompanion(finishedAt: Value(DateTime.now())),
     );
     await _markExecutionDirty(id);
+  }
+
+  Future<void> finishWithSnapshot(
+    String id, {
+    required String workoutNameSnapshot,
+    String? programNameSnapshot,
+    required ExecutionContextFallback contextFallback,
+  }) async {
+    await transaction(() async {
+      await (update(workoutExecutions)..where((e) => e.id.equals(id))).write(
+        WorkoutExecutionsCompanion(
+          finishedAt: Value(DateTime.now()),
+          workoutNameSnapshot: Value(workoutNameSnapshot),
+          programNameSnapshot: Value(programNameSnapshot),
+          contextFallback: Value(contextFallback),
+        ),
+      );
+      await _markExecutionDirty(id);
+    });
   }
 
   Future<void> updateExecution(
