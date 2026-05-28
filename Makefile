@@ -55,7 +55,7 @@ help: ## Show organized command list
 
 # Sources .env then $(SUPABASE_ENV_FILE) and runs flutter with dart-defines from the shell env.
 define flutter_run
-	@test -f $(1) || ( \
+	test -f $(1) || ( \
 		echo "ERROR: missing $(1). Copy from .env.example (see Supabase sections)."; \
 		exit 1); \
 	set -a && \
@@ -76,7 +76,7 @@ endef
 
 # Release/build: hosted Supabase from .env.prod
 define flutter_build_defines
-	@test -f .env.prod || ( \
+	test -f .env.prod || ( \
 		echo "ERROR: missing .env.prod. Copy from .env.example."; \
 		exit 1); \
 	set -a && \
@@ -89,19 +89,19 @@ endef
 ## Run
 run-ios: ## iOS simulator — Supabase local (.env.local); SUPABASE_ENV=prod uses .env.prod
 	@xcrun simctl boot "$(IOS_SIM_TARGET)" 2>/dev/null || true
-	$(call flutter_run,$(if $(filter prod,$(SUPABASE_ENV)),$(SUPABASE_ENV_FILE_prod),$(SUPABASE_ENV_FILE_local)),-d "$(IOS_SIM_TARGET)",)
+	@$(call flutter_run,$(if $(filter prod,$(SUPABASE_ENV)),$(SUPABASE_ENV_FILE_prod),$(SUPABASE_ENV_FILE_local)),-d "$(IOS_SIM_TARGET)",)
 
 run-ios-device: ## Physical iPhone (profile) — Supabase prod (.env.prod)
 	@set -a && [ -f .env ] && . ./.env; set +a; \
 	if [ -z "$$IOS_DEVICE_UDID" ]; then \
 		echo "ERROR: set IOS_DEVICE_UDID=<your_device_udid> in .env"; \
 		exit 1; \
-	fi; \
-	$(call flutter_run,$(SUPABASE_ENV_FILE_prod),--profile -d "$$IOS_DEVICE_UDID",--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) --dart-define=ENV=prod)
+	fi
+	@$(call flutter_run,$(SUPABASE_ENV_FILE_prod),--profile -d "$$IOS_DEVICE_UDID",--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE) --dart-define=ENV=prod)
 
 run-android: ## Android emulator — Supabase local (.env.local)
 	@flutter emulators --launch "$(ANDROID_EMULATOR)" 2>/dev/null || true
-	$(call flutter_run,$(SUPABASE_ENV_FILE_local),-d "$(ANDROID_DEVICE)",)
+	@$(call flutter_run,$(SUPABASE_ENV_FILE_local),-d "$(ANDROID_DEVICE)",)
 
 ## Devices
 ios-sim-open: ## Open iOS Simulator app
@@ -119,7 +119,7 @@ android-emu-list: ## List available Android emulators
 
 ## Build
 build-apk: ## Build Android APK release (Supabase from .env.prod)
-	@$(call flutter_build_defines); \
+	@$(call flutter_build_defines) \
 	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
 	flutter build apk --release \
 		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
@@ -129,7 +129,7 @@ build-apk: ## Build Android APK release (Supabase from .env.prod)
 		--dart-define=CHIRON_DEBUG_TRACE=$(CHIRON_DEBUG_TRACE)
 
 build-aab: ## Build Android App Bundle release (.env.prod)
-	@$(call flutter_build_defines); \
+	@$(call flutter_build_defines) \
 	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
 	flutter build appbundle --release \
 		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \
@@ -138,7 +138,7 @@ build-aab: ## Build Android App Bundle release (.env.prod)
 		--dart-define=GEMINI_API_KEY="$$GEMINI_API_KEY"
 
 build-ipa: ## Build iOS IPA release (.env.prod)
-	@$(call flutter_build_defines); \
+	@$(call flutter_build_defines) \
 	set -a && [ -f .env ] && . ./.env; . ./.env.prod; set +a && \
 	flutter build ipa --release --no-codesign \
 		--dart-define=SUPABASE_URL="$$SUPABASE_URL" \

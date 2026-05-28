@@ -338,39 +338,40 @@ class _FrequencyPill extends ConsumerWidget {
                     color: colorScheme.primary,
                   ),
                   const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.dashboardFrequencyTitle,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      l10n.dashboardFrequencyTitle,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
               const Gap(AthlosSpacing.sm),
-              Row(
-                children: [
-                  ...List.generate(dotCount, (i) {
-                    final isFilled = i < thisWeek;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: AthlosSpacing.xxs),
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isFilled
-                              ? colorScheme.primary
-                              : colorScheme.surfaceContainerHighest,
-                        ),
-                      ),
-                    );
-                  }),
-                  const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.dashboardFrequencyProgress(thisWeek, target),
-                    style: textTheme.titleSmall,
-                  ),
-                ],
+              Text(
+                l10n.dashboardFrequencyProgress(thisWeek, target),
+                style: textTheme.titleSmall,
+              ),
+              const Gap(AthlosSpacing.xs),
+              Wrap(
+                spacing: AthlosSpacing.xxs,
+                runSpacing: AthlosSpacing.xxs,
+                children: List.generate(dotCount, (i) {
+                  final isFilled = i < thisWeek;
+                  return Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isFilled
+                          ? colorScheme.primary
+                          : colorScheme.surfaceContainerHighest,
+                    ),
+                  );
+                }),
               ),
               const Gap(AthlosSpacing.sm),
               Row(
@@ -383,12 +384,16 @@ class _FrequencyPill extends ConsumerWidget {
                         : colorScheme.onSurfaceVariant,
                   ),
                   const Gap(AthlosSpacing.xxs),
-                  Text(
-                    l10n.dashboardConsistencyStreak(frequencyStreak),
-                    style: textTheme.bodySmall?.copyWith(
-                      color: consistencyStatus.isCurrentWeekSecured
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      l10n.dashboardConsistencyStreak(frequencyStreak),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: consistencyStatus.isCurrentWeekSecured
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -433,6 +438,7 @@ class _FinishedSessionsPill extends ConsumerWidget {
           padding: const EdgeInsets.all(AthlosSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
@@ -442,15 +448,19 @@ class _FinishedSessionsPill extends ConsumerWidget {
                     color: colorScheme.primary,
                   ),
                   const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.dashboardFinishedSessionsTitle,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      l10n.dashboardFinishedSessionsTitle,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
+              const Gap(AthlosSpacing.sm),
               Row(
                 children: [
                   Icon(
@@ -461,10 +471,14 @@ class _FinishedSessionsPill extends ConsumerWidget {
                         : colorScheme.onSurfaceVariant,
                   ),
                   const Gap(AthlosSpacing.xs),
-                  Text(
-                    l10n.dashboardFinishedSessionsCount(sessionCount),
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: AthlosTruncatedText(
+                      l10n.dashboardFinishedSessionsCount(sessionCount),
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      showTooltipOnlyWhenOverflow: false,
                     ),
                   ),
                 ],
