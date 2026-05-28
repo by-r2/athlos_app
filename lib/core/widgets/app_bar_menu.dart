@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/chiron/presentation/widgets/chiron_bottom_sheet.dart';
+import '../../l10n/app_localizations.dart';
 import '../router/route_paths.dart';
 import '../services/gemini_config.dart';
+import '../theme/athlos_bottom_sheet.dart';
 import '../theme/athlos_component_sizes.dart';
 import '../theme/athlos_radius.dart';
 import '../theme/athlos_spacing.dart';
 import '../theme/theme_mode_provider.dart';
-import '../../features/chiron/presentation/widgets/chiron_bottom_sheet.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Global app bar: Chiron (if configured) + **overflow menu as a bottom sheet**.
 ///
@@ -45,64 +46,13 @@ class AppBarMenu extends ConsumerWidget {
 }
 
 void _openAppMenuSheet(BuildContext context) {
-  showModalBottomSheet<void>(
+  showAthlosModalBottomSheet<void>(
     context: context,
-    useSafeArea: true,
-    showDragHandle: false,
-    // Keep the route background transparent so it doesn't "freeze" the
-    // previous theme color while the sheet is open.
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) {
-      final theme = Theme.of(sheetContext);
-      final colorScheme = theme.colorScheme;
-
-      return ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AthlosRadius.lg),
-        ),
-        child: Material(
-          color: colorScheme.surface,
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                _SheetDragHandle(),
-                Gap(AthlosSpacing.xs),
-                _AppMenuSheetBody(),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
+    builder: (sheetContext) => const SizedBox(
+      width: double.infinity,
+      child: _AppMenuSheetBody(),
+    ),
   );
-}
-
-class _SheetDragHandle extends StatelessWidget {
-  const _SheetDragHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: AthlosSpacing.md,
-        bottom: AthlosSpacing.sm,
-      ),
-      child: Center(
-        child: Container(
-          width: 44,
-          height: 4,
-          decoration: BoxDecoration(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _AppMenuSheetBody extends ConsumerWidget {
@@ -142,7 +92,6 @@ class _AppMenuSheetBody extends ConsumerWidget {
           _MenuNavTile(
             icon: Icons.person_outline,
             title: l10n.profile,
-            colorScheme: colorScheme,
             onTap: () {
               Navigator.pop(context);
               router.push(RoutePaths.profile);
@@ -151,7 +100,6 @@ class _AppMenuSheetBody extends ConsumerWidget {
           _MenuNavTile(
             icon: Icons.home_outlined,
             title: l10n.backToHub,
-            colorScheme: colorScheme,
             onTap: () {
               Navigator.pop(context);
               router.go(RoutePaths.hub);
@@ -205,10 +153,7 @@ class _AppMenuSheetBody extends ConsumerWidget {
 
 /// Icon above label so three segments fit narrow widths without wrapping text.
 class _ThemeModeSegmentLabel extends StatelessWidget {
-  const _ThemeModeSegmentLabel({
-    required this.icon,
-    required this.label,
-  });
+  const _ThemeModeSegmentLabel({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -241,23 +186,22 @@ class _MenuNavTile extends StatelessWidget {
   const _MenuNavTile({
     required this.icon,
     required this.title,
-    required this.colorScheme,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final ColorScheme colorScheme;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AthlosSpacing.xs),
       child: Material(
-        color: colorScheme.surfaceContainerHigh,
+        color: colorScheme.bottomSheetContainer,
         borderRadius: AthlosRadius.mdAll,
         clipBehavior: Clip.antiAlias,
         child: InkWell(

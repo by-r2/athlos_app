@@ -69,7 +69,7 @@ class AthlosTheme {
       ),
       scaffoldBackgroundColor: colorScheme.surface,
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.surfaceBright,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(

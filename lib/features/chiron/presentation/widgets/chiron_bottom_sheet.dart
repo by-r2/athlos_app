@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/router/route_paths.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
+import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -18,23 +19,13 @@ import 'chiron_message_bubble.dart';
 /// If [initialMessage] is set, that message is sent automatically when the
 /// sheet opens (e.g. "Monte meu treino" as a shortcut from the workout list).
 void showChironSheet(BuildContext context, {String? initialMessage}) {
-  showModalBottomSheet(
+  showAthlosModalBottomSheet(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) {
-      final colorScheme = Theme.of(sheetContext).colorScheme;
-      return Material(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AthlosRadius.lg),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: _ChironSheet(initialMessage: initialMessage),
-      );
-    },
+    showDragHandle: false,
+    builder: (sheetContext) =>
+        _ChironSheet(initialMessage: initialMessage),
   );
 }
 

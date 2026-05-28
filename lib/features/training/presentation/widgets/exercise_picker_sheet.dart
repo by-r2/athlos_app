@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
+import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -26,22 +27,17 @@ final _placeholderExercises = List.generate(
 ///
 /// Returns the selected [Exercise] or `null` if cancelled.
 Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
-    showModalBottomSheet<Exercise>(
+    showAthlosModalBottomSheet<Exercise>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
+      wrapInShell: false,
       builder: (sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.85,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) => Material(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AthlosRadius.lg),
-          ),
-          clipBehavior: Clip.antiAlias,
+        builder: (context, scrollController) => AthlosBottomSheetShell(
+          expand: true,
           child: _ExercisePickerBody(scrollController: scrollController),
         ),
       ),

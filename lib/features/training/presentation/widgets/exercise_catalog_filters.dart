@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -23,11 +24,9 @@ Future<void> showExerciseCatalogFiltersSheet({
   )
   onApply,
 }) {
-  return showModalBottomSheet<void>(
+  return showAthlosModalBottomSheet<void>(
     context: context,
-    useSafeArea: true,
     isScrollControlled: true,
-    showDragHandle: true,
     builder: (ctx) {
       return _ExerciseCatalogFiltersBody(
         l10n: l10n,

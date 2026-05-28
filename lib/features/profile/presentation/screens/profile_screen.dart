@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' as intl;
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../core/providers/network_connectivity_provider.dart';
 import '../../../../core/router/route_paths.dart';
-import '../../../../core/theme/athlos_custom_colors.dart';
-import '../../../../core/theme/athlos_dialog.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/services/account_data_isolation_service.dart';
+import '../../../../core/services/user_data_sync_coordinator.dart';
+import '../../../../core/sync/sync_issue.dart';
+import '../../../../core/sync/sync_providers.dart';
+import '../../../../core/sync/sync_trigger.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
+import '../../../../core/theme/athlos_custom_colors.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/layout/athlos_initials_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../kleos/presentation/screens/kleos_screen.dart';
+import '../../../training/presentation/providers/training_analytics_provider.dart';
+import '../../domain/entities/body_metric.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/enums/body_aesthetic.dart';
 import '../../domain/enums/experience_level.dart';
@@ -24,22 +34,13 @@ import '../../domain/enums/gender.dart';
 import '../../domain/enums/training_goal.dart';
 import '../../domain/enums/training_style.dart';
 import '../helpers/profile_l10n.dart';
-import '../../domain/entities/body_metric.dart';
 import '../providers/body_metric_notifier.dart';
-import '../../../../core/providers/network_connectivity_provider.dart';
-import '../../../../core/services/account_data_isolation_service.dart';
-import '../../../../core/services/user_data_sync_coordinator.dart';
-import '../../../../core/sync/sync_providers.dart';
-import '../../../../core/sync/sync_trigger.dart';
-import '../../../../core/sync/sync_issue.dart';
 import '../providers/conflict_center_provider.dart';
-import '../providers/sync_issue_center_provider.dart';
 import '../providers/profile_notifier.dart';
+import '../providers/sync_issue_center_provider.dart';
 import '../providers/user_cloud_sync_status_provider.dart';
-import '../widgets/owned_equipment_list.dart';
 import '../widgets/body_metrics_dashboard_card.dart';
-import '../../../kleos/presentation/screens/kleos_screen.dart';
-import '../../../training/presentation/providers/training_analytics_provider.dart';
+import '../widgets/owned_equipment_list.dart';
 import 'profile_overview_edit_screen.dart';
 import 'profile_training_edit_screen.dart';
 
@@ -80,10 +81,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final resolved = profileAsync.value ?? const UserProfile(id: '');
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profile),
-        actions: [const AppBarMenu()],
-      ),
+      appBar: AppBar(title: Text(l10n.profile), actions: [const AppBarMenu()]),
       body: profileAsync.hasError
           ? Center(child: Text(l10n.genericError))
           : Skeletonizer(
@@ -104,8 +102,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final textTheme = theme.textTheme;
 
     final rawName = profile.name?.trim();
-    final displayName =
-        rawName != null && rawName.isNotEmpty ? rawName : l10n.profileHeroNamePlaceholder;
+    final displayName = rawName != null && rawName.isNotEmpty
+        ? rawName
+        : l10n.profileHeroNamePlaceholder;
 
     final latestWeight = ref.watch(latestBodyWeightProvider).value;
     final subtitleParts = <String>[];
@@ -118,8 +117,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final bmi =
         profile.height != null && latestWeight != null && profile.height! > 0
-        ? latestWeight /
-              ((profile.height! / 100.0) * (profile.height! / 100.0))
+        ? latestWeight / ((profile.height! / 100.0) * (profile.height! / 100.0))
         : null;
     final bmiLabel = bmi == null ? l10n.profileNotSet : bmi.toStringAsFixed(1);
 
@@ -293,10 +291,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 error: (_, _) => Center(child: Text(subL10n.genericError)),
-                data: (profile) => body(
-                  profile ?? const UserProfile(id: ''),
-                  subL10n,
-                ),
+                data: (profile) =>
+                    body(profile ?? const UserProfile(id: ''), subL10n),
               ),
             );
           },
@@ -521,7 +517,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authAsync = ref.watch(authProvider);
     final authUser = authAsync.value;
     final isDataLoading =
-        authAsync.isLoading || conflictCenterAsync.isLoading || syncIssuesAsync.isLoading;
+        authAsync.isLoading ||
+        conflictCenterAsync.isLoading ||
+        syncIssuesAsync.isLoading;
 
     return Skeletonizer(
       enabled: isDataLoading,
@@ -728,10 +726,7 @@ class _ProfileMetricChipData {
 
 /// Two metric chips per row, each expanding to half the available width.
 class _ProfileMetricChipGrid extends StatelessWidget {
-  const _ProfileMetricChipGrid({
-    required this.maxWidth,
-    required this.chips,
-  });
+  const _ProfileMetricChipGrid({required this.maxWidth, required this.chips});
 
   static const int _columns = 2;
   static const double _spacing = AthlosSpacing.sm;
@@ -824,10 +819,7 @@ class _ProfileShortcutSpec {
 
 /// Three equal-width shortcut tiles per row with uniform height.
 class _ProfileShortcutGrid extends StatelessWidget {
-  const _ProfileShortcutGrid({
-    required this.maxWidth,
-    required this.shortcuts,
-  });
+  const _ProfileShortcutGrid({required this.maxWidth, required this.shortcuts});
 
   static const int _columns = 3;
   static const double _spacing = AthlosSpacing.sm;
@@ -954,10 +946,7 @@ class _ProfileHubShortcutTile extends StatelessWidget {
 }
 
 class _ProfileStreakSummaryCard extends ConsumerWidget {
-  const _ProfileStreakSummaryCard({
-    required this.profile,
-    required this.l10n,
-  });
+  const _ProfileStreakSummaryCard({required this.profile, required this.l10n});
 
   final UserProfile profile;
   final AppLocalizations l10n;
@@ -1466,14 +1455,17 @@ class _BodyMetricsSection extends ConsumerWidget {
     List<BodyMetric> metrics,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      wrapInShell: false,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.6,
         maxChildSize: 0.9,
-        builder: (ctx, scrollCtrl) => Column(
+        builder: (ctx, scrollCtrl) => AthlosBottomSheetShell(
+          expand: true,
+          child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(AthlosSpacing.md),
@@ -1504,6 +1496,7 @@ class _BodyMetricsSection extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -1568,7 +1561,10 @@ class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
 
   String _formatSyncTimestamp(BuildContext context, DateTime instant) {
     final locale = Localizations.localeOf(context).toString();
-    return intl.DateFormat('dd/MM/yyyy HH:mm', locale).format(instant.toLocal());
+    return intl.DateFormat(
+      'dd/MM/yyyy HH:mm',
+      locale,
+    ).format(instant.toLocal());
   }
 
   @override
@@ -1679,7 +1675,8 @@ class _CloudSyncStatusCardState extends ConsumerState<_CloudSyncStatusCard> {
                       ),
                     if (lastAttempt != null &&
                         lastSuccess != null &&
-                        lastAttempt.difference(lastSuccess).inSeconds.abs() > 2) ...[
+                        lastAttempt.difference(lastSuccess).inSeconds.abs() >
+                            2) ...[
                       const Gap(AthlosSpacing.sm),
                       Text(
                         l10n.profileDataCloudSyncLastAttemptLabel,

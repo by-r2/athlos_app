@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/body_metric_notifier.dart';
 import '../providers/body_metrics_dashboard_provider.dart';
@@ -345,14 +346,17 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
     if (metrics == null || metrics.isEmpty) return;
 
     final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      wrapInShell: false,
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.6,
         maxChildSize: 0.9,
-        builder: (ctx, scrollCtrl) => Column(
+        builder: (ctx, scrollCtrl) => AthlosBottomSheetShell(
+          expand: true,
+          child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(AthlosSpacing.md),
@@ -381,6 +385,7 @@ class BodyMetricsDashboardCard extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

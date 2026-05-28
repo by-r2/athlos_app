@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_button_sizes.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
 import '../../domain/entities/workout.dart';
@@ -172,9 +173,8 @@ class _ActiveProgramCycleViewState
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       builder: (ctx) {
         final descPreview = _workoutNotesFirstLine(workoutDescription);
         return SafeArea(
@@ -244,16 +244,19 @@ class _ActiveProgramCycleViewState
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      wrapInShell: false,
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
         maxChildSize: 0.85,
         expand: false,
-        builder: (ctx, scrollController) => SafeArea(
-          child: Column(
+        builder: (ctx, scrollController) => AthlosBottomSheetShell(
+          expand: true,
+          child: SafeArea(
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
@@ -326,6 +329,7 @@ class _ActiveProgramCycleViewState
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

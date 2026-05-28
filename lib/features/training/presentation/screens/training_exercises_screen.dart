@@ -5,22 +5,23 @@ import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
+import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
-import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
-import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
-import '../../domain/exercise_name_match.dart';
 import '../../domain/enums/exercise_type.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/muscle_region.dart';
 import '../../domain/enums/muscle_role.dart';
 import '../../domain/enums/target_muscle.dart';
+import '../../domain/exercise_name_match.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
 import '../widgets/exercise_catalog_filters.dart';
@@ -282,10 +283,9 @@ class _TrainingExercisesScreenState
   }
 
   void _showAddSheet(BuildContext context, {String initialName = ''}) {
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       builder: (context) => _AddExerciseSheet(initialName: initialName),
     );
   }

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../core/router/route_paths.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
+import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/enums/exercise_type.dart';
@@ -239,10 +239,9 @@ class ExerciseDetailScreen extends ConsumerWidget {
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref, Exercise exercise) {
-    showModalBottomSheet<void>(
+    showAthlosModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       builder: (context) => _EditExerciseSheet(exercise: exercise),
     );
   }

@@ -8,10 +8,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/services/rest_timer_notification_service.dart';
-import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
+import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/feedback/athlos_markdown_notes_card.dart';
@@ -35,8 +36,8 @@ import '../providers/cardio_timer_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/rest_timer_notifier.dart';
-import '../providers/workout_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
+import '../providers/workout_notifier.dart';
 import '../providers/workout_share_summary_gate.dart';
 import '../widgets/ghost_exercise_recovery_panel.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
@@ -169,12 +170,13 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     // catalog, we must stop and offer a recovery path instead of crashing.
     if (execState != null && exerciseCatalogAsync is AsyncData) {
       final allExercises = exerciseCatalogAsync.value ?? const <Exercise>[];
-      final missingExerciseIds = execState.exercises
-          .map((e) => e.exerciseId)
-          .where((id) => !allExercises.any((e) => e.id == id))
-          .toSet()
-          .toList()
-        ..sort();
+      final missingExerciseIds =
+          execState.exercises
+              .map((e) => e.exerciseId)
+              .where((id) => !allExercises.any((e) => e.id == id))
+              .toSet()
+              .toList()
+            ..sort();
 
       if (missingExerciseIds.isNotEmpty) {
         final l10n = AppLocalizations.of(context)!;
@@ -225,7 +227,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               for (final e in allExercises)
                 if (e.isIsometric) e.id,
             };
-            await ref.read(activeExecutionProvider.notifier).resumeExecution(
+            await ref
+                .read(activeExecutionProvider.notifier)
+                .resumeExecution(
                   dangling.id,
                   dangling.workoutId,
                   exercisesAsync.value,
@@ -772,9 +776,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     var pane = _SetOptionsPane.hub;
 
-    await showModalBottomSheet<void>(
+    await showAthlosModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -2337,7 +2340,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     ref.read(cardioTimerProvider.notifier).reset();
     setState(() {
       _currentDuration =
-          currentSetEntry.duration ?? exercise.durationSeconds ?? _currentDuration;
+          currentSetEntry.duration ??
+          exercise.durationSeconds ??
+          _currentDuration;
       _timedSubState = _TimedSubState.finishing;
       _viewMode = _ViewMode.timedSet;
     });

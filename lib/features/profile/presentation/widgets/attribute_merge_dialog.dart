@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 
 import '../../../../core/domain/entities/local_backup_models.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 
@@ -23,10 +24,9 @@ Future<AttributeMergeResult?> showAttributeMergeDialog({
   required String idA,
   required String idB,
 }) {
-  return showModalBottomSheet<AttributeMergeResult>(
+  return showAthlosModalBottomSheet<AttributeMergeResult>(
     context: context,
     isScrollControlled: true,
-    useSafeArea: true,
     builder: (context) => _AttributeMergeSheet(
       entityType: entityType,
       itemA: itemA,

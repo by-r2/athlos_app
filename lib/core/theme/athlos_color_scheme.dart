@@ -27,10 +27,10 @@ class AthlosColorScheme {
     surfaceDim: const Color(0xFFEEEEEE),
     surfaceBright: Colors.white,
     surfaceContainerLowest: const Color(0xFFFAFAFA),
-    surfaceContainerLow: const Color(0xFFFCFCFC),
+    surfaceContainerLow: const Color(0xFFF0F0F0),
     surfaceContainer: Colors.white,
-    surfaceContainerHigh: Colors.white,
-    surfaceContainerHighest: Colors.white,
+    surfaceContainerHigh: const Color(0xFFF5F5F5),
+    surfaceContainerHighest: const Color(0xFFF0F0F0),
   );
 
   static final dark = ColorScheme.fromSeed(

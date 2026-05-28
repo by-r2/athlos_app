@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
@@ -642,9 +643,8 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
     final textTheme = Theme.of(context).textTheme;
     final effective = entry.loadModeOverride ?? entry.exercise.defaultLoadMode;
 
-    await showModalBottomSheet<void>(
+    await showAthlosModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       builder: (sheetContext) {
         return SafeArea(
           child: Padding(
