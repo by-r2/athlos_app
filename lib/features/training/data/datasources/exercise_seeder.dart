@@ -811,6 +811,26 @@ final _seedItems = [
     MuscleGroup.abs,
     muscles: [_p(TargetMuscle.rectusAbdominis), _s(TargetMuscle.obliques)],
   ),
+  _SeedExercise(
+    'reverseCrunch',
+    MuscleGroup.abs,
+    defaultLoadMode: LoadMode.bodyweight,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
+      _s(TargetMuscle.hipFlexors),
+    ],
+  ),
+  _SeedExercise(
+    'stomachVacuum',
+    MuscleGroup.abs,
+    defaultLoadMode: LoadMode.bodyweight,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.obliques),
+    ],
+  ),
 
   // ── Forearms ──
   _SeedExercise(
@@ -1648,10 +1668,14 @@ const _variations = [
   _Variation('gluteBridge', 'gluteKickback'),
   // ── Abs (rectus abdominis) ──
   _Variation('crunch', 'hangingLegRaise'),
+  _Variation('crunch', 'reverseCrunch'),
+  _Variation('reverseCrunch', 'hangingLegRaise'),
   _Variation('crunch', 'abWheelRollout'),
   _Variation('hangingLegRaise', 'abWheelRollout'),
   _Variation('plank', 'abWheelRollout'),
   // ── Abs — isometric (core holds) ──
+  _Variation('stomachVacuum', 'plank'),
+  _Variation('stomachVacuum', 'hollowHold'),
   _Variation('plank', 'sidePlank'),
   _Variation('plank', 'hollowHold'),
   _Variation('sidePlank', 'hollowHold'),
@@ -2165,3 +2189,104 @@ Future<void> seedExercisesV34(AppDatabase db) async {
     );
   }
 }
+
+/// Seeds reverse crunch and stomach vacuum (schema 44).
+Future<void> seedExercisesV44(AppDatabase db) async {
+  final exerciseIds = <String, String>{};
+
+  final existingRows = await db.select(db.exercises).get();
+  for (final row in existingRows) {
+    exerciseIds[row.name] = row.id;
+  }
+
+  for (final item in _v44SeedItems) {
+    if (exerciseIds.containsKey(item.name)) continue;
+
+    final id = catalogExerciseId(item.name);
+    await db
+        .into(db.exercises)
+        .insertOnConflictUpdate(
+          ExercisesCompanion.insert(
+            id: id,
+            name: item.name,
+            muscleGroup: item.muscleGroup,
+            type: Value(item.type),
+            movementPattern: Value(item.movementPattern),
+            isVerified: const Value(true),
+            defaultLoadMode: Value(item.defaultLoadMode),
+            bodyweightLoadFactor: Value(_kBodyweightLoadFactors[item.name]),
+            isIsometric: Value(item.isIsometric),
+            description: const Value.absent(),
+          ),
+        );
+    exerciseIds[item.name] = id;
+
+    for (final focus in item.muscles) {
+      await db
+          .into(db.exerciseTargetMuscles)
+          .insert(
+            ExerciseTargetMusclesCompanion(
+              exerciseId: Value(id),
+              targetMuscle: Value(focus.muscle),
+              muscleRegion: Value(focus.region),
+              role: Value(focus.role),
+            ),
+          );
+    }
+  }
+
+  for (final link in _v44Variations) {
+    final fromId = exerciseIds[link.from];
+    final toId = exerciseIds[link.to];
+    if (fromId != null && toId != null) {
+      await db
+          .into(db.exerciseVariations)
+          .insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(fromId),
+              variationId: Value(toId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+      await db
+          .into(db.exerciseVariations)
+          .insert(
+            ExerciseVariationsCompanion(
+              exerciseId: Value(toId),
+              variationId: Value(fromId),
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+}
+
+final _v44SeedItems = [
+  _SeedExercise(
+    'reverseCrunch',
+    MuscleGroup.abs,
+    defaultLoadMode: LoadMode.bodyweight,
+    movementPattern: MovementPattern.isolation,
+    muscles: [
+      _p(TargetMuscle.rectusAbdominis, MuscleRegion.lower),
+      _s(TargetMuscle.hipFlexors),
+    ],
+  ),
+  _SeedExercise(
+    'stomachVacuum',
+    MuscleGroup.abs,
+    defaultLoadMode: LoadMode.bodyweight,
+    isIsometric: true,
+    muscles: [
+      _p(TargetMuscle.transverseAbdominis),
+      _s(TargetMuscle.obliques),
+    ],
+  ),
+];
+
+const _v44Variations = [
+  _Variation('crunch', 'reverseCrunch'),
+  _Variation('reverseCrunch', 'hangingLegRaise'),
+  _Variation('stomachVacuum', 'plank'),
+  _Variation('stomachVacuum', 'hollowHold'),
+];

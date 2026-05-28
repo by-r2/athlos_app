@@ -57,6 +57,8 @@ Map<String, String> exerciseCanonicalToDisplayMap(AppLocalizations l10n) => {
   'standingCalfRaise': l10n.exerciseStandingCalfRaise,
   'seatedCalfRaise': l10n.exerciseSeatedCalfRaise,
   'crunch': l10n.exerciseCrunch,
+  'reverseCrunch': l10n.exerciseReverseCrunch,
+  'stomachVacuum': l10n.exerciseStomachVacuum,
   'plank': l10n.exercisePlank,
   'hangingLegRaise': l10n.exerciseHangingLegRaise,
   'abWheelRollout': l10n.exerciseAbWheelRollout,
