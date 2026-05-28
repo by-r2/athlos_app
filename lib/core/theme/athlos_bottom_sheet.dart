@@ -5,12 +5,11 @@ import 'athlos_spacing.dart';
 
 /// Semantic bottom-sheet surfaces — elevated above [ColorScheme.surface] scaffold.
 extension AthlosBottomSheetColors on ColorScheme {
-  /// Light: [surfaceBright] (white) on gray scaffold.
-  /// Dark: [surfaceBright] (#2A2A2A) on near-black scaffold.
+  /// Light: white sheet on [#E0E0E0] scaffold.
+  /// Dark: [#2A2A2A] sheet on near-black scaffold.
   Color get bottomSheet => surfaceBright;
 
-  /// Cards / tappable rows on [bottomSheet] — must contrast with [bottomSheet],
-  /// not with [surface] (e.g. [surfaceContainerHigh] blends on [surfaceBright]).
+  /// Nested blocks on [bottomSheet] — subtle contrast vs the sheet surface.
   Color get bottomSheetContainer => brightness == Brightness.light
       ? surfaceContainerLow
       : surfaceContainer;
@@ -93,12 +92,15 @@ class AthlosBottomSheetShell extends StatelessWidget {
 /// open do not freeze the previous [ColorScheme.surface]. Content is wrapped in
 /// [AthlosBottomSheetShell] unless [wrapInShell] is false (e.g. outer
 /// [DraggableScrollableSheet] — put the shell inside its builder instead).
+///
+/// [useRootNavigator] defaults to true so sheets paint above module shells that
+/// use [Scaffold.bottomNavigationBar] (e.g. training tabs).
 Future<T?> showAthlosModalBottomSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = false,
   bool useSafeArea = true,
-  bool useRootNavigator = false,
+  bool useRootNavigator = true,
   bool showDragHandle = true,
   bool wrapInShell = true,
 }) {

@@ -220,6 +220,80 @@ class _ProgramHeader extends ConsumerWidget {
   }
 }
 
+// ── Settings section card ─────────────────────────────────────────────
+
+class _ProgramSettingsSectionCard extends StatelessWidget {
+  const _ProgramSettingsSectionCard({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AthlosSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: AthlosRadius.mdAll,
+                  ),
+                  child: Icon(icon, color: colorScheme.primary, size: 26),
+                ),
+                const Gap(AthlosSpacing.smd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const Gap(AthlosSpacing.xs),
+                        Text(
+                          subtitle!,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (child != null) ...[
+              const Gap(AthlosSpacing.md),
+              child!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Progression Section ──────────────────────────────────────────────
 
 class _ProgressionSection extends ConsumerStatefulWidget {
@@ -261,74 +335,73 @@ class _ProgressionSectionState extends ConsumerState<_ProgressionSection> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final exercises = ref.watch(exerciseListProvider).value ?? [];
 
     final rules = _rules ?? [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.progressionSectionTitle,
-          style: textTheme.titleSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const Gap(AthlosSpacing.xs),
-        if (rules.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.progressionEmptyHint,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ...rules.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final rule = entry.value;
-          final exerciseName =
-              exercises
-                  .where((e) => e.id == rule.exerciseId)
-                  .map(
-                    (e) => localizedExerciseName(
-                      e.name,
-                      isVerified: e.isVerified,
-                      l10n: l10n,
+    Widget? rulesList;
+    if (rules.isNotEmpty) {
+      rulesList = Material(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AthlosRadius.mdAll,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var i = 0; i < rules.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              Builder(
+                builder: (context) {
+                  final rule = rules[i];
+                  final exerciseName =
+                      exercises
+                          .where((e) => e.id == rule.exerciseId)
+                          .map(
+                            (e) => localizedExerciseName(
+                              e.name,
+                              isVerified: e.isVerified,
+                              l10n: l10n,
+                            ),
+                          )
+                          .firstOrNull ??
+                      '#${rule.exerciseId}';
+                  final typeLabel = switch (rule.type) {
+                    ProgressionType.incrementWeight =>
+                      l10n.progressionTypeIncrementWeight,
+                    ProgressionType.incrementReps =>
+                      l10n.progressionTypeIncrementReps,
+                    ProgressionType.incrementSets =>
+                      l10n.progressionTypeIncrementSets,
+                  };
+                  final unit = switch (rule.type) {
+                    ProgressionType.incrementWeight => 'kg',
+                    ProgressionType.incrementReps => 'reps',
+                    ProgressionType.incrementSets => 'sets',
+                  };
+                  return ListTile(
+                    key: ValueKey('prog-$i-${rule.exerciseId}'),
+                    minTileHeight: AthlosComponentSizes.listItemMinHeight,
+                    title: Text(exerciseName),
+                    subtitle: Text(
+                      '$typeLabel: +${rule.value % 1 == 0 ? rule.value.toInt() : rule.value} $unit',
                     ),
-                  )
-                  .firstOrNull ??
-              '#${rule.exerciseId}';
-          final typeLabel = switch (rule.type) {
-            ProgressionType.incrementWeight =>
-              l10n.progressionTypeIncrementWeight,
-            ProgressionType.incrementReps => l10n.progressionTypeIncrementReps,
-            ProgressionType.incrementSets => l10n.progressionTypeIncrementSets,
-          };
-          final unit = switch (rule.type) {
-            ProgressionType.incrementWeight => 'kg',
-            ProgressionType.incrementReps => 'reps',
-            ProgressionType.incrementSets => 'sets',
-          };
-          return Card(
-            key: ValueKey('prog-$idx-${rule.exerciseId}'),
-            margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),
-            child: ListTile(
-              minTileHeight: AthlosComponentSizes.listItemMinHeight,
-              title: Text(exerciseName),
-              subtitle: Text(
-                '$typeLabel: +${rule.value % 1 == 0 ? rule.value.toInt() : rule.value} $unit',
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => _removeRuleAt(i),
+                    ),
+                  );
+                },
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => _removeRuleAt(idx),
-              ),
-            ),
-          );
-        }),
-      ],
+            ],
+          ],
+        ),
+      );
+    }
+
+    return _ProgramSettingsSectionCard(
+      icon: Icons.trending_up_rounded,
+      title: l10n.progressionSectionTitle,
+      subtitle: rules.isEmpty ? l10n.progressionEmptyHint : null,
+      child: rulesList,
     );
   }
 }
@@ -347,50 +420,48 @@ class _DeloadSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final config = program.deloadConfig;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.deloadSectionTitle,
-          style: textTheme.titleSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
+    Widget? configBody;
+    if (config != null) {
+      configBody = Material(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: AthlosRadius.mdAll,
+        child: Padding(
+          padding: const EdgeInsets.all(AthlosSpacing.smd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                switch (config.strategy) {
+                  DeloadStrategy.reduceVolume =>
+                    l10n.deloadStrategyReduceVolume,
+                  DeloadStrategy.reduceIntensity =>
+                    l10n.deloadStrategyReduceIntensity,
+                  DeloadStrategy.reduceBoth => l10n.deloadStrategyReduceBoth,
+                },
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (config.frequency != null) ...[
+                const Gap(AthlosSpacing.xs),
+                Text(
+                  '${l10n.deloadFrequencyLabel}: ${config.frequency}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        const Gap(AthlosSpacing.xs),
-        if (config == null)
-          Text(
-            l10n.deloadEnableLabel,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          )
-        else ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AthlosSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(switch (config.strategy) {
-                    DeloadStrategy.reduceVolume =>
-                      l10n.deloadStrategyReduceVolume,
-                    DeloadStrategy.reduceIntensity =>
-                      l10n.deloadStrategyReduceIntensity,
-                    DeloadStrategy.reduceBoth => l10n.deloadStrategyReduceBoth,
-                  }, style: textTheme.bodyMedium),
-                  if (config.frequency != null)
-                    Text(
-                      '${l10n.deloadFrequencyLabel}: ${config.frequency}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
+      );
+    }
+
+    return _ProgramSettingsSectionCard(
+      icon: Icons.spa_outlined,
+      title: l10n.deloadSectionTitle,
+      subtitle: config == null ? l10n.deloadEnableLabel : null,
+      child: configBody,
     );
   }
 }

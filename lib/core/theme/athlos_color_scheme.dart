@@ -12,8 +12,16 @@ class AthlosColorScheme {
   static const _accentGold = Color(0xFFB8860B);
   static const _tertiaryGold = Color(0xFFD4A017);
 
-  // Surfaces
-  static const _lightBase = Color(0xFFF5F5F5);
+  // Surfaces — light: gray scaffold with white/near-white containers so controls
+  // read as active, not disabled.
+
+  /// Light: gray scaffold, white/near-white cards, inputs, and chrome.
+  static const _lightScaffold = Color(0xFFE0E0E0);
+
+  /// Visible purple tint for focus pills / badges on light surfaces.
+  static const _lightPrimaryContainer = Color(0xFFEBDDF5);
+  static const _lightOnPrimaryContainer = Color(0xFF3F1566);
+
   static const _darkBase = Color(0xFF010101);
 
   static final light = ColorScheme.fromSeed(
@@ -21,16 +29,19 @@ class AthlosColorScheme {
     brightness: Brightness.light,
     primary: _primaryPurple,
     onPrimary: Colors.white,
+    primaryContainer: _lightPrimaryContainer,
+    onPrimaryContainer: _lightOnPrimaryContainer,
     secondary: _accentGold,
     tertiary: _tertiaryGold,
-    surface: _lightBase,
-    surfaceDim: const Color(0xFFEEEEEE),
+    surface: _lightScaffold,
+    surfaceDim: const Color(0xFFD6D6D6),
     surfaceBright: Colors.white,
-    surfaceContainerLowest: const Color(0xFFFAFAFA),
-    surfaceContainerLow: const Color(0xFFF0F0F0),
+    surfaceContainerLowest: Colors.white,
+    surfaceContainerLow: const Color(0xFFFAFAFA),
     surfaceContainer: Colors.white,
-    surfaceContainerHigh: const Color(0xFFF5F5F5),
-    surfaceContainerHighest: const Color(0xFFF0F0F0),
+    surfaceContainerHigh: const Color(0xFFF0F0F0),
+    // Muted fills on white cards (progress tracks, empty dots) — not pure white.
+    surfaceContainerHighest: const Color(0xFFE8E8E8),
   );
 
   static final dark = ColorScheme.fromSeed(

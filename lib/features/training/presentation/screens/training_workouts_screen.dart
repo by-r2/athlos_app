@@ -255,80 +255,76 @@ class _ActiveProgramCycleViewState
         expand: false,
         builder: (ctx, scrollController) => AthlosBottomSheetShell(
           expand: true,
-          child: SafeArea(
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: Expanded(
+            child: ListView(
+              controller: scrollController,
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.paddingOf(ctx).bottom,
+              ),
+              children: [
               Padding(
-                padding: const EdgeInsets.all(AthlosSpacing.md),
+                padding: const EdgeInsets.fromLTRB(
+                  AthlosSpacing.md,
+                  AthlosSpacing.sm,
+                  AthlosSpacing.md,
+                  AthlosSpacing.md,
+                ),
                 child: Text(
                   l10n.trainingCycleAddWorkout,
-                  style: Theme.of(ctx).textTheme.titleMedium,
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  children: [
-                    ...workouts.map((w) {
-                      final isInCycle = cycleWorkoutIds.contains(w.id);
-                      return ListTile(
-                        minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                        leading: Icon(
-                          isInCycle ? Icons.check_circle : Icons.fitness_center,
-                          color: isInCycle
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant,
-                        ),
-                        title: Text(w.name),
-                        subtitle:
-                            w.description != null && w.description!.isNotEmpty
-                            ? AthlosTruncatedText(w.description!, maxLines: 1)
-                            : null,
-                        onTap: () {
-                          _addWorkout(w.id);
-                          Navigator.of(ctx).pop();
-                        },
-                      );
-                    }),
-                    const Divider(),
-                    ListTile(
-                      minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                      leading: Icon(
-                        Icons.edit_note,
-                        color: colorScheme.primary,
-                      ),
-                      title: Text(
-                        l10n.trainingWorkoutActionCreateManual,
-                        style: TextStyle(color: colorScheme.primary),
-                      ),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        context.push(RoutePaths.trainingWorkoutNew);
-                      },
-                    ),
-                    ListTile(
-                      minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                      leading: Icon(
-                        Icons.auto_awesome,
-                        color: colorScheme.primary,
-                      ),
-                      title: Text(
-                        l10n.chironCreateWorkoutShortcut,
-                        style: TextStyle(color: colorScheme.primary),
-                      ),
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        showChironSheet(
-                          context,
-                          initialMessage: l10n.chironAskToCreateWorkout,
-                        );
-                      },
-                    ),
-                  ],
+              ...workouts.map((w) {
+                final isInCycle = cycleWorkoutIds.contains(w.id);
+                return ListTile(
+                  minTileHeight: AthlosComponentSizes.listItemMinHeight,
+                  leading: Icon(
+                    isInCycle ? Icons.check_circle : Icons.fitness_center,
+                    color: isInCycle
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(w.name),
+                  subtitle: w.description != null && w.description!.isNotEmpty
+                      ? AthlosTruncatedText(w.description!, maxLines: 1)
+                      : null,
+                  onTap: () {
+                    _addWorkout(w.id);
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }),
+              const Divider(height: 1),
+              ListTile(
+                minTileHeight: AthlosComponentSizes.listItemMinHeight,
+                leading: Icon(Icons.edit_note, color: colorScheme.primary),
+                title: Text(
+                  l10n.trainingWorkoutActionCreateManual,
+                  style: TextStyle(color: colorScheme.primary),
                 ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(RoutePaths.trainingWorkoutNew);
+                },
               ),
-            ],
+              ListTile(
+                minTileHeight: AthlosComponentSizes.listItemMinHeight,
+                leading: Icon(Icons.auto_awesome, color: colorScheme.primary),
+                title: Text(
+                  l10n.chironCreateWorkoutShortcut,
+                  style: TextStyle(color: colorScheme.primary),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  showChironSheet(
+                    context,
+                    initialMessage: l10n.chironAskToCreateWorkout,
+                  );
+                },
+              ),
+              ],
             ),
           ),
         ),
@@ -359,28 +355,56 @@ class _ActiveProgramCycleViewState
 
     if (ids.isEmpty && !stepsAsync.isLoading) {
       _openCyclePickerFromRouteIfNeeded(context);
-      return Column(
-        children: [
-          if (program != null) _ProgramHeader(program: program),
-          Expanded(
-            child: _EmptyCycleMessage(
-              workouts: workouts,
-              onAddWorkout: _addWorkout,
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AthlosSpacing.md,
+          AthlosSpacing.sm,
+          AthlosSpacing.md,
+          AthlosSpacing.fabClearance,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (program != null) _ProgramSummaryCard(program: program),
+            const Gap(AthlosSpacing.md),
+            _EmptyCycleCard(
+              onAddWorkout: () => _showAddWorkoutPicker(context, workouts, ids),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (program != null) _ProgramHeader(program: program),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            AthlosSpacing.sm,
+            AthlosSpacing.md,
+            0,
+          ),
+          child: program != null ? _ProgramSummaryCard(program: program) : null,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AthlosSpacing.md,
+            AthlosSpacing.md,
+            AthlosSpacing.md,
+            AthlosSpacing.xs,
+          ),
+          child: _CycleSectionHeader(
+            workoutCount: ids.length,
+            l10n: l10n,
+          ),
+        ),
         Expanded(
           child: ReorderableListView.builder(
             padding: const EdgeInsets.fromLTRB(
-              AthlosSpacing.sm,
-              AthlosSpacing.xs,
-              AthlosSpacing.sm,
+              AthlosSpacing.md,
+              0,
+              AthlosSpacing.md,
               AthlosSpacing.fabClearance,
             ),
             itemCount: ids.length + 1,
@@ -392,21 +416,12 @@ class _ActiveProgramCycleViewState
               if (index == ids.length) {
                 return Padding(
                   key: const ValueKey('add-workout-btn'),
-                  padding: const EdgeInsets.only(top: AthlosSpacing.xs),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(
-                          double.infinity,
-                          AthlosButtonSizes.screenMinHeight,
-                        ),
-                      ),
-                      onPressed: () =>
-                          _showAddWorkoutPicker(context, workouts, ids),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(l10n.trainingCycleAddWorkout),
-                    ),
+                  padding: const EdgeInsets.only(top: AthlosSpacing.sm),
+                  child: _CycleAddWorkoutButton(
+                    label: l10n.trainingCycleAddWorkout,
+                    onPressed: () =>
+                        _showAddWorkoutPicker(context, workouts, ids),
+                    filled: false,
                   ),
                 );
               }
@@ -472,12 +487,12 @@ class _ActiveProgramCycleViewState
   }
 }
 
-// ── Program header (name + focus, inline) ─────────────────────────────
+// ── Program summary card ──────────────────────────────────────────────
 
-class _ProgramHeader extends ConsumerWidget {
+class _ProgramSummaryCard extends ConsumerWidget {
   final dynamic program;
 
-  const _ProgramHeader({required this.program});
+  const _ProgramSummaryCard({required this.program});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -495,93 +510,148 @@ class _ProgramHeader extends ConsumerWidget {
     final programId = program.id as String;
     final progressAsync = ref.watch(programProgressProvider(programId));
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AthlosSpacing.md,
-        AthlosSpacing.sm,
-        AthlosSpacing.xs,
-        AthlosSpacing.xs,
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: AthlosRadius.mdAll,
+        side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.4)),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: InkWell(
+        onTap: () => context.push(RoutePaths.trainingProgramDetail(programId)),
+        borderRadius: AthlosRadius.mdAll,
+        child: Padding(
+          padding: const EdgeInsets.all(AthlosSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.auto_awesome, color: colorScheme.primary, size: 18),
-              const Gap(AthlosSpacing.sm),
-              Expanded(
-                child: AthlosTruncatedText(
-                  program.name as String,
-                  style: textTheme.titleMedium,
-                  maxLines: 1,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AthlosSpacing.sm,
-                  vertical: AthlosSpacing.xxs,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: AthlosRadius.smAll,
-                ),
-                child: Text(
-                  focusLabel,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-              if (program.isInDeload as bool) ...[
-                const Gap(AthlosSpacing.xxs),
-                Icon(Icons.spa, size: 16, color: colorScheme.tertiary),
-              ],
-              IconButton(
-                icon: Icon(
-                  Icons.settings_outlined,
-                  size: 20,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                tooltip: l10n.programAdvancedSettings,
-                visualDensity: VisualDensity.compact,
-                onPressed: () =>
-                    context.push(RoutePaths.trainingProgramDetail(programId)),
-              ),
-            ],
-          ),
-          const Gap(AthlosSpacing.xs),
-          progressAsync.when(
-            data: (progress) => Padding(
-              padding: const EdgeInsets.only(right: AthlosSpacing.sm),
-              child: Row(
+              Row(
                 children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    color: colorScheme.primary,
+                    size: 18,
+                  ),
+                  const Gap(AthlosSpacing.sm),
                   Expanded(
-                    child: ClipRRect(
+                    child: AthlosTruncatedText(
+                      program.name as String,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AthlosSpacing.sm,
+                      vertical: AthlosSpacing.xxs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
                       borderRadius: AthlosRadius.smAll,
-                      child: LinearProgressIndicator(
-                        value: progress.fraction,
-                        minHeight: 4,
-                        backgroundColor: colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Text(
+                      focusLabel,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  const Gap(AthlosSpacing.sm),
-                  Text(
-                    '${progress.completedSessions}/${progress.totalSessions}',
-                    style: textTheme.labelSmall?.copyWith(
+                  if (program.isInDeload as bool) ...[
+                    const Gap(AthlosSpacing.xs),
+                    Icon(Icons.spa, size: 16, color: colorScheme.tertiary),
+                  ],
+                  IconButton(
+                    icon: Icon(
+                      Icons.settings_outlined,
+                      size: 20,
                       color: colorScheme.onSurfaceVariant,
+                    ),
+                    tooltip: l10n.programAdvancedSettings,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => context.push(
+                      RoutePaths.trainingProgramDetail(programId),
                     ),
                   ),
                 ],
               ),
-            ),
-            loading: () => const Padding(
-              padding: EdgeInsets.only(right: AthlosSpacing.sm),
-              child: LinearProgressIndicator(minHeight: 4),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
+              const Gap(AthlosSpacing.sm),
+              progressAsync.when(
+                data: (progress) => Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: AthlosRadius.smAll,
+                        child: LinearProgressIndicator(
+                          value: progress.fraction,
+                          minHeight: 4,
+                          backgroundColor: colorScheme.surfaceContainerHighest,
+                        ),
+                      ),
+                    ),
+                    const Gap(AthlosSpacing.sm),
+                    Text(
+                      '${progress.completedSessions}/${progress.totalSessions}',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                loading: () => const LinearProgressIndicator(minHeight: 4),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _CycleSectionHeader extends StatelessWidget {
+  const _CycleSectionHeader({
+    required this.workoutCount,
+    required this.l10n,
+  });
+
+  final int workoutCount;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            l10n.programCycleSection,
+            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (workoutCount > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AthlosSpacing.sm,
+              vertical: AthlosSpacing.xxs,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: AthlosRadius.smAll,
+            ),
+            child: Text(
+              '$workoutCount',
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -712,65 +782,110 @@ class _NoProgramActiveView extends ConsumerWidget {
     final archivedPrograms =
         programsAsync.value?.where((p) => !p.isActive).toList() ?? [];
 
-    return Padding(
-      padding: const EdgeInsets.all(AthlosSpacing.xl),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        AthlosSpacing.md,
+        AthlosSpacing.md,
+        AthlosSpacing.md,
+        AthlosSpacing.fabClearance,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Spacer(),
-          Icon(
-            Icons.auto_awesome_outlined,
-            size: 64,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-          const Gap(AthlosSpacing.md),
-          Text(
-            l10n.noProgramActiveTitle,
-            style: textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Gap(AthlosSpacing.sm),
-          Text(
-            l10n.noProgramActiveHint,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Gap(AthlosSpacing.lg),
-          FilledButton.icon(
-            onPressed: () => context.push(RoutePaths.trainingProgramNew),
-            icon: const Icon(Icons.add),
-            label: Text(l10n.noProgramActiveCreateAction),
-          ),
-          const Spacer(),
-          if (archivedPrograms.isNotEmpty)
-            SafeArea(
-              top: false,
-              child: TextButton.icon(
-                onPressed: () => context.push(RoutePaths.trainingPrograms),
-                icon: const Icon(Icons.inventory_2_outlined),
-                label: Text(l10n.noProgramActiveViewArchived),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AthlosSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 56,
+                    color: colorScheme.primary.withValues(alpha: 0.7),
+                  ),
+                  const Gap(AthlosSpacing.md),
+                  Text(
+                    l10n.noProgramActiveTitle,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(AthlosSpacing.sm),
+                  Text(
+                    l10n.noProgramActiveHint,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Gap(AthlosSpacing.lg),
+                  _CycleAddWorkoutButton(
+                    label: l10n.noProgramActiveCreateAction,
+                    onPressed: () => context.push(RoutePaths.trainingProgramNew),
+                  ),
+                ],
               ),
             ),
+          ),
+          if (archivedPrograms.isNotEmpty) ...[
+            const Gap(AthlosSpacing.md),
+            TextButton.icon(
+              onPressed: () => context.push(RoutePaths.trainingPrograms),
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: Text(l10n.noProgramActiveViewArchived),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ── Empty cycle message ───────────────────────────────────────────────
+// ── Cycle actions ─────────────────────────────────────────────────────
 
-class _EmptyCycleMessage extends StatelessWidget {
-  final List<Workout> workouts;
-  final void Function(String workoutId) onAddWorkout;
-
-  const _EmptyCycleMessage({
-    required this.workouts,
-    required this.onAddWorkout,
+class _CycleAddWorkoutButton extends StatelessWidget {
+  const _CycleAddWorkoutButton({
+    required this.label,
+    required this.onPressed,
+    this.filled = true,
   });
+
+  final String label;
+  final VoidCallback onPressed;
+  final bool filled;
+
+  static final _fullWidthStyle = FilledButton.styleFrom(
+    minimumSize: const Size(double.infinity, AthlosButtonSizes.screenMinHeight),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (filled) {
+      return FilledButton.icon(
+        style: _fullWidthStyle,
+        onPressed: onPressed,
+        icon: const Icon(Icons.add),
+        label: Text(label),
+      );
+    }
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, AthlosButtonSizes.screenMinHeight),
+      ),
+      onPressed: onPressed,
+      icon: const Icon(Icons.add),
+      label: Text(label),
+    );
+  }
+}
+
+// ── Empty cycle card ──────────────────────────────────────────────────
+
+class _EmptyCycleCard extends StatelessWidget {
+  const _EmptyCycleCard({required this.onAddWorkout});
+
+  final VoidCallback onAddWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -778,31 +893,55 @@ class _EmptyCycleMessage extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Center(
+    return Card(
       child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.xl),
+        padding: const EdgeInsets.all(AthlosSpacing.md),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(
-              Icons.repeat,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: AthlosRadius.mdAll,
+                  ),
+                  child: Icon(
+                    Icons.repeat_rounded,
+                    color: colorScheme.primary,
+                    size: 26,
+                  ),
+                ),
+                const Gap(AthlosSpacing.smd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.programCycleSection,
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Gap(AthlosSpacing.xs),
+                      Text(
+                        l10n.programCycleHint,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const Gap(AthlosSpacing.md),
-            Text(
-              l10n.programCycleSection,
-              style: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const Gap(AthlosSpacing.sm),
-            Text(
-              l10n.programCycleHint,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
+            _CycleAddWorkoutButton(
+              label: l10n.trainingCycleAddWorkout,
+              onPressed: onAddWorkout,
             ),
           ],
         ),

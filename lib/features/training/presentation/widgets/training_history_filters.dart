@@ -65,7 +65,7 @@ class _TrainingHistoryFiltersBodyState
   Widget _surfaceSection(BuildContext context, {required Widget child}) {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
-      color: colorScheme.surfaceContainerHighest,
+      color: colorScheme.bottomSheetContainer,
       borderRadius: AthlosRadius.mdAll,
       clipBehavior: Clip.antiAlias,
       child: Padding(

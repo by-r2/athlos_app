@@ -88,7 +88,7 @@ class AthlosTheme {
       ),
       inputDecorationTheme: InputDecorationThemeData(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest,
+        fillColor: colorScheme.surfaceContainer,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AthlosSpacing.smd,
           vertical: AthlosSpacing.smd,

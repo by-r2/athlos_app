@@ -436,7 +436,7 @@ class _ChironSheetState extends ConsumerState<_ChironSheet> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: colorScheme.surfaceContainerHighest,
+                  fillColor: colorScheme.surfaceContainer,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AthlosSpacing.md,
                     vertical: AthlosSpacing.sm,
