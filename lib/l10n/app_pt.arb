@@ -857,6 +857,14 @@
   "@fieldRequired": {
     "description": "Mensagem de validação para campo obrigatório"
   },
+  "formFieldOptionalSuffix": "(opcional)",
+  "@formFieldOptionalSuffix": {
+    "description": "Suffix appended to optional form field labels, e.g. \"Descrição (opcional)\""
+  },
+  "formSectionOptionalHint": "Opcional",
+  "@formSectionOptionalHint": {
+    "description": "Short hint that a form section is entirely optional"
+  },
   "invalidNumber": "Número inválido",
   "@invalidNumber": {
     "description": "Mensagem de validação para número inválido"
@@ -1073,6 +1081,30 @@
   "@exerciseCatalogFilterSourceCustomSubtitle": { "description": "Subtitle for custom-only source" },
   "addExercise": "Criar exercício",
   "@addExercise": { "description": "Button/title to add custom exercise" },
+  "addExerciseFormIntro": "Adicione um exercício personalizado ao seu catálogo.\nCampos opcionais estão assinalados.",
+  "@addExerciseFormIntro": {
+    "description": "Brief intro text at top of create-exercise form (max ~2 lines)"
+  },
+  "exerciseFormSectionClassification": "Classificação",
+  "@exerciseFormSectionClassification": {
+    "description": "Section title for muscle group and exercise type on create form"
+  },
+  "exerciseFormSectionClassificationSubtitle": "Grupo muscular e tipo do exercício.",
+  "@exerciseFormSectionClassificationSubtitle": {
+    "description": "Section subtitle for classification block on create form"
+  },
+  "exerciseFormSectionMusclesSubtitle": "Primários, secundários e regiões.",
+  "@exerciseFormSectionMusclesSubtitle": {
+    "description": "Section subtitle for target muscles block on create form"
+  },
+  "exerciseFormSectionDetails": "Detalhes adicionais",
+  "@exerciseFormSectionDetails": {
+    "description": "Section title for movement pattern and description on create form"
+  },
+  "exerciseFormSectionDetailsSubtitle": "Padrão de movimento e notas de execução.",
+  "@exerciseFormSectionDetailsSubtitle": {
+    "description": "Section subtitle body for optional details block on create form"
+  },
   "exerciseDuplicateWithName": "Já existe um exercício chamado \"{name}\".",
   "@exerciseDuplicateWithName": {
     "description": "Form validation: duplicate exercise name; name is the existing exercise label",

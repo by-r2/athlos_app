@@ -7,7 +7,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
-import '../screens/training_exercises_screen.dart';
+import '../screens/exercise_form_screen.dart';
 import 'expandable_workout_fab.dart';
 import 'start_next_workout_fab.dart';
 
@@ -41,7 +41,7 @@ Widget? buildTrainingShellFloatingActionButton(
       );
     case RoutePaths.trainingExercises:
       return FloatingActionButton(
-        onPressed: () => showTrainingExerciseAddSheet(context),
+        onPressed: () => pushTrainingExerciseForm(context),
         tooltip: l10n.addExercise,
         heroTag: 'training_exercises_fab',
         child: const Icon(Icons.add),

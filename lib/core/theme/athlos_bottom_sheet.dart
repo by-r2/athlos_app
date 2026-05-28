@@ -94,6 +94,7 @@ class AthlosBottomSheetHeader extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.icon,
+    this.trailing,
     this.padding = const EdgeInsets.fromLTRB(
       AthlosSpacing.md,
       AthlosSpacing.sm,
@@ -105,6 +106,9 @@ class AthlosBottomSheetHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData? icon;
+
+  /// Trailing control on the title row (e.g. close).
+  final Widget? trailing;
   final EdgeInsetsGeometry padding;
 
   @override
@@ -129,6 +133,7 @@ class AthlosBottomSheetHeader extends StatelessWidget {
                 const Gap(AthlosSpacing.xs),
               ],
               Expanded(child: Text(title, style: titleStyle)),
+              ?trailing,
             ],
           ),
           if (subtitle != null) ...[

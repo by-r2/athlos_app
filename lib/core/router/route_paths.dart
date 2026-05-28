@@ -32,6 +32,7 @@ abstract final class RoutePaths {
   static String trainingWorkoutsOpenCyclePickerQuery() =>
       '$trainingWorkouts?$queryOpenProgramCyclePicker=1';
   static const trainingExercises = '/training/exercises';
+  static const trainingExerciseNew = '/training/exercises/new';
   static const trainingHistory = '/training/history';
 
   /// Full-screen summary after completing a workout (shareable card).

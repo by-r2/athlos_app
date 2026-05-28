@@ -14,6 +14,7 @@ import '../widgets/training_shell_fab.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
 import 'program_list_screen.dart';
+import 'exercise_form_screen.dart';
 import 'training_exercises_screen.dart';
 import 'training_history_screen.dart';
 import 'training_home_screen.dart';
@@ -72,6 +73,16 @@ ShellRoute trainingShellRoute() {
           state,
           const TrainingExercisesScreen(),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.trainingExerciseNew,
+        pageBuilder: (context, state) {
+          final name = state.uri.queryParameters['name'] ?? '';
+          return AthlosRouterPages.fadeThrough(
+            state,
+            ExerciseFormScreen(initialName: name),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.trainingPrograms,
@@ -245,6 +256,9 @@ class _TrainingShell extends ConsumerWidget {
   bool _isSubPage(String path) => !_primaryPaths.contains(path);
 
   static String _appBarTitle(String path, AppLocalizations l10n) {
+    if (path == RoutePaths.trainingExerciseNew) {
+      return l10n.addExercise;
+    }
     if (path == RoutePaths.trainingExercises ||
         path.startsWith('${RoutePaths.trainingExercises}/')) {
       return l10n.trainingExercisesAppBarTitle;
@@ -277,6 +291,9 @@ class _TrainingShell extends ConsumerWidget {
   String _subPageBackTarget(String path) {
     if (path.startsWith(RoutePaths.trainingPrograms)) {
       return RoutePaths.trainingWorkouts;
+    }
+    if (path == RoutePaths.trainingExerciseNew) {
+      return RoutePaths.trainingExercises;
     }
     return RoutePaths.trainingHome;
   }
