@@ -20,6 +20,7 @@ import '../../domain/enums/progression_type.dart';
 import '../helpers/exercise_l10n.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
+import '../widgets/program_settings_section_card.dart';
 
 /// Advanced settings for a training program: header, progression, deload, actions.
 class ProgramDetailScreen extends ConsumerWidget {
@@ -220,80 +221,6 @@ class _ProgramHeader extends ConsumerWidget {
   }
 }
 
-// ── Settings section card ─────────────────────────────────────────────
-
-class _ProgramSettingsSectionCard extends StatelessWidget {
-  const _ProgramSettingsSectionCard({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.child,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final Widget? child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: AthlosRadius.mdAll,
-                  ),
-                  child: Icon(icon, color: colorScheme.primary, size: 26),
-                ),
-                const Gap(AthlosSpacing.smd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const Gap(AthlosSpacing.xs),
-                        Text(
-                          subtitle!,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (child != null) ...[
-              const Gap(AthlosSpacing.md),
-              child!,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Progression Section ──────────────────────────────────────────────
 
 class _ProgressionSection extends ConsumerStatefulWidget {
@@ -397,7 +324,7 @@ class _ProgressionSectionState extends ConsumerState<_ProgressionSection> {
       );
     }
 
-    return _ProgramSettingsSectionCard(
+    return ProgramSettingsSectionCard(
       icon: Icons.trending_up_rounded,
       title: l10n.progressionSectionTitle,
       subtitle: rules.isEmpty ? l10n.progressionEmptyHint : null,
@@ -457,7 +384,7 @@ class _DeloadSection extends StatelessWidget {
       );
     }
 
-    return _ProgramSettingsSectionCard(
+    return ProgramSettingsSectionCard(
       icon: Icons.spa_outlined,
       title: l10n.deloadSectionTitle,
       subtitle: config == null ? l10n.deloadEnableLabel : null,

@@ -20,6 +20,7 @@ import '../../domain/enums/program_focus.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
+import '../widgets/program_settings_section_card.dart';
 
 /// First logical line of workout notes (before the first newline). Null if empty.
 String? _workoutNotesFirstLine(String? raw) {
@@ -890,61 +891,14 @@ class _EmptyCycleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AthlosSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: AthlosRadius.mdAll,
-                  ),
-                  child: Icon(
-                    Icons.repeat_rounded,
-                    color: colorScheme.primary,
-                    size: 26,
-                  ),
-                ),
-                const Gap(AthlosSpacing.smd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.programCycleSection,
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Gap(AthlosSpacing.xs),
-                      Text(
-                        l10n.programCycleHint,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const Gap(AthlosSpacing.md),
-            _CycleAddWorkoutButton(
-              label: l10n.trainingCycleAddWorkout,
-              onPressed: onAddWorkout,
-            ),
-          ],
-        ),
+    return ProgramSettingsSectionCard(
+      icon: Icons.repeat_rounded,
+      title: l10n.programCycleSection,
+      subtitle: l10n.programCycleHint,
+      child: _CycleAddWorkoutButton(
+        label: l10n.trainingCycleAddWorkout,
+        onPressed: onAddWorkout,
       ),
     );
   }

@@ -24,6 +24,10 @@ class AthlosColorScheme {
 
   static const _darkBase = Color(0xFF010101);
 
+  /// Dark: tinted container with light foreground for icons and badges.
+  static const _darkPrimaryContainer = Color(0xFF3A2A52);
+  static const _darkOnPrimaryContainer = Color(0xFFE8D5F4);
+
   static final light = ColorScheme.fromSeed(
     seedColor: _primaryPurple,
     brightness: Brightness.light,
@@ -49,6 +53,8 @@ class AthlosColorScheme {
     brightness: Brightness.dark,
     primary: _primaryPurple,
     onPrimary: Colors.white,
+    primaryContainer: _darkPrimaryContainer,
+    onPrimaryContainer: _darkOnPrimaryContainer,
     secondary: _accentGold,
     tertiary: _tertiaryGold,
     surface: _darkBase,

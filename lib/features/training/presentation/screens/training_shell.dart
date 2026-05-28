@@ -224,6 +224,17 @@ class _TrainingShell extends ConsumerWidget {
         path.startsWith('${RoutePaths.trainingExercises}/')) {
       return l10n.trainingExercisesAppBarTitle;
     }
+    if (path == RoutePaths.trainingProgramNew) {
+      return l10n.programCreateTitle;
+    }
+    if (path.endsWith('/edit') &&
+        path.startsWith('${RoutePaths.trainingPrograms}/')) {
+      return l10n.programEditTitle;
+    }
+    if (path.startsWith('${RoutePaths.trainingPrograms}/') &&
+        path != RoutePaths.trainingPrograms) {
+      return l10n.programAdvancedSettings;
+    }
     if (path == RoutePaths.trainingHome) {
       return l10n.tabDashboard;
     }
@@ -231,7 +242,7 @@ class _TrainingShell extends ConsumerWidget {
       return l10n.tabHistory;
     }
     if (path.startsWith(RoutePaths.trainingWorkouts) ||
-        path.startsWith(RoutePaths.trainingPrograms) ||
+        path == RoutePaths.trainingPrograms ||
         path == RoutePaths.trainingWorkoutCatalog) {
       return l10n.tabTraining;
     }

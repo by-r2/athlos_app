@@ -66,6 +66,7 @@ class AthlosTheme {
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: AthlosElevation.none,
+        titleTextStyle: AthlosTextTheme.appBarTitle(colorScheme),
       ),
       scaffoldBackgroundColor: colorScheme.surface,
       bottomSheetTheme: BottomSheetThemeData(

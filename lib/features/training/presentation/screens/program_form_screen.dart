@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/result.dart';
-import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/presentation/navigation/confirm_navigation_scope.dart';
 import '../../../../core/presentation/navigation/navigation_leave_dialogs.dart';
+import '../../../../core/theme/athlos_button_sizes.dart';
+import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/deload_config.dart';
@@ -15,11 +17,12 @@ import '../../domain/enums/deload_strategy.dart';
 import '../../domain/enums/duration_mode.dart';
 import '../../domain/enums/program_focus.dart';
 import '../providers/program_notifier.dart';
+import '../widgets/program_settings_section_card.dart';
 
 /// Screen to create or edit a training program (mesocycle).
 ///
-/// Slim form: name, focus, duration, rest, deload config, activate switch.
-/// Cycle and progression rules are managed in ProgramDetailScreen.
+/// Rendered inside [TrainingShell] — no local [Scaffold]/[AppBar]. Cycle and
+/// progression rules are managed in [ProgramDetailScreen].
 class ProgramFormScreen extends ConsumerStatefulWidget {
   final String? programId;
 
@@ -182,8 +185,6 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     if (_isEditing) {
       final programsAsync = ref.watch(programListProvider);
@@ -205,232 +206,267 @@ class _ProgramFormScreenState extends ConsumerState<ProgramFormScreen> {
       onLeaveConfirmed: (ctx) {
         if (ctx.mounted) ctx.pop();
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _isEditing ? l10n.programEditTitle : l10n.programCreateTitle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: canSave && !_saving ? _save : null,
-              child: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l10n.programSaveAction),
-            ),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(AthlosSpacing.md),
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: l10n.programNameLabel,
-                hintText: l10n.programNameHint,
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AthlosSpacing.md,
+                AthlosSpacing.sm,
+                AthlosSpacing.md,
+                AthlosSpacing.md,
               ),
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (_) {
-                _touchEdit();
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: AthlosSpacing.lg),
-
-            Text(
-              l10n.programFocusLabel,
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AthlosSpacing.sm),
-            Wrap(
-              spacing: AthlosSpacing.sm,
-              children: ProgramFocus.values.map((f) {
-                final label = switch (f) {
-                  ProgramFocus.hypertrophy => l10n.programFocusHypertrophy,
-                  ProgramFocus.strength => l10n.programFocusStrength,
-                  ProgramFocus.endurance => l10n.programFocusEndurance,
-                  ProgramFocus.custom => l10n.programFocusCustom,
-                };
-                return ChoiceChip(
-                  label: Text(label),
-                  selected: _focus == f,
-                  onSelected: (_) => _updateFocusRest(f),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AthlosSpacing.lg),
-
-            Text(
-              l10n.programDurationModeLabel,
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AthlosSpacing.sm),
-            SegmentedButton<DurationMode>(
-              segments: [
-                ButtonSegment(
-                  value: DurationMode.sessions,
-                  label: Text(l10n.programDurationModeSessions),
-                ),
-                ButtonSegment(
-                  value: DurationMode.rotations,
-                  label: Text(l10n.programDurationModeRotations),
-                ),
-              ],
-              selected: {_durationMode},
-              onSelectionChanged: (s) {
-                _touchEdit();
-                setState(() => _durationMode = s.first);
-              },
-            ),
-            const SizedBox(height: AthlosSpacing.md),
-
-            TextField(
-              controller: _durationController,
-              decoration: InputDecoration(
-                labelText: l10n.programDurationValueLabel,
-                hintText: _durationMode == DurationMode.sessions
-                    ? l10n.programDurationValueHintSessions
-                    : l10n.programDurationValueHintRotations,
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) {
-                _touchEdit();
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: AthlosSpacing.md),
-
-            TextField(
-              controller: _restController,
-              decoration: InputDecoration(
-                labelText: l10n.programDefaultRestLabel,
-                hintText: l10n.programDefaultRestHint,
-                suffixText: 's',
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) {
-                _touchEdit();
-                setState(() {});
-              },
-            ),
-
-            const SizedBox(height: AthlosSpacing.lg),
-            Text(
-              l10n.deloadSectionTitle,
-              style: textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.deloadEnableLabel),
-              value: _deloadEnabled,
-              onChanged: (v) {
-                _touchEdit();
-                setState(() => _deloadEnabled = v);
-              },
-            ),
-            if (_deloadEnabled) ...[
-              const SizedBox(height: AthlosSpacing.sm),
-              Text(
-                l10n.deloadStrategyLabel,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AthlosSpacing.xs),
-              Wrap(
-                spacing: AthlosSpacing.sm,
-                children: DeloadStrategy.values.map((s) {
-                  final label = switch (s) {
-                    DeloadStrategy.reduceVolume =>
-                      l10n.deloadStrategyReduceVolume,
-                    DeloadStrategy.reduceIntensity =>
-                      l10n.deloadStrategyReduceIntensity,
-                    DeloadStrategy.reduceBoth => l10n.deloadStrategyReduceBoth,
-                  };
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: _deloadStrategy == s,
-                    onSelected: (_) {
+              children: [
+                ProgramSettingsSectionCard(
+                  icon: Icons.badge_outlined,
+                  title: l10n.programNameLabel,
+                  child: TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: l10n.programNameHint,
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: (_) {
                       _touchEdit();
-                      setState(() => _deloadStrategy = s);
+                      setState(() {});
                     },
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: AthlosSpacing.md),
-              TextField(
-                controller: _deloadFreqController,
-                decoration: InputDecoration(
-                  labelText: l10n.deloadFrequencyLabel,
-                  hintText: l10n.deloadFrequencyManualHint,
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (_) {
-                  _touchEdit();
-                  setState(() {});
-                },
-              ),
-              const SizedBox(height: AthlosSpacing.md),
-              if (_deloadStrategy != DeloadStrategy.reduceIntensity)
-                TextField(
-                  controller: _deloadVolController,
-                  decoration: InputDecoration(
-                    labelText: l10n.deloadVolumeMultiplierLabel,
-                    hintText: l10n.deloadVolumeMultiplierHint,
+                const Gap(AthlosSpacing.md),
+                ProgramSettingsSectionCard(
+                  icon: Icons.track_changes_outlined,
+                  title: l10n.programFocusLabel,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(
+                        spacing: AthlosSpacing.sm,
+                        runSpacing: AthlosSpacing.sm,
+                        children: ProgramFocus.values.map((f) {
+                          final label = switch (f) {
+                            ProgramFocus.hypertrophy =>
+                              l10n.programFocusHypertrophy,
+                            ProgramFocus.strength => l10n.programFocusStrength,
+                            ProgramFocus.endurance =>
+                              l10n.programFocusEndurance,
+                            ProgramFocus.custom => l10n.programFocusCustom,
+                          };
+                          return ChoiceChip(
+                            label: Text(label),
+                            selected: _focus == f,
+                            onSelected: (_) => _updateFocusRest(f),
+                          );
+                        }).toList(),
+                      ),
+                      const Gap(AthlosSpacing.md),
+                      Text(
+                        l10n.programDurationModeLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const Gap(AthlosSpacing.sm),
+                      SegmentedButton<DurationMode>(
+                        segments: [
+                          ButtonSegment(
+                            value: DurationMode.sessions,
+                            label: Text(l10n.programDurationModeSessions),
+                          ),
+                          ButtonSegment(
+                            value: DurationMode.rotations,
+                            label: Text(l10n.programDurationModeRotations),
+                          ),
+                        ],
+                        selected: {_durationMode},
+                        onSelectionChanged: (s) {
+                          _touchEdit();
+                          setState(() => _durationMode = s.first);
+                        },
+                      ),
+                      const Gap(AthlosSpacing.md),
+                      TextField(
+                        controller: _durationController,
+                        decoration: InputDecoration(
+                          labelText: l10n.programDurationValueLabel,
+                          hintText: _durationMode == DurationMode.sessions
+                              ? l10n.programDurationValueHintSessions
+                              : l10n.programDurationValueHintRotations,
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (_) {
+                          _touchEdit();
+                          setState(() {});
+                        },
+                      ),
+                      const Gap(AthlosSpacing.md),
+                      TextField(
+                        controller: _restController,
+                        decoration: InputDecoration(
+                          labelText: l10n.programDefaultRestLabel,
+                          hintText: l10n.programDefaultRestHint,
+                          suffixText: 's',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (_) {
+                          _touchEdit();
+                          setState(() {});
+                        },
+                      ),
+                    ],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  onChanged: (_) {
-                    _touchEdit();
-                    setState(() {});
-                  },
                 ),
-              if (_deloadStrategy != DeloadStrategy.reduceIntensity)
-                const SizedBox(height: AthlosSpacing.md),
-              if (_deloadStrategy != DeloadStrategy.reduceVolume)
-                TextField(
-                  controller: _deloadIntController,
-                  decoration: InputDecoration(
-                    labelText: l10n.deloadIntensityMultiplierLabel,
-                    hintText: l10n.deloadIntensityMultiplierHint,
+                const Gap(AthlosSpacing.md),
+                ProgramSettingsSectionCard(
+                  icon: Icons.spa_outlined,
+                  title: l10n.deloadSectionTitle,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(l10n.deloadEnableLabel),
+                        value: _deloadEnabled,
+                        onChanged: (v) {
+                          _touchEdit();
+                          setState(() => _deloadEnabled = v);
+                        },
+                      ),
+                      if (_deloadEnabled) ...[
+                        const Gap(AthlosSpacing.sm),
+                        Text(
+                          l10n.deloadStrategyLabel,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const Gap(AthlosSpacing.sm),
+                        Wrap(
+                          spacing: AthlosSpacing.sm,
+                          runSpacing: AthlosSpacing.sm,
+                          children: DeloadStrategy.values.map((s) {
+                            final label = switch (s) {
+                              DeloadStrategy.reduceVolume =>
+                                l10n.deloadStrategyReduceVolume,
+                              DeloadStrategy.reduceIntensity =>
+                                l10n.deloadStrategyReduceIntensity,
+                              DeloadStrategy.reduceBoth =>
+                                l10n.deloadStrategyReduceBoth,
+                            };
+                            return ChoiceChip(
+                              label: Text(label),
+                              selected: _deloadStrategy == s,
+                              onSelected: (_) {
+                                _touchEdit();
+                                setState(() => _deloadStrategy = s);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        TextField(
+                          controller: _deloadFreqController,
+                          decoration: InputDecoration(
+                            labelText: l10n.deloadFrequencyLabel,
+                            hintText: l10n.deloadFrequencyManualHint,
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onChanged: (_) {
+                            _touchEdit();
+                            setState(() {});
+                          },
+                        ),
+                        if (_deloadStrategy != DeloadStrategy.reduceIntensity)
+                          ...[
+                            const Gap(AthlosSpacing.md),
+                            TextField(
+                              controller: _deloadVolController,
+                              decoration: InputDecoration(
+                                labelText: l10n.deloadVolumeMultiplierLabel,
+                                hintText: l10n.deloadVolumeMultiplierHint,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              onChanged: (_) {
+                                _touchEdit();
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                        if (_deloadStrategy != DeloadStrategy.reduceVolume) ...[
+                          const Gap(AthlosSpacing.md),
+                          TextField(
+                            controller: _deloadIntController,
+                            decoration: InputDecoration(
+                              labelText: l10n.deloadIntensityMultiplierLabel,
+                              hintText: l10n.deloadIntensityMultiplierHint,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            onChanged: (_) {
+                              _touchEdit();
+                              setState(() {});
+                            },
+                          ),
+                        ],
+                      ],
+                    ],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  onChanged: (_) {
-                    _touchEdit();
-                    setState(() {});
-                  },
                 ),
-            ],
-
-            if (!_isEditing) ...[
-              const SizedBox(height: AthlosSpacing.lg),
-              SwitchListTile(
-                title: Text(l10n.programActivateAndSave),
-                value: _activate,
-                onChanged: (v) {
-                  _touchEdit();
-                  setState(() => _activate = v);
-                },
+                if (!_isEditing) ...[
+                  const Gap(AthlosSpacing.md),
+                  Card(
+                    child: SwitchListTile(
+                      title: Text(l10n.programActivateAndSave),
+                      value: _activate,
+                      onChanged: (v) {
+                        _touchEdit();
+                        setState(() => _activate = v);
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AthlosSpacing.md,
+                AthlosSpacing.sm,
+                AthlosSpacing.md,
+                AthlosSpacing.sm,
               ),
-            ],
-            const SizedBox(height: AthlosSpacing.fabClearance),
-          ],
-        ),
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(
+                    double.infinity,
+                    AthlosButtonSizes.screenMinHeight,
+                  ),
+                ),
+                onPressed: canSave && !_saving ? _save : null,
+                child: _saving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(l10n.programSaveAction),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
