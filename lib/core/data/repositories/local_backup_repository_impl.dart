@@ -42,7 +42,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
   }
 
   @override
-  Future<Result<void>> resolveRuntimeDuplicate({
+  Future<Result<RuntimeDuplicateMergeSyncPayload?>> resolveRuntimeDuplicate({
     required BackupConflictType entityType,
     required String leftEntityId,
     required String rightEntityId,
@@ -122,6 +122,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         );
       }
 
+      RuntimeDuplicateMergeSyncPayload? syncPayload;
       await _db.transaction(() async {
         if (decision == RuntimeDuplicateDecision.mergeAttributes &&
             mergedAttributes != null) {
@@ -137,7 +138,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
           );
         }
 
-        await _mergeLocalLoserIntoWinner(
+        syncPayload = await _mergeLocalLoserIntoWinner(
           tableName: tableName,
           loserId: loserId,
           winnerId: resolvedWinnerId,
@@ -149,7 +150,7 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
         );
       });
 
-      return const Success(null);
+      return Success(syncPayload);
     } on AppException catch (e) {
       return Failure(e);
     } on Exception catch (e) {
@@ -524,25 +525,26 @@ class LocalBackupRepositoryImpl implements LocalBackupRepository {
 
   // --- Merge ---
 
-  Future<void> _mergeLocalLoserIntoWinner({
+  Future<RuntimeDuplicateMergeSyncPayload?> _mergeLocalLoserIntoWinner({
     required String tableName,
     required String loserId,
     required String winnerId,
   }) async {
-    if (loserId == winnerId) return;
+    if (loserId == winnerId) return null;
 
     if (tableName == _tableExercises) {
-      await mergeExerciseLoserIntoWinner(
+      return mergeExerciseLoserIntoWinner(
         _db,
         winnerId: winnerId,
         loserId: loserId,
+        syncAware: true,
       );
-      return;
     }
 
     await _db.customStatement(
       "DELETE FROM \"$tableName\" WHERE id = '$loserId'",
     );
+    return null;
   }
 
   // --- DB helpers ---

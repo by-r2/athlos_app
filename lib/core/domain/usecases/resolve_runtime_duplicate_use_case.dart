@@ -7,7 +7,7 @@ class ResolveRuntimeDuplicateUseCase {
 
   const ResolveRuntimeDuplicateUseCase(this._repository);
 
-  Future<Result<void>> call({
+  Future<Result<RuntimeDuplicateMergeSyncPayload?>> call({
     required BackupConflictType entityType,
     required String leftEntityId,
     required String rightEntityId,

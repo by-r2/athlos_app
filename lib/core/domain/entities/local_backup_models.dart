@@ -10,6 +10,22 @@ enum RuntimeDuplicateDecision {
   mergeAttributes,
 }
 
+/// Ids hard-deleted locally during duplicate merge; must be removed on Supabase too.
+///
+/// [removedExerciseId] is always a **non-verified** custom copy; verified catalog
+/// rows are never included.
+class RuntimeDuplicateMergeSyncPayload {
+  const RuntimeDuplicateMergeSyncPayload({
+    required this.removedExerciseId,
+    this.removedWorkoutExerciseIds = const [],
+    this.removedProgressionRuleIds = const [],
+  });
+
+  final String removedExerciseId;
+  final List<String> removedWorkoutExerciseIds;
+  final List<String> removedProgressionRuleIds;
+}
+
 class BackupPendingReview {
   final String reviewId;
   final BackupPendingReviewType type;

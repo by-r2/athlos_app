@@ -6,6 +6,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/data/repositories/local_backup_providers.dart';
 import '../../../../core/domain/entities/local_backup_models.dart';
+import '../../../../core/services/user_data_sync_coordinator.dart';
+import '../../../../core/sync/sync_providers.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
+import '../../../training/data/sync/duplicate_merge_remote_sync.dart';
 import '../../../../core/localization/domain_label_resolver.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
@@ -220,9 +224,12 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       switch (result) {
-        case Success():
+        case Success(:final value):
           ref.invalidate(backupConflictCenterProvider);
           await ref.read(backupConflictCenterProvider.future);
+          if (value != null) {
+            await _syncAfterDuplicateResolution(l10n, payload: value);
+          }
         case Failure(:final exception):
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(_resolveErrorMessage(exception, l10n))),
@@ -232,6 +239,32 @@ class _ConflictCenterScreenState extends ConsumerState<ConflictCenterScreen> {
       if (mounted) {
         setState(() => _processingReviews.remove(review.reviewId));
       }
+    }
+  }
+
+  Future<void> _syncAfterDuplicateResolution(
+    AppLocalizations l10n, {
+    required RuntimeDuplicateMergeSyncPayload payload,
+  }) async {
+    final userId = ref.read(authProvider).value?.id;
+    if (userId == null) return;
+
+    try {
+      await ref.read(userDataSyncCoordinatorProvider).synchronizeManual();
+      await pushDuplicateMergeDeletesToRemote(
+        remote: ref.read(trainingRemoteClientProvider),
+        userId: userId,
+        payload: payload,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileDataCloudSyncSuccessSnack)),
+      );
+    } on Exception {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.profileDataCloudSyncRetryError)),
+      );
     }
   }
 }

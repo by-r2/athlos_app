@@ -1,4 +1,5 @@
 import 'package:athlos_app/core/data/repositories/local_backup_repository_impl.dart';
+import 'package:athlos_app/core/errors/app_exception.dart';
 import 'package:athlos_app/core/errors/result.dart';
 import 'package:athlos_app/core/database/app_database.dart';
 import 'package:athlos_app/core/domain/entities/local_backup_models.dart';
@@ -56,6 +57,12 @@ void main() {
       );
 
       expect(result.isSuccess, isTrue);
+      switch (result) {
+        case Success(:final value):
+          expect(value?.removedExerciseId, customId);
+        case Failure():
+          fail('expected success');
+      }
 
       final customRow = await (db.select(
         db.exercises,
@@ -66,6 +73,50 @@ void main() {
         db.exercises,
       )..where((e) => e.id.equals(verifiedId))).getSingleOrNull();
       expect(verifiedRow, isNotNull);
+    });
+
+    test('never removes verified exercise when custom is chosen as winner', () async {
+      final verifiedId = generateUuidV4();
+      final customId = generateUuidV4();
+
+      await db.into(db.exercises).insert(
+        ExercisesCompanion.insert(
+          id: verifiedId,
+          name: 'Agachamento',
+          muscleGroup: MuscleGroup.quadriceps,
+          isVerified: const Value(true),
+          defaultLoadMode: Value(LoadMode.weighted),
+        ),
+      );
+      await db.into(db.exercises).insert(
+        ExercisesCompanion.insert(
+          id: customId,
+          name: 'Agachamento custom',
+          muscleGroup: MuscleGroup.quadriceps,
+          isVerified: const Value(false),
+          defaultLoadMode: Value(LoadMode.weighted),
+        ),
+      );
+
+      final result = await repository.resolveRuntimeDuplicate(
+        entityType: BackupConflictType.exercise,
+        leftEntityId: customId,
+        rightEntityId: verifiedId,
+        decision: RuntimeDuplicateDecision.confirmDuplicate,
+        winnerId: customId,
+      );
+
+      expect(result.isFailure, isTrue);
+      expect(
+        (result as Failure).exception,
+        isA<ValidationException>(),
+      );
+
+      final verifiedRow = await (db.select(
+        db.exercises,
+      )..where((e) => e.id.equals(verifiedId))).getSingleOrNull();
+      expect(verifiedRow, isNotNull);
+      expect(verifiedRow!.isVerified, isTrue);
     });
   });
 }

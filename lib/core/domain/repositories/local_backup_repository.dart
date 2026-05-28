@@ -5,7 +5,7 @@ import '../entities/local_backup_models.dart';
 abstract interface class LocalBackupRepository {
   Future<Result<List<BackupPendingReview>>> scanRuntimeLocalDuplicates();
 
-  Future<Result<void>> resolveRuntimeDuplicate({
+  Future<Result<RuntimeDuplicateMergeSyncPayload?>> resolveRuntimeDuplicate({
     required BackupConflictType entityType,
     required String leftEntityId,
     required String rightEntityId,
