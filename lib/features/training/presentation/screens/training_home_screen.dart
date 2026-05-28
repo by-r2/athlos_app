@@ -448,20 +448,17 @@ class _FinishedSessionsPill extends ConsumerWidget {
                     color: colorScheme.primary,
                   ),
                   const Gap(AthlosSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      l10n.dashboardFinishedSessionsTitle,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    l10n.dashboardFinishedSessionsTitle,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
               const Gap(AthlosSpacing.sm),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.check_circle_outline,
@@ -472,13 +469,11 @@ class _FinishedSessionsPill extends ConsumerWidget {
                   ),
                   const Gap(AthlosSpacing.xs),
                   Expanded(
-                    child: AthlosTruncatedText(
+                    child: _DashboardPillValueText(
                       l10n.dashboardFinishedSessionsCount(sessionCount),
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
-                      showTooltipOnlyWhenOverflow: false,
                     ),
                   ),
                 ],
@@ -487,6 +482,36 @@ class _FinishedSessionsPill extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Value line in dashboard stat pills: wraps on up to two lines and scales
+/// down when the label is long or the count is large.
+class _DashboardPillValueText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+
+  const _DashboardPillValueText(this.text, {this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Text(
+              text,
+              style: style,
+              maxLines: 2,
+              softWrap: true,
+            ),
+          ),
+        );
+      },
     );
   }
 }
