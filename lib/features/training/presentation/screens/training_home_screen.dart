@@ -3,24 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
-import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../core/theme/athlos_radius.dart';
-import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_spacing.dart';
-import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/execution_comparison.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/program_focus.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
-import '../providers/active_execution_notifier.dart';
+import '../helpers/workout_execution_launch.dart';
+import '../providers/dangling_execution_dialog_session.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
@@ -45,17 +41,61 @@ class TrainingHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
-  bool _danglingDialogShown = false;
+  late final DanglingExecutionDialogSession _dialogSession;
+  bool _didScheduleInitialDanglingCheck = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dialogSession = ref.read(danglingExecutionDialogSessionProvider.notifier);
+  }
+
+  @override
+  void dispose() {
+    _dialogSession.cancelHomePrompt();
+    super.dispose();
+  }
+
+  void _onDanglingExecutionChanged(AsyncValue<WorkoutExecution?> next) {
+    if (!context.mounted) return;
+    next.when(
+      data: (execution) {
+        if (execution == null) {
+          _dialogSession.clear();
+          return;
+        }
+        if (!_dialogSession.shouldShowHomePrompt(execution.id)) {
+          return;
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          showDanglingExecutionHomeDialogIfNeeded(context, ref, execution);
+        });
+      },
+      loading: () {},
+      error: (_, _) {},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    if (!_didScheduleInitialDanglingCheck) {
+      _didScheduleInitialDanglingCheck = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _onDanglingExecutionChanged(ref.read(danglingExecutionProvider));
+      });
+    }
+
     ref.listen(danglingExecutionProvider, (prev, next) {
-      if (_danglingDialogShown) return;
-      final execution = next.value;
-      if (execution == null) return;
-      _danglingDialogShown = true;
-      _showDanglingExecutionDialog(context, execution);
+      if (prev?.value?.id == next.value?.id &&
+          prev?.hasValue == true &&
+          next.hasValue) {
+        return;
+      }
+      _onDanglingExecutionChanged(next);
     });
 
     return Scaffold(
@@ -82,95 +122,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _showDanglingExecutionDialog(
-    BuildContext context,
-    WorkoutExecution execution,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final workoutRepo = ref.read(workoutRepositoryProvider);
-    final workout = (await workoutRepo.getById(
-      execution.workoutId,
-    )).getOrThrow();
-    final workoutName = workout?.name ?? '—';
-    if (!context.mounted) return;
-
-    final resumed = await showAthlosDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.danglingExecutionTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text(l10n.danglingExecutionMessage(workoutName))],
-        ),
-        actions: [
-          AthlosStackedDialogActions(
-            children: [
-              TextButton(
-                style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.danglingExecutionDiscard),
-              ),
-              FilledButton(
-                style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.danglingExecutionResume),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    if (!context.mounted) return;
-
-    if (resumed == true) {
-      try {
-        final wRepo = ref.read(workoutRepositoryProvider);
-        final pRepo = ref.read(programRepositoryProvider);
-        final exercises = (await wRepo.getExercises(
-          execution.workoutId,
-        )).getOrThrow();
-        final program = (await pRepo.getActive()).getOrThrow();
-        final allExercises = ref.read(exerciseListProvider).value ?? [];
-        final isometricIds = {
-          for (final e in allExercises)
-            if (e.isIsometric) e.id,
-        };
-        await ref
-            .read(activeExecutionProvider.notifier)
-            .resumeExecution(
-              execution.id,
-              execution.workoutId,
-              exercises,
-              programId: execution.programId,
-              defaultRestSeconds: program?.defaultRestSeconds ?? 0,
-              isometricExerciseIds: isometricIds,
-            );
-        if (context.mounted) {
-          context.push(
-            '${RoutePaths.trainingWorkouts}/${execution.workoutId}/execute',
-          );
-        }
-      } on Exception catch (_) {
-        if (context.mounted) {
-          context.showAthlosErrorSnack(l10n.genericError);
-        }
-      }
-    } else {
-      try {
-        final repo = ref.read(workoutExecutionRepositoryProvider);
-        await repo.delete(execution.id).then((r) => r.getOrThrow());
-        ref.invalidate(danglingExecutionProvider);
-      } on Exception catch (_) {
-        if (context.mounted) {
-          context.showAthlosErrorSnack(l10n.genericError);
-        }
-      }
-    }
   }
 }
 

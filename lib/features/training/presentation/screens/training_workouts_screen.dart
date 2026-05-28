@@ -19,6 +19,7 @@ import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/enums/program_focus.dart';
+import '../helpers/workout_execution_launch.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
@@ -427,8 +428,10 @@ class _ActiveProgramCycleViewState
                           '${RoutePaths.trainingWorkouts}/${workout.id}',
                         )
                       : null,
-                  onStart: () => context.push(
-                    '${RoutePaths.trainingWorkouts}/$workoutId/execute',
+                  onStart: () => launchWorkoutExecution(
+                    context,
+                    ref,
+                    workoutId: workoutId,
                   ),
                   onLongPress: () => _showRemoveFromCycleSheet(
                     context,

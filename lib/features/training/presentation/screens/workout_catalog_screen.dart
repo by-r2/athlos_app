@@ -13,6 +13,7 @@ import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
+import '../helpers/workout_execution_launch.dart';
 import '../providers/workout_notifier.dart';
 
 final _placeholderWorkouts = List.generate(
@@ -130,8 +131,10 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
               workout: workout,
               onTap: () =>
                   context.push('${RoutePaths.trainingWorkouts}/${workout.id}'),
-              onStart: () => context.push(
-                '${RoutePaths.trainingWorkouts}/${workout.id}/execute',
+              onStart: () => launchWorkoutExecution(
+                context,
+                ref,
+                workoutId: workout.id,
               ),
               onArchive: () => _archiveWorkout(context, workout.id),
               onDuplicate: () => _duplicateWorkout(context, workout.id),

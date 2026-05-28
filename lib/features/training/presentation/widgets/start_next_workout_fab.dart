@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/route_paths.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/workout.dart';
+import '../helpers/workout_execution_launch.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 
@@ -47,8 +48,10 @@ class StartNextWorkoutFab extends ConsumerWidget {
 
     return FloatingActionButton(
       heroTag: 'training_shell_start_fab',
-      onPressed: () => context.push(
-        '${RoutePaths.trainingWorkouts}/${nextWorkout!.id}/execute',
+      onPressed: () => launchWorkoutExecution(
+        context,
+        ref,
+        workoutId: nextWorkout!.id,
       ),
       tooltip: nextWorkout!.name,
       child: const Icon(Icons.play_arrow),

@@ -33,6 +33,7 @@ import '../helpers/exercise_l10n.dart';
 import '../helpers/load_mode_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../helpers/rest_next_target.dart';
+import '../helpers/workout_execution_launch.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/cardio_timer_notifier.dart';
 import '../providers/exercise_notifier.dart';
@@ -216,29 +217,16 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         execState == null) {
       _isInitialized = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final messenger = ScaffoldMessenger.of(context);
         final l10n = AppLocalizations.of(context)!;
         final router = GoRouter.of(context);
         try {
           final dangling = danglingAsync.value;
+          if (dangling != null && dangling.workoutId != widget.workoutId) {
+            router.pop();
+            return;
+          }
           if (dangling != null && dangling.workoutId == widget.workoutId) {
-            final programRepo = ref.read(programRepositoryProvider);
-            final activeProgram = (await programRepo.getActive()).getOrThrow();
-            final allExercises = ref.read(exerciseListProvider).value ?? [];
-            final isometricIds = {
-              for (final e in allExercises)
-                if (e.isIsometric) e.id,
-            };
-            await ref
-                .read(activeExecutionProvider.notifier)
-                .resumeExecution(
-                  dangling.id,
-                  dangling.workoutId,
-                  exercisesAsync.value,
-                  programId: dangling.programId,
-                  defaultRestSeconds: activeProgram?.defaultRestSeconds ?? 0,
-                  isometricExerciseIds: isometricIds,
-                );
+            await resumeWorkoutExecution(ref, execution: dangling);
             return;
           }
 

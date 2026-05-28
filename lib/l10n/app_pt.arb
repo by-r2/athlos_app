@@ -2867,6 +2867,26 @@
   "@danglingExecutionResume": { "description": "Button to resume unfinished workout" },
   "danglingExecutionDiscard": "Descartar",
   "@danglingExecutionDiscard": { "description": "Button to discard unfinished workout" },
+  "danglingExecutionConflictTitle": "Treino em andamento",
+  "@danglingExecutionConflictTitle": {
+    "description": "Dialog title when starting a workout while another is in progress"
+  },
+  "danglingExecutionConflictMessage": "Você tem o treino \"{inProgressWorkoutName}\" em andamento. Para iniciar \"{newWorkoutName}\", é preciso descartar o treino atual ou retomá-lo.",
+  "@danglingExecutionConflictMessage": {
+    "description": "Dialog body when starting a different workout while one is in progress",
+    "placeholders": {
+      "inProgressWorkoutName": { "type": "String" },
+      "newWorkoutName": { "type": "String" }
+    }
+  },
+  "danglingExecutionDiscardAndStart": "Descartar e iniciar novo",
+  "@danglingExecutionDiscardAndStart": {
+    "description": "Button to discard in-progress workout and start the selected one"
+  },
+  "danglingExecutionResumeInProgress": "Retomar treino em andamento",
+  "@danglingExecutionResumeInProgress": {
+    "description": "Button to resume the in-progress workout instead of starting a new one"
+  },
 
   "exerciseSidePlank": "Prancha Lateral",
   "@exerciseSidePlank": { "description": "Side plank exercise name" },

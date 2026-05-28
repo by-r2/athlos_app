@@ -19,6 +19,7 @@ import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
+import '../helpers/workout_execution_launch.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
@@ -320,7 +321,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
   }
 
   void _startWorkout(BuildContext context, WidgetRef ref) {
-    context.push('${RoutePaths.trainingWorkouts}/$workoutId/execute');
+    launchWorkoutExecution(context, ref, workoutId: workoutId);
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {

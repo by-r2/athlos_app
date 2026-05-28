@@ -651,20 +651,29 @@ class ActiveExecution extends _$ActiveExecution {
     );
   }
 
+  /// Soft-deletes an unfinished execution, clears in-memory session when it
+  /// matches, syncs tombstones, and refreshes dangling/list providers.
+  Future<void> discardExecution(String executionId) async {
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final result = await repo.delete(executionId);
+    result.getOrThrow();
+
+    final current = state;
+    if (current?.executionId == executionId) {
+      state = null;
+    }
+
+    ref.invalidate(danglingExecutionProvider);
+    ref.invalidate(lastFinishedWorkoutIdProvider);
+    ref.invalidate(workoutExecutionListProvider);
+
+    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
+  }
+
   /// Cancel the active execution, deleting the DB record.
   Future<void> cancelExecution() async {
     final current = state;
     if (current == null) return;
-
-    final repo = ref.read(workoutExecutionRepositoryProvider);
-    final result = await repo.delete(current.executionId);
-    result.getOrThrow();
-
-    state = null;
-    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
-
-    ref.invalidate(lastFinishedWorkoutIdProvider);
-    ref.invalidate(workoutExecutionListProvider);
+    await discardExecution(current.executionId);
   }
-
 }
