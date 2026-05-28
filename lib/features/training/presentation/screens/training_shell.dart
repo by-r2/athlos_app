@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../widgets/training_shell_fab.dart';
+import '../widgets/training_shell_scroll_fade.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
 import 'program_list_screen.dart';
@@ -148,7 +149,7 @@ class _TrainingShell extends ConsumerWidget {
           title: Text(_TrainingShell._appBarTitle(currentPath, l10n)),
           actions: const [AppBarMenu()],
         ),
-        body: child,
+        body: TrainingShellScrollFade(child: child),
         floatingActionButton: buildTrainingShellFloatingActionButton(
           context,
           ref,
