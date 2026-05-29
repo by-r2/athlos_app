@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_component_sizes.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
@@ -95,6 +96,7 @@ class _WorkoutCatalogBody extends ConsumerWidget {
       child: _WorkoutListView(
         workouts: displayWorkouts,
         archivedAsync: archivedAsync,
+        enableGestures: !isLoading,
       ),
     );
   }
@@ -105,8 +107,13 @@ class _WorkoutCatalogBody extends ConsumerWidget {
 class _WorkoutListView extends ConsumerStatefulWidget {
   final List<Workout> workouts;
   final AsyncValue<List<Workout>> archivedAsync;
+  final bool enableGestures;
 
-  const _WorkoutListView({required this.workouts, required this.archivedAsync});
+  const _WorkoutListView({
+    required this.workouts,
+    required this.archivedAsync,
+    this.enableGestures = true,
+  });
 
   @override
   ConsumerState<_WorkoutListView> createState() => _WorkoutListViewState();
@@ -126,8 +133,7 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
           itemCount: widget.workouts.length,
           itemBuilder: (context, index) {
             final workout = widget.workouts[index];
-            return _WorkoutCard(
-              key: ValueKey(workout.id),
+            final card = _WorkoutCard(
               workout: workout,
               onTap: () =>
                   context.push('${RoutePaths.trainingWorkouts}/${workout.id}'),
@@ -136,9 +142,67 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
                 ref,
                 workoutId: workout.id,
               ),
-              onArchive: () => _archiveWorkout(context, workout.id),
-              onDuplicate: () => _duplicateWorkout(context, workout.id),
-              onDelete: () => _confirmDelete(context, workout),
+              onLongPress: widget.enableGestures
+                  ? () => _showWorkoutOptionsSheet(context, workout)
+                  : null,
+            );
+
+            if (!widget.enableGestures) {
+              return KeyedSubtree(
+                key: ValueKey(workout.id),
+                child: card,
+              );
+            }
+
+            return Dismissible(
+              key: ValueKey(workout.id),
+              direction: DismissDirection.horizontal,
+              confirmDismiss: (direction) =>
+                  _confirmWorkoutDismiss(context, workout, direction),
+              onDismissed: (_) async {
+                try {
+                  await ref
+                      .read(workoutListProvider.notifier)
+                      .deleteWorkout(workout.id);
+                } on Exception catch (_) {
+                  if (context.mounted) {
+                    context.showAthlosErrorSnack(l10n.genericError);
+                  }
+                }
+              },
+              background: Container(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: AthlosSpacing.lg),
+                margin: const EdgeInsets.symmetric(
+                  vertical: AthlosSpacing.xs,
+                  horizontal: AthlosSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: AthlosRadius.mdAll,
+                ),
+                child: Icon(
+                  Icons.edit_outlined,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+              secondaryBackground: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: AthlosSpacing.lg),
+                margin: const EdgeInsets.symmetric(
+                  vertical: AthlosSpacing.xs,
+                  horizontal: AthlosSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: AthlosRadius.mdAll,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+              ),
+              child: card,
             );
           },
         ),
@@ -226,10 +290,10 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
     }
   }
 
-  void _confirmDelete(BuildContext context, Workout workout) {
+  Future<bool> _confirmDeleteWorkout(BuildContext context, Workout workout) async {
     final l10n = AppLocalizations.of(context)!;
 
-    showAthlosDialog<void>(
+    final confirmed = await showAthlosDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteWorkoutTitle),
@@ -243,31 +307,128 @@ class _WorkoutListViewState extends ConsumerState<_WorkoutListView> {
             children: [
               TextButton(
                 style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  try {
-                    await ref
-                        .read(workoutListProvider.notifier)
-                        .deleteWorkout(workout.id);
-                  } on Exception catch (_) {
-                    if (context.mounted) {
-                      context.showAthlosErrorSnack(
-                        AppLocalizations.of(context)!.genericError,
-                      );
-                    }
-                  }
-                },
+                onPressed: () => Navigator.pop(ctx, true),
                 child: Text(l10n.delete),
               ),
               FilledButton(
                 style: AthlosDialogButtonStyles.stackedFilled(ctx),
-                onPressed: () => Navigator.pop(ctx),
+                onPressed: () => Navigator.pop(ctx, false),
                 child: Text(l10n.cancel),
               ),
             ],
           ),
         ],
       ),
+    );
+
+    return confirmed == true;
+  }
+
+  Future<bool> _confirmWorkoutDismiss(
+    BuildContext context,
+    Workout workout,
+    DismissDirection direction,
+  ) async {
+    if (direction == DismissDirection.startToEnd) {
+      context.push('${RoutePaths.trainingWorkouts}/${workout.id}/edit');
+      return false;
+    }
+    return _confirmDeleteWorkout(context, workout);
+  }
+
+  void _showWorkoutOptionsSheet(BuildContext context, Workout workout) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showAthlosModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AthlosSpacing.md,
+              AthlosSpacing.sm,
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(workout.name, style: textTheme.titleMedium),
+                if (workout.description != null &&
+                    workout.description!.trim().isNotEmpty) ...[
+                  const SizedBox(height: AthlosSpacing.xs),
+                  AthlosTruncatedText(
+                    workout.description!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+                const SizedBox(height: AthlosSpacing.md),
+                ListTile(
+                  leading: Icon(Icons.play_circle_outline, color: colorScheme.primary),
+                  title: Text(l10n.startWorkout),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    launchWorkoutExecution(context, ref, workoutId: workout.id);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                  title: Text(l10n.editWorkout),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push(
+                      '${RoutePaths.trainingWorkouts}/${workout.id}/edit',
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.archive_outlined, color: colorScheme.primary),
+                  title: Text(l10n.archiveWorkout),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _archiveWorkout(context, workout.id);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.copy_outlined, color: colorScheme.primary),
+                  title: Text(l10n.duplicateWorkout),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _duplicateWorkout(context, workout.id);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: colorScheme.error),
+                  title: Text(
+                    l10n.delete,
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final confirmed = await _confirmDeleteWorkout(context, workout);
+                    if (!confirmed || !context.mounted) return;
+                    try {
+                      await ref
+                          .read(workoutListProvider.notifier)
+                          .deleteWorkout(workout.id);
+                    } on Exception catch (_) {
+                      if (context.mounted) {
+                        context.showAthlosErrorSnack(l10n.genericError);
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -278,18 +439,13 @@ class _WorkoutCard extends StatelessWidget {
   final Workout workout;
   final VoidCallback onTap;
   final VoidCallback onStart;
-  final VoidCallback onArchive;
-  final VoidCallback onDuplicate;
-  final VoidCallback onDelete;
+  final VoidCallback? onLongPress;
 
   const _WorkoutCard({
-    super.key,
     required this.workout,
     required this.onTap,
     required this.onStart,
-    required this.onArchive,
-    required this.onDuplicate,
-    required this.onDelete,
+    this.onLongPress,
   });
 
   @override
@@ -305,6 +461,7 @@ class _WorkoutCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: AthlosRadius.mdAll,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -346,50 +503,6 @@ class _WorkoutCard extends StatelessWidget {
                   ),
                   tooltip: l10n.startWorkout,
                   onPressed: onStart,
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'archive':
-                        onArchive();
-                      case 'duplicate':
-                        onDuplicate();
-                      case 'delete':
-                        onDelete();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'archive',
-                      child: ListTile(
-                        leading: const Icon(Icons.archive_outlined),
-                        title: Text(l10n.archiveWorkout),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'duplicate',
-                      child: ListTile(
-                        leading: const Icon(Icons.copy_outlined),
-                        title: Text(l10n.duplicateWorkout),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                        leading: Icon(
-                          Icons.delete_outline,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        title: Text(l10n.delete),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
