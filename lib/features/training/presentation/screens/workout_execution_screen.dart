@@ -4441,7 +4441,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       ref.read(restTimerProvider.notifier).reset();
       ref.read(cardioTimerProvider.notifier).reset();
       ref.invalidate(workoutListProvider);
+      ref.invalidate(cycleStepsProvider);
       ref.invalidate(cycleStepsForProgramProvider(program.id));
+      ref.invalidate(nextWorkoutToStartProvider);
 
       if (!context.mounted) return;
       context.showAthlosSuccessSnack(l10n.workoutFinished);

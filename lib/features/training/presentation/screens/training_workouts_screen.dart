@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
@@ -72,10 +73,6 @@ class _ActiveProgramCycleView extends ConsumerStatefulWidget {
 class _ActiveProgramCycleViewState
     extends ConsumerState<_ActiveProgramCycleView> {
   List<String>? _workoutIds;
-
-  void _syncFromSteps(List<TrainingCycleStep> steps) {
-    _workoutIds ??= steps.map((s) => s.workoutId).toList();
-  }
 
   Future<void> _saveOrder() async {
     if (_workoutIds == null) return;
@@ -297,9 +294,21 @@ class _ActiveProgramCycleViewState
     final nextWorkoutAsync = ref.watch(nextWorkoutToStartProvider);
     final nextWorkoutId = nextWorkoutAsync.value?.id;
 
-    stepsAsync.whenData(_syncFromSteps);
+    ref.listen(cycleStepsForProgramProvider(widget.programId), (_, next) {
+      next.whenData((steps) {
+        final stepIds = steps.map((s) => s.workoutId).toList();
+        if (_workoutIds == null || !listEquals(_workoutIds, stepIds)) {
+          setState(() => _workoutIds = stepIds);
+        }
+      });
+    });
 
-    final ids = _workoutIds ?? [];
+    final List<String> ids = _workoutIds ??
+        stepsAsync.when(
+          data: (steps) => steps.map((s) => s.workoutId).toList(),
+          loading: () => <String>[],
+          error: (_, _) => <String>[],
+        );
     final workoutMap = {for (final w in workouts) w.id: w};
 
     final l10n = AppLocalizations.of(context)!;
