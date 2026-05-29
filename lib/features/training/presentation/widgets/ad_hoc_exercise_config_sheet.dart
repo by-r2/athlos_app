@@ -86,9 +86,9 @@ class _AdHocExerciseConfigSheetState extends State<_AdHocExerciseConfigSheet> {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.62,
-      minChildSize: 0.45,
-      maxChildSize: 0.9,
+      initialChildSize: 0.82,
+      minChildSize: 0.55,
+      maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
         return AthlosBottomSheetShell(
