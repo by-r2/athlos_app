@@ -167,7 +167,6 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     try {
       final id = generateUuidV4();
       await _dao.createDraft(id: id, userId: _userId, name: trimmed);
-      await _syncWorkoutTables();
       return Success(id);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to create draft workout: $e'));
@@ -197,6 +196,49 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to archive draft workout: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteDraft(String workoutId) async {
+    try {
+      final row = await _dao.getById(workoutId);
+      if (row == null) {
+        return Failure(NotFoundException('Workout $workoutId not found'));
+      }
+      if (!row.isDraft) {
+        return const Failure(
+          ValidationException('Only draft workouts can be deleted locally'),
+        );
+      }
+      await _dao.hardDeleteDraft(workoutId);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to delete draft workout: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> persistDraftExercises(
+    String workoutId,
+    List<domain.WorkoutExercise> exercises,
+  ) async {
+    try {
+      final row = await _dao.getById(workoutId);
+      if (row == null || !row.isDraft) {
+        return Failure(
+          NotFoundException('Draft workout $workoutId not found'),
+        );
+      }
+      await _dao.setExercises(
+        workoutId,
+        exercises.map(_workoutExerciseToCompanion).toList(),
+      );
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(
+        DatabaseException('Failed to persist draft exercises: $e'),
+      );
     }
   }
 
@@ -237,6 +279,11 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   @override
   Future<Result<void>> delete(String id) async {
     try {
+      final row = await _dao.getById(id);
+      if (row?.isDraft == true) {
+        await _dao.hardDeleteDraft(id);
+        return const Success(null);
+      }
       await _dao.deleteById(id);
       await _syncWorkoutTables();
       return const Success(null);

@@ -69,6 +69,7 @@ class TrainingSyncStore {
         ..where(
           (w) =>
               w.userId.equals(userId) &
+              w.isDraft.equals(false) &
               w.isDirty.equals(true) &
               w.deletedAt.isNull(),
         ))
@@ -79,6 +80,7 @@ class TrainingSyncStore {
             ..where(
               (w) =>
                   w.userId.equals(userId) &
+                  w.isDraft.equals(false) &
                   w.isDirty.equals(true) &
                   w.deletedAt.isNotNull(),
             ))
@@ -99,25 +101,56 @@ class TrainingSyncStore {
 
   // --- Workout exercises ---
 
-  Future<List<WorkoutExercise>> getDirtyWorkoutExercises(String userId) =>
-      (_db.select(_db.workoutExercises)
-            ..where(
-              (we) =>
-                  we.userId.equals(userId) &
-                  we.isDirty.equals(true) &
-                  we.deletedAt.isNull(),
-            ))
-          .get();
+  Future<List<WorkoutExercise>> getDirtyWorkoutExercises(String userId) async {
+    final rows = await (_db.select(_db.workoutExercises)
+          ..where(
+            (we) =>
+                we.userId.equals(userId) &
+                we.isDirty.equals(true) &
+                we.deletedAt.isNull(),
+          ))
+        .get();
+    return _excludeExercisesForDraftWorkouts(rows);
+  }
 
-  Future<List<WorkoutExercise>> getDirtyTombstonesWorkoutExercises(String userId) =>
-      (_db.select(_db.workoutExercises)
-            ..where(
-              (we) =>
-                  we.userId.equals(userId) &
-                  we.isDirty.equals(true) &
-                  we.deletedAt.isNotNull(),
-            ))
-          .get();
+  Future<List<WorkoutExercise>> getDirtyTombstonesWorkoutExercises(
+    String userId,
+  ) async {
+    final rows = await (_db.select(_db.workoutExercises)
+          ..where(
+            (we) =>
+                we.userId.equals(userId) &
+                we.isDirty.equals(true) &
+                we.deletedAt.isNotNull(),
+          ))
+        .get();
+    return _excludeExercisesForDraftWorkouts(rows);
+  }
+
+  Future<List<WorkoutExercise>> _excludeExercisesForDraftWorkouts(
+    List<WorkoutExercise> rows,
+  ) async {
+    if (rows.isEmpty) return rows;
+    final result = <WorkoutExercise>[];
+    for (final row in rows) {
+      final workout = await getWorkoutById(row.workoutId);
+      if (workout?.isDraft != true) result.add(row);
+    }
+    return result;
+  }
+
+  /// In-progress sessions on local draft workouts are not pushed to the cloud.
+  Future<bool> shouldSyncWorkoutExecution(WorkoutExecution execution) async {
+    if (execution.finishedAt != null) return true;
+    final workout = await getWorkoutById(execution.workoutId);
+    return workout?.isDraft != true;
+  }
+
+  Future<bool> shouldSyncExecutionSet(ExecutionSet set) async {
+    final execution = await getWorkoutExecutionById(set.executionId);
+    if (execution == null) return false;
+    return shouldSyncWorkoutExecution(execution);
+  }
 
   Future<WorkoutExercise?> getWorkoutExerciseById(String id) => (_db.select(
         _db.workoutExercises,
@@ -241,25 +274,39 @@ class TrainingSyncStore {
 
   // --- Workout executions ---
 
-  Future<List<WorkoutExecution>> getDirtyWorkoutExecutions(String userId) =>
-      (_db.select(_db.workoutExecutions)
-            ..where(
-              (e) =>
-                  e.userId.equals(userId) &
-                  e.isDirty.equals(true) &
-                  e.deletedAt.isNull(),
-            ))
-          .get();
+  Future<List<WorkoutExecution>> getDirtyWorkoutExecutions(String userId) async {
+    final rows = await (_db.select(_db.workoutExecutions)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.isDirty.equals(true) &
+                e.deletedAt.isNull(),
+          ))
+        .get();
+    final result = <WorkoutExecution>[];
+    for (final row in rows) {
+      if (await shouldSyncWorkoutExecution(row)) result.add(row);
+    }
+    return result;
+  }
 
-  Future<List<WorkoutExecution>> getDirtyTombstonesWorkoutExecutions(String userId) =>
-      (_db.select(_db.workoutExecutions)
-            ..where(
-              (e) =>
-                  e.userId.equals(userId) &
-                  e.isDirty.equals(true) &
-                  e.deletedAt.isNotNull(),
-            ))
-          .get();
+  Future<List<WorkoutExecution>> getDirtyTombstonesWorkoutExecutions(
+    String userId,
+  ) async {
+    final rows = await (_db.select(_db.workoutExecutions)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.isDirty.equals(true) &
+                e.deletedAt.isNotNull(),
+          ))
+        .get();
+    final result = <WorkoutExecution>[];
+    for (final row in rows) {
+      if (await shouldSyncWorkoutExecution(row)) result.add(row);
+    }
+    return result;
+  }
 
   Future<WorkoutExecution?> getWorkoutExecutionById(String id) => (_db.select(
         _db.workoutExecutions,
@@ -278,25 +325,37 @@ class TrainingSyncStore {
 
   // --- Execution sets ---
 
-  Future<List<ExecutionSet>> getDirtyExecutionSets(String userId) =>
-      (_db.select(_db.executionSets)
-            ..where(
-              (s) =>
-                  s.userId.equals(userId) &
-                  s.isDirty.equals(true) &
-                  s.deletedAt.isNull(),
-            ))
-          .get();
+  Future<List<ExecutionSet>> getDirtyExecutionSets(String userId) async {
+    final rows = await (_db.select(_db.executionSets)
+          ..where(
+            (s) =>
+                s.userId.equals(userId) &
+                s.isDirty.equals(true) &
+                s.deletedAt.isNull(),
+          ))
+        .get();
+    final result = <ExecutionSet>[];
+    for (final row in rows) {
+      if (await shouldSyncExecutionSet(row)) result.add(row);
+    }
+    return result;
+  }
 
-  Future<List<ExecutionSet>> getDirtyTombstonesExecutionSets(String userId) =>
-      (_db.select(_db.executionSets)
-            ..where(
-              (s) =>
-                  s.userId.equals(userId) &
-                  s.isDirty.equals(true) &
-                  s.deletedAt.isNotNull(),
-            ))
-          .get();
+  Future<List<ExecutionSet>> getDirtyTombstonesExecutionSets(String userId) async {
+    final rows = await (_db.select(_db.executionSets)
+          ..where(
+            (s) =>
+                s.userId.equals(userId) &
+                s.isDirty.equals(true) &
+                s.deletedAt.isNotNull(),
+          ))
+        .get();
+    final result = <ExecutionSet>[];
+    for (final row in rows) {
+      if (await shouldSyncExecutionSet(row)) result.add(row);
+    }
+    return result;
+  }
 
   Future<ExecutionSet?> getExecutionSetById(String id) => (_db.select(
         _db.executionSets,

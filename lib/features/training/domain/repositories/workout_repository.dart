@@ -18,6 +18,16 @@ abstract interface class WorkoutRepository {
 
   /// Archives a draft that will not be saved as a reusable template.
   Future<Result<void>> archiveDraft(String workoutId);
+
+  /// Removes a local-only draft workout (no cloud sync).
+  Future<Result<void>> deleteDraft(String workoutId);
+
+  /// Persists ad-hoc template exercises locally without syncing.
+  Future<Result<void>> persistDraftExercises(
+    String workoutId,
+    List<WorkoutExercise> exercises,
+  );
+
   Future<Result<void>> update(Workout workout, List<WorkoutExercise> exercises);
   Future<Result<void>> delete(String id);
   Future<Result<void>> archive(String id);

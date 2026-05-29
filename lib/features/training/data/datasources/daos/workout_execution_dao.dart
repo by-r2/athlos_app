@@ -199,6 +199,26 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
   Future<void> deleteById(String id) =>
       _softDeleteExecutionCascade([id]);
 
+  /// Hard-deletes an in-progress draft session locally (no cloud tombstones).
+  Future<void> hardDeleteSession(String executionId) =>
+      transaction(() async {
+        final setIds = await (select(executionSets)
+              ..where((s) => s.executionId.equals(executionId)))
+            .map((s) => s.id)
+            .get();
+        if (setIds.isNotEmpty) {
+          await (delete(executionSetSegments)
+                ..where((seg) => seg.executionSetId.isIn(setIds)))
+              .go();
+          await (delete(executionSets)
+                ..where((s) => s.executionId.equals(executionId)))
+              .go();
+        }
+        await (delete(workoutExecutions)
+              ..where((e) => e.id.equals(executionId)))
+            .go();
+      });
+
   /// Cascading soft-delete: hard-deletes segments, soft-deletes sets and
   /// executions.
   Future<void> _softDeleteExecutionCascade(List<String> execIds) async {

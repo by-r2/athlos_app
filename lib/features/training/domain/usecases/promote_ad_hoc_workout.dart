@@ -6,7 +6,7 @@ import '../repositories/workout_repository.dart';
 
 /// What to do with an ad-hoc session template after finish.
 enum AdHocSaveOutcome {
-  /// Keep execution history only; archive the draft workout.
+  /// Keep execution history only; remove the local draft workout template.
   historyOnly,
 
   /// Promote draft, persist exercises, and append to the program cycle.
@@ -47,7 +47,7 @@ class PromoteAdHocWorkout {
 
     switch (params.outcome) {
       case AdHocSaveOutcome.historyOnly:
-        return _workouts.archiveDraft(params.workoutId);
+        return _workouts.deleteDraft(params.workoutId);
 
       case AdHocSaveOutcome.save:
         final promote = await _workouts.promoteDraft(

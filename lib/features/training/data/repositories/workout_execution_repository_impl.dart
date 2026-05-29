@@ -316,6 +316,20 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   @override
   Future<Result<void>> delete(String id) async {
     try {
+      final execution = await _dao.getById(id);
+      if (execution != null) {
+        final workoutRepo = _workoutRepository;
+        if (workoutRepo == null) {
+          await _dao.deleteById(id);
+          return const Success(null);
+        }
+        final workout =
+            (await workoutRepo.getById(execution.workoutId)).getOrThrow();
+        if (workout?.isDraft == true && execution.finishedAt == null) {
+          await _dao.hardDeleteSession(id);
+          return const Success(null);
+        }
+      }
       await _dao.deleteById(id);
       return const Success(null);
     } on Exception catch (e) {

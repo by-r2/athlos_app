@@ -12,14 +12,18 @@ class _FakeWorkoutRepo implements WorkoutRepository {
 
   Workout workout;
   List<WorkoutExercise>? lastUpdatedExercises;
-  bool archiveDraftCalled = false;
+  bool deleteDraftCalled = false;
   bool promoteCalled = false;
 
   @override
-  Future<Result<void>> archiveDraft(String workoutId) async {
-    archiveDraftCalled = true;
+  Future<Result<void>> deleteDraft(String workoutId) async {
+    deleteDraftCalled = true;
     return const Success(null);
   }
+
+  @override
+  Future<Result<void>> archiveDraft(String workoutId) async =>
+      const Success(null);
 
   @override
   Future<Result<void>> promoteDraft(String workoutId, {required String name}) async {
@@ -72,6 +76,13 @@ class _FakeWorkoutRepo implements WorkoutRepository {
   @override
   Future<Result<void>> reorder(List<String> orderedIds) =>
       throw UnimplementedError();
+
+  @override
+  Future<Result<void>> persistDraftExercises(
+    String workoutId,
+    List<WorkoutExercise> exercises,
+  ) async =>
+      const Success(null);
 
   @override
   Future<Result<void>> unarchive(String id) => throw UnimplementedError();
@@ -146,7 +157,7 @@ void main() {
       useCase = PromoteAdHocWorkout(workouts, cycle);
     });
 
-    test('historyOnly archives draft without persisting exercises', () async {
+    test('historyOnly deletes local draft without persisting exercises', () async {
       final result = await useCase(
         PromoteAdHocWorkoutParams(
           workoutId: workoutId,
@@ -158,7 +169,7 @@ void main() {
       );
 
       expect(result.isSuccess, isTrue);
-      expect(workouts.archiveDraftCalled, isTrue);
+      expect(workouts.deleteDraftCalled, isTrue);
       expect(workouts.promoteCalled, isFalse);
       expect(workouts.lastUpdatedExercises, isNull);
     });

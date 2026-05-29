@@ -47,12 +47,14 @@ class ActiveExecution extends _$ActiveExecution {
         t.cancel();
       }
       _draftPersistTimers.clear();
+      _draftTemplatePersistTimer?.cancel();
     });
     return null;
   }
 
   static const Duration _draftPersistDebounce = Duration(milliseconds: 600);
   final Map<String, Timer> _draftPersistTimers = {};
+  Timer? _draftTemplatePersistTimer;
 
   /// Start a new execution, creating the DB record and pre-populating sets
   /// from the workout template. Applies deload and progression adjustments.
@@ -163,6 +165,7 @@ class ActiveExecution extends _$ActiveExecution {
       exercises: [...current.exercises, workoutExercise],
       exerciseSets: {...current.exerciseSets, ...newSets},
     );
+    _scheduleDraftTemplatePersist();
   }
 
   /// Updates prescription for an ad-hoc exercise and rebuilds pending sets.
@@ -208,6 +211,7 @@ class ActiveExecution extends _$ActiveExecution {
       exercises: updatedExercises,
       exerciseSets: {...current.exerciseSets, resolved.exerciseId: merged},
     );
+    _scheduleDraftTemplatePersist();
   }
 
   /// Reorders exercises in an ad-hoc overview (moves whole superset blocks).
@@ -228,6 +232,7 @@ class ActiveExecution extends _$ActiveExecution {
         newIndex,
       ),
     );
+    _scheduleDraftTemplatePersist();
   }
 
   /// Sets superset membership from overview selection (ad-hoc only).
@@ -245,6 +250,7 @@ class ActiveExecution extends _$ActiveExecution {
         editingGroupId: editingGroupId,
       ),
     );
+    _scheduleDraftTemplatePersist();
   }
 
   /// Removes an exercise from an ad-hoc session (in-memory only).
@@ -263,6 +269,29 @@ class ActiveExecution extends _$ActiveExecution {
       exercises: updatedExercises,
       exerciseSets: updatedSets,
     );
+    _scheduleDraftTemplatePersist();
+  }
+
+  void _scheduleDraftTemplatePersist() {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+
+    _draftTemplatePersistTimer?.cancel();
+    _draftTemplatePersistTimer = Timer(
+      _draftPersistDebounce,
+      () => unawaited(_persistDraftTemplate()),
+    );
+  }
+
+  Future<void> _persistDraftTemplate() async {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+
+    final result = await ref.read(workoutRepositoryProvider).persistDraftExercises(
+      current.workoutId,
+      current.exercises,
+    );
+    result.getOrThrow();
   }
 
   Future<Map<String, List<SetEntry>>> _buildInitialExerciseSets({
@@ -740,6 +769,11 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return;
 
+    if (current.isAdHoc) {
+      _draftTemplatePersistTimer?.cancel();
+      await _persistDraftTemplate();
+    }
+
     state = current.copyWith(isFinishing: true);
 
     final programId = ref.read(activeProgramProvider).value?.id;
@@ -896,15 +930,19 @@ class ActiveExecution extends _$ActiveExecution {
   /// matches, syncs tombstones, and refreshes dangling/list providers.
   Future<void> discardExecution(String executionId) async {
     final current = state;
-    final workoutId = current?.workoutId;
-    final isAdHoc = current?.isAdHoc ?? false;
+    final execRepo = ref.read(workoutExecutionRepositoryProvider);
+    final execution = (await execRepo.getById(executionId)).getOrThrow();
 
-    final repo = ref.read(workoutExecutionRepositoryProvider);
-    final result = await repo.delete(executionId);
-    result.getOrThrow();
+    (await execRepo.delete(executionId)).getOrThrow();
 
-    if (isAdHoc && workoutId != null) {
-      await ref.read(workoutRepositoryProvider).delete(workoutId);
+    if (execution != null) {
+      final workout = (await ref
+              .read(workoutRepositoryProvider)
+              .getById(execution.workoutId))
+          .getOrThrow();
+      if (workout?.isDraft == true) {
+        await ref.read(workoutRepositoryProvider).deleteDraft(execution.workoutId);
+      }
     }
 
     if (current?.executionId == executionId) {
