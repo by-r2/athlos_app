@@ -4,6 +4,7 @@ import '../entities/execution_context_fallback.dart';
 import '../entities/execution_set.dart';
 import '../entities/execution_set_segment.dart';
 import '../entities/workout_execution.dart';
+import '../enums/session_kind.dart';
 
 /// Contract for workout execution data operations.
 abstract interface class WorkoutExecutionRepository {
@@ -15,6 +16,12 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<List<WorkoutExecution>>> getByWorkout(String workoutId);
   Future<Result<WorkoutExecution?>> getById(String id);
   Future<Result<WorkoutExecution?>> getLastFinished();
+
+  /// Last finished **planned** execution for a workout in [programId]'s cycle.
+  Future<Result<WorkoutExecution?>> getLastFinishedForCycle({
+    required String programId,
+    required List<String> cycleWorkoutIds,
+  });
 
   /// Last two finished executions for [workoutId] with total volume (weight x reps).
   /// Returns null if there are fewer than two finished executions.
@@ -28,6 +35,7 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<String>> start(
     String workoutId, {
     String? programId,
+    SessionKind sessionKind = SessionKind.planned,
   });
 
   /// Deletes only unfinished executions (with sets/segments) for a workout.

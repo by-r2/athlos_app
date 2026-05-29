@@ -5,6 +5,10 @@ class Workout {
   final String? description;
   final int? sortOrder;
   final bool isArchived;
+
+  /// Ephemeral template created for in-session building; hidden from lists.
+  final bool isDraft;
+
   final DateTime createdAt;
 
   const Workout({
@@ -13,6 +17,7 @@ class Workout {
     this.description,
     this.sortOrder,
     this.isArchived = false,
+    this.isDraft = false,
     required this.createdAt,
   });
 
@@ -22,6 +27,7 @@ class Workout {
     String? Function()? description,
     int? Function()? sortOrder,
     bool? isArchived,
+    bool? isDraft,
     DateTime? createdAt,
   }) => Workout(
     id: id ?? this.id,
@@ -29,6 +35,7 @@ class Workout {
     description: description != null ? description() : this.description,
     sortOrder: sortOrder != null ? sortOrder() : this.sortOrder,
     isArchived: isArchived ?? this.isArchived,
+    isDraft: isDraft ?? this.isDraft,
     createdAt: createdAt ?? this.createdAt,
   );
 }

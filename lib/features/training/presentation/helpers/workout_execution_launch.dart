@@ -10,6 +10,8 @@ import '../../../../core/widgets/feedback/athlos_messenger.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/workout_execution.dart';
+import '../../domain/enums/session_kind.dart';
+import '../../domain/usecases/start_ad_hoc_workout_execution.dart';
 import 'workout_execution_blocking.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/dangling_execution_dialog_session.dart';
@@ -21,6 +23,37 @@ export 'workout_execution_blocking.dart';
 enum _WorkoutLaunchConflictChoice { cancel, resumeInProgress, discardAndStart }
 
 enum _HomeDanglingChoice { discard, resume }
+
+/// Creates a draft workout and opens improvised execution.
+///
+/// Returns `true` if the execute route was opened.
+Future<bool> launchAdHocWorkoutExecution(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final program = (await ref.read(programRepositoryProvider).getActive())
+      .getOrThrow();
+  if (program == null) {
+    if (context.mounted) {
+      context.showAthlosErrorSnack(l10n.noProgramActiveHint);
+    }
+    return false;
+  }
+
+  if (!context.mounted) return false;
+  final dateLabel = MaterialLocalizations.of(context).formatShortDate(
+    DateTime.now(),
+  );
+  final draftName = l10n.improvisedWorkoutDefaultName(dateLabel);
+  final draftId = (await ref
+          .read(startAdHocWorkoutExecutionProvider)
+          .call(StartAdHocWorkoutExecutionParams(draftWorkoutName: draftName)))
+      .getOrThrow();
+
+  if (!context.mounted) return false;
+  return launchWorkoutExecution(context, ref, workoutId: draftId);
+}
 
 /// Navigates to [workoutId]/execute when allowed.
 ///
@@ -206,6 +239,9 @@ Future<void> resumeWorkoutExecution(
 }) async {
   final wRepo = ref.read(workoutRepositoryProvider);
   final pRepo = ref.read(programRepositoryProvider);
+  final workout = (await wRepo.getById(execution.workoutId)).getOrThrow();
+  final isAdHoc =
+      execution.sessionKind == SessionKind.adHoc || (workout?.isDraft ?? false);
   final exercises =
       (await wRepo.getExercises(execution.workoutId)).getOrThrow();
   final program = (await pRepo.getActive()).getOrThrow();
@@ -221,6 +257,7 @@ Future<void> resumeWorkoutExecution(
         programId: execution.programId,
         defaultRestSeconds: program?.defaultRestSeconds ?? 0,
         isometricExerciseIds: isometricIds,
+        isAdHoc: isAdHoc,
       );
 }
 

@@ -6,6 +6,7 @@ import '../../../../core/database/app_database.dart';
 import '../../domain/entities/execution_context_fallback.dart';
 import '../../domain/enums/exercise_type.dart';
 import '../../domain/enums/load_mode.dart';
+import '../../domain/enums/session_kind.dart';
 import '../../domain/enums/movement_pattern.dart';
 import '../../domain/enums/muscle_group.dart';
 
@@ -68,6 +69,7 @@ Map<String, dynamic> workoutToJson(Workout row) => <String, dynamic>{
   'description': row.description,
   'sort_order': row.sortOrder,
   'is_archived': row.isArchived,
+  'is_draft': row.isDraft,
   'created_at': row.createdAt.toUtc().toIso8601String(),
   'updated_at': row.updatedAt.toUtc().toIso8601String(),
   'deleted_at': isoOrNull(row.deletedAt),
@@ -81,6 +83,7 @@ WorkoutsCompanion workoutFromJson(Map<String, dynamic> json) =>
       description: Value(json['description'] as String?),
       sortOrder: Value(json['sort_order'] as int?),
       isArchived: Value(json['is_archived'] as bool? ?? false),
+      isDraft: Value(json['is_draft'] as bool? ?? false),
       createdAt: Value(parseUtcDateTime(json['created_at']) ?? _utcNow()),
       updatedAt: Value(parseUtcDateTime(json['updated_at']) ?? _utcNow()),
       deletedAt: Value(parseUtcDateTime(json['deleted_at'])),
@@ -235,6 +238,7 @@ Map<String, dynamic> workoutExecutionToJson(WorkoutExecution row) =>
       'user_id': row.userId,
       'workout_id': row.workoutId,
       'program_id': row.programId,
+      'session_kind': row.sessionKind.name,
       'started_at': row.startedAt.toUtc().toIso8601String(),
       'finished_at': isoOrNull(row.finishedAt),
       'workout_name_snapshot': row.workoutNameSnapshot,
@@ -250,6 +254,11 @@ WorkoutExecutionsCompanion workoutExecutionFromJson(Map<String, dynamic> json) =
       userId: Value(json['user_id'] as String),
       workoutId: Value(json['workout_id'] as String),
       programId: Value(json['program_id'] as String),
+      sessionKind: Value(
+        SessionKind.values.byName(
+          json['session_kind'] as String? ?? SessionKind.planned.name,
+        ),
+      ),
       startedAt: Value(parseUtcDateTime(json['started_at']) ?? _utcNow()),
       finishedAt: Value(parseUtcDateTime(json['finished_at'])),
       workoutNameSnapshot: Value(json['workout_name_snapshot'] as String?),

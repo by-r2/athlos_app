@@ -159,6 +159,48 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   }
 
   @override
+  Future<Result<String>> createDraft({required String name}) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return const Failure(ValidationException('Draft workout name is required'));
+    }
+    try {
+      final id = generateUuidV4();
+      await _dao.createDraft(id: id, userId: _userId, name: trimmed);
+      await _syncWorkoutTables();
+      return Success(id);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to create draft workout: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> promoteDraft(String workoutId, {required String name}) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return const Failure(ValidationException('Workout name is required'));
+    }
+    try {
+      await _dao.promoteDraft(workoutId, name: trimmed);
+      await _syncWorkoutTables();
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to promote draft workout: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> archiveDraft(String workoutId) async {
+    try {
+      await _dao.archiveDraft(workoutId);
+      await _syncWorkoutTables();
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to archive draft workout: $e'));
+    }
+  }
+
+  @override
   Future<Result<void>> update(
     domain.Workout workout,
     List<domain.WorkoutExercise> exercises,
@@ -277,6 +319,7 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
     description: row.description,
     sortOrder: row.sortOrder,
     isArchived: row.isArchived,
+    isDraft: row.isDraft,
     createdAt: row.createdAt,
   );
 

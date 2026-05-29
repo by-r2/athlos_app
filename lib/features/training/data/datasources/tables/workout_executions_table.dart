@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../domain/enums/session_kind.dart';
 import '../converters/execution_context_fallback_converter.dart';
 import 'programs_table.dart';
 import 'workouts_table.dart';
@@ -9,6 +10,9 @@ class WorkoutExecutions extends Table {
   TextColumn get userId => text()();
   TextColumn get workoutId => text().references(Workouts, #id)();
   TextColumn get programId => text().references(Programs, #id)();
+  TextColumn get sessionKind => textEnum<SessionKind>().withDefault(
+        Constant(SessionKind.planned.name),
+      )();
   DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get finishedAt => dateTime().nullable()();
   TextColumn get workoutNameSnapshot => text().nullable()();

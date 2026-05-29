@@ -12,10 +12,13 @@ import '../helpers/exercise_l10n.dart';
 import '../helpers/load_mode_l10n.dart'
     show localizedLoadModeOptionTitle, localizedLoadModeShort;
 
-/// Returns a theme color for a superset group, alternating between
-/// [ColorScheme.primary] and [ColorScheme.tertiary].
+/// Distinct accent per superset group (cycles primary → secondary → tertiary).
 Color supersetColorFor(int groupIndex, ColorScheme colorScheme) =>
-    groupIndex.isEven ? colorScheme.primary : colorScheme.tertiary;
+    switch (groupIndex % 3) {
+      0 => colorScheme.primary,
+      1 => colorScheme.secondary,
+      _ => colorScheme.tertiary,
+    };
 
 /// Configuration of an exercise within the workout form (mutable in-memory).
 class WorkoutExerciseEntry {
@@ -70,6 +73,8 @@ class WorkoutExerciseTile extends StatefulWidget {
   final int index;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
+  final bool showRemoveButton;
+  final bool showExpandToggle;
 
   const WorkoutExerciseTile({
     super.key,
@@ -82,6 +87,8 @@ class WorkoutExerciseTile extends StatefulWidget {
     this.isLinkedToNext = false,
     this.isLinkedToPrevious = false,
     this.groupColorIndex,
+    this.showRemoveButton = true,
+    this.showExpandToggle = true,
   });
 
   @override
@@ -264,24 +271,26 @@ class _WorkoutExerciseTileState extends State<WorkoutExerciseTile> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          widget.isExpanded
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                          color: colorScheme.onSurfaceVariant,
+                      if (widget.showExpandToggle)
+                        IconButton(
+                          icon: Icon(
+                            widget.isExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: widget.onToggleExpand,
+                          tooltip: null,
                         ),
-                        onPressed: widget.onToggleExpand,
-                        tooltip: null,
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          color: colorScheme.onSurfaceVariant,
+                      if (widget.showRemoveButton)
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: widget.onRemove,
+                          tooltip: l10n.removeExercise,
                         ),
-                        onPressed: widget.onRemove,
-                        tooltip: l10n.removeExercise,
-                      ),
                     ],
                   ),
                 ),

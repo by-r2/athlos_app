@@ -316,7 +316,9 @@ class _ActiveProgramCycleViewState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (program != null) _ProgramSummaryCard(program: program),
+            if (program != null) ...[
+              _ProgramSummaryCard(program: program),
+            ],
             const Gap(AthlosSpacing.md),
             AthlosSection(
               title: l10n.programCycleSection,
@@ -327,6 +329,12 @@ class _ActiveProgramCycleViewState
               label: l10n.trainingCycleAddWorkout,
               onPressed: () => _showAddWorkoutPicker(context, workouts, ids),
             ),
+            if (program != null) ...[
+              const Gap(AthlosSpacing.sm),
+              _ImprovisedWorkoutButton(
+                onPressed: () => launchAdHocWorkoutExecution(context, ref),
+              ),
+            ],
           ],
         ),
       );
@@ -374,13 +382,25 @@ class _ActiveProgramCycleViewState
             itemBuilder: (context, index) {
               if (index == ids.length) {
                 return Padding(
-                  key: const ValueKey('add-workout-btn'),
+                  key: const ValueKey('cycle-workout-actions'),
                   padding: const EdgeInsets.only(top: AthlosSpacing.sm),
-                  child: _CycleAddWorkoutButton(
-                    label: l10n.trainingCycleAddWorkout,
-                    onPressed: () =>
-                        _showAddWorkoutPicker(context, workouts, ids),
-                    filled: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _CycleAddWorkoutButton(
+                        label: l10n.trainingCycleAddWorkout,
+                        onPressed: () =>
+                            _showAddWorkoutPicker(context, workouts, ids),
+                        filled: false,
+                      ),
+                      if (program != null) ...[
+                        const Gap(AthlosSpacing.sm),
+                        _ImprovisedWorkoutButton(
+                          onPressed: () =>
+                              launchAdHocWorkoutExecution(context, ref),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }
@@ -824,6 +844,25 @@ class _CycleAddWorkoutButton extends StatelessWidget {
       onPressed: onPressed,
       icon: const Icon(Icons.add),
       label: Text(label),
+    );
+  }
+}
+
+class _ImprovisedWorkoutButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _ImprovisedWorkoutButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, AthlosButtonSizes.screenMinHeight),
+      ),
+      onPressed: onPressed,
+      icon: const Icon(Icons.edit_note_outlined),
+      label: Text(l10n.startImprovisedWorkoutAction),
     );
   }
 }

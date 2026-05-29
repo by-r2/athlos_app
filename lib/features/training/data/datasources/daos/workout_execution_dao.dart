@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../../../core/database/app_database.dart';
 import '../../../domain/entities/execution_context_fallback.dart';
+import '../../../domain/enums/session_kind.dart';
 import '../tables/execution_set_segments_table.dart';
 import '../tables/execution_sets_table.dart';
 import '../tables/workout_executions_table.dart';
@@ -71,6 +72,28 @@ class WorkoutExecutionDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(e) => OrderingTerm.desc(e.finishedAt)])
             ..limit(1))
           .getSingleOrNull();
+
+  /// Last finished planned session for workouts in the active program cycle.
+  Future<WorkoutExecution?> getLastFinishedForCycle({
+    required String userId,
+    required String programId,
+    required List<String> cycleWorkoutIds,
+  }) {
+    if (cycleWorkoutIds.isEmpty) return Future.value();
+    return (select(workoutExecutions)
+          ..where(
+            (e) =>
+                e.userId.equals(userId) &
+                e.programId.equals(programId) &
+                e.workoutId.isIn(cycleWorkoutIds) &
+                e.sessionKind.equalsValue(SessionKind.planned) &
+                e.finishedAt.isNotNull() &
+                e.deletedAt.isNull(),
+          )
+          ..orderBy([(e) => OrderingTerm.desc(e.finishedAt)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
 
   Future<List<WorkoutExecution>> getByWorkout(String workoutId, String userId) =>
       (select(workoutExecutions)

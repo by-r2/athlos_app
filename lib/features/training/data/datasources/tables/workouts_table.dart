@@ -7,6 +7,7 @@ class Workouts extends Table {
   TextColumn get description => text().nullable()();
   IntColumn get sortOrder => integer().nullable()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  BoolColumn get isDraft => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();

@@ -9,7 +9,7 @@ import '../providers/training_analytics_provider.dart';
 import '../providers/workout_notifier.dart';
 import '../screens/exercise_form_screen.dart';
 import 'expandable_workout_fab.dart';
-import 'start_next_workout_fab.dart';
+import 'training_start_fab.dart';
 
 /// FAB for the training module shell, painted above the floating bottom nav.
 Widget? buildTrainingShellFloatingActionButton(
@@ -23,7 +23,7 @@ Widget? buildTrainingShellFloatingActionButton(
     case RoutePaths.trainingHome:
     case RoutePaths.trainingWorkouts:
       final nextWorkout = ref.watch(nextWorkoutToStartProvider).value;
-      return StartNextWorkoutFab(nextWorkout: nextWorkout);
+      return TrainingStartFab(nextWorkout: nextWorkout);
     case RoutePaths.trainingWorkoutCatalog:
       final workoutCount = ref.watch(workoutListProvider).value?.length ?? 0;
       return ExpandableWorkoutFab(

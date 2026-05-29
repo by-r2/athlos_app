@@ -35,19 +35,26 @@ Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
         minChildSize: 0.5,
         maxChildSize: 0.95,
         expand: false,
-        builder: (context, scrollController) => AthlosBottomSheetShell(
+        builder: (_, scrollController) => AthlosBottomSheetShell(
           expand: true,
           child: Expanded(
-            child: _ExercisePickerBody(scrollController: scrollController),
+            child: _ExercisePickerBody(
+              sheetContext: sheetContext,
+              scrollController: scrollController,
+            ),
           ),
         ),
       ),
     );
 
 class _ExercisePickerBody extends ConsumerStatefulWidget {
+  final BuildContext sheetContext;
   final ScrollController scrollController;
 
-  const _ExercisePickerBody({required this.scrollController});
+  const _ExercisePickerBody({
+    required this.sheetContext,
+    required this.scrollController,
+  });
 
   @override
   ConsumerState<_ExercisePickerBody> createState() =>
@@ -171,7 +178,8 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                           title: Text(displayName),
                           subtitle: AthlosTruncatedText(groupName, maxLines: 2),
                           trailing: const Icon(Icons.add_circle_outline),
-                          onTap: () => Navigator.of(context).pop(ex),
+                          onTap: () =>
+                              Navigator.of(widget.sheetContext).pop(ex),
                         );
                       },
                     ),

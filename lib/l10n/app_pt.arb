@@ -1584,6 +1584,103 @@
   "@workoutNotFound": { "description": "Workout not found message" },
   "startWorkout": "Iniciar treino",
   "@startWorkout": { "description": "Button to start workout execution (placeholder)" },
+  "improvisedWorkoutTitle": "Treino improvisado",
+  "@improvisedWorkoutTitle": {
+    "description": "Display name for improvised workout (built during execution)"
+  },
+  "startImprovisedWorkoutAction": "Iniciar treino improvisado",
+  "@startImprovisedWorkoutAction": {
+    "description": "CTA to start an improvised workout session"
+  },
+  "improvisedWorkoutDefaultName": "Treino improvisado · {date}",
+  "@improvisedWorkoutDefaultName": {
+    "description": "Auto name for new improvised workout",
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "adHocAddExercise": "Adicionar exercício",
+  "@adHocAddExercise": { "description": "CTA to add exercise during ad-hoc session" },
+  "adHocEditExerciseTitle": "Configurar exercício",
+  "@adHocEditExerciseTitle": {
+    "description": "Title for improvised workout exercise config sheet"
+  },
+  "adHocEditExerciseMinSets": "Não é possível ter menos de {count} séries (já concluídas nesta sessão).",
+  "@adHocEditExerciseMinSets": {
+    "description": "Validation when reducing sets below completed count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "adHocConfigUnilateralHint": "Executar um lado de cada vez antes de trocar.",
+  "@adHocConfigUnilateralHint": {
+    "description": "Helper under unilateral switch in improvised workout config sheet"
+  },
+  "adHocSupersetSelectHint": "Marcado = no superset. Toque para alternar.",
+  "@adHocSupersetSelectHint": {
+    "description": "Banner while editing superset membership on improvised workout overview"
+  },
+  "adHocSupersetSelectHintNewGroup": "Novo superset: só exercícios livres podem ser marcados.",
+  "@adHocSupersetSelectHintNewGroup": {
+    "description": "Banner when creating a new superset; exercises in other supersets are locked"
+  },
+  "adHocSupersetSelectHintEdit": "Marcado = no superset. Toque para adicionar ou remover exercícios.",
+  "@adHocSupersetSelectHintEdit": {
+    "description": "Banner when editing an existing superset membership"
+  },
+  "adHocSupersetEditAction": "Editar superset",
+  "@adHocSupersetEditAction": {
+    "description": "Menu action to add/remove exercises in an existing superset"
+  },
+  "adHocSupersetJoinExistingAction": "Entrar em superset existente",
+  "@adHocSupersetJoinExistingAction": {
+    "description": "Menu action for a free exercise to join an existing superset"
+  },
+  "adHocSupersetJoinSelectHint": "Toque num exercício do superset em que quer entrar.",
+  "@adHocSupersetJoinSelectHint": {
+    "description": "Banner while picking an existing superset on the overview list"
+  },
+  "adHocSupersetJoinConfirmNeedsGroup": "Toque num exercício do superset antes de confirmar.",
+  "@adHocSupersetJoinConfirmNeedsGroup": {
+    "description": "Snackbar when confirming join without selecting a target superset"
+  },
+  "adHocEmptyHint": "Adicione exercícios conforme for treinando.",
+  "@adHocEmptyHint": { "description": "Empty state hint in ad-hoc overview" },
+  "adHocRemoveExerciseTitle": "Remover exercício?",
+  "@adHocRemoveExerciseTitle": { "description": "Confirm remove exercise with logged sets" },
+  "adHocRemoveExerciseMessage": "Há séries registradas para este exercício. Remover mesmo assim?",
+  "@adHocRemoveExerciseMessage": { "description": "Body for remove exercise confirm" },
+  "adHocFinishBlockedTitle": "Nada para finalizar",
+  "@adHocFinishBlockedTitle": { "description": "Title when finishing with no completed sets" },
+  "adHocFinishBlockedMessage": "Adicione pelo menos um exercício e complete uma série antes de finalizar.",
+  "@adHocFinishBlockedMessage": { "description": "Body when finish blocked" },
+  "adHocSaveTitle": "Salvar treino improvisado?",
+  "@adHocSaveTitle": { "description": "Post-finish save dialog title" },
+  "adHocSaveMessage": "Inclua no programa e no ciclo ou mantenha apenas o histórico desta sessão.",
+  "@adHocSaveMessage": { "description": "Post-finish save dialog body" },
+  "adHocSaveNameLabel": "Nome do treino",
+  "@adHocSaveNameLabel": { "description": "Workout name field in save dialog" },
+  "adHocSaveHistoryOnly": "Só histórico",
+  "@adHocSaveHistoryOnly": { "description": "Discard template, keep execution history" },
+  "adHocSaveWorkout": "Salvar treino",
+  "@adHocSaveWorkout": { "description": "Save workout to program and cycle" },
+  "trainingStartFabMenuTitle": "Iniciar treino",
+  "@trainingStartFabMenuTitle": { "description": "Expanded FAB menu title" },
+  "trainingStartFabNextLabel": "Próximo do ciclo",
+  "@trainingStartFabNextLabel": { "description": "Start next cycle workout action" },
+  "trainingStartFabImprovisedHint": "Monte os exercícios durante a execução",
+  "@trainingStartFabImprovisedHint": {
+    "description": "Improvised workout action subtitle in FAB menu"
+  },
+  "trainingStartFabStartNext": "Iniciar {workoutName}",
+  "@trainingStartFabStartNext": {
+    "description": "Primary FAB tap — start next cycle workout",
+    "placeholders": { "workoutName": { "type": "String" } }
+  },
+  "trainingStartFabStartNextHint": "Segure o botão ou toque em ⋯ para mais opções",
+  "@trainingStartFabStartNextHint": {
+    "description": "Extra line in primary FAB tooltip"
+  },
+  "trainingStartFabMoreOptions": "Mais opções de treino",
+  "@trainingStartFabMoreOptions": {
+    "description": "FAB corner chip — open workout menu"
+  },
   "equipmentWarningTitle": "Equipamento não cadastrado",
   "@equipmentWarningTitle": { "description": "Title for equipment warning dialog" },
   "equipmentWarningMessage": "Este exercício requer equipamentos que não estão na sua lista:",

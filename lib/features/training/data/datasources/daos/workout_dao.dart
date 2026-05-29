@@ -32,6 +32,7 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
               (w) =>
                   w.userId.equals(userId) &
                   w.isArchived.equals(false) &
+                  w.isDraft.equals(false) &
                   w.deletedAt.isNull(),
             )
             ..orderBy([
@@ -59,6 +60,44 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
   Future<void> create(WorkoutsCompanion entry) async {
     await into(workouts).insert(entry);
     await _markDirty(entry.id.value);
+  }
+
+  /// Hidden draft workout for improvised in-session building.
+  Future<void> createDraft({
+    required String id,
+    required String userId,
+    required String name,
+  }) async {
+    await into(workouts).insert(
+      WorkoutsCompanion.insert(
+        id: id,
+        userId: userId,
+        name: name,
+        isDraft: const Value(true),
+      ),
+    );
+    await _markDirty(id);
+  }
+
+  Future<void> promoteDraft(String id, {required String name}) async {
+    await (update(workouts)..where((w) => w.id.equals(id))).write(
+      WorkoutsCompanion(
+        name: Value(name),
+        isDraft: const Value(false),
+      ),
+    );
+    await _markDirty(id);
+  }
+
+  Future<void> archiveDraft(String id) async {
+    await (update(workouts)..where((w) => w.id.equals(id))).write(
+      const WorkoutsCompanion(
+        isDraft: Value(false),
+        isArchived: Value(true),
+        sortOrder: Value(null),
+      ),
+    );
+    await _markDirty(id);
   }
 
   Future<void> updateById(String id, WorkoutsCompanion entry) async {

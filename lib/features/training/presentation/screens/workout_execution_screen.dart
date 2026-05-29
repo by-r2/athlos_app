@@ -14,6 +14,7 @@ import '../../../../core/services/workout_timer_feedback_service.dart';
 import '../../../../core/theme/athlos_custom_colors.dart';
 import '../../../../core/theme/athlos_bottom_sheet.dart';
 import '../../../../core/theme/athlos_dialog.dart';
+import '../../../../core/theme/athlos_elevation.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_screen_button_styles.dart';
 import '../../../../core/theme/athlos_spacing.dart';
@@ -35,15 +36,21 @@ import '../helpers/exercise_l10n.dart';
 import '../helpers/load_mode_l10n.dart';
 import '../helpers/rep_performance.dart';
 import '../helpers/rest_next_target.dart';
+import '../helpers/superset_grouping.dart';
+import '../helpers/workout_exercise_prescription_summary.dart';
 import '../helpers/workout_execution_launch.dart';
 import '../providers/active_execution_notifier.dart';
 import '../providers/cardio_timer_notifier.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
+import '../providers/training_analytics_provider.dart';
 import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
 import '../providers/workout_share_summary_gate.dart';
+import '../../domain/usecases/promote_ad_hoc_workout.dart';
+import '../widgets/ad_hoc_exercise_config_sheet.dart';
+import '../widgets/exercise_picker_sheet.dart';
 import '../widgets/ghost_exercise_recovery_panel.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
@@ -131,6 +138,12 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   List<_DropSegmentInput> _dropSegments = [];
   _TimedSubState _timedSubState = _TimedSubState.ready;
   int _countdownValue = 3;
+
+  bool _isSupersetSelecting = false;
+  bool _isJoiningExistingSuperset = false;
+  String? _joinSeedExerciseId;
+  int? _supersetEditingGroupId;
+  Set<String> _supersetSelectedIds = {};
 
   @override
   void initState() {
@@ -324,17 +337,33 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             for (final e in allExercises)
               if (e.isIsometric) e.id,
           };
-          await ref
-              .read(activeExecutionProvider.notifier)
-              .startExecution(
-                widget.workoutId,
-                exercisesAsync.value,
-                programId: activeProgram.id,
-                deloadConfig: deloadConfig,
-                progressionRules: progressionRules,
-                defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
-                isometricExerciseIds: isometricIds,
-              );
+          final workout = (await ref
+                  .read(workoutRepositoryProvider)
+                  .getById(widget.workoutId))
+              .getOrThrow();
+          final isAdHocDraft = workout?.isDraft ?? false;
+          if (isAdHocDraft) {
+            await ref.read(activeExecutionProvider.notifier).startAdHocExecution(
+                  widget.workoutId,
+                  programId: activeProgram.id,
+                  deloadConfig: deloadConfig,
+                  progressionRules: progressionRules,
+                  defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
+                  isometricExerciseIds: isometricIds,
+                );
+          } else {
+            await ref
+                .read(activeExecutionProvider.notifier)
+                .startExecution(
+                  widget.workoutId,
+                  exercisesAsync.value,
+                  programId: activeProgram.id,
+                  deloadConfig: deloadConfig,
+                  progressionRules: progressionRules,
+                  defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
+                  isometricExerciseIds: isometricIds,
+                );
+          }
         } on Exception catch (_) {
           if (!context.mounted) return;
           context.showAthlosErrorSnack(l10n.genericError);
@@ -1278,31 +1307,469 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   // View 1: Overview
   // ---------------------------------------------------------------------------
 
+  Future<void> _onAddAdHocExercise(ActiveExecutionState exec) async {
+    final exercise = await showExercisePickerSheet(context);
+    if (exercise == null || !mounted) return;
+    try {
+      await ref.read(activeExecutionProvider.notifier).addExercise(exercise);
+    } on Exception catch (_) {
+      if (mounted) {
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
+      }
+    }
+  }
+
+  Exercise? _exerciseById(String exerciseId) {
+    final allExercises = ref.read(exerciseListProvider).value;
+    if (allExercises == null) return null;
+    for (final e in allExercises) {
+      if (e.id == exerciseId) return e;
+    }
+    return null;
+  }
+
+  Future<void> _onEditAdHocExercise(
+    ActiveExecutionState exec,
+    WorkoutExercise workoutExercise,
+  ) async {
+    final exercise = _exerciseById(workoutExercise.exerciseId);
+    if (exercise == null) {
+      if (mounted) {
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
+      }
+      return;
+    }
+
+    final completedSets = (exec.exerciseSets[workoutExercise.exerciseId] ?? [])
+        .where((s) => s.isCompleted)
+        .length;
+
+    final updated = await showAdHocExerciseConfigSheet(
+      context,
+      workoutExercise: workoutExercise,
+      exercise: exercise,
+      minSets: completedSets,
+    );
+    if (updated == null || !mounted) return;
+
+    try {
+      await ref
+          .read(activeExecutionProvider.notifier)
+          .updateAdHocExercise(updated);
+    } on Exception catch (_) {
+      if (mounted) {
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
+      }
+    }
+  }
+
+  void _showAdHocExerciseOptionsSheet(
+    BuildContext context,
+    ActiveExecutionState exec,
+    WorkoutExercise workoutExercise,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final exerciseName = _exerciseName(workoutExercise.exerciseId);
+
+    showAthlosModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AthlosSpacing.md,
+              AthlosSpacing.sm,
+              AthlosSpacing.md,
+              AthlosSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(exerciseName, style: textTheme.titleMedium),
+                const SizedBox(height: AthlosSpacing.md),
+                if (workoutExercise.groupId == null) ...[
+                  ListTile(
+                    leading: Icon(Icons.link, color: colorScheme.primary),
+                    title: Text(l10n.linkSuperset),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _startSupersetSelection(workoutExercise);
+                    },
+                  ),
+                  if (_hasExistingSuperset(exec))
+                    ListTile(
+                      leading: Icon(
+                        Icons.add_link,
+                        color: colorScheme.primary,
+                      ),
+                      title: Text(l10n.adHocSupersetJoinExistingAction),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _startJoinExistingSupersetSelection(workoutExercise);
+                      },
+                    ),
+                ] else
+                  ListTile(
+                    leading: Icon(Icons.tune, color: colorScheme.primary),
+                    title: Text(l10n.adHocSupersetEditAction),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _startSupersetEditMode(exec, workoutExercise);
+                    },
+                  ),
+                ListTile(
+                  leading: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                  title: Text(l10n.editExercise),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _onEditAdHocExercise(exec, workoutExercise);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: colorScheme.error),
+                  title: Text(
+                    l10n.removeExercise,
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final confirmed = await _onRemoveAdHocExercise(
+                      context,
+                      exec,
+                      workoutExercise.exerciseId,
+                    );
+                    if (confirmed && mounted) {
+                      ref
+                          .read(activeExecutionProvider.notifier)
+                          .removeExercise(workoutExercise.exerciseId);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _onRemoveAdHocExercise(
+    BuildContext context,
+    ActiveExecutionState exec,
+    String exerciseId,
+  ) async {
+    final sets = exec.exerciseSets[exerciseId] ?? [];
+    final hasCompleted = sets.any((s) => s.isCompleted);
+    if (hasCompleted) {
+      final l10n = AppLocalizations.of(context)!;
+      final confirmed = await showAthlosDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.adHocRemoveExerciseTitle),
+          content: Text(l10n.adHocRemoveExerciseMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.removeExercise),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return false;
+    }
+    ref.read(activeExecutionProvider.notifier).removeExercise(exerciseId);
+    return true;
+  }
+
+  bool _hasExistingSuperset(ActiveExecutionState exec) =>
+      exec.exercises.any((e) => e.groupId != null);
+
+  void _startSupersetSelection(WorkoutExercise seed) {
+    if (seed.groupId != null) return;
+    setState(() {
+      _isSupersetSelecting = true;
+      _isJoiningExistingSuperset = false;
+      _joinSeedExerciseId = null;
+      _supersetEditingGroupId = null;
+      _supersetSelectedIds = {seed.exerciseId};
+    });
+  }
+
+  void _startSupersetEditMode(
+    ActiveExecutionState exec,
+    WorkoutExercise seed,
+  ) {
+    final gid = seed.groupId;
+    if (gid == null) return;
+    setState(() {
+      _isSupersetSelecting = true;
+      _isJoiningExistingSuperset = false;
+      _joinSeedExerciseId = null;
+      _supersetEditingGroupId = gid;
+      _supersetSelectedIds = {
+        for (final e in exec.exercises)
+          if (e.groupId == gid) e.exerciseId,
+      };
+    });
+  }
+
+  void _startJoinExistingSupersetSelection(WorkoutExercise seed) {
+    if (seed.groupId != null) return;
+    setState(() {
+      _isSupersetSelecting = true;
+      _isJoiningExistingSuperset = true;
+      _joinSeedExerciseId = seed.exerciseId;
+      _supersetEditingGroupId = null;
+      _supersetSelectedIds = {seed.exerciseId};
+    });
+  }
+
+  bool _isJoinSupersetSelectionLocked(WorkoutExercise exercise) {
+    final seedId = _joinSeedExerciseId;
+    if (seedId == null) return true;
+    final gid = exercise.groupId;
+    if (gid != null) {
+      return _supersetEditingGroupId != null && gid != _supersetEditingGroupId;
+    }
+    return exercise.exerciseId != seedId;
+  }
+
+  void _cancelSupersetEdit() {
+    setState(() {
+      _isSupersetSelecting = false;
+      _isJoiningExistingSuperset = false;
+      _joinSeedExerciseId = null;
+      _supersetEditingGroupId = null;
+      _supersetSelectedIds = {};
+    });
+  }
+
+  void _toggleSupersetSelection(WorkoutExercise exercise) {
+    if (_isJoiningExistingSuperset) {
+      if (_isJoinSupersetSelectionLocked(exercise)) return;
+
+      final seedId = _joinSeedExerciseId;
+      if (seedId == null) return;
+
+      final gid = exercise.groupId;
+      if (gid == null) {
+        setState(() {
+          if (_supersetSelectedIds.contains(seedId)) {
+            _supersetSelectedIds = {};
+          } else {
+            _supersetSelectedIds = {seedId};
+          }
+          _supersetEditingGroupId = null;
+        });
+        return;
+      }
+
+      final exec = ref.read(activeExecutionProvider);
+      if (exec == null) return;
+
+      if (_supersetEditingGroupId == gid) {
+        setState(() {
+          _supersetEditingGroupId = null;
+          _supersetSelectedIds = {seedId};
+        });
+        return;
+      }
+
+      setState(() {
+        _supersetEditingGroupId = gid;
+        _supersetSelectedIds = {
+          seedId,
+          for (final e in exec.exercises)
+            if (e.groupId == gid) e.exerciseId,
+        };
+      });
+      return;
+    }
+
+    if (isLockedInOtherSuperset(exercise, _supersetEditingGroupId)) return;
+    setState(() {
+      if (_supersetSelectedIds.contains(exercise.exerciseId)) {
+        _supersetSelectedIds = {..._supersetSelectedIds}
+          ..remove(exercise.exerciseId);
+      } else {
+        _supersetSelectedIds = {..._supersetSelectedIds, exercise.exerciseId};
+      }
+    });
+  }
+
+  void _confirmSupersetEdit() {
+    if (_isJoiningExistingSuperset) {
+      final l10n = AppLocalizations.of(context)!;
+      if (_supersetEditingGroupId == null || _supersetSelectedIds.length < 2) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.adHocSupersetJoinConfirmNeedsGroup)),
+        );
+        return;
+      }
+    }
+
+    final exec = ref.read(activeExecutionProvider);
+    final focusedExerciseId = exec != null &&
+            _focusedExerciseIndex >= 0 &&
+            _focusedExerciseIndex < exec.exercises.length
+        ? exec.exercises[_focusedExerciseIndex].exerciseId
+        : null;
+
+    ref.read(activeExecutionProvider.notifier).commitSupersetSelection(
+          _supersetSelectedIds,
+          editingGroupId: _supersetEditingGroupId,
+        );
+
+    if (focusedExerciseId != null && mounted) {
+      final updated = ref.read(activeExecutionProvider);
+      final newIndex = updated?.exercises.indexWhere(
+        (e) => e.exerciseId == focusedExerciseId,
+      );
+      if (newIndex != null && newIndex >= 0) {
+        setState(() => _focusedExerciseIndex = newIndex);
+      }
+    }
+
+    _cancelSupersetEdit();
+  }
+
+  void _onReorderAdHocExercises(int oldIndex, int newIndex) {
+    final exec = ref.read(activeExecutionProvider);
+    if (exec == null || exec.exercises.isEmpty) return;
+
+    final safeFocused = _focusedExerciseIndex.clamp(
+      0,
+      exec.exercises.length - 1,
+    );
+    final focusedId = exec.exercises[safeFocused].exerciseId;
+
+    ref
+        .read(activeExecutionProvider.notifier)
+        .reorderAdHocExercises(oldIndex, newIndex);
+
+    final updated = ref.read(activeExecutionProvider);
+    if (!mounted || updated == null) return;
+
+    final newFocusedIndex = updated.exercises.indexWhere(
+      (e) => e.exerciseId == focusedId,
+    );
+    if (newFocusedIndex >= 0) {
+      setState(() => _focusedExerciseIndex = newFocusedIndex);
+    }
+  }
+
+  Widget _buildSupersetSelectionBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Material(
+        elevation: AthlosElevation.md,
+        borderRadius: AthlosRadius.fullAll,
+        color: colorScheme.surfaceContainerHigh,
+        child: Padding(
+          padding: const EdgeInsets.all(AthlosSpacing.xs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'superset-cancel',
+                onPressed: _cancelSupersetEdit,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                foregroundColor: colorScheme.onSurface,
+                child: const Icon(Icons.close),
+              ),
+              const SizedBox(width: AthlosSpacing.sm),
+              FloatingActionButton.small(
+                heroTag: 'superset-confirm',
+                onPressed: _confirmSupersetEdit,
+                child: const Icon(Icons.check),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverview(BuildContext context, ActiveExecutionState exec) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final workoutAsync = ref.watch(workoutByIdProvider(widget.workoutId));
-    final workoutName = workoutAsync.value?.name ?? '';
+    final workoutName = exec.isAdHoc
+        ? l10n.improvisedWorkoutTitle
+        : (workoutAsync.value?.name ?? '');
     final workoutNotes = workoutAsync.value?.description?.trim();
     final completed = exec.completedSetCount;
     final total = _totalSetCount;
     final next = _findNextPendingSet(exec);
 
-    return AthlosScaffold(
-      appBar: AppBar(
-        title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
-        automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: () => _showCancelDialog(context),
-            child: Text(l10n.cancelExecution),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (exec.isDeload)
+    final isSupersetSelecting = exec.isAdHoc && _isSupersetSelecting;
+
+    return PopScope(
+      canPop: !isSupersetSelecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && isSupersetSelecting) _cancelSupersetEdit();
+      },
+      child: AthlosScaffold(
+        appBar: AppBar(
+          title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
+          automaticallyImplyLeading: false,
+          actions: [
+            if (isSupersetSelecting)
+              TextButton(
+                onPressed: _cancelSupersetEdit,
+                child: Text(l10n.cancel),
+              )
+            else
+              TextButton(
+                onPressed: () => _showCancelDialog(context),
+                child: Text(l10n.cancelExecution),
+              ),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (isSupersetSelecting)
+              Material(
+                color: colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AthlosSpacing.md,
+                    vertical: AthlosSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.link,
+                        size: 18,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: AthlosSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          _isJoiningExistingSuperset
+                              ? l10n.adHocSupersetJoinSelectHint
+                              : _supersetEditingGroupId == null
+                                  ? l10n.adHocSupersetSelectHintNewGroup
+                                  : l10n.adHocSupersetSelectHintEdit,
+                          style: textTheme.labelLarge?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (exec.isDeload)
             Container(
               width: double.infinity,
               color: colorScheme.tertiaryContainer,
@@ -1377,23 +1844,41 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
           // Exercise list
           Expanded(
-            child: Builder(
-              builder: (context) {
-                final groupColorMap = <int, int>{};
-                var nextColorIdx = 0;
-                for (final ex in exec.exercises) {
-                  if (ex.groupId != null &&
-                      !groupColorMap.containsKey(ex.groupId)) {
-                    groupColorMap[ex.groupId!] = nextColorIdx++;
-                  }
-                }
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                Builder(
+                  builder: (context) {
+                    if (exec.isAdHoc && exec.exercises.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AthlosSpacing.lg),
+                          child: Text(
+                            l10n.adHocEmptyHint,
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.sm,
-                  ),
-                  itemCount: exec.exercises.length,
-                  itemBuilder: (context, index) {
+                    final groupColorMap =
+                        supersetColorIndexByGroupId(exec.exercises);
+                    final canReorderOverview =
+                        exec.isAdHoc && !isSupersetSelecting;
+
+                    final listPadding = EdgeInsets.fromLTRB(
+                      AthlosSpacing.sm,
+                      AthlosSpacing.sm,
+                      AthlosSpacing.sm,
+                      isSupersetSelecting
+                          ? AthlosSpacing.fabClearance
+                          : AthlosSpacing.sm,
+                    );
+
+                    Widget buildOverviewItem(BuildContext context, int index) {
                     final exercise = exec.exercises[index];
                     final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
                     final completedSets = sets
@@ -1413,22 +1898,136 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                         gid != null &&
                         exec.exercises[index + 1].groupId == gid;
 
-                    return _OverviewExerciseCard(
+                    final catalogExercise = _exerciseById(exercise.exerciseId);
+                    final prescriptionSummary = catalogExercise != null
+                        ? formatWorkoutExercisePrescriptionSummary(
+                            exercise: exercise,
+                            catalogExercise: catalogExercise,
+                            l10n: l10n,
+                          )
+                        : null;
+
+                    final isSelected = _supersetSelectedIds.contains(
+                      exercise.exerciseId,
+                    );
+                    final isSupersetLocked = isSupersetSelecting &&
+                        (_isJoiningExistingSuperset
+                            ? _isJoinSupersetSelectionLocked(exercise)
+                            : isLockedInOtherSuperset(
+                                exercise,
+                                _supersetEditingGroupId,
+                              ));
+
+                    final overviewCard = _OverviewExerciseCard(
                       exerciseName: _exerciseName(exercise.exerciseId),
                       muscleGroup: _muscleGroupName(exercise.exerciseId),
+                      prescriptionSummary: prescriptionSummary,
+                      isAmrap: exercise.isAmrap,
                       completedSets: completedSets,
                       totalSets: totalSets,
                       isAllDone: isAllDone,
-                      isActive: isActive,
+                      isActive: isActive && !isSupersetSelecting,
                       isUnilateral: exercise.isUnilateral,
                       isGroupedWithPrevious: isGroupedWithPrev,
                       isGroupedWithNext: isGroupedWithNext,
                       groupColorIndex: gid != null ? groupColorMap[gid] : null,
-                      onTap: () => _goToFocused(exec, index),
+                      isSupersetSelectionActive: isSupersetSelecting,
+                      isSupersetSelected: isSelected,
+                      isSupersetSelectionLocked: isSupersetLocked,
+                      reorderListIndex:
+                          canReorderOverview ? index : null,
+                      onTap: isSupersetSelecting
+                          ? () => _toggleSupersetSelection(exercise)
+                          : () => _goToFocused(exec, index),
+                      onLongPress: exec.isAdHoc && !isSupersetSelecting
+                          ? () => _showAdHocExerciseOptionsSheet(
+                                context,
+                                exec,
+                                exercise,
+                              )
+                          : null,
+                    );
+
+                    if (!exec.isAdHoc || isSupersetSelecting) {
+                      return KeyedSubtree(
+                        key: ValueKey(exercise.exerciseId),
+                        child: overviewCard,
+                      );
+                    }
+
+                    return Dismissible(
+                      key: ValueKey(exercise.exerciseId),
+                      direction: DismissDirection.horizontal,
+                      confirmDismiss: (direction) async {
+                        if (direction == DismissDirection.startToEnd) {
+                          await _onEditAdHocExercise(exec, exercise);
+                          return false;
+                        }
+                        return _onRemoveAdHocExercise(
+                          context,
+                          exec,
+                          exercise.exerciseId,
+                        );
+                      },
+                      onDismissed: (_) => ref
+                          .read(activeExecutionProvider.notifier)
+                          .removeExercise(exercise.exerciseId),
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: AthlosSpacing.lg),
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AthlosSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: AthlosRadius.mdAll,
+                        ),
+                        child: Icon(
+                          Icons.edit_outlined,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      secondaryBackground: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: AthlosSpacing.lg),
+                        margin: const EdgeInsets.symmetric(
+                          vertical: AthlosSpacing.xs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          borderRadius: AthlosRadius.mdAll,
+                        ),
+                        child: Icon(
+                          Icons.delete_outline,
+                          color: colorScheme.onErrorContainer,
+                        ),
+                      ),
+                      child: overviewCard,
+                    );
+                    }
+
+                    if (canReorderOverview) {
+                      return ReorderableListView.builder(
+                        padding: listPadding,
+                        itemCount: exec.exercises.length,
+                        onReorderItem: _onReorderAdHocExercises,
+                        itemBuilder: buildOverviewItem,
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: listPadding,
+                      itemCount: exec.exercises.length,
+                      itemBuilder: buildOverviewItem,
                     );
                   },
-                );
-              },
+                ),
+                if (isSupersetSelecting)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AthlosSpacing.lg),
+                    child: _buildSupersetSelectionBar(context),
+                  ),
+              ],
             ),
           ),
 
@@ -1439,6 +2038,19 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (exec.isAdHoc) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: exec.isFinishing || isSupersetSelecting
+                            ? null
+                            : () => _onAddAdHocExercise(exec),
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.adHocAddExercise),
+                      ),
+                    ),
+                    const SizedBox(height: AthlosSpacing.sm),
+                  ],
                   if (next != null) ...[
                     AthlosStackedActions(
                       spacing: AthlosSpacing.sm,
@@ -1496,6 +2108,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -3554,8 +4167,27 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   }
 
   Future<void> _onFinish(BuildContext context) async {
+    final exec = ref.read(activeExecutionProvider);
+    if (exec == null) return;
+
+    if (exec.isAdHoc) {
+      if (exec.exercises.isEmpty || !exec.hasCompletedSets) {
+        await _showAdHocFinishBlockedDialog(context);
+        return;
+      }
+      final saveResult = await _showAdHocSaveDialog(context, exec);
+      if (!context.mounted || saveResult == null) return;
+      await _finishAdHocWithOutcome(
+        context,
+        exec,
+        saveResult.outcome,
+        saveResult.name,
+      );
+      return;
+    }
+
     final router = GoRouter.of(context);
-    final executionIdToShare = ref.read(activeExecutionProvider)?.executionId;
+    final executionIdToShare = exec.executionId;
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
       ref.read(restTimerProvider.notifier).reset();
@@ -3586,7 +4218,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         if (context.mounted) {
           router.pop();
           final openSummary =
-              executionIdToShare != null &&
               ref.read(shouldAutoShowWorkoutShareSummaryProvider);
           if (openSummary) {
             router.push(
@@ -3690,6 +4321,141 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           .archiveProgram(program.id);
       ref.invalidate(programListProvider);
       ref.invalidate(activeProgramProvider);
+    }
+  }
+
+  Future<void> _showAdHocFinishBlockedDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    await showAthlosDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.adHocFinishBlockedTitle),
+        content: Text(l10n.adHocFinishBlockedMessage),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.back),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<({AdHocSaveOutcome outcome, String name})?> _showAdHocSaveDialog(
+    BuildContext context,
+    ActiveExecutionState exec,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final workout =
+        ref.read(workoutByIdProvider(widget.workoutId)).value;
+    final nameController = TextEditingController(
+      text: workout?.name ?? l10n.improvisedWorkoutTitle,
+    );
+
+    String resolveName() {
+      final trimmed = nameController.text.trim();
+      return trimmed.isEmpty ? l10n.improvisedWorkoutTitle : trimmed;
+    }
+
+    return showAthlosDialog<({AdHocSaveOutcome outcome, String name})>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.adHocSaveTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.adHocSaveMessage),
+            const SizedBox(height: AthlosSpacing.md),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: l10n.adHocSaveNameLabel,
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ],
+        ),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () {
+                  Navigator.pop(
+                    ctx,
+                    (
+                      outcome: AdHocSaveOutcome.historyOnly,
+                      name: resolveName(),
+                    ),
+                  );
+                },
+                child: Text(l10n.adHocSaveHistoryOnly),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () {
+                  Navigator.pop(
+                    ctx,
+                    (
+                      outcome: AdHocSaveOutcome.save,
+                      name: resolveName(),
+                    ),
+                  );
+                },
+                child: Text(l10n.adHocSaveWorkout),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _finishAdHocWithOutcome(
+    BuildContext context,
+    ActiveExecutionState exec,
+    AdHocSaveOutcome outcome,
+    String saveName,
+  ) async {
+    final router = GoRouter.of(context);
+    final executionIdToShare = exec.executionId;
+    final l10n = AppLocalizations.of(context)!;
+    final program = ref.read(activeProgramProvider).value;
+    if (program == null) return;
+
+    try {
+      await ref.read(activeExecutionProvider.notifier).finishExecution();
+
+      await ref.read(promoteAdHocWorkoutProvider).call(
+            PromoteAdHocWorkoutParams(
+              workoutId: exec.workoutId,
+              programId: program.id,
+              name: saveName,
+              exercises: exec.exercises,
+              outcome: outcome,
+            ),
+          );
+
+      ref.read(restTimerProvider.notifier).reset();
+      ref.read(cardioTimerProvider.notifier).reset();
+      ref.invalidate(workoutListProvider);
+      ref.invalidate(cycleStepsForProgramProvider(program.id));
+
+      if (!context.mounted) return;
+      context.showAthlosSuccessSnack(l10n.workoutFinished);
+      router.pop();
+
+      if (ref.read(shouldAutoShowWorkoutShareSummaryProvider)) {
+        router.push(
+          RoutePaths.trainingExecutionShareSummary(executionIdToShare),
+        );
+      }
+    } on Exception catch (_) {
+      if (context.mounted) {
+        context.showAthlosErrorSnack(l10n.genericError);
+      }
     }
   }
 
@@ -3827,6 +4593,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 class _OverviewExerciseCard extends StatelessWidget {
   final String exerciseName;
   final String muscleGroup;
+  final String? prescriptionSummary;
+  final bool isAmrap;
   final int completedSets;
   final int totalSets;
   final bool isAllDone;
@@ -3835,11 +4603,18 @@ class _OverviewExerciseCard extends StatelessWidget {
   final bool isGroupedWithPrevious;
   final bool isGroupedWithNext;
   final int? groupColorIndex;
+  final bool isSupersetSelectionActive;
+  final bool isSupersetSelected;
+  final bool isSupersetSelectionLocked;
+  final int? reorderListIndex;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _OverviewExerciseCard({
     required this.exerciseName,
     required this.muscleGroup,
+    this.prescriptionSummary,
+    this.isAmrap = false,
     required this.completedSets,
     required this.totalSets,
     required this.isAllDone,
@@ -3848,7 +4623,12 @@ class _OverviewExerciseCard extends StatelessWidget {
     this.isGroupedWithPrevious = false,
     this.isGroupedWithNext = false,
     this.groupColorIndex,
+    this.isSupersetSelectionActive = false,
+    this.isSupersetSelected = false,
+    this.isSupersetSelectionLocked = false,
+    this.reorderListIndex,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -3864,7 +4644,19 @@ class _OverviewExerciseCard extends StatelessWidget {
 
     final IconData statusIcon;
     final Color statusColor;
-    if (isAllDone) {
+    if (isSupersetSelectionActive) {
+      if (isSupersetSelectionLocked) {
+        statusIcon = Icons.lock_outline;
+        statusColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
+      } else {
+        statusIcon = isSupersetSelected
+            ? Icons.check_circle
+            : Icons.circle_outlined;
+        statusColor = isSupersetSelected
+            ? colorScheme.primary
+            : colorScheme.onSurfaceVariant;
+      }
+    } else if (isAllDone) {
       statusIcon = Icons.check_circle;
       statusColor = colorScheme.primary;
     } else if (isActive) {
@@ -3882,6 +4674,17 @@ class _OverviewExerciseCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (reorderListIndex != null)
+            ReorderableDragStartListener(
+              index: reorderListIndex!,
+              child: Padding(
+                padding: const EdgeInsets.only(right: AthlosSpacing.xs),
+                child: Icon(
+                  Icons.drag_handle,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           Icon(statusIcon, color: statusColor, size: 28),
           const SizedBox(width: AthlosSpacing.md),
           Expanded(
@@ -3987,6 +4790,30 @@ class _OverviewExerciseCard extends StatelessWidget {
                       ],
                     ],
                   ),
+                if (prescriptionSummary != null &&
+                    prescriptionSummary!.isNotEmpty) ...[
+                  const SizedBox(height: AthlosSpacing.xxs),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          prescriptionSummary!,
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      if (isAmrap) ...[
+                        const SizedBox(width: AthlosSpacing.xs),
+                        Icon(
+                          Icons.whatshot,
+                          size: 12,
+                          color: colorScheme.tertiary,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -4010,27 +4837,30 @@ class _OverviewExerciseCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: AthlosSpacing.xs),
-          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+          if (!isSupersetSelectionActive) ...[
+            const SizedBox(width: AthlosSpacing.xs),
+            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+          ],
         ],
       ),
     );
 
     BorderSide? cardBorder;
-    if (isActive) {
-      cardBorder = BorderSide(color: colorScheme.tertiary, width: 1.5);
+    if (isSupersetSelectionActive && isSupersetSelected) {
+      cardBorder = BorderSide(color: colorScheme.primary, width: 2);
     } else if (groupColor != null) {
       cardBorder = BorderSide(color: groupColor.withValues(alpha: 0.4));
     }
 
-    return Card(
+    final card = Card(
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(vertical: AthlosSpacing.xs),
       shape: cardBorder != null
           ? RoundedRectangleBorder(
               borderRadius: AthlosRadius.mdAll,
               side: cardBorder,
             )
-          : null,
+          : RoundedRectangleBorder(borderRadius: AthlosRadius.mdAll),
       child: Container(
         decoration: groupColor != null
             ? BoxDecoration(
@@ -4039,12 +4869,17 @@ class _OverviewExerciseCard extends StatelessWidget {
               )
             : null,
         child: InkWell(
-          onTap: onTap,
+          onTap: isSupersetSelectionLocked ? null : onTap,
+          onLongPress: isSupersetSelectionLocked ? null : onLongPress,
           borderRadius: AthlosRadius.mdAll,
           child: content,
         ),
       ),
     );
+
+    if (!isSupersetSelectionLocked) return card;
+
+    return Opacity(opacity: 0.45, child: card);
   }
 }
 

@@ -10,6 +10,7 @@ import '../../../profile/domain/repositories/body_metric_repository.dart';
 import '../../domain/entities/execution_set.dart' as domain;
 import '../../domain/entities/execution_set_segment.dart' as domain;
 import '../../domain/entities/workout_execution.dart' as domain;
+import '../../domain/enums/session_kind.dart';
 import '../../domain/helpers/training_metrics.dart';
 import '../../domain/repositories/exercise_repository.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
@@ -85,6 +86,25 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     } on Exception catch (e) {
       return Failure(
         DatabaseException('Failed to load last finished execution: $e'),
+      );
+    }
+  }
+
+  @override
+  Future<Result<domain.WorkoutExecution?>> getLastFinishedForCycle({
+    required String programId,
+    required List<String> cycleWorkoutIds,
+  }) async {
+    try {
+      final row = await _dao.getLastFinishedForCycle(
+        userId: _userId,
+        programId: programId,
+        cycleWorkoutIds: cycleWorkoutIds,
+      );
+      return Success(row != null ? _executionToDomain(row) : null);
+    } on Exception catch (e) {
+      return Failure(
+        DatabaseException('Failed to load last cycle execution: $e'),
       );
     }
   }
@@ -241,6 +261,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   Future<Result<String>> start(
     String workoutId, {
     String? programId,
+    SessionKind sessionKind = SessionKind.planned,
   }) async {
     try {
       final id = generateUuidV4();
@@ -250,6 +271,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           userId: _userId,
           workoutId: workoutId,
           programId: programId ?? '',
+          sessionKind: Value(sessionKind),
           startedAt: Value(DateTime.now()),
         ),
       );
@@ -479,6 +501,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         id: row.id,
         workoutId: row.workoutId,
         programId: row.programId,
+        sessionKind: row.sessionKind,
         startedAt: row.startedAt,
         finishedAt: row.finishedAt,
         workoutNameSnapshot: row.workoutNameSnapshot,

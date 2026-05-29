@@ -24,6 +24,7 @@ import '../../features/training/data/datasources/dev_seeder.dart';
 import '../../features/training/data/datasources/exercise_seeder.dart';
 import '../../features/training/domain/enums/exercise_type.dart';
 import '../../features/training/domain/enums/load_mode.dart';
+import '../../features/training/domain/enums/session_kind.dart';
 import '../../features/training/domain/enums/movement_pattern.dart';
 import '../../features/training/domain/enums/muscle_role.dart';
 import '../../features/training/domain/entities/execution_context_fallback.dart';
@@ -96,7 +97,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 44;
+  int get schemaVersion => 45;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -914,6 +915,15 @@ class AppDatabase extends _$AppDatabase {
 
       if (from < 44) {
         await seedExercisesV44(this);
+      }
+
+      if (from < 45) {
+        await customStatement(
+          'ALTER TABLE workouts ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          "ALTER TABLE workout_executions ADD COLUMN session_kind TEXT NOT NULL DEFAULT 'planned'",
+        );
       }
     },
   );

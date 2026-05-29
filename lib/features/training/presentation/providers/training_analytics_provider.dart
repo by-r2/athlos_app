@@ -5,6 +5,7 @@ import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
 import '../../domain/entities/execution_comparison.dart';
 import '../../domain/entities/workout.dart';
+import 'program_notifier.dart';
 import 'workout_notifier.dart';
 
 part 'training_analytics_provider.g.dart';
@@ -183,11 +184,29 @@ Future<CycleListData> cycleListItems(Ref ref) async {
   return const CycleListData(items: [], isFromCycle: false);
 }
 
+/// Last finished planned execution for workouts in the active program cycle.
+@riverpod
+Future<String?> lastFinishedCycleWorkoutId(Ref ref) async {
+  final program = ref.watch(activeProgramProvider).value;
+  if (program == null) return null;
+
+  final steps = await ref.watch(effectiveCycleStepsProvider.future);
+  if (steps.isEmpty) return null;
+
+  final cycleWorkoutIds = steps.map((s) => s.workoutId).toList();
+  final execRepo = ref.watch(workoutExecutionRepositoryProvider);
+  final result = await execRepo.getLastFinishedForCycle(
+    programId: program.id,
+    cycleWorkoutIds: cycleWorkoutIds,
+  );
+  return result.getOrThrow()?.workoutId;
+}
+
 /// Next workout in the cycle.
 @riverpod
 Future<Workout?> nextCycleWorkout(Ref ref) async {
   final stepsAsync = ref.watch(effectiveCycleStepsProvider);
-  final lastIdAsync = ref.watch(lastFinishedWorkoutIdProvider);
+  final lastIdAsync = ref.watch(lastFinishedCycleWorkoutIdProvider);
   final workoutRepo = ref.watch(workoutRepositoryProvider);
 
   final steps = stepsAsync.value;
@@ -232,7 +251,7 @@ Future<Workout?> nextWorkoutToStart(Ref ref) async {
 @riverpod
 Future<int?> nextCycleStepIndex(Ref ref) async {
   final stepsAsync = ref.watch(effectiveCycleStepsProvider);
-  final lastIdAsync = ref.watch(lastFinishedWorkoutIdProvider);
+  final lastIdAsync = ref.watch(lastFinishedCycleWorkoutIdProvider);
 
   final steps = stepsAsync.value;
   if (steps == null || steps.isEmpty) return null;

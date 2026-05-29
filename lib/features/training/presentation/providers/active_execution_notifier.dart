@@ -11,8 +11,12 @@ import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/progression_rule.dart';
 import '../../domain/helpers/load_progression_rules.dart';
+import '../../domain/entities/exercise.dart';
 import '../../domain/entities/workout_exercise.dart';
+import '../../domain/enums/exercise_type.dart';
+import '../../domain/enums/session_kind.dart';
 import '../../domain/repositories/workout_execution_repository.dart';
+import '../../../../core/utils/uuid.dart';
 import '../../domain/enums/deload_strategy.dart';
 import '../../domain/enums/load_mode.dart';
 import '../../domain/enums/progression_condition.dart';
@@ -28,6 +32,7 @@ import 'workout_notifier.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../helpers/rep_performance.dart';
+import '../helpers/superset_grouping.dart';
 import 'recalculate_training_streaks.dart';
 import 'training_analytics_provider.dart';
 
@@ -64,9 +69,209 @@ class ActiveExecution extends _$ActiveExecution {
     final result = await repo.start(
       workoutId,
       programId: programId,
+      sessionKind: SessionKind.planned,
     );
     final executionId = result.getOrThrow();
 
+    final exerciseSets = await _buildInitialExerciseSets(
+      repo: repo,
+      exercises: exercises,
+      deloadConfig: deloadConfig,
+      progressionRules: progressionRules,
+      isometricExerciseIds: isometricExerciseIds,
+    );
+
+    state = ActiveExecutionState(
+      executionId: executionId,
+      workoutId: workoutId,
+      exerciseSets: exerciseSets,
+      exercises: exercises,
+      isDeload: deloadConfig != null,
+      defaultRestSeconds: defaultRestSeconds,
+    );
+  }
+
+  /// Starts an ad-hoc session on a draft workout with no template exercises.
+  Future<void> startAdHocExecution(
+    String workoutId, {
+    required String programId,
+    DeloadConfig? deloadConfig,
+    List<ProgressionRule> progressionRules = const [],
+    int defaultRestSeconds = 0,
+    Set<String> isometricExerciseIds = const {},
+  }) async {
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final result = await repo.start(
+      workoutId,
+      programId: programId,
+      sessionKind: SessionKind.adHoc,
+    );
+    final executionId = result.getOrThrow();
+
+    state = ActiveExecutionState(
+      executionId: executionId,
+      workoutId: workoutId,
+      exerciseSets: const {},
+      exercises: const [],
+      isDeload: deloadConfig != null,
+      defaultRestSeconds: defaultRestSeconds,
+      isAdHoc: true,
+    );
+
+    // Stash deload/progression context on the notifier via private fields
+    _adHocDeloadConfig = deloadConfig;
+    _adHocProgressionRules = progressionRules;
+    _adHocIsometricExerciseIds = isometricExerciseIds;
+  }
+
+  DeloadConfig? _adHocDeloadConfig;
+  List<ProgressionRule> _adHocProgressionRules = const [];
+  Set<String> _adHocIsometricExerciseIds = const {};
+
+  /// Adds an exercise during an ad-hoc session.
+  Future<void> addExercise(Exercise exercise) async {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+    if (current.exercises.any((e) => e.exerciseId == exercise.id)) return;
+
+    final restSeconds = current.defaultRestSeconds > 0
+        ? current.defaultRestSeconds
+        : 60;
+    final isCardio = exercise.type == ExerciseType.cardio;
+    final workoutExercise = WorkoutExercise(
+      id: generateUuidV4(),
+      workoutId: current.workoutId,
+      exerciseId: exercise.id,
+      sortOrder: current.exercises.length,
+      sets: 3,
+      minReps: isCardio ? null : 12,
+      maxReps: isCardio ? null : 12,
+      restSeconds: restSeconds,
+      durationSeconds: isCardio ? 300 : null,
+    );
+
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final newSets = await _buildInitialExerciseSets(
+      repo: repo,
+      exercises: [workoutExercise],
+      deloadConfig: _adHocDeloadConfig,
+      progressionRules: _adHocProgressionRules,
+      isometricExerciseIds: _adHocIsometricExerciseIds,
+    );
+
+    state = current.copyWith(
+      exercises: [...current.exercises, workoutExercise],
+      exerciseSets: {...current.exerciseSets, ...newSets},
+    );
+  }
+
+  /// Updates prescription for an ad-hoc exercise and rebuilds pending sets.
+  Future<void> updateAdHocExercise(WorkoutExercise updated) async {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+
+    final index = current.exercises.indexWhere(
+      (e) => e.exerciseId == updated.exerciseId,
+    );
+    if (index < 0) return;
+
+    final oldSets = current.exerciseSets[updated.exerciseId] ?? [];
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final freshSets = await _buildInitialExerciseSets(
+      repo: repo,
+      exercises: [updated],
+      deloadConfig: _adHocDeloadConfig,
+      progressionRules: _adHocProgressionRules,
+      isometricExerciseIds: _adHocIsometricExerciseIds,
+    );
+    final template = freshSets[updated.exerciseId] ?? [];
+
+    final merged = <SetEntry>[];
+    for (var setNum = 1; setNum <= updated.sets; setNum++) {
+      final existing =
+          oldSets.where((s) => s.setNumber == setNum).firstOrNull;
+      if (existing != null && existing.isCompleted) {
+        merged.add(existing);
+      } else {
+        final planned =
+            template.where((s) => s.setNumber == setNum).firstOrNull;
+        if (planned != null) merged.add(planned);
+      }
+    }
+
+    final updatedExercises = syncSupersetRestInList(current.exercises, updated);
+    final resolved = updatedExercises.firstWhere(
+      (e) => e.exerciseId == updated.exerciseId,
+    );
+
+    state = current.copyWith(
+      exercises: updatedExercises,
+      exerciseSets: {...current.exerciseSets, resolved.exerciseId: merged},
+    );
+  }
+
+  /// Reorders exercises in an ad-hoc overview (moves whole superset blocks).
+  void reorderAdHocExercises(int oldIndex, int newIndex) {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+    if (oldIndex < 0 ||
+        oldIndex >= current.exercises.length ||
+        newIndex < 0 ||
+        newIndex > current.exercises.length) {
+      return;
+    }
+
+    state = current.copyWith(
+      exercises: reorderExercisesInList(
+        current.exercises,
+        oldIndex,
+        newIndex,
+      ),
+    );
+  }
+
+  /// Sets superset membership from overview selection (ad-hoc only).
+  void commitSupersetSelection(
+    Set<String> linkedExerciseIds, {
+    int? editingGroupId,
+  }) {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+
+    state = current.copyWith(
+      exercises: applySupersetSelection(
+        current.exercises,
+        linkedExerciseIds,
+        editingGroupId: editingGroupId,
+      ),
+    );
+  }
+
+  /// Removes an exercise from an ad-hoc session (in-memory only).
+  void removeExercise(String exerciseId) {
+    final current = state;
+    if (current == null || !current.isAdHoc) return;
+
+    final updatedExercises = normalizeLonelySupersetGroups([
+      for (final e in current.exercises)
+        if (e.exerciseId != exerciseId) e,
+    ]);
+    final updatedSets = Map<String, List<SetEntry>>.from(current.exerciseSets)
+      ..remove(exerciseId);
+
+    state = current.copyWith(
+      exercises: updatedExercises,
+      exerciseSets: updatedSets,
+    );
+  }
+
+  Future<Map<String, List<SetEntry>>> _buildInitialExerciseSets({
+    required WorkoutExecutionRepository repo,
+    required List<WorkoutExercise> exercises,
+    DeloadConfig? deloadConfig,
+    List<ProgressionRule> progressionRules = const [],
+    Set<String> isometricExerciseIds = const {},
+  }) async {
     final exerciseIds = exercises.map((e) => e.exerciseId).toList();
     final weightsResult = await repo.getLastWeightsForExercises(exerciseIds);
     final lastWeights = weightsResult.getOrThrow();
@@ -86,7 +291,8 @@ class ActiveExecution extends _$ActiveExecution {
     for (final ex in exercises) {
       var lastWeight = lastWeights[ex.exerciseId];
       final isCardio =
-          ex.durationSeconds != null && !isometricExerciseIds.contains(ex.exerciseId);
+          ex.durationSeconds != null &&
+          !isometricExerciseIds.contains(ex.exerciseId);
       final isIsometric = isometricExerciseIds.contains(ex.exerciseId);
       final usesDuration = isCardio || isIsometric;
       var repsTarget = usesDuration ? null : ex.targetReps;
@@ -131,15 +337,7 @@ class ActiveExecution extends _$ActiveExecution {
         ),
       );
     }
-
-    state = ActiveExecutionState(
-      executionId: executionId,
-      workoutId: workoutId,
-      exerciseSets: exerciseSets,
-      exercises: exercises,
-      isDeload: deloadConfig != null,
-      defaultRestSeconds: defaultRestSeconds,
-    );
+    return exerciseSets;
   }
 
   Future<bool> _evaluateCondition(
@@ -557,9 +755,13 @@ class ActiveExecution extends _$ActiveExecution {
     result.getOrThrow();
 
     state = null;
+    _adHocDeloadConfig = null;
+    _adHocProgressionRules = const [];
+    _adHocIsometricExerciseIds = const {};
     await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
 
     ref.invalidate(lastFinishedWorkoutIdProvider);
+    ref.invalidate(lastFinishedCycleWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
     ref.invalidate(programSessionCountProvider);
 
@@ -578,18 +780,28 @@ class ActiveExecution extends _$ActiveExecution {
     String? programId,
     int defaultRestSeconds = 0,
     Set<String> isometricExerciseIds = const {},
+    bool isAdHoc = false,
   }) async {
     final repo = ref.read(workoutExecutionRepositoryProvider);
 
     final setsResult = await repo.getSets(executionId);
     final dbSets = setsResult.getOrThrow();
 
-    final exerciseIds = exercises.map((e) => e.exerciseId).toList();
+    var templateExercises = exercises;
+    if (isAdHoc && exercises.isEmpty && dbSets.isNotEmpty) {
+      templateExercises = _rebuildAdHocTemplateFromSets(
+        workoutId: workoutId,
+        dbSets: dbSets,
+        defaultRestSeconds: defaultRestSeconds,
+      );
+    }
+
+    final exerciseIds = templateExercises.map((e) => e.exerciseId).toList();
     final lastWeights = (await repo.getLastWeightsForExercises(exerciseIds))
         .getOrThrow();
 
     final exerciseSets = <String, List<SetEntry>>{};
-    for (final ex in exercises) {
+    for (final ex in templateExercises) {
       final completed = dbSets
           .where((s) => s.exerciseId == ex.exerciseId)
           .toList();
@@ -646,21 +858,60 @@ class ActiveExecution extends _$ActiveExecution {
       executionId: executionId,
       workoutId: workoutId,
       exerciseSets: exerciseSets,
-      exercises: exercises,
+      exercises: templateExercises,
       defaultRestSeconds: defaultRestSeconds,
+      isAdHoc: isAdHoc,
     );
+  }
+
+  List<WorkoutExercise> _rebuildAdHocTemplateFromSets({
+    required String workoutId,
+    required List<ExecutionSet> dbSets,
+    required int defaultRestSeconds,
+  }) {
+    final orderedIds = <String>[];
+    for (final set in dbSets) {
+      if (!orderedIds.contains(set.exerciseId)) {
+        orderedIds.add(set.exerciseId);
+      }
+    }
+
+    final restSeconds = defaultRestSeconds > 0 ? defaultRestSeconds : 60;
+    return [
+      for (var i = 0; i < orderedIds.length; i++)
+        WorkoutExercise(
+          id: generateUuidV4(),
+          workoutId: workoutId,
+          exerciseId: orderedIds[i],
+          sortOrder: i,
+          sets: dbSets.where((s) => s.exerciseId == orderedIds[i]).length,
+          minReps: 12,
+          maxReps: 12,
+          restSeconds: restSeconds,
+        ),
+    ];
   }
 
   /// Soft-deletes an unfinished execution, clears in-memory session when it
   /// matches, syncs tombstones, and refreshes dangling/list providers.
   Future<void> discardExecution(String executionId) async {
+    final current = state;
+    final workoutId = current?.workoutId;
+    final isAdHoc = current?.isAdHoc ?? false;
+
     final repo = ref.read(workoutExecutionRepositoryProvider);
     final result = await repo.delete(executionId);
     result.getOrThrow();
 
-    final current = state;
+    if (isAdHoc && workoutId != null) {
+      await ref.read(workoutRepositoryProvider).delete(workoutId);
+    }
+
     if (current?.executionId == executionId) {
       state = null;
+      _adHocDeloadConfig = null;
+      _adHocProgressionRules = const [];
+      _adHocIsometricExerciseIds = const {};
     }
 
     ref.invalidate(danglingExecutionProvider);

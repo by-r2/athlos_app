@@ -191,6 +191,9 @@ class ActiveExecutionState {
   /// Fallback rest seconds from the active program's defaultRestSeconds.
   final int defaultRestSeconds;
 
+  /// In-session workout building (treino improvisado).
+  final bool isAdHoc;
+
   const ActiveExecutionState({
     required this.executionId,
     required this.workoutId,
@@ -199,6 +202,7 @@ class ActiveExecutionState {
     this.isFinishing = false,
     this.isDeload = false,
     this.defaultRestSeconds = 0,
+    this.isAdHoc = false,
   });
 
   int get completedSetCount => exerciseSets.values
@@ -210,26 +214,16 @@ class ActiveExecutionState {
 
   ActiveExecutionState copyWith({
     Map<String, List<SetEntry>>? exerciseSets,
+    List<WorkoutExercise>? exercises,
     bool? isFinishing,
   }) => ActiveExecutionState(
     executionId: executionId,
     workoutId: workoutId,
     exerciseSets: exerciseSets ?? this.exerciseSets,
-    exercises: exercises,
+    exercises: exercises ?? this.exercises,
     isFinishing: isFinishing ?? this.isFinishing,
     defaultRestSeconds: defaultRestSeconds,
     isDeload: isDeload,
+    isAdHoc: isAdHoc,
   );
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ActiveExecutionState &&
-          runtimeType == other.runtimeType &&
-          executionId == other.executionId &&
-          workoutId == other.workoutId &&
-          isFinishing == other.isFinishing;
-
-  @override
-  int get hashCode => Object.hash(executionId, workoutId, isFinishing);
 }
