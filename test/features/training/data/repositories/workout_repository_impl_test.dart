@@ -3,8 +3,10 @@ import 'package:athlos_app/core/errors/app_exception.dart';
 import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
 import 'package:athlos_app/core/errors/result.dart';
 import 'package:athlos_app/core/utils/uuid.dart';
+import 'package:athlos_app/features/training/data/datasources/daos/cycle_step_dao.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/workout_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/workout_repository_impl.dart';
+import 'package:athlos_app/features/training/data/sync/training_remote_client.dart';
 import 'package:athlos_app/features/training/domain/entities/workout.dart'
     as domain;
 import 'package:athlos_app/features/training/domain/entities/workout_exercise.dart'
@@ -21,7 +23,9 @@ void main() {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       repository = WorkoutRepositoryImpl(
         WorkoutDao(db),
+        CycleStepDao(db),
         UserOwnedSyncRunner.disabled(),
+        TrainingRemoteClient(),
         'test-user-id',
       );
       await db.customSelect('SELECT 1').get();

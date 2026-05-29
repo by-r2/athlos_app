@@ -50,6 +50,59 @@ class TrainingRemoteClient {
     await client.from(table).upsert(row, onConflict: 'id');
   }
 
+  Future<List<String>> selectIds({
+    required String table,
+    required String userId,
+    required Map<String, Object> filters,
+    String? userIdColumn,
+  }) async {
+    final client = _client;
+    if (client == null || !isValidSyncUserId(userId)) return const [];
+
+    var query = client.from(table).select('id').eq(userIdColumn ?? 'user_id', userId);
+    for (final entry in filters.entries) {
+      query = query.eq(entry.key, entry.value);
+    }
+    final rows = await query;
+    return [
+      for (final row in List<Map<String, dynamic>>.from(rows as List))
+        row['id'] as String,
+    ];
+  }
+
+  Future<void> deleteByFilter({
+    required String table,
+    required String userId,
+    required Map<String, Object> filters,
+    String? userIdColumn,
+  }) async {
+    final client = _client;
+    if (client == null || !isValidSyncUserId(userId)) return;
+
+    var query = client.from(table).delete().eq(userIdColumn ?? 'user_id', userId);
+    for (final entry in filters.entries) {
+      query = query.eq(entry.key, entry.value);
+    }
+    await query;
+  }
+
+  Future<void> deleteByColumnIn({
+    required String table,
+    required String column,
+    required List<String> values,
+    required String userId,
+    String? userIdColumn,
+  }) async {
+    final client = _client;
+    if (client == null || values.isEmpty || !isValidSyncUserId(userId)) return;
+
+    await client
+        .from(table)
+        .delete()
+        .eq(userIdColumn ?? 'user_id', userId)
+        .inFilter(column, values);
+  }
+
   Future<void> deleteRow({
     required String table,
     required String id,

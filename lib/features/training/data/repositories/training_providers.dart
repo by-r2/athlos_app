@@ -41,7 +41,9 @@ ExerciseRepository exerciseRepository(Ref ref) => ExerciseRepositoryImpl(
 @riverpod
 WorkoutRepository workoutRepository(Ref ref) => WorkoutRepositoryImpl(
   ref.watch(workoutDaoProvider),
+  ref.watch(cycleStepDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
+  ref.watch(trainingRemoteClientProvider),
   _requireUserId(ref),
 );
 

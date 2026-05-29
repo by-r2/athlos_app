@@ -105,35 +105,13 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
     await _markDirty(id);
   }
 
-  /// Removes a draft workout and its exercises from local storage (no sync).
-  Future<void> hardDeleteDraft(String id) => transaction(() async {
+  /// Permanently removes a workout and its template exercises from local storage.
+  Future<void> deleteById(String id) => transaction(() async {
         await (delete(workoutExercises)
               ..where((we) => we.workoutId.equals(id)))
             .go();
         await (delete(workouts)..where((w) => w.id.equals(id))).go();
       });
-
-  Future<void> deleteById(String id) {
-    final now = DateTime.now().toUtc();
-    return transaction(() async {
-      await (update(workoutExercises)
-            ..where((we) => we.workoutId.equals(id)))
-          .write(
-        WorkoutExercisesCompanion(
-          deletedAt: Value(now),
-          isDirty: const Value(true),
-          updatedAt: Value(now),
-        ),
-      );
-      await (update(workouts)..where((w) => w.id.equals(id))).write(
-        WorkoutsCompanion(
-          deletedAt: Value(now),
-          isDirty: const Value(true),
-          updatedAt: Value(now),
-        ),
-      );
-    });
-  }
 
   Future<void> archive(String id) async {
     await (update(workouts)..where((w) => w.id.equals(id))).write(

@@ -66,6 +66,10 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Permanently removes all cycle steps that reference [workoutId].
+  Future<void> hardDeleteForWorkout(String workoutId) =>
+      (delete(cycleSteps)..where((s) => s.workoutId.equals(workoutId))).go();
+
   /// Soft-deletes cycle steps that reference [workoutId] across ALL programs.
   Future<void> removeWorkoutFromAll(String workoutId) {
     final now = DateTime.now().toUtc();

@@ -5,17 +5,28 @@ import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/sync/user_owned_sync_runner.dart';
 import '../../../../core/utils/uuid.dart';
+import '../sync/training_remote_client.dart';
+import '../sync/training_remote_purge.dart';
 import '../sync/training_sync_table_names.dart';
 import '../../domain/entities/workout.dart' as domain;
 import '../../domain/entities/workout_exercise.dart' as domain;
 import '../../domain/repositories/workout_repository.dart';
+import '../datasources/daos/cycle_step_dao.dart';
 import '../datasources/daos/workout_dao.dart';
 
 class WorkoutRepositoryImpl implements WorkoutRepository {
-  WorkoutRepositoryImpl(this._dao, this._syncRunner, this._userId);
+  WorkoutRepositoryImpl(
+    this._dao,
+    this._cycleDao,
+    this._syncRunner,
+    this._remote,
+    this._userId,
+  );
 
   final WorkoutDao _dao;
+  final CycleStepDao _cycleDao;
   final UserOwnedSyncRunner _syncRunner;
+  final TrainingRemoteClient _remote;
   final String _userId;
 
   Future<void> _syncWorkoutTables() async {
@@ -211,11 +222,28 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
           ValidationException('Only draft workouts can be deleted locally'),
         );
       }
-      await _dao.hardDeleteDraft(workoutId);
+      await _hardDeleteWorkout(
+        workoutId,
+        deleteRemoteExecutions: true,
+      );
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete draft workout: $e'));
     }
+  }
+
+  Future<void> _hardDeleteWorkout(
+    String workoutId, {
+    required bool deleteRemoteExecutions,
+  }) async {
+    await purgeWorkoutFromRemoteIfPresent(
+      remote: _remote,
+      userId: _userId,
+      workoutId: workoutId,
+      deleteExecutions: deleteRemoteExecutions,
+    );
+    await _cycleDao.hardDeleteForWorkout(workoutId);
+    await _dao.deleteById(workoutId);
   }
 
   @override
@@ -280,12 +308,13 @@ class WorkoutRepositoryImpl implements WorkoutRepository {
   Future<Result<void>> delete(String id) async {
     try {
       final row = await _dao.getById(id);
-      if (row?.isDraft == true) {
-        await _dao.hardDeleteDraft(id);
-        return const Success(null);
+      if (row == null) {
+        return Failure(NotFoundException('Workout $id not found'));
       }
-      await _dao.deleteById(id);
-      await _syncWorkoutTables();
+      await _hardDeleteWorkout(
+        id,
+        deleteRemoteExecutions: row.isDraft,
+      );
       return const Success(null);
     } on Exception catch (e) {
       return Failure(DatabaseException('Failed to delete workout $id: $e'));
