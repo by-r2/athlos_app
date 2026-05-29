@@ -1673,9 +1673,9 @@
     "description": "Primary FAB tap — start next cycle workout",
     "placeholders": { "workoutName": { "type": "String" } }
   },
-  "trainingStartFabStartNextHint": "Segure o botão ou toque em ⋯ para mais opções",
+  "trainingStartFabStartNextHint": "Toque em ⋯ para mais opções",
   "@trainingStartFabStartNextHint": {
-    "description": "Extra line in primary FAB tooltip"
+    "description": "Extra line in primary FAB tooltip (more options chip)"
   },
   "trainingStartFabMoreOptions": "Mais opções de treino",
   "@trainingStartFabMoreOptions": {
