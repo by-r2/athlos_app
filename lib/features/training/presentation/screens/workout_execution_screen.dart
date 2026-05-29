@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import '../../../../core/widgets/feedback/athlos_messenger.dart';
 
@@ -104,6 +105,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   bool _isInitialized = false;
   _ViewMode _viewMode = _ViewMode.overview;
   bool _isInBackground = false;
+  bool _suppressRestFeedbackOnce = false;
+  bool _suppressGoalFeedbackOnce = false;
+  bool _restAlertScheduledInBackground = false;
+  bool _goalAlertScheduledInBackground = false;
 
   final _restTimerNotificationService = RestTimerNotificationService.instance;
   final _timerFeedbackService = WorkoutTimerFeedbackService.instance;
@@ -137,7 +142,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _restTimerNotificationService.cancelAllForRestTimer();
+    _restTimerNotificationService.cancelAllWorkoutTimerNotifications();
     super.dispose();
   }
 
@@ -151,11 +156,77 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     };
 
     if (state == AppLifecycleState.resumed) {
+      _prepareResumeFeedbackSuppression(wasInBackground);
       ref.read(restTimerProvider.notifier).syncWithClock();
+      ref.read(cardioTimerProvider.notifier).syncWithClock();
+      if (wasInBackground) {
+        unawaited(_cancelBackgroundScheduledAlerts());
+      }
+    }
+
+    if (_isInBackground && !wasInBackground) {
+      unawaited(_scheduleBackgroundTimerAlerts());
     }
 
     if (_isInBackground == wasInBackground) return;
     _syncRestTimerNotification(next: ref.read(restTimerProvider));
+    _syncGoalTimerNotification(next: ref.read(cardioTimerProvider));
+  }
+
+  void _prepareResumeFeedbackSuppression(bool wasInBackground) {
+    if (!wasInBackground) return;
+
+    if (ref.read(restTimerProvider.notifier).wouldBeFinishedOnSync()) {
+      _suppressRestFeedbackOnce = true;
+    } else if (_restAlertScheduledInBackground) {
+      _restAlertScheduledInBackground = false;
+    }
+
+    if (ref.read(cardioTimerProvider.notifier).wouldReachGoalOnSync()) {
+      _suppressGoalFeedbackOnce = true;
+    } else if (_goalAlertScheduledInBackground) {
+      _goalAlertScheduledInBackground = false;
+    }
+  }
+
+  Future<void> _scheduleBackgroundTimerAlerts() async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    await _restTimerNotificationService.init();
+
+    final rest = ref.read(restTimerProvider);
+    if (rest.isRunning) {
+      final remaining = ref.read(restTimerProvider.notifier).wallClockRemainingSeconds();
+      if (remaining > 0) {
+        await _restTimerNotificationService.scheduleRestFinished(
+          title: l10n.restTimerDone,
+          body: l10n.restComplete,
+          afterSeconds: remaining,
+        );
+        _restAlertScheduledInBackground = true;
+      }
+    }
+
+    final cardio = ref.read(cardioTimerProvider);
+    if (cardio.isRunning && cardio.goalSeconds > 0 && !cardio.hasReachedGoal) {
+      final remaining =
+          ref.read(cardioTimerProvider.notifier).wallClockSecondsUntilGoal();
+      if (remaining > 0) {
+        await _restTimerNotificationService.scheduleGoalReached(
+          title: l10n.cardioGoalReached,
+          body: l10n.cardioGoalLabel(formatDuration(cardio.goalSeconds)),
+          afterSeconds: remaining,
+        );
+        _goalAlertScheduledInBackground = true;
+      }
+    }
+  }
+
+  Future<void> _cancelBackgroundScheduledAlerts() async {
+    await _restTimerNotificationService.cancelScheduledRestFinished();
+    await _restTimerNotificationService.cancelScheduledGoalReached();
+    _restAlertScheduledInBackground = false;
+    _goalAlertScheduledInBackground = false;
   }
 
   @override
@@ -173,6 +244,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       _maybePlayRestFinishedFeedback(previous, next);
     });
     ref.listen<CardioTimerState>(cardioTimerProvider, (previous, next) {
+      _syncGoalTimerNotification(previous: previous, next: next);
       _maybePlayGoalReachedFeedback(previous, next);
     });
 
@@ -331,15 +403,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (l10n == null) return;
 
     final hasJustFinished =
-        (previous?.remainingSeconds ?? 0) > 0 && next.remainingSeconds == 0;
+        (previous?.remainingSeconds ?? 0) > 0 &&
+        next.remainingSeconds == 0 &&
+        next.finishReason == RestTimerFinishReason.natural;
     if (hasJustFinished) {
-      if (_restTimerNotificationService.usesScheduledFinishAlert) {
-        await _restTimerNotificationService.cancelScheduledRestFinished();
-      } else {
+      await _restTimerNotificationService.cancelScheduledRestFinished();
+      if (!_restTimerNotificationService.usesScheduledFinishAlert) {
         await _restTimerNotificationService.showRestFinished(
           title: l10n.restTimerDone,
           body: l10n.restComplete,
         );
+        _suppressRestFeedbackOnce = true;
       }
       return;
     }
@@ -351,6 +425,19 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           title: l10n.restTimerLabel(next.remainingSeconds),
           body: nextBody,
         );
+        if (!_restAlertScheduledInBackground) {
+          final remaining = ref
+              .read(restTimerProvider.notifier)
+              .wallClockRemainingSeconds();
+          if (remaining > 0) {
+            await _restTimerNotificationService.scheduleRestFinished(
+              title: l10n.restTimerDone,
+              body: l10n.restComplete,
+              afterSeconds: remaining,
+            );
+            _restAlertScheduledInBackground = true;
+          }
+        }
       } else {
         final previousRemaining = previous?.remainingSeconds ?? 0;
         final wasRunning = previous?.isRunning ?? false;
@@ -365,8 +452,11 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           await _restTimerNotificationService.scheduleRestFinished(
             title: l10n.restTimerDone,
             body: l10n.restComplete,
-            afterSeconds: next.remainingSeconds,
+            afterSeconds: ref
+                .read(restTimerProvider.notifier)
+                .wallClockRemainingSeconds(),
           );
+          _restAlertScheduledInBackground = true;
         }
       }
       return;
@@ -376,11 +466,64 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         !next.isRunning &&
         next.remainingSeconds > 0) {
       await _restTimerNotificationService.cancelScheduledRestFinished();
+      _restAlertScheduledInBackground = false;
       return;
     }
 
     if (!next.isActive) {
       await _restTimerNotificationService.cancelAllForRestTimer();
+      _restAlertScheduledInBackground = false;
+    }
+  }
+
+  Future<void> _syncGoalTimerNotification({
+    CardioTimerState? previous,
+    required CardioTimerState next,
+  }) async {
+    if (!_isInBackground) {
+      if ((previous?.isRunning ?? false) || next.isRunning) {
+        await _restTimerNotificationService.cancelAllForGoalTimer();
+      }
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+
+    final hadGoal = previous?.hasReachedGoal ?? false;
+    final hasJustReachedGoal =
+        !hadGoal && next.hasReachedGoal && next.goalSeconds > 0;
+    if (hasJustReachedGoal) {
+      await _restTimerNotificationService.cancelScheduledGoalReached();
+      await _restTimerNotificationService.showGoalReached(
+        title: l10n.cardioGoalReached,
+        body: l10n.cardioGoalLabel(formatDuration(next.goalSeconds)),
+      );
+      _suppressGoalFeedbackOnce = true;
+      return;
+    }
+
+    if (next.isRunning &&
+        next.goalSeconds > 0 &&
+        !next.hasReachedGoal &&
+        !_goalAlertScheduledInBackground) {
+      final remaining = ref
+          .read(cardioTimerProvider.notifier)
+          .wallClockSecondsUntilGoal();
+      if (remaining > 0) {
+        await _restTimerNotificationService.scheduleGoalReached(
+          title: l10n.cardioGoalReached,
+          body: l10n.cardioGoalLabel(formatDuration(next.goalSeconds)),
+          afterSeconds: remaining,
+        );
+        _goalAlertScheduledInBackground = true;
+      }
+      return;
+    }
+
+    if (!next.isRunning) {
+      await _restTimerNotificationService.cancelAllForGoalTimer();
+      _goalAlertScheduledInBackground = false;
     }
   }
 
@@ -391,6 +534,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     if (_isInBackground) return;
     if (next.finishReason != RestTimerFinishReason.natural) return;
     if (previous?.finishReason == RestTimerFinishReason.natural) return;
+    if (_suppressRestFeedbackOnce) {
+      _suppressRestFeedbackOnce = false;
+      return;
+    }
 
     _timerFeedbackService.play(WorkoutTimerFeedbackEvent.restFinished);
   }
@@ -404,6 +551,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
     final hadReachedGoal = previous?.hasReachedGoal ?? false;
     if (hadReachedGoal || !next.hasReachedGoal) return;
+    if (_suppressGoalFeedbackOnce) {
+      _suppressGoalFeedbackOnce = false;
+      return;
+    }
 
     _timerFeedbackService.play(WorkoutTimerFeedbackEvent.goalReached);
   }

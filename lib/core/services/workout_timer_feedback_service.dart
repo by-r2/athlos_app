@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Foreground haptic + sound cues during workout execution timers.
+///
+/// When the app is in the background, [RestTimerNotificationService] delivers
+/// the same custom sounds via system notifications.
 enum WorkoutTimerFeedbackEvent { goalReached, restFinished }
 
 /// Plays distinct feedback when a duration goal is hit or rest time ends.

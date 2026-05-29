@@ -118,6 +118,20 @@ class RestTimer extends _$RestTimer {
     _syncWithClock();
   }
 
+  /// Whether [syncWithClock] would mark the timer as naturally finished.
+  bool wouldBeFinishedOnSync() {
+    if (!state.isRunning || _endsAtUtc == null) return false;
+    return !_endsAtUtc!.isAfter(_nowUtc());
+  }
+
+  /// Remaining seconds according to the wall clock (for background scheduling).
+  int wallClockRemainingSeconds() {
+    if (!state.isRunning || _endsAtUtc == null) return state.remainingSeconds;
+    final remainingMs = _endsAtUtc!.difference(_nowUtc()).inMilliseconds;
+    if (remainingMs <= 0) return 0;
+    return (remainingMs + 999) ~/ 1000;
+  }
+
   void _startTicker() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _syncWithClock();
