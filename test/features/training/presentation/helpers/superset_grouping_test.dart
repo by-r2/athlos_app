@@ -134,7 +134,7 @@ void main() {
 
       final result = reorderExercisesInList(exercises, 0, 2);
 
-      expect(result.map((e) => e.exerciseId).toList(), ['b', 'a', 'c']);
+      expect(result.map((e) => e.exerciseId).toList(), ['b', 'c', 'a']);
       expect(result.map((e) => e.sortOrder).toList(), [0, 1, 2]);
     });
 
@@ -149,9 +149,40 @@ void main() {
 
       final result = reorderExercisesInList(exercises, 0, 3);
 
-      expect(result.map((e) => e.exerciseId).toList(), ['c', 'a', 'b', 'd']);
-      expect(result[1].groupId, gid);
+      expect(result.map((e) => e.exerciseId).toList(), ['c', 'd', 'a', 'b']);
       expect(result[2].groupId, gid);
+      expect(result[3].groupId, gid);
+    });
+
+    test('moving free exercise after superset keeps group intact', () {
+      const gid = 1;
+      final exercises = [
+        _ex('a', sortOrder: 0),
+        _ex('b', groupId: gid, sortOrder: 1),
+        _ex('c', groupId: gid, sortOrder: 2),
+      ];
+
+      final result = reorderExercisesInList(exercises, 0, 2);
+
+      expect(result.map((e) => e.exerciseId).toList(), ['b', 'c', 'a']);
+      expect(result[0].groupId, gid);
+      expect(result[1].groupId, gid);
+      expect(result[2].groupId, isNull);
+    });
+
+    test('does not split superset when drop index is between members', () {
+      const gid = 1;
+      final exercises = [
+        _ex('a', sortOrder: 0),
+        _ex('b', groupId: gid, sortOrder: 1),
+        _ex('c', groupId: gid, sortOrder: 2),
+      ];
+
+      final result = reorderExercisesInList(exercises, 0, 1);
+
+      expect(result.map((e) => e.exerciseId).toList(), ['b', 'c', 'a']);
+      expect(result[0].groupId, gid);
+      expect(result[1].groupId, gid);
     });
   });
 

@@ -244,14 +244,12 @@ List<WorkoutExercise> reorderExercisesInList(
   final block = updated.sublist(blockStart, blockEnd + 1);
   updated.removeRange(blockStart, blockEnd + 1);
 
-  var insertAt = newIndex;
-  if (blockStart < insertAt) {
-    insertAt -= block.length;
-  }
-  insertAt = insertAt.clamp(0, updated.length);
+  // [newIndex] is the insertion index in the list after the block is removed
+  // (same contract as ReorderableListView.onReorderItem).
+  final insertAt = newIndex.clamp(0, updated.length);
   updated.insertAll(insertAt, block);
 
-  return reindexSortOrder(updated);
+  return reindexSortOrder(reorderSupersetBlocksContiguously(updated));
 }
 
 /// Removes a single exercise from its superset; other groups are unchanged.
