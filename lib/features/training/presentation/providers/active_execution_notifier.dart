@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
@@ -1076,10 +1077,36 @@ class ActiveExecution extends _$ActiveExecution {
     ];
   }
 
+  void _clearActiveSessionIfMatch(String executionId) {
+    if (state?.executionId != executionId) return;
+    state = null;
+    _structuralEditDeloadConfig = null;
+    _structuralEditProgressionRules = const [];
+    _structuralEditIsometricExerciseIds = const {};
+  }
+
   /// Soft-deletes an unfinished execution, clears in-memory session when it
   /// matches, syncs tombstones, and refreshes dangling/list providers.
   Future<void> discardExecution(String executionId) async {
+    _clearActiveSessionIfMatch(executionId);
+    await _persistDiscardedExecution(executionId);
+  }
+
+  /// Cancel the active execution, deleting the DB record.
+  Future<void> cancelExecution() async {
     final current = state;
+    if (current == null) return;
+    final executionId = current.executionId;
+    _clearActiveSessionIfMatch(executionId);
+    try {
+      await _persistDiscardedExecution(executionId);
+    } on Exception catch (e, st) {
+      debugPrint('[ActiveExecution] cancelExecution failed: $e\n$st');
+      ref.invalidate(danglingExecutionProvider);
+    }
+  }
+
+  Future<void> _persistDiscardedExecution(String executionId) async {
     final execRepo = ref.read(workoutExecutionRepositoryProvider);
     final execution = (await execRepo.getById(executionId)).getOrThrow();
 
@@ -1095,24 +1122,12 @@ class ActiveExecution extends _$ActiveExecution {
       }
     }
 
-    if (current?.executionId == executionId) {
-      state = null;
-      _structuralEditDeloadConfig = null;
-      _structuralEditProgressionRules = const [];
-      _structuralEditIsometricExerciseIds = const {};
-    }
-
     ref.invalidate(danglingExecutionProvider);
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
 
-    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
-  }
-
-  /// Cancel the active execution, deleting the DB record.
-  Future<void> cancelExecution() async {
-    final current = state;
-    if (current == null) return;
-    await discardExecution(current.executionId);
+    unawaited(
+      ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud(),
+    );
   }
 }

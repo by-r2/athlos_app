@@ -292,11 +292,13 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                 missingExerciseIds: missingExerciseIds,
                 workoutId: widget.workoutId,
                 onResolved: () => setState(() {}),
-                onCancelExecution: () async {
-                  await ref
-                      .read(activeExecutionProvider.notifier)
-                      .cancelExecution();
+                onCancelExecution: () {
                   if (context.mounted) context.pop();
+                  unawaited(
+                    ref
+                        .read(activeExecutionProvider.notifier)
+                        .cancelExecution(),
+                  );
                 },
               ),
             ),
@@ -4648,22 +4650,14 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
             children: [
               TextButton(
                 style: AthlosDialogButtonStyles.stackedGhost(ctx),
-                onPressed: () async {
+                onPressed: () {
                   Navigator.pop(ctx);
-                  try {
-                    await ref
-                        .read(activeExecutionProvider.notifier)
-                        .cancelExecution();
-                    ref.read(restTimerProvider.notifier).reset();
-                    ref.read(cardioTimerProvider.notifier).reset();
-                    if (context.mounted) context.pop();
-                  } on Exception catch (_) {
-                    if (context.mounted) {
-                      context.showAthlosErrorSnack(
-                        AppLocalizations.of(context)!.genericError,
-                      );
-                    }
-                  }
+                  ref.read(restTimerProvider.notifier).reset();
+                  ref.read(cardioTimerProvider.notifier).reset();
+                  if (context.mounted) context.pop();
+                  unawaited(
+                    ref.read(activeExecutionProvider.notifier).cancelExecution(),
+                  );
                 },
                 child: Text(l10n.cancelExecution),
               ),
