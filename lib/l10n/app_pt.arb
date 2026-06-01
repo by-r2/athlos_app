@@ -1599,10 +1599,6 @@
   },
   "adHocAddExercise": "Adicionar exercício",
   "@adHocAddExercise": { "description": "CTA to add exercise during ad-hoc session" },
-  "workoutExerciseAlreadyInWorkout": "Este exercício já está no treino.",
-  "@workoutExerciseAlreadyInWorkout": {
-    "description": "SnackBar when user tries to add a catalog exercise that is already in the workout"
-  },
   "workoutExerciseInWorkoutPickerLabel": "Já no treino",
   "@workoutExerciseInWorkoutPickerLabel": {
     "description": "Subtitle on exercise picker row when exercise is already in the workout"
@@ -1675,10 +1671,6 @@
   "plannedEditRevertAction": "Voltar ao original",
   "@plannedEditRevertAction": {
     "description": "Discard structural edits and restore session baseline"
-  },
-  "plannedEditBannerHint": "Você está ajustando a estrutura desta sessão.",
-  "@plannedEditBannerHint": {
-    "description": "Banner hint while structural edit mode is active"
   },
   "plannedEditSaveTitle": "Salvar alterações no treino?",
   "@plannedEditSaveTitle": {

@@ -1321,13 +1321,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
     if (exercise == null || !mounted) return;
     try {
-      final added =
-          await ref.read(activeExecutionProvider.notifier).addExercise(exercise);
-      if (!added && mounted) {
-        context.showAthlosSnack(
-          AppLocalizations.of(context)!.workoutExerciseAlreadyInWorkout,
-        );
-      }
+      await ref.read(activeExecutionProvider.notifier).addExercise(exercise);
     } on Exception catch (_) {
       if (mounted) {
         context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);

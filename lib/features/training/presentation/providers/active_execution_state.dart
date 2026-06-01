@@ -255,20 +255,3 @@ class ActiveExecutionState {
         : (baselineExercises ?? this.baselineExercises),
   );
 }
-
-extension ActiveExecutionStateSets on ActiveExecutionState {
-  List<SetEntry> setsForRow(String rowId) => exerciseSets[rowId] ?? [];
-
-  List<SetEntry> setsForExercise(WorkoutExercise exercise) =>
-      setsForRow(exercise.id);
-
-  List<SetEntry> setsAtIndex(int exerciseIndex) =>
-      setsForRow(exercises[exerciseIndex].id);
-
-  WorkoutExercise? exerciseByRowId(String rowId) {
-    for (final exercise in exercises) {
-      if (exercise.id == rowId) return exercise;
-    }
-    return null;
-  }
-}

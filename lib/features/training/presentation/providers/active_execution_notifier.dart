@@ -173,12 +173,11 @@ class ActiveExecution extends _$ActiveExecution {
   }
 
   /// Adds an exercise during structural editing (ad-hoc or planned overlay).
-  /// Returns false when the catalog exercise is already in the workout.
-  Future<bool> addExercise(Exercise exercise) async {
+  Future<void> addExercise(Exercise exercise) async {
     final current = state;
-    if (current == null || !current.canEditStructure) return false;
+    if (current == null || !current.canEditStructure) return;
     if (workoutAlreadyContainsExercise(current.exercises, exercise.id)) {
-      return false;
+      return;
     }
 
     final restSeconds = current.defaultRestSeconds > 0
@@ -211,7 +210,6 @@ class ActiveExecution extends _$ActiveExecution {
       exerciseSets: {...current.exerciseSets, ...newSets},
     );
     _scheduleDraftTemplatePersist();
-    return true;
   }
 
   /// Updates prescription during structural editing and rebuilds pending sets.
@@ -668,7 +666,7 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return;
 
-    final catalogExerciseId = current.exerciseByRowId(rowId)?.exerciseId;
+    final catalogExerciseId = _exerciseRowById(current, rowId)?.exerciseId;
     if (catalogExerciseId == null) return;
 
     final sets = current.exerciseSets[rowId];
@@ -781,7 +779,7 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return (0, null);
 
-    final exercise = current.exerciseByRowId(rowId);
+    final exercise = _exerciseRowById(current, rowId);
     if (exercise == null) return (0, null);
 
     final sets = current.exerciseSets[rowId];
@@ -1075,6 +1073,13 @@ class ActiveExecution extends _$ActiveExecution {
           restSeconds: restSeconds,
         ),
     ];
+  }
+
+  WorkoutExercise? _exerciseRowById(ActiveExecutionState session, String rowId) {
+    for (final exercise in session.exercises) {
+      if (exercise.id == rowId) return exercise;
+    }
+    return null;
   }
 
   void _clearActiveSessionIfMatch(String executionId) {
