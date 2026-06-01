@@ -9,11 +9,17 @@ ExecutionContextFallback buildExecutionContextFallback({
   required List<WorkoutExercise> templateExercises,
   required Map<String, Exercise> exercisesById,
   required Set<String> sessionExerciseIds,
+  Map<String, String> substitutionsByRowId = const {},
 }) {
   final templateByExerciseId = {
     for (final we in templateExercises) we.exerciseId: we,
   };
-  final allIds = {...sessionExerciseIds, ...templateByExerciseId.keys};
+
+  final allIds = <String>{
+    ...sessionExerciseIds,
+    ...templateByExerciseId.keys,
+    ...substitutionsByRowId.values,
+  };
 
   final exercises = <String, ExecutionContextFallbackExercise>{};
   for (final exerciseId in allIds) {
@@ -34,5 +40,32 @@ ExecutionContextFallback buildExecutionContextFallback({
     );
   }
 
-  return ExecutionContextFallback(exercises: exercises);
+  final lines = <String, ExecutionContextFallbackLine>{};
+  for (final we in templateExercises) {
+    final catalog = exercisesById[we.exerciseId];
+    final originalId = substitutionsByRowId[we.id];
+    final originalCatalog =
+        originalId != null ? exercisesById[originalId] : null;
+    final originalSnap = originalId != null ? exercises[originalId] : null;
+
+    lines[we.id] = ExecutionContextFallbackLine(
+      workoutExerciseId: we.id,
+      exerciseId: we.exerciseId,
+      substitutedFromExerciseId: originalId,
+      displayName: catalog?.name ?? we.exerciseId,
+      substitutedFromDisplayName: originalCatalog?.name ??
+          originalSnap?.displayName,
+      isVerified: catalog?.isVerified ?? false,
+      muscleGroup: catalog?.muscleGroup ?? MuscleGroup.fullBody,
+      sortOrder: we.sortOrder,
+      groupId: we.groupId,
+      isUnilateral: we.isUnilateral,
+      loadModeOverride: we.loadModeOverride,
+    );
+  }
+
+  return ExecutionContextFallback(
+    exercises: exercises,
+    lines: lines,
+  );
 }

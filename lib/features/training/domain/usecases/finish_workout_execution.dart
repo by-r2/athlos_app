@@ -15,11 +15,15 @@ class FinishWorkoutExecutionParams {
   final String? programId;
   final List<WorkoutExercise> templateExercises;
 
+  /// WorkoutExercise row id → catalog id before substitution.
+  final Map<String, String> substitutionsByRowId;
+
   const FinishWorkoutExecutionParams({
     required this.executionId,
     required this.workoutId,
     this.programId,
     this.templateExercises = const [],
+    this.substitutionsByRowId = const {},
   });
 }
 
@@ -82,6 +86,7 @@ class FinishWorkoutExecution {
               templateExercises: params.templateExercises,
               exercisesById: exercisesById,
               sessionExerciseIds: sessionExerciseIds,
+              substitutionsByRowId: params.substitutionsByRowId,
             );
 
             return _executions.finishWithSnapshot(

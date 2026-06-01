@@ -97,7 +97,7 @@ class AppDatabase extends _$AppDatabase {
   bool get _shouldSeedDevData => kDebugMode && !_skipDevSeed && _enableDevSeed;
 
   @override
-  int get schemaVersion => 45;
+  int get schemaVersion => 46;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -923,6 +923,12 @@ class AppDatabase extends _$AppDatabase {
         );
         await customStatement(
           "ALTER TABLE workout_executions ADD COLUMN session_kind TEXT NOT NULL DEFAULT 'planned'",
+        );
+      }
+
+      if (from < 46) {
+        await customStatement(
+          'ALTER TABLE execution_sets ADD COLUMN workout_exercise_id TEXT',
         );
       }
     },

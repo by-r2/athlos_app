@@ -197,6 +197,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         id: s.id,
         executionId: s.executionId,
         exerciseId: s.exerciseId,
+        workoutExerciseId: s.workoutExerciseId,
         setNumber: s.setNumber,
         plannedReps: s.plannedReps,
         plannedWeight: s.plannedWeight,
@@ -357,6 +358,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
           userId: _userId,
           executionId: set.executionId,
           exerciseId: set.exerciseId,
+          workoutExerciseId: Value(set.workoutExerciseId),
           setNumber: set.setNumber,
           plannedReps: Value(set.plannedReps),
           plannedWeight: Value(set.plannedWeight),
@@ -411,22 +413,22 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> rekeySetCatalogExercise(domain.ExecutionSet set) async {
+  Future<Result<void>> updatePendingSetAfterSubstitution(
+    domain.ExecutionSet set,
+  ) async {
     try {
       await _dao.updateSet(
         set.id,
         ExecutionSetsCompanion(
           exerciseId: Value(set.exerciseId),
+          workoutExerciseId: Value(set.workoutExerciseId),
           plannedReps: Value(set.plannedReps),
           plannedWeight: Value(set.plannedWeight),
           reps: Value(set.reps),
           weight: Value(set.weight),
           durationSeconds: Value(set.durationSeconds),
           distanceMeters: Value(set.distanceMeters),
-          isCompleted: Value(set.isCompleted),
           isWarmup: Value(set.isWarmup),
-          rpe: Value(set.rpe),
-          bodyWeightSnapshot: Value(set.bodyWeightSnapshot),
           loadModeOverride: Value(set.loadModeOverride),
           leftReps: Value(set.leftReps),
           leftWeight: Value(set.leftWeight),
@@ -437,7 +439,9 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
       );
       return const Success(null);
     } on Exception catch (e) {
-      return Failure(DatabaseException('Failed to rekey set exercise: $e'));
+      return Failure(
+        DatabaseException('Failed to update pending set after substitution: $e'),
+      );
     }
   }
 
@@ -497,6 +501,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
         id: s.id,
         executionId: s.executionId,
         exerciseId: s.exerciseId,
+        workoutExerciseId: s.workoutExerciseId,
         setNumber: s.setNumber,
         plannedReps: s.plannedReps,
         plannedWeight: s.plannedWeight,
@@ -558,6 +563,7 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
     id: row.id,
     executionId: row.executionId,
     exerciseId: row.exerciseId,
+    workoutExerciseId: row.workoutExerciseId,
     setNumber: row.setNumber,
     plannedReps: row.plannedReps,
     plannedWeight: row.plannedWeight,

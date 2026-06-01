@@ -17,6 +17,7 @@ import '../../domain/entities/workout_execution.dart';
 import '../../domain/helpers/training_metrics.dart';
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../helpers/duration_format.dart';
+import '../helpers/execution_detail_grouping.dart';
 import '../helpers/rep_performance.dart';
 import '../helpers/workout_share_image.dart';
 import '../providers/exercise_notifier.dart';
@@ -341,12 +342,17 @@ class _ExecutionDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exerciseIds = sets.map((s) => s.exerciseId).toSet().toList();
+    final exerciseIds = sets.map((s) => s.exerciseId).toSet();
     final exerciseMap = <String, Exercise>{
       for (final exId in exerciseIds)
         if (sessionContext?.catalogExerciseFor(exId) case final Exercise ex)
           exId: ex,
     };
+
+    final detailGroups = groupExecutionSetsForDetail(
+      sets: sets,
+      fallback: sessionContext?.fallback,
+    );
 
     final totalVolume = computeTotalVolume(
       sets,
@@ -445,40 +451,57 @@ class _ExecutionDetailBody extends StatelessWidget {
           ),
         ),
 
-        // Per-exercise breakdown
-        ...exerciseIds.map((exId) {
-          final exerciseSets = sets.where((s) => s.exerciseId == exId).toList();
-          final name = sessionContext?.exerciseDisplayName(exId, l10n) ??
-              l10n.unknownExerciseId(exId);
-          final group =
-              sessionContext?.muscleGroupLabel(exId, l10n) ?? '';
+        // Per-line / per-exercise breakdown
+        ...detailGroups.expand((group) {
+          final performedIds = group.performedExerciseIds;
+          return performedIds.map((exId) {
+            final exerciseSets =
+                group.sets.where((s) => s.exerciseId == exId).toList();
+            final name = sessionContext?.exerciseDisplayName(exId, l10n) ??
+                l10n.unknownExerciseId(exId);
+            final muscleGroup =
+                sessionContext?.muscleGroupLabel(exId, l10n) ?? '';
 
-          final prSetIds = prSetIdsPerExercise[exId] ?? {};
+            final prSetIds = prSetIdsPerExercise[exId] ?? {};
 
-          final wasUnilateral =
-              exerciseSets.any((s) => s.isUnilateral == true) ||
-              (exerciseSets.every((s) => s.isUnilateral == null) &&
-                  (sessionContext?.isUnilateralForExercise(exId) ?? false));
-          final ex = sessionContext?.catalogExerciseFor(exId);
+            final wasUnilateral =
+                exerciseSets.any((s) => s.isUnilateral == true) ||
+                (exerciseSets.every((s) => s.isUnilateral == null) &&
+                    (sessionContext?.isUnilateralForExercise(exId) ?? false));
+            final ex = sessionContext?.catalogExerciseFor(exId);
 
-          return SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AthlosSpacing.md),
-              child: _ExerciseBreakdown(
-                exerciseName: name,
-                muscleGroup: group,
-                isUnilateral: wasUnilateral,
-                isIsometric:
-                    ex?.isIsometric ?? sessionContext?.isExerciseIsometric(exId) ?? false,
-                sets: exerciseSets,
-                workoutExercise: workoutExerciseByExerciseId[exId],
-                prSetIds: prSetIds,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
-                l10n: l10n,
+            final lineSnap = group.lineSnapshot;
+            final substitutionNote = lineSnap != null &&
+                    lineSnap.wasSubstituted &&
+                    performedIds.length > 1 &&
+                    exId == lineSnap.exerciseId &&
+                    lineSnap.substitutedFromDisplayName != null
+                ? '⟷ ${lineSnap.substitutedFromDisplayName}'
+                : null;
+
+            return SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AthlosSpacing.md,
+                ),
+                child: _ExerciseBreakdown(
+                  exerciseName: name,
+                  muscleGroup: muscleGroup,
+                  headerNote: substitutionNote,
+                  isUnilateral: wasUnilateral,
+                  isIsometric: ex?.isIsometric ??
+                      sessionContext?.isExerciseIsometric(exId) ??
+                      false,
+                  sets: exerciseSets,
+                  workoutExercise: workoutExerciseByExerciseId[exId],
+                  prSetIds: prSetIds,
+                  colorScheme: colorScheme,
+                  textTheme: textTheme,
+                  l10n: l10n,
+                ),
               ),
-            ),
-          );
+            );
+          });
         }),
 
         const SliverPadding(padding: EdgeInsets.only(bottom: AthlosSpacing.xl)),
@@ -530,6 +553,7 @@ class _SummaryCard extends StatelessWidget {
 class _ExerciseBreakdown extends StatelessWidget {
   final String exerciseName;
   final String muscleGroup;
+  final String? headerNote;
   final bool isUnilateral;
   final bool isIsometric;
   final List<ExecutionSet> sets;
@@ -544,6 +568,7 @@ class _ExerciseBreakdown extends StatelessWidget {
   const _ExerciseBreakdown({
     required this.exerciseName,
     required this.muscleGroup,
+    this.headerNote,
     this.isUnilateral = false,
     this.isIsometric = false,
     required this.sets,
@@ -564,6 +589,15 @@ class _ExerciseBreakdown extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(exerciseName, style: textTheme.titleSmall),
+            if (headerNote != null) ...[
+              const SizedBox(height: AthlosSpacing.xxs),
+              Text(
+                headerNote!,
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
             if (muscleGroup.isNotEmpty || isUnilateral)
               Row(
                 children: [

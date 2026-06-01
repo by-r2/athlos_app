@@ -302,7 +302,7 @@ class ActiveExecution extends _$ActiveExecution {
       substitutions: substitutions,
     );
 
-    await _rekeyPersistedSetsForSubstitution(
+    await _syncPendingSetsAfterSubstitution(
       rowId: rowId,
       newCatalogExerciseId: replacement.id,
       mergedSets: merged,
@@ -338,7 +338,7 @@ class ActiveExecution extends _$ActiveExecution {
     }
   }
 
-  Future<void> _rekeyPersistedSetsForSubstitution({
+  Future<void> _syncPendingSetsAfterSubstitution({
     required String rowId,
     required String newCatalogExerciseId,
     required List<SetEntry> mergedSets,
@@ -348,6 +348,7 @@ class ActiveExecution extends _$ActiveExecution {
 
     final repo = ref.read(workoutExecutionRepositoryProvider);
     for (final entry in mergedSets) {
+      if (entry.isCompleted) continue;
       final persistedId = entry.id;
       if (persistedId == null || persistedId.isEmpty) continue;
 
@@ -355,6 +356,7 @@ class ActiveExecution extends _$ActiveExecution {
         id: persistedId,
         executionId: current.executionId,
         exerciseId: newCatalogExerciseId,
+        workoutExerciseId: rowId,
         setNumber: entry.setNumber,
         plannedReps: entry.plannedReps,
         plannedWeight: entry.plannedWeight,
@@ -362,10 +364,7 @@ class ActiveExecution extends _$ActiveExecution {
         weight: entry.weight,
         durationSeconds: entry.duration,
         distanceMeters: entry.distance,
-        isCompleted: entry.isCompleted,
         isWarmup: entry.isWarmup,
-        rpe: entry.rpe,
-        bodyWeightSnapshot: null,
         loadModeOverride: entry.loadModeOverride,
         leftReps: entry.leftReps,
         leftWeight: entry.leftWeight,
@@ -377,7 +376,9 @@ class ActiveExecution extends _$ActiveExecution {
             entry.rightWeight != null,
       );
 
-      await repo.rekeySetCatalogExercise(executionSet).then((r) => r.getOrThrow());
+      await repo
+          .updatePendingSetAfterSubstitution(executionSet)
+          .then((r) => r.getOrThrow());
     }
   }
 
@@ -818,6 +819,7 @@ class ActiveExecution extends _$ActiveExecution {
       id: entry.id ?? '',
       executionId: current.executionId,
       exerciseId: catalogExerciseId,
+      workoutExerciseId: rowId,
       setNumber: setNumber,
       plannedReps: entry.plannedReps,
       plannedWeight: entry.plannedWeight,
@@ -917,6 +919,7 @@ class ActiveExecution extends _$ActiveExecution {
       id: entry.id ?? '',
       executionId: current.executionId,
       exerciseId: catalogExerciseId,
+      workoutExerciseId: rowId,
       setNumber: setNumber,
       plannedReps: entry.plannedReps,
       plannedWeight: entry.plannedWeight,
@@ -1030,6 +1033,7 @@ class ActiveExecution extends _$ActiveExecution {
         workoutId: current.workoutId,
         programId: programId,
         templateExercises: current.exercises,
+        substitutionsByRowId: current.substitutions,
       ),
     );
     result.getOrThrow();
@@ -1080,17 +1084,28 @@ class ActiveExecution extends _$ActiveExecution {
     final lastWeights = (await repo.getLastWeightsForExercises(exerciseIds))
         .getOrThrow();
 
+    final dbSetsByRowId = <String, List<ExecutionSet>>{};
     final dbSetsByCatalogId = <String, List<ExecutionSet>>{};
     for (final set in dbSets) {
-      (dbSetsByCatalogId[set.exerciseId] ??= []).add(set);
+      final rowId = set.workoutExerciseId;
+      if (rowId != null && rowId.isNotEmpty) {
+        (dbSetsByRowId[rowId] ??= []).add(set);
+      } else {
+        (dbSetsByCatalogId[set.exerciseId] ??= []).add(set);
+      }
     }
-    for (final list in dbSetsByCatalogId.values) {
-      list.sort((a, b) {
-        final bySet = a.setNumber.compareTo(b.setNumber);
-        if (bySet != 0) return bySet;
-        return a.id.compareTo(b.id);
-      });
+    void sortSetQueues(Map<String, List<ExecutionSet>> byKey) {
+      for (final list in byKey.values) {
+        list.sort((a, b) {
+          final bySet = a.setNumber.compareTo(b.setNumber);
+          if (bySet != 0) return bySet;
+          return a.id.compareTo(b.id);
+        });
+      }
     }
+
+    sortSetQueues(dbSetsByRowId);
+    sortSetQueues(dbSetsByCatalogId);
 
     ExecutionSet? takeDbSet(String catalogExerciseId, int setNumber) {
       final queue = dbSetsByCatalogId[catalogExerciseId];
@@ -1100,16 +1115,29 @@ class ActiveExecution extends _$ActiveExecution {
       return queue.removeAt(index);
     }
 
+    ExecutionSet? takeDbSetForRow(
+      String rowId,
+      String catalogExerciseId,
+      int setNumber,
+    ) {
+      final rowQueue = dbSetsByRowId[rowId];
+      if (rowQueue != null && rowQueue.isNotEmpty) {
+        final index = rowQueue.indexWhere((s) => s.setNumber == setNumber);
+        if (index >= 0) return rowQueue.removeAt(index);
+      }
+      return takeDbSet(catalogExerciseId, setNumber);
+    }
+
     final exerciseSets = <String, List<SetEntry>>{};
     for (final ex in templateExercises) {
       final allocated = <int, ExecutionSet>{};
       for (var setNum = 1; setNum <= ex.sets; setNum++) {
-        final taken = takeDbSet(ex.exerciseId, setNum);
+        final taken = takeDbSetForRow(ex.id, ex.exerciseId, setNum);
         if (taken != null) allocated[setNum] = taken;
       }
       var nextExtra = ex.sets + 1;
       while (true) {
-        final taken = takeDbSet(ex.exerciseId, nextExtra);
+        final taken = takeDbSetForRow(ex.id, ex.exerciseId, nextExtra);
         if (taken == null) break;
         allocated[nextExtra] = taken;
         nextExtra++;
@@ -1122,14 +1150,17 @@ class ActiveExecution extends _$ActiveExecution {
         final setNum = i + 1;
         final existing = allocated[setNum];
         if (existing != null) {
-          final isIso = isometricExerciseIds.contains(ex.exerciseId);
-          final usesDur = (ex.durationSeconds != null) || isIso;
+          final performedId = existing.exerciseId;
+          final isIso = isometricExerciseIds.contains(performedId);
+          final usesDur =
+              (existing.durationSeconds != null) ||
+              (ex.durationSeconds != null && isIso);
           return SetEntry(
             id: existing.id,
             setNumber: setNum,
             plannedReps: existing.plannedReps,
             plannedWeight: existing.plannedWeight,
-            plannedDuration: usesDur ? ex.durationSeconds : null,
+            plannedDuration: usesDur ? existing.durationSeconds ?? ex.durationSeconds : null,
             reps: existing.reps,
             weight: existing.weight,
             duration: existing.durationSeconds,

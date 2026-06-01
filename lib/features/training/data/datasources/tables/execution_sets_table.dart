@@ -9,6 +9,10 @@ class ExecutionSets extends Table {
   TextColumn get userId => text()();
   TextColumn get executionId => text().references(WorkoutExecutions, #id)();
   TextColumn get exerciseId => text().references(Exercises, #id)();
+
+  /// Template line id ([WorkoutExercise.id]). Null on legacy rows.
+  TextColumn get workoutExerciseId => text().nullable()();
+
   IntColumn get setNumber => integer()();
   IntColumn get plannedReps => integer().nullable()();
   RealColumn get plannedWeight => real().nullable()();

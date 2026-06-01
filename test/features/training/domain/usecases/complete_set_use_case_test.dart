@@ -179,7 +179,7 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   }
 
   @override
-  Future<Result<void>> rekeySetCatalogExercise(ExecutionSet set) async =>
+  Future<Result<void>> updatePendingSetAfterSubstitution(ExecutionSet set) async =>
       updateSet(set);
 
   @override

@@ -25,7 +25,7 @@ Future<void> backfillExecutionContextFallbackV42(AppDatabase db) async {
     final workoutId = row.read<String>('workout_id');
 
     final templateRows = await db.customSelect(
-      'SELECT exercise_id, sort_order, sets, min_reps, max_reps, is_amrap, '
+      'SELECT id, exercise_id, sort_order, sets, min_reps, max_reps, is_amrap, '
       'rest_seconds, duration_seconds, group_id, is_unilateral, load_mode_override '
       'FROM workout_exercises '
       'WHERE workout_id = ? AND deleted_at IS NULL '
@@ -50,7 +50,7 @@ Future<void> backfillExecutionContextFallbackV42(AppDatabase db) async {
       allExerciseIds.add(exerciseId);
       templateExercises.add(
         domain_we.WorkoutExercise(
-          id: '',
+          id: t.read<String>('id'),
           workoutId: workoutId,
           exerciseId: exerciseId,
           sortOrder: t.read<int>('sort_order'),

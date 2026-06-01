@@ -6,6 +6,10 @@ class ExecutionSet {
   final String id;
   final String executionId;
   final String exerciseId;
+
+  /// Template line id when recorded. Null on legacy sessions.
+  final String? workoutExerciseId;
+
   final int setNumber;
 
   /// Snapshot of planned reps from the workout template. Null for cardio.
@@ -64,6 +68,7 @@ class ExecutionSet {
     required this.id,
     required this.executionId,
     required this.exerciseId,
+    this.workoutExerciseId,
     required this.setNumber,
     this.plannedReps,
     this.plannedWeight,

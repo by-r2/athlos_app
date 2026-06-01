@@ -58,8 +58,8 @@ abstract interface class WorkoutExecutionRepository {
   Future<Result<String>> logSet(ExecutionSet set);
   Future<Result<void>> updateSet(ExecutionSet set);
 
-  /// Updates catalog [exerciseId] and planned snapshots (e.g. after substitution).
-  Future<Result<void>> rekeySetCatalogExercise(ExecutionSet set);
+  /// Updates pending sets after substitution (catalog id + planned fields only).
+  Future<Result<void>> updatePendingSetAfterSubstitution(ExecutionSet set);
   Future<Result<Map<String, double>>> getLastWeightsForExercises(
     List<String> exerciseIds,
   );

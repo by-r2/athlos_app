@@ -123,6 +123,9 @@ class ExecutionSessionContext {
     if (live != null) return live;
     return fallback?.forExercise(exerciseId)?.groupId;
   }
+
+  ExecutionContextFallbackLine? lineSnapshot(String workoutExerciseId) =>
+      fallback?.forLine(workoutExerciseId);
 }
 
 @riverpod
