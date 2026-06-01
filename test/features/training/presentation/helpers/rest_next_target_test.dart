@@ -41,8 +41,8 @@ void main() {
           _exercise(exerciseId: 'ex-20', sortOrder: 1, groupId: 1),
         ],
         exerciseSets: {
-          'ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
-          'ex-20': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'wx-ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'wx-ex-20': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
         },
       );
 
@@ -59,7 +59,7 @@ void main() {
       final exec = _execution(
         exercises: [_exercise(exerciseId: 'ex-10', sortOrder: 0)],
         exerciseSets: {
-          'ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
+          'wx-ex-10': [_set(1, isCompleted: true), _set(2, isCompleted: false)],
         },
       );
 
@@ -82,9 +82,9 @@ void main() {
             _exercise(exerciseId: 'ex-30', sortOrder: 2),
           ],
           exerciseSets: {
-            'ex-10': [_set(1, isCompleted: true)],
-            'ex-20': [_set(1, isCompleted: true)],
-            'ex-30': [_set(1, isCompleted: false)],
+            'wx-ex-10': [_set(1, isCompleted: true)],
+            'wx-ex-20': [_set(1, isCompleted: true)],
+            'wx-ex-30': [_set(1, isCompleted: false)],
           },
         );
 

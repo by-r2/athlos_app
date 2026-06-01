@@ -179,11 +179,11 @@ List<WorkoutExercise> reorderSupersetBlocksContiguously(
   List<WorkoutExercise> exercises,
 ) {
   final result = <WorkoutExercise>[];
-  final emittedExerciseIds = <String>{};
+  final emittedRowIds = <String>{};
   final emittedGroupIds = <int>{};
 
   for (final e in exercises) {
-    if (emittedExerciseIds.contains(e.exerciseId)) continue;
+    if (emittedRowIds.contains(e.id)) continue;
 
     final gid = e.groupId;
     if (gid != null && !emittedGroupIds.contains(gid)) {
@@ -195,14 +195,14 @@ List<WorkoutExercise> reorderSupersetBlocksContiguously(
         emittedGroupIds.add(gid);
         for (final x in block) {
           result.add(x);
-          emittedExerciseIds.add(x.exerciseId);
+          emittedRowIds.add(x.id);
         }
         continue;
       }
     }
 
     result.add(e);
-    emittedExerciseIds.add(e.exerciseId);
+    emittedRowIds.add(e.id);
   }
 
   return reindexSortOrder(result);
@@ -212,6 +212,40 @@ List<WorkoutExercise> reindexSortOrder(List<WorkoutExercise> exercises) => [
       for (var i = 0; i < exercises.length; i++)
         copyWorkoutExercise(exercises[i], sortOrder: i),
     ];
+
+/// When a solo exercise is dropped between two members of the same superset,
+/// link it into that group (same behavior as joining via superset selection).
+List<WorkoutExercise> joinSoloExerciseDroppedInSupersetGap(
+  List<WorkoutExercise> exercises,
+  int soloIndex,
+) {
+  if (soloIndex < 0 || soloIndex >= exercises.length) return exercises;
+
+  final solo = exercises[soloIndex];
+  if (solo.groupId != null) return exercises;
+
+  final prev = soloIndex > 0 ? exercises[soloIndex - 1] : null;
+  final next = soloIndex < exercises.length - 1 ? exercises[soloIndex + 1] : null;
+  final prevGid = prev?.groupId;
+  final nextGid = next?.groupId;
+
+  if (prevGid == null || prevGid != nextGid) return exercises;
+
+  var groupRest = prev!.restSeconds;
+  if (next!.restSeconds < groupRest) groupRest = next.restSeconds;
+
+  final updated = List<WorkoutExercise>.from(exercises);
+  for (var i = 0; i < updated.length; i++) {
+    if (updated[i].groupId == prevGid || i == soloIndex) {
+      updated[i] = copyWorkoutExercise(
+        updated[i],
+        groupId: prevGid,
+        restSeconds: groupRest,
+      );
+    }
+  }
+  return updated;
+}
 
 /// Reorders [exercises]; when [oldIndex] is in a superset, the whole block moves.
 List<WorkoutExercise> reorderExercisesInList(
@@ -249,7 +283,12 @@ List<WorkoutExercise> reorderExercisesInList(
   final insertAt = newIndex.clamp(0, updated.length);
   updated.insertAll(insertAt, block);
 
-  return reindexSortOrder(reorderSupersetBlocksContiguously(updated));
+  var merged = updated;
+  if (block.length == 1 && block.first.groupId == null) {
+    merged = joinSoloExerciseDroppedInSupersetGap(updated, insertAt);
+  }
+
+  return reindexSortOrder(reorderSupersetBlocksContiguously(merged));
 }
 
 /// Removes a single exercise from its superset; other groups are unchanged.

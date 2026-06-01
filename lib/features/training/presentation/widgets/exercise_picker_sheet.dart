@@ -25,7 +25,13 @@ final _placeholderExercises = List.generate(
 /// Bottom sheet that lets the user search and pick an exercise.
 ///
 /// Returns the selected [Exercise] or `null` if cancelled.
-Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
+///
+/// [alreadyInWorkoutCatalogIds] — catalog exercise ids already in the workout;
+/// those rows show a check and cannot be selected again.
+Future<Exercise?> showExercisePickerSheet(
+  BuildContext context, {
+  Set<String> alreadyInWorkoutCatalogIds = const {},
+}) =>
     showAthlosModalBottomSheet<Exercise>(
       context: context,
       isScrollControlled: true,
@@ -41,6 +47,7 @@ Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
             child: _ExercisePickerBody(
               sheetContext: sheetContext,
               scrollController: scrollController,
+              alreadyInWorkoutCatalogIds: alreadyInWorkoutCatalogIds,
             ),
           ),
         ),
@@ -50,10 +57,12 @@ Future<Exercise?> showExercisePickerSheet(BuildContext context) =>
 class _ExercisePickerBody extends ConsumerStatefulWidget {
   final BuildContext sheetContext;
   final ScrollController scrollController;
+  final Set<String> alreadyInWorkoutCatalogIds;
 
   const _ExercisePickerBody({
     required this.sheetContext,
     required this.scrollController,
+    required this.alreadyInWorkoutCatalogIds,
   });
 
   @override
@@ -173,13 +182,40 @@ class _ExercisePickerBodyState extends ConsumerState<_ExercisePickerBody> {
                           l10n,
                         );
 
+                        final isInWorkout =
+                            widget.alreadyInWorkoutCatalogIds.contains(ex.id);
+
                         return ListTile(
                           minTileHeight: AthlosComponentSizes.listItemMinHeight,
-                          title: Text(displayName),
-                          subtitle: AthlosTruncatedText(groupName, maxLines: 2),
-                          trailing: const Icon(Icons.add_circle_outline),
-                          onTap: () =>
-                              Navigator.of(widget.sheetContext).pop(ex),
+                          enabled: !isInWorkout,
+                          title: Text(
+                            displayName,
+                            style: isInWorkout
+                                ? textTheme.bodyLarge?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  )
+                                : null,
+                          ),
+                          subtitle: isInWorkout
+                              ? Text(
+                                  l10n.workoutExerciseInWorkoutPickerLabel,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.primary,
+                                  ),
+                                )
+                              : AthlosTruncatedText(groupName, maxLines: 2),
+                          trailing: Icon(
+                            isInWorkout
+                                ? Icons.check_circle
+                                : Icons.add_circle_outline,
+                            color: isInWorkout
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                          onTap: isInWorkout
+                              ? null
+                              : () =>
+                                    Navigator.of(widget.sheetContext).pop(ex),
                         );
                       },
                     ),

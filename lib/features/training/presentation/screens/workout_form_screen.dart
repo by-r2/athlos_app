@@ -106,7 +106,12 @@ class _WorkoutFormScreenState extends ConsumerState<WorkoutFormScreen> {
   bool _hasExistingSuperset() => _entries.any((e) => e.groupId != null);
 
   Future<void> _addExercise() async {
-    final exercise = await showExercisePickerSheet(context);
+    final exercise = await showExercisePickerSheet(
+      context,
+      alreadyInWorkoutCatalogIds: {
+        for (final e in _entries) e.exercise.id,
+      },
+    );
     if (exercise == null || !mounted) return;
 
     try {

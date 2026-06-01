@@ -11,6 +11,7 @@ import '../../domain/repositories/workout_execution_repository.dart';
 import '../../domain/repositories/workout_repository.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
 import '../../domain/usecases/finish_workout_execution.dart';
+import '../../domain/usecases/apply_planned_workout_edit.dart';
 import '../../domain/usecases/promote_ad_hoc_workout.dart';
 import '../../domain/usecases/start_ad_hoc_workout_execution.dart';
 import '../training_dao_providers.dart';
@@ -98,3 +99,7 @@ PromoteAdHocWorkout promoteAdHocWorkout(Ref ref) => PromoteAdHocWorkout(
   ref.watch(workoutRepositoryProvider),
   ref.watch(cycleRepositoryProvider),
 );
+
+@riverpod
+ApplyPlannedWorkoutEdit applyPlannedWorkoutEdit(Ref ref) =>
+    ApplyPlannedWorkoutEdit(ref.watch(workoutRepositoryProvider));

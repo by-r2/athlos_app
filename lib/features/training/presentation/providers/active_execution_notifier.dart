@@ -33,6 +33,7 @@ import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
 import '../helpers/rep_performance.dart';
 import '../helpers/superset_grouping.dart';
+import '../helpers/workout_exercise_structure.dart';
 import 'recalculate_training_streaks.dart';
 import 'training_analytics_provider.dart';
 
@@ -91,6 +92,10 @@ class ActiveExecution extends _$ActiveExecution {
       isDeload: deloadConfig != null,
       defaultRestSeconds: defaultRestSeconds,
     );
+
+    _structuralEditDeloadConfig = deloadConfig;
+    _structuralEditProgressionRules = progressionRules;
+    _structuralEditIsometricExerciseIds = isometricExerciseIds;
   }
 
   /// Starts an ad-hoc session on a draft workout with no template exercises.
@@ -120,21 +125,60 @@ class ActiveExecution extends _$ActiveExecution {
       isAdHoc: true,
     );
 
-    // Stash deload/progression context on the notifier via private fields
-    _adHocDeloadConfig = deloadConfig;
-    _adHocProgressionRules = progressionRules;
-    _adHocIsometricExerciseIds = isometricExerciseIds;
+    // Stash deload/progression context for in-session structural edits.
+    _structuralEditDeloadConfig = deloadConfig;
+    _structuralEditProgressionRules = progressionRules;
+    _structuralEditIsometricExerciseIds = isometricExerciseIds;
   }
 
-  DeloadConfig? _adHocDeloadConfig;
-  List<ProgressionRule> _adHocProgressionRules = const [];
-  Set<String> _adHocIsometricExerciseIds = const {};
+  DeloadConfig? _structuralEditDeloadConfig;
+  List<ProgressionRule> _structuralEditProgressionRules = const [];
+  Set<String> _structuralEditIsometricExerciseIds = const {};
 
-  /// Adds an exercise during an ad-hoc session.
-  Future<void> addExercise(Exercise exercise) async {
+  /// Enters structural edit mode for a planned session (in-memory overlay).
+  void enterStructuralEditing() {
     final current = state;
-    if (current == null || !current.isAdHoc) return;
-    if (current.exercises.any((e) => e.exerciseId == exercise.id)) return;
+    if (current == null || current.isAdHoc || current.isStructuralEditing) {
+      return;
+    }
+
+    state = current.copyWith(
+      isStructuralEditing: true,
+      baselineExercises: cloneWorkoutExercises(current.exercises),
+    );
+  }
+
+  /// Restores the session template to the baseline; completed sets are kept.
+  Future<void> discardStructuralEdits() async {
+    final current = state;
+    if (current == null ||
+        !current.isStructuralEditing ||
+        current.baselineExercises == null) {
+      return;
+    }
+
+    final baseline = cloneWorkoutExercises(current.baselineExercises!);
+    final exerciseSets = await _rebuildExerciseSetsForTemplate(
+      baseline,
+      current.exerciseSets,
+    );
+
+    state = current.copyWith(
+      exercises: baseline,
+      exerciseSets: exerciseSets,
+      isStructuralEditing: false,
+      clearBaselineExercises: true,
+    );
+  }
+
+  /// Adds an exercise during structural editing (ad-hoc or planned overlay).
+  /// Returns false when the catalog exercise is already in the workout.
+  Future<bool> addExercise(Exercise exercise) async {
+    final current = state;
+    if (current == null || !current.canEditStructure) return false;
+    if (workoutAlreadyContainsExercise(current.exercises, exercise.id)) {
+      return false;
+    }
 
     final restSeconds = current.defaultRestSeconds > 0
         ? current.defaultRestSeconds
@@ -156,9 +200,9 @@ class ActiveExecution extends _$ActiveExecution {
     final newSets = await _buildInitialExerciseSets(
       repo: repo,
       exercises: [workoutExercise],
-      deloadConfig: _adHocDeloadConfig,
-      progressionRules: _adHocProgressionRules,
-      isometricExerciseIds: _adHocIsometricExerciseIds,
+      deloadConfig: _structuralEditDeloadConfig,
+      progressionRules: _structuralEditProgressionRules,
+      isometricExerciseIds: _structuralEditIsometricExerciseIds,
     );
 
     state = current.copyWith(
@@ -166,28 +210,29 @@ class ActiveExecution extends _$ActiveExecution {
       exerciseSets: {...current.exerciseSets, ...newSets},
     );
     _scheduleDraftTemplatePersist();
+    return true;
   }
 
-  /// Updates prescription for an ad-hoc exercise and rebuilds pending sets.
+  /// Updates prescription during structural editing and rebuilds pending sets.
   Future<void> updateAdHocExercise(WorkoutExercise updated) async {
     final current = state;
-    if (current == null || !current.isAdHoc) return;
+    if (current == null || !current.canEditStructure) return;
 
     final index = current.exercises.indexWhere(
-      (e) => e.exerciseId == updated.exerciseId,
+      (e) => e.id == updated.id,
     );
     if (index < 0) return;
 
-    final oldSets = current.exerciseSets[updated.exerciseId] ?? [];
+    final oldSets = current.exerciseSets[updated.id] ?? [];
     final repo = ref.read(workoutExecutionRepositoryProvider);
     final freshSets = await _buildInitialExerciseSets(
       repo: repo,
       exercises: [updated],
-      deloadConfig: _adHocDeloadConfig,
-      progressionRules: _adHocProgressionRules,
-      isometricExerciseIds: _adHocIsometricExerciseIds,
+      deloadConfig: _structuralEditDeloadConfig,
+      progressionRules: _structuralEditProgressionRules,
+      isometricExerciseIds: _structuralEditIsometricExerciseIds,
     );
-    final template = freshSets[updated.exerciseId] ?? [];
+    final template = freshSets[updated.id] ?? [];
 
     final merged = <SetEntry>[];
     for (var setNum = 1; setNum <= updated.sets; setNum++) {
@@ -204,25 +249,45 @@ class ActiveExecution extends _$ActiveExecution {
 
     final updatedExercises = syncSupersetRestInList(current.exercises, updated);
     final resolved = updatedExercises.firstWhere(
-      (e) => e.exerciseId == updated.exerciseId,
+      (e) => e.id == updated.id,
     );
 
     state = current.copyWith(
       exercises: updatedExercises,
-      exerciseSets: {...current.exerciseSets, resolved.exerciseId: merged},
+      exerciseSets: {...current.exerciseSets, resolved.id: merged},
     );
     _scheduleDraftTemplatePersist();
   }
 
-  /// Reorders exercises in an ad-hoc overview (moves whole superset blocks).
-  void reorderAdHocExercises(int oldIndex, int newIndex) {
+  /// Reorders exercises during structural editing (moves whole superset blocks).
+  /// Returns false when the block has completed sets and cannot move.
+  bool reorderAdHocExercises(int oldIndex, int newIndex) {
     final current = state;
-    if (current == null || !current.isAdHoc) return;
+    if (current == null || !current.canEditStructure) return false;
     if (oldIndex < 0 ||
         oldIndex >= current.exercises.length ||
         newIndex < 0 ||
         newIndex > current.exercises.length) {
-      return;
+      return false;
+    }
+
+    var blockStart = oldIndex;
+    final gid = current.exercises[oldIndex].groupId;
+    if (gid != null) {
+      while (blockStart > 0 &&
+          current.exercises[blockStart - 1].groupId == gid) {
+        blockStart--;
+      }
+    }
+
+    if (blockHasCompletedSets(
+      exercises: current.exercises,
+      blockStartIndex: blockStart,
+      hasCompletedSet: (rowId) =>
+          (current.exerciseSets[rowId] ?? [])
+              .any((s) => s.isCompleted),
+    )) {
+      return false;
     }
 
     state = current.copyWith(
@@ -233,15 +298,16 @@ class ActiveExecution extends _$ActiveExecution {
       ),
     );
     _scheduleDraftTemplatePersist();
+    return true;
   }
 
-  /// Sets superset membership from overview selection (ad-hoc only).
+  /// Sets superset membership from overview selection during structural editing.
   void commitSupersetSelection(
     Set<String> linkedExerciseIds, {
     int? editingGroupId,
   }) {
     final current = state;
-    if (current == null || !current.isAdHoc) return;
+    if (current == null || !current.canEditStructure) return;
 
     state = current.copyWith(
       exercises: applySupersetSelection(
@@ -253,23 +319,75 @@ class ActiveExecution extends _$ActiveExecution {
     _scheduleDraftTemplatePersist();
   }
 
-  /// Removes an exercise from an ad-hoc session (in-memory only).
-  void removeExercise(String exerciseId) {
+  /// Removes an exercise during structural editing (keeps completed sets as orphans).
+  void removeExercise(String rowId) {
     final current = state;
-    if (current == null || !current.isAdHoc) return;
+    if (current == null || !current.canEditStructure) return;
 
     final updatedExercises = normalizeLonelySupersetGroups([
       for (final e in current.exercises)
-        if (e.exerciseId != exerciseId) e,
+        if (e.id != rowId) e,
     ]);
-    final updatedSets = Map<String, List<SetEntry>>.from(current.exerciseSets)
-      ..remove(exerciseId);
+    final updatedSets = Map<String, List<SetEntry>>.from(current.exerciseSets);
+    final existing = updatedSets[rowId] ?? [];
+    final completedOnly = existing.where((s) => s.isCompleted).toList();
+    if (completedOnly.isEmpty) {
+      updatedSets.remove(rowId);
+    } else {
+      updatedSets[rowId] = completedOnly;
+    }
 
     state = current.copyWith(
       exercises: updatedExercises,
       exerciseSets: updatedSets,
     );
     _scheduleDraftTemplatePersist();
+  }
+
+  Future<Map<String, List<SetEntry>>> _rebuildExerciseSetsForTemplate(
+    List<WorkoutExercise> template,
+    Map<String, List<SetEntry>> currentSets,
+  ) async {
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final freshSets = await _buildInitialExerciseSets(
+      repo: repo,
+      exercises: template,
+      deloadConfig: _structuralEditDeloadConfig,
+      progressionRules: _structuralEditProgressionRules,
+      isometricExerciseIds: _structuralEditIsometricExerciseIds,
+    );
+
+    final baselineRowIds = template.map((e) => e.id).toSet();
+    final result = <String, List<SetEntry>>{};
+
+    for (final ex in template) {
+      final oldSets = currentSets[ex.id] ?? [];
+      final planned = freshSets[ex.id] ?? [];
+      final merged = <SetEntry>[];
+      for (var setNum = 1; setNum <= ex.sets; setNum++) {
+        final existing =
+            oldSets.where((s) => s.setNumber == setNum).firstOrNull;
+        if (existing != null && existing.isCompleted) {
+          merged.add(existing);
+        } else {
+          final plannedSet =
+              planned.where((s) => s.setNumber == setNum).firstOrNull;
+          if (plannedSet != null) merged.add(plannedSet);
+        }
+      }
+      result[ex.id] = merged;
+    }
+
+    for (final entry in currentSets.entries) {
+      if (baselineRowIds.contains(entry.key)) continue;
+      final completedOnly =
+          entry.value.where((s) => s.isCompleted).toList();
+      if (completedOnly.isNotEmpty) {
+        result[entry.key] = completedOnly;
+      }
+    }
+
+    return result;
   }
 
   void _scheduleDraftTemplatePersist() {
@@ -354,7 +472,7 @@ class ActiveExecution extends _$ActiveExecution {
           ? lastWeight * deloadConfig.intensityMultiplier
           : lastWeight;
 
-      exerciseSets[ex.exerciseId] = List.generate(
+      exerciseSets[ex.id] = List.generate(
         effectiveSets,
         (i) => SetEntry(
           setNumber: i + 1,
@@ -406,7 +524,7 @@ class ActiveExecution extends _$ActiveExecution {
   /// Update local set values (weight/reps or duration/distance) without
   /// persisting yet.
   void updateSet(
-    String exerciseId,
+    String rowId,
     int setNumber, {
     int? reps,
     double? weight,
@@ -416,7 +534,7 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return;
 
-    final sets = current.exerciseSets[exerciseId];
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return;
 
     final updated = [
@@ -433,15 +551,15 @@ class ActiveExecution extends _$ActiveExecution {
     ];
 
     state = current.copyWith(
-      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+      exerciseSets: {...current.exerciseSets, rowId: updated},
     );
 
-    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
+    _scheduleDraftPersist(rowId: rowId, setNumber: setNumber);
   }
 
   /// Add a drop segment to a set (in-memory only, persisted on complete).
   void addDropSegment(
-    String exerciseId,
+    String rowId,
     int setNumber, {
     required int reps,
     double? weight,
@@ -449,7 +567,7 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return;
 
-    final sets = current.exerciseSets[exerciseId];
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return;
 
     final updated = [
@@ -466,23 +584,23 @@ class ActiveExecution extends _$ActiveExecution {
     ];
 
     state = current.copyWith(
-      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+      exerciseSets: {...current.exerciseSets, rowId: updated},
     );
 
-    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
+    _scheduleDraftPersist(rowId: rowId, setNumber: setNumber);
   }
 
   /// Remove a drop segment by index.
   /// Overrides how load is interpreted for one set (persisted when completed).
   void updateSetLoadModeOverride(
-    String exerciseId,
+    String rowId,
     int setNumber,
     LoadMode? loadModeOverride,
   ) {
     final current = state;
     if (current == null) return;
 
-    final sets = current.exerciseSets[exerciseId];
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return;
 
     final updated = [
@@ -494,15 +612,15 @@ class ActiveExecution extends _$ActiveExecution {
     ];
 
     state = current.copyWith(
-      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+      exerciseSets: {...current.exerciseSets, rowId: updated},
     );
   }
 
-  void removeDropSegment(String exerciseId, int setNumber, int segmentIndex) {
+  void removeDropSegment(String rowId, int setNumber, int segmentIndex) {
     final current = state;
     if (current == null) return;
 
-    final sets = current.exerciseSets[exerciseId];
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return;
 
     final updated = [
@@ -519,37 +637,40 @@ class ActiveExecution extends _$ActiveExecution {
     ];
 
     state = current.copyWith(
-      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+      exerciseSets: {...current.exerciseSets, rowId: updated},
     );
 
-    _scheduleDraftPersist(exerciseId: exerciseId, setNumber: setNumber);
+    _scheduleDraftPersist(rowId: rowId, setNumber: setNumber);
   }
 
   void _scheduleDraftPersist({
-    required String exerciseId,
+    required String rowId,
     required int setNumber,
   }) {
     final current = state;
     if (current == null) return;
 
-    final key = '${current.executionId}:$exerciseId:$setNumber';
+    final key = '${current.executionId}:$rowId:$setNumber';
     _draftPersistTimers.remove(key)?.cancel();
     _draftPersistTimers[key] = Timer(
       _draftPersistDebounce,
       () => unawaited(
-        _persistDraftSet(exerciseId: exerciseId, setNumber: setNumber),
+        _persistDraftSet(rowId: rowId, setNumber: setNumber),
       ),
     );
   }
 
   Future<void> _persistDraftSet({
-    required String exerciseId,
+    required String rowId,
     required int setNumber,
   }) async {
     final current = state;
     if (current == null) return;
 
-    final sets = current.exerciseSets[exerciseId];
+    final catalogExerciseId = current.exerciseByRowId(rowId)?.exerciseId;
+    if (catalogExerciseId == null) return;
+
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return;
 
     final entry = sets.where((s) => s.setNumber == setNumber).firstOrNull;
@@ -574,7 +695,7 @@ class ActiveExecution extends _$ActiveExecution {
     final set = ExecutionSet(
       id: entry.id ?? '',
       executionId: current.executionId,
-      exerciseId: exerciseId,
+      exerciseId: catalogExerciseId,
       setNumber: setNumber,
       plannedReps: entry.plannedReps,
       plannedWeight: entry.plannedWeight,
@@ -625,14 +746,14 @@ class ActiveExecution extends _$ActiveExecution {
     // Ensure the in-memory entry is linked to the persisted row.
     final latest = state;
     if (latest == null) return;
-    final latestSets = latest.exerciseSets[exerciseId];
+    final latestSets = latest.exerciseSets[rowId];
     if (latestSets == null) return;
     final linked = [
       for (final s in latestSets)
         if (s.setNumber == setNumber) s.copyWith(id: persistedId) else s,
     ];
     state = latest.copyWith(
-      exerciseSets: {...latest.exerciseSets, exerciseId: linked},
+      exerciseSets: {...latest.exerciseSets, rowId: linked},
     );
   }
 
@@ -642,7 +763,7 @@ class ActiveExecution extends _$ActiveExecution {
   /// Returns (restSeconds, suggestedNextWeight) — suggestedNextWeight is non-null
   /// only when **every planned work set** (excluding warm-ups) hit at least `maxReps`.
   Future<(int, double?)> completeSet(
-    String exerciseId,
+    String rowId,
     int setNumber, {
     int? reps,
     double? weight,
@@ -659,17 +780,21 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return (0, null);
 
-    final sets = current.exerciseSets[exerciseId];
+    final exercise = current.exerciseByRowId(rowId);
+    if (exercise == null) return (0, null);
+
+    final sets = current.exerciseSets[rowId];
     if (sets == null) return (0, null);
 
     final entry = sets.firstWhere((s) => s.setNumber == setNumber);
     final effectiveSegments = segments ?? entry.segments;
     final bodyWeightSnapshot = await ref.read(latestBodyWeightProvider.future);
+    final catalogExerciseId = exercise.exerciseId;
 
     final executionSet = ExecutionSet(
       id: entry.id ?? '',
       executionId: current.executionId,
-      exerciseId: exerciseId,
+      exerciseId: catalogExerciseId,
       setNumber: setNumber,
       plannedReps: entry.plannedReps,
       plannedWeight: entry.plannedWeight,
@@ -730,17 +855,16 @@ class ActiveExecution extends _$ActiveExecution {
     ];
 
     state = current.copyWith(
-      exerciseSets: {...current.exerciseSets, exerciseId: updated},
+      exerciseSets: {...current.exerciseSets, rowId: updated},
     );
 
-    final exercise = current.exercises.firstWhere(
-      (e) => e.exerciseId == exerciseId,
-    );
-    final rest = exercise.restSeconds > 0 ? exercise.restSeconds : current.defaultRestSeconds;
+    final rest = exercise.restSeconds > 0
+        ? exercise.restSeconds
+        : current.defaultRestSeconds;
 
     double? suggestedWeight;
     final maxReps = exercise.maxReps;
-    final latestExerciseSets = state!.exerciseSets[exerciseId] ?? [];
+    final latestExerciseSets = state!.exerciseSets[rowId] ?? [];
     if (maxReps != null &&
         maxReps > 0 &&
         workSetsQualifyForSuggestedWeightIncrease(
@@ -749,7 +873,7 @@ class ActiveExecution extends _$ActiveExecution {
         )) {
       final catalogResult = await ref
           .read(exerciseRepositoryProvider)
-          .getById(exerciseId);
+          .getById(catalogExerciseId);
       final fraction = switch (catalogResult) {
         Success(:final value) when value != null =>
           progressionLoadIncreaseFraction(value),
@@ -789,9 +913,9 @@ class ActiveExecution extends _$ActiveExecution {
     result.getOrThrow();
 
     state = null;
-    _adHocDeloadConfig = null;
-    _adHocProgressionRules = const [];
-    _adHocIsometricExerciseIds = const {};
+    _structuralEditDeloadConfig = null;
+    _structuralEditProgressionRules = const [];
+    _structuralEditIsometricExerciseIds = const {};
     await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
 
     ref.invalidate(lastFinishedWorkoutIdProvider);
@@ -834,21 +958,47 @@ class ActiveExecution extends _$ActiveExecution {
     final lastWeights = (await repo.getLastWeightsForExercises(exerciseIds))
         .getOrThrow();
 
+    final dbSetsByCatalogId = <String, List<ExecutionSet>>{};
+    for (final set in dbSets) {
+      (dbSetsByCatalogId[set.exerciseId] ??= []).add(set);
+    }
+    for (final list in dbSetsByCatalogId.values) {
+      list.sort((a, b) {
+        final bySet = a.setNumber.compareTo(b.setNumber);
+        if (bySet != 0) return bySet;
+        return a.id.compareTo(b.id);
+      });
+    }
+
+    ExecutionSet? takeDbSet(String catalogExerciseId, int setNumber) {
+      final queue = dbSetsByCatalogId[catalogExerciseId];
+      if (queue == null || queue.isEmpty) return null;
+      final index = queue.indexWhere((s) => s.setNumber == setNumber);
+      if (index < 0) return null;
+      return queue.removeAt(index);
+    }
+
     final exerciseSets = <String, List<SetEntry>>{};
     for (final ex in templateExercises) {
-      final completed = dbSets
-          .where((s) => s.exerciseId == ex.exerciseId)
-          .toList();
-      final maxCompleted = completed.isEmpty
-          ? 0
-          : completed.map((s) => s.setNumber).reduce((a, b) => a > b ? a : b);
-      final totalSets = ex.sets < maxCompleted ? maxCompleted : ex.sets;
+      final allocated = <int, ExecutionSet>{};
+      for (var setNum = 1; setNum <= ex.sets; setNum++) {
+        final taken = takeDbSet(ex.exerciseId, setNum);
+        if (taken != null) allocated[setNum] = taken;
+      }
+      var nextExtra = ex.sets + 1;
+      while (true) {
+        final taken = takeDbSet(ex.exerciseId, nextExtra);
+        if (taken == null) break;
+        allocated[nextExtra] = taken;
+        nextExtra++;
+      }
+      final totalSets = allocated.isEmpty
+          ? ex.sets
+          : math.max(ex.sets, allocated.keys.reduce(math.max));
 
-      exerciseSets[ex.exerciseId] = List.generate(totalSets, (i) {
+      exerciseSets[ex.id] = List.generate(totalSets, (i) {
         final setNum = i + 1;
-        final existing = completed
-            .where((s) => s.setNumber == setNum)
-            .firstOrNull;
+        final existing = allocated[setNum];
         if (existing != null) {
           final isIso = isometricExerciseIds.contains(ex.exerciseId);
           final usesDur = (ex.durationSeconds != null) || isIso;
@@ -947,9 +1097,9 @@ class ActiveExecution extends _$ActiveExecution {
 
     if (current?.executionId == executionId) {
       state = null;
-      _adHocDeloadConfig = null;
-      _adHocProgressionRules = const [];
-      _adHocIsometricExerciseIds = const {};
+      _structuralEditDeloadConfig = null;
+      _structuralEditProgressionRules = const [];
+      _structuralEditIsometricExerciseIds = const {};
     }
 
     ref.invalidate(danglingExecutionProvider);

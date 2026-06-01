@@ -19,8 +19,8 @@ RestNextTarget? findNextRestTarget(
     for (var i = 0; i < exec.exercises.length; i++) {
       if (exec.exercises[i].groupId != groupId) continue;
 
-      final exId = exec.exercises[i].exerciseId;
-      final firstPending = (exec.exerciseSets[exId] ?? [])
+      final rowId = exec.exercises[i].id;
+      final firstPending = (exec.exerciseSets[rowId] ?? [])
           .where((set) => !set.isCompleted)
           .firstOrNull;
       if (firstPending != null) {
@@ -38,8 +38,8 @@ RestNextTarget? findNextRestTarget(
     }
   }
 
-  final exId = currentExercise.exerciseId;
-  final nextInExercise = (exec.exerciseSets[exId] ?? [])
+  final rowId = currentExercise.id;
+  final nextInExercise = (exec.exerciseSets[rowId] ?? [])
       .where((set) => !set.isCompleted && set.setNumber > focusedSetNumber)
       .firstOrNull;
   if (nextInExercise != null) {
@@ -50,8 +50,8 @@ RestNextTarget? findNextRestTarget(
   }
 
   for (var i = 0; i < exec.exercises.length; i++) {
-    final candidateExId = exec.exercises[i].exerciseId;
-    final firstPending = (exec.exerciseSets[candidateExId] ?? [])
+    final candidateRowId = exec.exercises[i].id;
+    final firstPending = (exec.exerciseSets[candidateRowId] ?? [])
         .where((set) => !set.isCompleted)
         .firstOrNull;
     if (firstPending != null) {

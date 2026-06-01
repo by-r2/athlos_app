@@ -180,9 +180,63 @@ void main() {
 
       final result = reorderExercisesInList(exercises, 0, 1);
 
-      expect(result.map((e) => e.exerciseId).toList(), ['b', 'c', 'a']);
-      expect(result[0].groupId, gid);
-      expect(result[1].groupId, gid);
+      expect(result.map((e) => e.exerciseId).toList(), ['b', 'a', 'c']);
+      expect(result.every((e) => e.groupId == gid), isTrue);
+    });
+
+    test('joins solo exercise dropped between superset members', () {
+      const gid = 1;
+      final exercises = [
+        _ex('a', groupId: gid, sortOrder: 0),
+        _ex('b', groupId: gid, sortOrder: 1),
+        _ex('c', groupId: gid, sortOrder: 2),
+        _ex('d', sortOrder: 3),
+      ];
+
+      final result = reorderExercisesInList(exercises, 3, 1);
+
+      expect(result.length, 4);
+      expect(result.map((e) => e.exerciseId).toList(), ['a', 'd', 'b', 'c']);
+      expect(result.every((e) => e.groupId == gid), isTrue);
+    });
+
+    test('does not drop rows that share the same catalog exerciseId', () {
+      const gid = 1;
+      final duplicateSolo = WorkoutExercise(
+        id: 'we-dup-solo',
+        workoutId: 'w1',
+        exerciseId: 'shared',
+        sortOrder: 2,
+        sets: 3,
+        minReps: 12,
+        maxReps: 12,
+        restSeconds: 60,
+      );
+      final inSuperset = WorkoutExercise(
+        id: 'we-dup-group',
+        workoutId: 'w1',
+        exerciseId: 'shared',
+        sortOrder: 0,
+        sets: 3,
+        minReps: 12,
+        maxReps: 12,
+        restSeconds: 60,
+        groupId: gid,
+      );
+      final exercises = [
+        inSuperset,
+        _ex('b', groupId: gid, sortOrder: 1),
+        duplicateSolo,
+      ];
+
+      final result = reorderSupersetBlocksContiguously(exercises);
+
+      expect(result.length, 3);
+      expect(result.map((e) => e.id).toSet(), {
+        'we-dup-group',
+        'we-dup-solo',
+        'we-b',
+      });
     });
   });
 

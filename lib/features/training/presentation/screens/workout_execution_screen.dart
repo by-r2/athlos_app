@@ -48,6 +48,7 @@ import '../providers/rest_timer_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
 import '../providers/workout_share_summary_gate.dart';
+import '../../domain/usecases/apply_planned_workout_edit.dart';
 import '../../domain/usecases/promote_ad_hoc_workout.dart';
 import '../widgets/ad_hoc_exercise_config_sheet.dart';
 import '../widgets/exercise_picker_sheet.dart';
@@ -725,8 +726,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     ActiveExecutionState exec,
   ) {
     for (var i = 0; i < exec.exercises.length; i++) {
-      final exId = exec.exercises[i].exerciseId;
-      final sets = exec.exerciseSets[exId] ?? [];
+      final rowId = exec.exercises[i].id;
+      final sets = exec.exerciseSets[rowId] ?? [];
       for (final s in sets) {
         if (!s.isCompleted) return (i, s.setNumber);
       }
@@ -759,8 +760,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final currentPosInGroup = group.indexOf(currentIndex);
     for (var offset = 1; offset < group.length; offset++) {
       final nextIdx = group[(currentPosInGroup + offset) % group.length];
-      final exId = exec.exercises[nextIdx].exerciseId;
-      final sets = exec.exerciseSets[exId] ?? [];
+      final rowId = exec.exercises[nextIdx].id;
+      final sets = exec.exerciseSets[rowId] ?? [];
       final match = sets.where(
         (s) => s.setNumber == setNumber && !s.isCompleted,
       );
@@ -787,8 +788,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     int exerciseIndex, [
     int? setNumber,
   ]) {
-    final exId = exec.exercises[exerciseIndex].exerciseId;
-    final sets = exec.exerciseSets[exId] ?? [];
+    final rowId = exec.exercises[exerciseIndex].id;
+    final sets = exec.exerciseSets[rowId] ?? [];
 
     final targetSet =
         setNumber ??
@@ -804,7 +805,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         .where((s) => s.isCompleted && s.setNumber < targetSet)
         .toList();
 
-    final isIsometric = _isExerciseIsometric(exId);
+    final isIsometric = _isExerciseIsometric(
+      exec.exercises[exerciseIndex].exerciseId,
+    );
     final isCardio =
         exec.exercises[exerciseIndex].durationSeconds != null && !isIsometric;
 
@@ -898,8 +901,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   }
 
   bool _isExerciseComplete(ActiveExecutionState exec) {
-    final exId = exec.exercises[_focusedExerciseIndex].exerciseId;
-    final sets = exec.exerciseSets[exId] ?? [];
+    final rowId = exec.exercises[_focusedExerciseIndex].id;
+    final sets = exec.exerciseSets[rowId] ?? [];
     return sets.every((s) => s.isCompleted);
   }
 
@@ -1114,7 +1117,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                               ref
                                   .read(activeExecutionProvider.notifier)
                                   .updateSetLoadModeOverride(
-                                    exercise.exerciseId,
+                                    exercise.id,
                                     currentSetEntry.setNumber,
                                     null,
                                   );
@@ -1131,7 +1134,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                                 ref
                                     .read(activeExecutionProvider.notifier)
                                     .updateSetLoadModeOverride(
-                                      exercise.exerciseId,
+                                      exercise.id,
                                       currentSetEntry.setNumber,
                                       mode == inheritedMode ? null : mode,
                                     );
@@ -1308,10 +1311,21 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   // ---------------------------------------------------------------------------
 
   Future<void> _onAddAdHocExercise(ActiveExecutionState exec) async {
-    final exercise = await showExercisePickerSheet(context);
+    final exercise = await showExercisePickerSheet(
+      context,
+      alreadyInWorkoutCatalogIds: {
+        for (final e in exec.exercises) e.exerciseId,
+      },
+    );
     if (exercise == null || !mounted) return;
     try {
-      await ref.read(activeExecutionProvider.notifier).addExercise(exercise);
+      final added =
+          await ref.read(activeExecutionProvider.notifier).addExercise(exercise);
+      if (!added && mounted) {
+        context.showAthlosSnack(
+          AppLocalizations.of(context)!.workoutExerciseAlreadyInWorkout,
+        );
+      }
     } on Exception catch (_) {
       if (mounted) {
         context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
@@ -1340,7 +1354,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       return;
     }
 
-    final completedSets = (exec.exerciseSets[workoutExercise.exerciseId] ?? [])
+    final completedSets = (exec.exerciseSets[workoutExercise.id] ?? [])
         .where((s) => s.isCompleted)
         .length;
 
@@ -1439,12 +1453,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     final confirmed = await _onRemoveAdHocExercise(
                       context,
                       exec,
-                      workoutExercise.exerciseId,
+                      workoutExercise.id,
                     );
                     if (confirmed && mounted) {
-                      ref
-                          .read(activeExecutionProvider.notifier)
-                          .removeExercise(workoutExercise.exerciseId);
+                      setState(() {});
                     }
                   },
                 ),
@@ -1459,9 +1471,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
   Future<bool> _onRemoveAdHocExercise(
     BuildContext context,
     ActiveExecutionState exec,
-    String exerciseId,
+    String rowId,
   ) async {
-    final sets = exec.exerciseSets[exerciseId] ?? [];
+    final sets = exec.exerciseSets[rowId] ?? [];
     final hasCompleted = sets.any((s) => s.isCompleted);
     if (hasCompleted) {
       final l10n = AppLocalizations.of(context)!;
@@ -1484,7 +1496,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       );
       if (confirmed != true || !mounted) return false;
     }
-    ref.read(activeExecutionProvider.notifier).removeExercise(exerciseId);
+    ref.read(activeExecutionProvider.notifier).removeExercise(rowId);
     return true;
   }
 
@@ -1650,9 +1662,16 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
     final focusedId = exec.exercises[safeFocused].exerciseId;
 
-    ref
+    final moved = ref
         .read(activeExecutionProvider.notifier)
         .reorderAdHocExercises(oldIndex, newIndex);
+
+    if (!moved && mounted) {
+      context.showAthlosErrorSnack(
+        AppLocalizations.of(context)!.plannedEditReorderBlocked,
+      );
+      return;
+    }
 
     final updated = ref.read(activeExecutionProvider);
     if (!mounted || updated == null) return;
@@ -1662,6 +1681,17 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
     if (newFocusedIndex >= 0) {
       setState(() => _focusedExerciseIndex = newFocusedIndex);
+    }
+  }
+
+  Future<void> _onDiscardStructuralEdits() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await ref.read(activeExecutionProvider.notifier).discardStructuralEdits();
+    } on Exception catch (_) {
+      if (mounted) {
+        context.showAthlosErrorSnack(l10n.genericError);
+      }
     }
   }
 
@@ -1711,7 +1741,9 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final total = _totalSetCount;
     final next = _findNextPendingSet(exec);
 
-    final isSupersetSelecting = exec.isAdHoc && _isSupersetSelecting;
+    final isSupersetSelecting = exec.canEditStructure && _isSupersetSelecting;
+    final showAddExerciseFab =
+        exec.canEditStructure && !isSupersetSelecting && !exec.isFinishing;
 
     return PopScope(
       canPop: !isSupersetSelecting,
@@ -1719,24 +1751,89 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         if (!didPop && isSupersetSelecting) _cancelSupersetEdit();
       },
       child: AthlosScaffold(
+        floatingActionButton: showAddExerciseFab
+            ? FloatingActionButton(
+                heroTag: 'execution-add-exercise',
+                onPressed: () => _onAddAdHocExercise(exec),
+                tooltip: l10n.adHocAddExercise,
+                child: const Icon(Icons.add),
+              )
+            : null,
         appBar: AppBar(
           title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
           automaticallyImplyLeading: false,
-          actions: [
-            if (isSupersetSelecting)
-              TextButton(
-                onPressed: _cancelSupersetEdit,
-                child: Text(l10n.cancel),
-              )
-            else
-              TextButton(
-                onPressed: () => _showCancelDialog(context),
-                child: Text(l10n.cancelExecution),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(40),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: AthlosSpacing.xs,
+                right: AthlosSpacing.xs,
+                bottom: AthlosSpacing.xs,
               ),
-          ],
+              child: Row(
+                children: [
+                  if (!isSupersetSelecting &&
+                      !exec.isAdHoc &&
+                      !exec.isStructuralEditing)
+                    IconButton(
+                      icon: const Icon(Icons.tune_outlined),
+                      tooltip: l10n.plannedEditEnterAction,
+                      onPressed: exec.isFinishing
+                          ? null
+                          : () => ref
+                              .read(activeExecutionProvider.notifier)
+                              .enterStructuralEditing(),
+                    ),
+                  const Spacer(),
+                  if (isSupersetSelecting)
+                    TextButton(
+                      onPressed: _cancelSupersetEdit,
+                      child: Text(l10n.cancel),
+                    )
+                  else
+                    TextButton(
+                      onPressed: () => _showCancelDialog(context),
+                      child: Text(l10n.cancelExecution),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
         body: Column(
           children: [
+            if (exec.isStructuralEditing)
+              Material(
+                color: colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AthlosSpacing.md,
+                    vertical: AthlosSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.tune,
+                        size: 18,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: AthlosSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.plannedEditBannerHint,
+                          style: textTheme.labelLarge?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _onDiscardStructuralEdits,
+                        child: Text(l10n.plannedEditRevertAction),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             if (isSupersetSelecting)
               Material(
                 color: colorScheme.primaryContainer,
@@ -1867,20 +1964,20 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     final groupColorMap =
                         supersetColorIndexByGroupId(exec.exercises);
                     final canReorderOverview =
-                        exec.isAdHoc && !isSupersetSelecting;
+                        exec.canEditStructure && !isSupersetSelecting;
 
                     final listPadding = EdgeInsets.fromLTRB(
                       AthlosSpacing.sm,
                       AthlosSpacing.sm,
                       AthlosSpacing.sm,
-                      isSupersetSelecting
+                      isSupersetSelecting || showAddExerciseFab
                           ? AthlosSpacing.fabClearance
                           : AthlosSpacing.sm,
                     );
 
                     Widget buildOverviewItem(BuildContext context, int index) {
                     final exercise = exec.exercises[index];
-                    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+                    final sets = exec.exerciseSets[exercise.id] ?? [];
                     final completedSets = sets
                         .where((s) => s.isCompleted)
                         .length;
@@ -1939,7 +2036,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                       onTap: isSupersetSelecting
                           ? () => _toggleSupersetSelection(exercise)
                           : () => _goToFocused(exec, index),
-                      onLongPress: exec.isAdHoc && !isSupersetSelecting
+                      onLongPress: exec.canEditStructure && !isSupersetSelecting
                           ? () => _showAdHocExerciseOptionsSheet(
                                 context,
                                 exec,
@@ -1948,15 +2045,15 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                           : null,
                     );
 
-                    if (!exec.isAdHoc || isSupersetSelecting) {
+                    if (!exec.canEditStructure || isSupersetSelecting) {
                       return KeyedSubtree(
-                        key: ValueKey(exercise.exerciseId),
+                        key: ValueKey(exercise.id),
                         child: overviewCard,
                       );
                     }
 
                     return Dismissible(
-                      key: ValueKey(exercise.exerciseId),
+                      key: ValueKey(exercise.id),
                       direction: DismissDirection.horizontal,
                       confirmDismiss: (direction) async {
                         if (direction == DismissDirection.startToEnd) {
@@ -1966,12 +2063,10 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                         return _onRemoveAdHocExercise(
                           context,
                           exec,
-                          exercise.exerciseId,
+                          exercise.id,
                         );
                       },
-                      onDismissed: (_) => ref
-                          .read(activeExecutionProvider.notifier)
-                          .removeExercise(exercise.exerciseId),
+                      onDismissed: (_) {},
                       background: Container(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.only(left: AthlosSpacing.lg),
@@ -2006,18 +2101,12 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     );
                     }
 
-                    if (canReorderOverview) {
-                      return ReorderableListView.builder(
-                        padding: listPadding,
-                        itemCount: exec.exercises.length,
-                        onReorderItem: _onReorderAdHocExercises,
-                        itemBuilder: buildOverviewItem,
-                      );
-                    }
-
-                    return ListView.builder(
+                    return ReorderableListView.builder(
                       padding: listPadding,
                       itemCount: exec.exercises.length,
+                      onReorderItem: canReorderOverview
+                          ? _onReorderAdHocExercises
+                          : (_, _) {},
                       itemBuilder: buildOverviewItem,
                     );
                   },
@@ -2038,19 +2127,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (exec.isAdHoc) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: exec.isFinishing || isSupersetSelecting
-                            ? null
-                            : () => _onAddAdHocExercise(exec),
-                        icon: const Icon(Icons.add),
-                        label: Text(l10n.adHocAddExercise),
-                      ),
-                    ),
-                    const SizedBox(height: AthlosSpacing.sm),
-                  ],
                   if (next != null) ...[
                     AthlosStackedActions(
                       spacing: AthlosSpacing.sm,
@@ -2173,7 +2249,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final totalSets = sets.length;
     final name = _exerciseName(exercise.exerciseId);
     final group = _muscleGroupName(exercise.exerciseId);
@@ -2990,7 +3066,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final completedReps = <int>[];
     for (final s in sets) {
       if (!s.isCompleted || s.isWarmup) continue;
@@ -3117,7 +3193,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 
   void _enterTimedManualEntry(ActiveExecutionState exec) {
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final currentSetEntry = sets.firstWhere(
       (s) => s.setNumber == _focusedSetNumber,
       orElse: () => sets.first,
@@ -3206,7 +3282,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     CardioTimerState cardioState,
   ) {
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final goalSeconds = exercise.durationSeconds ?? 0;
 
     final currentSetEntry = sets.firstWhere(
@@ -3232,7 +3308,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final colorScheme = Theme.of(context).colorScheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
     return AthlosScaffold(
@@ -3293,7 +3369,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
     final hasReachedGoal = cardioState.hasReachedGoal;
     final isPaused = cardioState.isPaused;
@@ -3419,7 +3495,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
     return AthlosScaffold(
@@ -3548,7 +3624,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     CardioTimerState cardioState,
   ) {
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final currentSetEntry = sets.firstWhere(
       (s) => s.setNumber == _focusedSetNumber,
       orElse: () => sets.first,
@@ -3600,7 +3676,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final colorScheme = Theme.of(context).colorScheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.durationSeconds ?? 0;
 
@@ -3680,7 +3756,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
 
     return AthlosScaffold(
@@ -3712,7 +3788,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final textTheme = Theme.of(context).textTheme;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
     final hasReachedGoal = cardioState.hasReachedGoal;
 
@@ -3825,7 +3901,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final customColors = Theme.of(context).extension<AthlosCustomColors>()!;
 
     final exercise = exec.exercises[_focusedExerciseIndex];
-    final sets = exec.exerciseSets[exercise.exerciseId] ?? [];
+    final sets = exec.exerciseSets[exercise.id] ?? [];
     final name = _exerciseName(exercise.exerciseId);
     final goalSeconds = exercise.durationSeconds ?? 0;
 
@@ -3994,7 +4070,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       final (r, _) = await ref
           .read(activeExecutionProvider.notifier)
           .completeSet(
-            exercise.exerciseId,
+            exercise.id,
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
             rpe: _selectedRpe,
@@ -4071,7 +4147,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       final result = await ref
           .read(activeExecutionProvider.notifier)
           .completeSet(
-            exercise.exerciseId,
+            exercise.id,
             _focusedSetNumber,
             reps: isCardio ? null : effectiveReps,
             weight: isCardio
@@ -4133,7 +4209,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       final (r, _) = await ref
           .read(activeExecutionProvider.notifier)
           .completeSet(
-            exercise.exerciseId,
+            exercise.id,
             _focusedSetNumber,
             duration: _currentDuration > 0 ? _currentDuration : null,
             distance: _currentDistance > 0 ? _currentDistance : null,
@@ -4186,51 +4262,145 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       return;
     }
 
-    final router = GoRouter.of(context);
+    if (exec.hasTemplateChangesFromBaseline) {
+      final outcome = await _showPlannedEditSaveDialog(context);
+      if (!context.mounted || outcome == null) return;
+      await _finishPlannedWithStructuralEdit(context, exec, outcome);
+      return;
+    }
+
+    await _finishPlannedExecution(context, exec);
+  }
+
+  Future<void> _finishPlannedExecution(
+    BuildContext context,
+    ActiveExecutionState exec,
+  ) async {
     final executionIdToShare = exec.executionId;
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
       ref.read(restTimerProvider.notifier).reset();
       ref.read(cardioTimerProvider.notifier).reset();
       if (context.mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        context.showAthlosSuccessSnack(l10n.workoutFinished);
-
-        final program = ref.read(activeProgramProvider).value;
-
-        ref.invalidate(isDeloadDueProvider);
-        final isDeloadDue = await ref.read(isDeloadDueProvider.future);
-        if (isDeloadDue && context.mounted && program != null) {
-          await _showDeloadPrompt(context, program);
-        }
-
-        if (program != null && context.mounted) {
-          ref.invalidate(programSessionCountProvider(program.id));
-          ref.invalidate(programProgressProvider(program.id));
-          final progress = await ref.read(
-            programProgressProvider(program.id).future,
-          );
-          if (progress.isCompleted && context.mounted) {
-            await _showProgramCompletionPrompt(context, program);
-          }
-        }
-
-        if (context.mounted) {
-          router.pop();
-          final openSummary =
-              ref.read(shouldAutoShowWorkoutShareSummaryProvider);
-          if (openSummary) {
-            router.push(
-              RoutePaths.trainingExecutionShareSummary(executionIdToShare),
-            );
-          }
-        }
+        await _navigateAfterPlannedFinish(context, executionIdToShare);
       }
     } on Exception catch (_) {
       if (context.mounted) {
         context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
     }
+  }
+
+  Future<void> _finishPlannedWithStructuralEdit(
+    BuildContext context,
+    ActiveExecutionState exec,
+    PlannedWorkoutEditOutcome outcome,
+  ) async {
+    final executionIdToShare = exec.executionId;
+    final l10n = AppLocalizations.of(context)!;
+    final exercisesToPersist = List<WorkoutExercise>.from(exec.exercises);
+
+    try {
+      await ref.read(activeExecutionProvider.notifier).finishExecution();
+
+      if (outcome == PlannedWorkoutEditOutcome.persist) {
+        (await ref.read(applyPlannedWorkoutEditProvider).call(
+              ApplyPlannedWorkoutEditParams(
+                workoutId: exec.workoutId,
+                exercises: exercisesToPersist,
+                outcome: outcome,
+              ),
+            ))
+            .getOrThrow();
+        ref.invalidate(workoutByIdProvider(exec.workoutId));
+        ref.invalidate(workoutExercisesProvider(exec.workoutId));
+        ref.invalidate(workoutListProvider);
+      }
+
+      ref.read(restTimerProvider.notifier).reset();
+      ref.read(cardioTimerProvider.notifier).reset();
+      if (!context.mounted) return;
+      await _navigateAfterPlannedFinish(context, executionIdToShare);
+    } on Exception catch (_) {
+      if (context.mounted) {
+        context.showAthlosErrorSnack(l10n.genericError);
+      }
+    }
+  }
+
+  Future<void> _navigateAfterPlannedFinish(
+    BuildContext context,
+    String executionIdToShare,
+  ) async {
+    final router = GoRouter.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    context.showAthlosSuccessSnack(l10n.workoutFinished);
+
+    final program = ref.read(activeProgramProvider).value;
+
+    ref.invalidate(isDeloadDueProvider);
+    final isDeloadDue = await ref.read(isDeloadDueProvider.future);
+    if (isDeloadDue && context.mounted && program != null) {
+      await _showDeloadPrompt(context, program);
+    }
+
+    if (program != null && context.mounted) {
+      ref.invalidate(programSessionCountProvider(program.id));
+      ref.invalidate(programProgressProvider(program.id));
+      final progress = await ref.read(
+        programProgressProvider(program.id).future,
+      );
+      if (progress.isCompleted && context.mounted) {
+        await _showProgramCompletionPrompt(context, program);
+      }
+    }
+
+    if (context.mounted) {
+      router.pop();
+      final openSummary = ref.read(shouldAutoShowWorkoutShareSummaryProvider);
+      if (openSummary) {
+        router.push(
+          RoutePaths.trainingExecutionShareSummary(executionIdToShare),
+        );
+      }
+    }
+  }
+
+  Future<PlannedWorkoutEditOutcome?> _showPlannedEditSaveDialog(
+    BuildContext context,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    return showAthlosDialog<PlannedWorkoutEditOutcome>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.plannedEditSaveTitle),
+        content: Text(l10n.plannedEditSaveMessage),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(
+                  ctx,
+                  PlannedWorkoutEditOutcome.sessionOnly,
+                ),
+                child: Text(l10n.plannedEditSessionOnly),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(
+                  ctx,
+                  PlannedWorkoutEditOutcome.persist,
+                ),
+                child: Text(l10n.plannedEditPersist),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showDeloadPrompt(

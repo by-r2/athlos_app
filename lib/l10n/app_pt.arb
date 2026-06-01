@@ -1599,6 +1599,14 @@
   },
   "adHocAddExercise": "Adicionar exercício",
   "@adHocAddExercise": { "description": "CTA to add exercise during ad-hoc session" },
+  "workoutExerciseAlreadyInWorkout": "Este exercício já está no treino.",
+  "@workoutExerciseAlreadyInWorkout": {
+    "description": "SnackBar when user tries to add a catalog exercise that is already in the workout"
+  },
+  "workoutExerciseInWorkoutPickerLabel": "Já no treino",
+  "@workoutExerciseInWorkoutPickerLabel": {
+    "description": "Subtitle on exercise picker row when exercise is already in the workout"
+  },
   "adHocEditExerciseTitle": "Configurar exercício",
   "@adHocEditExerciseTitle": {
     "description": "Title for improvised workout exercise config sheet"
@@ -1660,6 +1668,38 @@
   "@adHocSaveHistoryOnly": { "description": "Discard template, keep execution history" },
   "adHocSaveWorkout": "Salvar treino",
   "@adHocSaveWorkout": { "description": "Save workout to program and cycle" },
+  "plannedEditEnterAction": "Ajustar treino de hoje",
+  "@plannedEditEnterAction": {
+    "description": "Enter structural edit mode during planned execution"
+  },
+  "plannedEditRevertAction": "Voltar ao original",
+  "@plannedEditRevertAction": {
+    "description": "Discard structural edits and restore session baseline"
+  },
+  "plannedEditBannerHint": "Você está ajustando a estrutura desta sessão.",
+  "@plannedEditBannerHint": {
+    "description": "Banner hint while structural edit mode is active"
+  },
+  "plannedEditSaveTitle": "Salvar alterações no treino?",
+  "@plannedEditSaveTitle": {
+    "description": "Post-finish dialog when structural edits were made"
+  },
+  "plannedEditSaveMessage": "Aplique no treino salvo ou use só nesta sessão. O histórico sempre reflete o que você executou.",
+  "@plannedEditSaveMessage": {
+    "description": "Body for planned structural edit save dialog"
+  },
+  "plannedEditSessionOnly": "Usar só nesta sessão",
+  "@plannedEditSessionOnly": {
+    "description": "Keep edits in history only, do not update saved workout"
+  },
+  "plannedEditPersist": "Salvar no treino",
+  "@plannedEditPersist": {
+    "description": "Apply structural edits to the saved workout template"
+  },
+  "plannedEditReorderBlocked": "Não é possível reordenar exercícios com séries já registradas.",
+  "@plannedEditReorderBlocked": {
+    "description": "Snackbar when reorder is blocked due to completed sets"
+  },
   "trainingStartFabMenuTitle": "Iniciar treino",
   "@trainingStartFabMenuTitle": { "description": "Expanded FAB menu title" },
   "trainingStartFabNextLabel": "Próximo do ciclo",

@@ -1,5 +1,6 @@
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/enums/load_mode.dart';
+import '../helpers/workout_exercise_structure.dart';
 
 /// In-memory representation of a drop set segment during active execution.
 ///
@@ -178,7 +179,7 @@ class ActiveExecutionState {
   final String executionId;
   final String workoutId;
 
-  /// exerciseId -> list of sets for that exercise.
+  /// WorkoutExercise row id -> sets for that template line (not catalog exercise id).
   final Map<String, List<SetEntry>> exerciseSets;
 
   /// Ordered exercise configs to access rest per exercise.
@@ -194,6 +195,12 @@ class ActiveExecutionState {
   /// In-session workout building (treino improvisado).
   final bool isAdHoc;
 
+  /// Structural edit mode for a planned session (overlay in memory only).
+  final bool isStructuralEditing;
+
+  /// Template snapshot when [isStructuralEditing] was entered.
+  final List<WorkoutExercise>? baselineExercises;
+
   const ActiveExecutionState({
     required this.executionId,
     required this.workoutId,
@@ -203,7 +210,18 @@ class ActiveExecutionState {
     this.isDeload = false,
     this.defaultRestSeconds = 0,
     this.isAdHoc = false,
+    this.isStructuralEditing = false,
+    this.baselineExercises,
   });
+
+  /// Ad-hoc or planned structural editing — unlocks template mutation UI.
+  bool get canEditStructure => isAdHoc || isStructuralEditing;
+
+  /// Whether the current structure differs from the session baseline.
+  bool get hasTemplateChangesFromBaseline {
+    if (!isStructuralEditing || baselineExercises == null) return false;
+    return !workoutExercisesStructurallyEqual(exercises, baselineExercises!);
+  }
 
   int get completedSetCount => exerciseSets.values
       .expand((sets) => sets)
@@ -216,14 +234,41 @@ class ActiveExecutionState {
     Map<String, List<SetEntry>>? exerciseSets,
     List<WorkoutExercise>? exercises,
     bool? isFinishing,
+    bool? isDeload,
+    int? defaultRestSeconds,
+    bool? isAdHoc,
+    bool? isStructuralEditing,
+    List<WorkoutExercise>? baselineExercises,
+    bool clearBaselineExercises = false,
   }) => ActiveExecutionState(
     executionId: executionId,
     workoutId: workoutId,
     exerciseSets: exerciseSets ?? this.exerciseSets,
     exercises: exercises ?? this.exercises,
     isFinishing: isFinishing ?? this.isFinishing,
-    defaultRestSeconds: defaultRestSeconds,
-    isDeload: isDeload,
-    isAdHoc: isAdHoc,
+    isDeload: isDeload ?? this.isDeload,
+    defaultRestSeconds: defaultRestSeconds ?? this.defaultRestSeconds,
+    isAdHoc: isAdHoc ?? this.isAdHoc,
+    isStructuralEditing: isStructuralEditing ?? this.isStructuralEditing,
+    baselineExercises: clearBaselineExercises
+        ? null
+        : (baselineExercises ?? this.baselineExercises),
   );
+}
+
+extension ActiveExecutionStateSets on ActiveExecutionState {
+  List<SetEntry> setsForRow(String rowId) => exerciseSets[rowId] ?? [];
+
+  List<SetEntry> setsForExercise(WorkoutExercise exercise) =>
+      setsForRow(exercise.id);
+
+  List<SetEntry> setsAtIndex(int exerciseIndex) =>
+      setsForRow(exercises[exerciseIndex].id);
+
+  WorkoutExercise? exerciseByRowId(String rowId) {
+    for (final exercise in exercises) {
+      if (exercise.id == rowId) return exercise;
+    }
+    return null;
+  }
 }
