@@ -24,6 +24,7 @@ import '../../domain/enums/progression_condition.dart';
 import '../../domain/enums/progression_type.dart';
 import '../../domain/usecases/complete_set_use_case.dart';
 import '../../domain/usecases/finish_workout_execution.dart';
+import '../../domain/usecases/substitute_workout_exercise.dart';
 import 'active_execution_state.dart';
 export 'active_execution_state.dart';
 import 'program_notifier.dart';
@@ -233,18 +234,11 @@ class ActiveExecution extends _$ActiveExecution {
     );
     final template = freshSets[updated.id] ?? [];
 
-    final merged = <SetEntry>[];
-    for (var setNum = 1; setNum <= updated.sets; setNum++) {
-      final existing =
-          oldSets.where((s) => s.setNumber == setNum).firstOrNull;
-      if (existing != null && existing.isCompleted) {
-        merged.add(existing);
-      } else {
-        final planned =
-            template.where((s) => s.setNumber == setNum).firstOrNull;
-        if (planned != null) merged.add(planned);
-      }
-    }
+    final merged = _mergeSetsKeepingCompleted(
+      oldSets,
+      template,
+      updated.sets,
+    );
 
     final updatedExercises = syncSupersetRestInList(current.exercises, updated);
     final resolved = updatedExercises.firstWhere(
@@ -256,6 +250,135 @@ class ActiveExecution extends _$ActiveExecution {
       exerciseSets: {...current.exerciseSets, resolved.id: merged},
     );
     _scheduleDraftTemplatePersist();
+  }
+
+  /// Swaps the catalog exercise on a template line without changing [WorkoutExercise.id].
+  ///
+  /// Completed sets on the row are kept; pending sets are rebuilt from the
+  /// replacement prescription. Persisted drafts are re-keyed to the new catalog id.
+  Future<void> substituteExercise(String rowId, Exercise replacement) async {
+    final current = state;
+    if (current == null || current.isStructuralEditing) return;
+
+    final index = current.exercises.indexWhere((e) => e.id == rowId);
+    if (index < 0) return;
+
+    final row = current.exercises[index];
+    final useCase = ref.read(substituteWorkoutExerciseProvider);
+    final updatedResult = useCase(
+      SubstituteWorkoutExerciseParams(
+        row: row,
+        replacement: replacement,
+        workoutExercises: current.exercises,
+        isometricExerciseIds: _structuralEditIsometricExerciseIds,
+      ),
+    );
+    if (updatedResult is Failure<WorkoutExercise>) return;
+    final updated = updatedResult.getOrThrow();
+
+    _cancelDraftTimersForRow(rowId);
+
+    final oldSets = current.exerciseSets[rowId] ?? [];
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    final freshSets = await _buildInitialExerciseSets(
+      repo: repo,
+      exercises: [updated],
+      deloadConfig: _structuralEditDeloadConfig,
+      progressionRules: _structuralEditProgressionRules,
+      isometricExerciseIds: _structuralEditIsometricExerciseIds,
+    );
+    final template = freshSets[rowId] ?? [];
+    final merged = _mergeSetsKeepingCompleted(oldSets, template, updated.sets);
+
+    final updatedExercises = List<WorkoutExercise>.from(current.exercises);
+    updatedExercises[index] = updated;
+
+    final substitutions = Map<String, String>.from(current.substitutions);
+    substitutions.putIfAbsent(rowId, () => row.exerciseId);
+
+    state = current.copyWith(
+      exercises: updatedExercises,
+      exerciseSets: {...current.exerciseSets, rowId: merged},
+      substitutions: substitutions,
+    );
+
+    await _rekeyPersistedSetsForSubstitution(
+      rowId: rowId,
+      newCatalogExerciseId: replacement.id,
+      mergedSets: merged,
+    );
+  }
+
+  List<SetEntry> _mergeSetsKeepingCompleted(
+    List<SetEntry> oldSets,
+    List<SetEntry> template,
+    int targetSetCount,
+  ) {
+    final merged = <SetEntry>[];
+    for (var setNum = 1; setNum <= targetSetCount; setNum++) {
+      final existing = oldSets.where((s) => s.setNumber == setNum).firstOrNull;
+      if (existing != null && existing.isCompleted) {
+        merged.add(existing);
+      } else {
+        final planned = template.where((s) => s.setNumber == setNum).firstOrNull;
+        if (planned != null) merged.add(planned);
+      }
+    }
+    return merged;
+  }
+
+  void _cancelDraftTimersForRow(String rowId) {
+    final executionId = state?.executionId;
+    if (executionId == null) return;
+    final prefix = '$executionId:$rowId:';
+    for (final key in _draftPersistTimers.keys.toList()) {
+      if (key.startsWith(prefix)) {
+        _draftPersistTimers.remove(key)?.cancel();
+      }
+    }
+  }
+
+  Future<void> _rekeyPersistedSetsForSubstitution({
+    required String rowId,
+    required String newCatalogExerciseId,
+    required List<SetEntry> mergedSets,
+  }) async {
+    final current = state;
+    if (current == null) return;
+
+    final repo = ref.read(workoutExecutionRepositoryProvider);
+    for (final entry in mergedSets) {
+      final persistedId = entry.id;
+      if (persistedId == null || persistedId.isEmpty) continue;
+
+      final executionSet = ExecutionSet(
+        id: persistedId,
+        executionId: current.executionId,
+        exerciseId: newCatalogExerciseId,
+        setNumber: entry.setNumber,
+        plannedReps: entry.plannedReps,
+        plannedWeight: entry.plannedWeight,
+        reps: entry.reps,
+        weight: entry.weight,
+        durationSeconds: entry.duration,
+        distanceMeters: entry.distance,
+        isCompleted: entry.isCompleted,
+        isWarmup: entry.isWarmup,
+        rpe: entry.rpe,
+        bodyWeightSnapshot: null,
+        loadModeOverride: entry.loadModeOverride,
+        leftReps: entry.leftReps,
+        leftWeight: entry.leftWeight,
+        rightReps: entry.rightReps,
+        rightWeight: entry.rightWeight,
+        isUnilateral: entry.leftReps != null ||
+            entry.leftWeight != null ||
+            entry.rightReps != null ||
+            entry.rightWeight != null,
+      );
+
+      await repo.rekeySetCatalogExercise(executionSet).then((r) => r.getOrThrow());
+    }
   }
 
   /// Reorders exercises during structural editing (moves whole superset blocks).

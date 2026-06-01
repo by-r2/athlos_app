@@ -52,6 +52,7 @@ import '../../domain/usecases/apply_planned_workout_edit.dart';
 import '../../domain/usecases/promote_ad_hoc_workout.dart';
 import '../widgets/ad_hoc_exercise_config_sheet.dart';
 import '../widgets/exercise_picker_sheet.dart';
+import '../widgets/substitute_exercise_picker_sheet.dart';
 import '../widgets/ghost_exercise_recovery_panel.dart';
 import '../widgets/workout_exercise_tile.dart' show supersetColorFor;
 
@@ -74,6 +75,34 @@ String _setOptionsPaneTitle(_SetOptionsPane pane, AppLocalizations l10n) {
     _SetOptionsPane.loadMode => l10n.executionSetLoadModeSheetTitle,
     _SetOptionsPane.dropSets => l10n.executionDropSetsSheetTitle,
   };
+}
+
+/// Compact row shown when a line was substituted (icon matches swipe affordance).
+Widget _substitutionFromIndicator(
+  BuildContext context,
+  String originalExerciseName,
+) {
+  final colorScheme = Theme.of(context).colorScheme;
+  final textTheme = Theme.of(context).textTheme;
+
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.swap_horiz, size: 14, color: colorScheme.primary),
+      const SizedBox(width: AthlosSpacing.xxs),
+      Flexible(
+        child: Text(
+          originalExerciseName,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
 }
 
 /// Formats a completed set as "Wkg x R", duration, or drop set chain.
@@ -1338,6 +1367,57 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     return null;
   }
 
+  Future<void> _onSubstituteExercise(
+    ActiveExecutionState exec,
+    WorkoutExercise workoutExercise,
+  ) async {
+    if (exec.isStructuralEditing) return;
+
+    final replacement = await showSubstituteExercisePickerSheet(
+      context,
+      sourceExerciseId: workoutExercise.exerciseId,
+      alreadyInWorkoutCatalogIds: {
+        for (final e in exec.exercises) e.exerciseId,
+      },
+    );
+    if (replacement == null || !mounted) return;
+
+    final sets = exec.exerciseSets[workoutExercise.id] ?? [];
+    final hasCompleted = sets.any((s) => s.isCompleted);
+    if (hasCompleted) {
+      final l10n = AppLocalizations.of(context)!;
+      final confirmed = await showAthlosDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.executionSubstituteConfirmTitle),
+          content: Text(l10n.executionSubstituteConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.executionSubstituteAction),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    try {
+      await ref
+          .read(activeExecutionProvider.notifier)
+          .substituteExercise(workoutExercise.id, replacement);
+      if (mounted) setState(() {});
+    } on Exception catch (_) {
+      if (mounted) {
+        context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
+      }
+    }
+  }
+
   Future<void> _onEditAdHocExercise(
     ActiveExecutionState exec,
     WorkoutExercise workoutExercise,
@@ -1428,6 +1508,18 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                     onTap: () {
                       Navigator.pop(ctx);
                       _startSupersetEditMode(exec, workoutExercise);
+                    },
+                  ),
+                if (!exec.isStructuralEditing)
+                  ListTile(
+                    leading: Icon(
+                      Icons.swap_horiz,
+                      color: colorScheme.primary,
+                    ),
+                    title: Text(l10n.executionSubstituteAction),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _onSubstituteExercise(exec, workoutExercise);
                     },
                   ),
                 ListTile(
@@ -2011,9 +2103,15 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                                 _supersetEditingGroupId,
                               ));
 
+                    final originalCatalogId = exec.substitutions[exercise.id];
+                    final substitutedFromName = originalCatalogId != null
+                        ? _exerciseName(originalCatalogId)
+                        : null;
+
                     final overviewCard = _OverviewExerciseCard(
                       exerciseName: _exerciseName(exercise.exerciseId),
                       muscleGroup: _muscleGroupName(exercise.exerciseId),
+                      substitutedFromName: substitutedFromName,
                       prescriptionSummary: prescriptionSummary,
                       isAmrap: exercise.isAmrap,
                       completedSets: completedSets,
@@ -2032,18 +2130,50 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
                       onTap: isSupersetSelecting
                           ? () => _toggleSupersetSelection(exercise)
                           : () => _goToFocused(exec, index),
-                      onLongPress: exec.canEditStructure && !isSupersetSelecting
-                          ? () => _showAdHocExerciseOptionsSheet(
-                                context,
-                                exec,
-                                exercise,
-                              )
-                          : null,
+                      onLongPress: isSupersetSelecting
+                          ? null
+                          : exec.canEditStructure
+                              ? () => _showAdHocExerciseOptionsSheet(
+                                    context,
+                                    exec,
+                                    exercise,
+                                  )
+                              : () => _onSubstituteExercise(exec, exercise),
                     );
 
-                    if (!exec.canEditStructure || isSupersetSelecting) {
+                    if (isSupersetSelecting) {
                       return KeyedSubtree(
                         key: ValueKey(exercise.id),
+                        child: overviewCard,
+                      );
+                    }
+
+                    if (!exec.canEditStructure) {
+                      return Dismissible(
+                        key: ValueKey(exercise.id),
+                        direction: DismissDirection.startToEnd,
+                        confirmDismiss: (_) async {
+                          await _onSubstituteExercise(exec, exercise);
+                          return false;
+                        },
+                        onDismissed: (_) {},
+                        background: Container(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(
+                            left: AthlosSpacing.lg,
+                          ),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: AthlosSpacing.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: AthlosRadius.mdAll,
+                          ),
+                          child: Icon(
+                            Icons.swap_horiz,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                        ),
                         child: overviewCard,
                       );
                     }
@@ -2295,6 +2425,11 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       );
     }
 
+    final originalCatalogId = exec.substitutions[exercise.id];
+    final substitutedFromName = originalCatalogId != null
+        ? _exerciseName(originalCatalogId)
+        : null;
+
     return AthlosScaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -2302,15 +2437,39 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           onPressed: () => setState(() => _viewMode = _ViewMode.overview),
         ),
         title: AthlosTruncatedText(name),
+        actions: [
+          if (!exec.isStructuralEditing)
+            IconButton(
+              icon: const Icon(Icons.swap_horiz),
+              tooltip: l10n.executionSubstituteAction,
+              onPressed: () => _onSubstituteExercise(exec, exercise),
+            ),
+        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(24),
+          preferredSize: Size.fromHeight(
+            substitutedFromName != null ? 48 : 24,
+          ),
           child: Padding(
             padding: const EdgeInsets.only(bottom: AthlosSpacing.sm),
-            child: Text(
-              l10n.setOf(_focusedSetNumber, totalSets),
-              style: textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.setOf(_focusedSetNumber, totalSets),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (substitutedFromName != null) ...[
+                  const SizedBox(height: AthlosSpacing.xxs),
+                  Center(
+                    child: _substitutionFromIndicator(
+                      context,
+                      substitutedFromName,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -4265,6 +4424,13 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       return;
     }
 
+    if (exec.hasSubstitutions) {
+      final outcome = await _showSubstituteSaveDialog(context);
+      if (!context.mounted || outcome == null) return;
+      await _finishPlannedWithStructuralEdit(context, exec, outcome);
+      return;
+    }
+
     await _finishPlannedExecution(context, exec);
   }
 
@@ -4360,6 +4526,43 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         );
       }
     }
+  }
+
+  Future<PlannedWorkoutEditOutcome?> _showSubstituteSaveDialog(
+    BuildContext context,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    return showAthlosDialog<PlannedWorkoutEditOutcome>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.executionSubstituteSaveTitle),
+        content: Text(l10n.executionSubstituteSaveMessage),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                onPressed: () => Navigator.pop(
+                  ctx,
+                  PlannedWorkoutEditOutcome.sessionOnly,
+                ),
+                child: Text(l10n.plannedEditSessionOnly),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                onPressed: () => Navigator.pop(
+                  ctx,
+                  PlannedWorkoutEditOutcome.persist,
+                ),
+                child: Text(l10n.plannedEditPersist),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<PlannedWorkoutEditOutcome?> _showPlannedEditSaveDialog(
@@ -4753,6 +4956,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
 class _OverviewExerciseCard extends StatelessWidget {
   final String exerciseName;
   final String muscleGroup;
+  final String? substitutedFromName;
   final String? prescriptionSummary;
   final bool isAmrap;
   final int completedSets;
@@ -4773,6 +4977,7 @@ class _OverviewExerciseCard extends StatelessWidget {
   const _OverviewExerciseCard({
     required this.exerciseName,
     required this.muscleGroup,
+    this.substitutedFromName,
     this.prescriptionSummary,
     this.isAmrap = false,
     required this.completedSets,
@@ -4950,6 +5155,10 @@ class _OverviewExerciseCard extends StatelessWidget {
                       ],
                     ],
                   ),
+                if (substitutedFromName != null) ...[
+                  const SizedBox(height: AthlosSpacing.xxs),
+                  _substitutionFromIndicator(context, substitutedFromName!),
+                ],
                 if (prescriptionSummary != null &&
                     prescriptionSummary!.isNotEmpty) ...[
                   const SizedBox(height: AthlosSpacing.xxs),

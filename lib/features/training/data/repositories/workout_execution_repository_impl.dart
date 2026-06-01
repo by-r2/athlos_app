@@ -411,6 +411,37 @@ class WorkoutExecutionRepositoryImpl implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<void>> rekeySetCatalogExercise(domain.ExecutionSet set) async {
+    try {
+      await _dao.updateSet(
+        set.id,
+        ExecutionSetsCompanion(
+          exerciseId: Value(set.exerciseId),
+          plannedReps: Value(set.plannedReps),
+          plannedWeight: Value(set.plannedWeight),
+          reps: Value(set.reps),
+          weight: Value(set.weight),
+          durationSeconds: Value(set.durationSeconds),
+          distanceMeters: Value(set.distanceMeters),
+          isCompleted: Value(set.isCompleted),
+          isWarmup: Value(set.isWarmup),
+          rpe: Value(set.rpe),
+          bodyWeightSnapshot: Value(set.bodyWeightSnapshot),
+          loadModeOverride: Value(set.loadModeOverride),
+          leftReps: Value(set.leftReps),
+          leftWeight: Value(set.leftWeight),
+          rightReps: Value(set.rightReps),
+          rightWeight: Value(set.rightWeight),
+          isUnilateral: Value(set.isUnilateral),
+        ),
+      );
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure(DatabaseException('Failed to rekey set exercise: $e'));
+    }
+  }
+
+  @override
   Future<Result<Map<String, double>>> getLastWeightsForExercises(
     List<String> exerciseIds,
   ) async {

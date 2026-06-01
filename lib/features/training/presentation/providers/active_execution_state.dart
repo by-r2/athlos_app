@@ -201,6 +201,9 @@ class ActiveExecutionState {
   /// Template snapshot when [isStructuralEditing] was entered.
   final List<WorkoutExercise>? baselineExercises;
 
+  /// WorkoutExercise row id -> catalog exercise id before substitution.
+  final Map<String, String> substitutions;
+
   const ActiveExecutionState({
     required this.executionId,
     required this.workoutId,
@@ -212,6 +215,7 @@ class ActiveExecutionState {
     this.isAdHoc = false,
     this.isStructuralEditing = false,
     this.baselineExercises,
+    this.substitutions = const {},
   });
 
   /// Ad-hoc or planned structural editing — unlocks template mutation UI.
@@ -230,6 +234,8 @@ class ActiveExecutionState {
 
   bool get hasCompletedSets => completedSetCount > 0;
 
+  bool get hasSubstitutions => substitutions.isNotEmpty;
+
   ActiveExecutionState copyWith({
     Map<String, List<SetEntry>>? exerciseSets,
     List<WorkoutExercise>? exercises,
@@ -240,6 +246,7 @@ class ActiveExecutionState {
     bool? isStructuralEditing,
     List<WorkoutExercise>? baselineExercises,
     bool clearBaselineExercises = false,
+    Map<String, String>? substitutions,
   }) => ActiveExecutionState(
     executionId: executionId,
     workoutId: workoutId,
@@ -253,5 +260,6 @@ class ActiveExecutionState {
     baselineExercises: clearBaselineExercises
         ? null
         : (baselineExercises ?? this.baselineExercises),
+    substitutions: substitutions ?? this.substitutions,
   );
 }

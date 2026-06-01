@@ -5,6 +5,7 @@ import 'package:athlos_app/features/training/domain/entities/execution_context_f
 import 'package:athlos_app/features/training/domain/entities/execution_set.dart';
 import 'package:athlos_app/features/training/domain/entities/execution_set_segment.dart';
 import 'package:athlos_app/features/training/domain/entities/workout_execution.dart';
+import 'package:athlos_app/features/training/domain/enums/session_kind.dart';
 import 'package:athlos_app/features/training/domain/repositories/workout_execution_repository.dart';
 import 'package:athlos_app/features/training/domain/usecases/complete_set_use_case.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -178,6 +179,10 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   }
 
   @override
+  Future<Result<void>> rekeySetCatalogExercise(ExecutionSet set) async =>
+      updateSet(set);
+
+  @override
   Future<Result<void>> saveSegments(
     String executionSetId,
     List<ExecutionSetSegment> segments,
@@ -200,6 +205,11 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   @override
   Future<Result<WorkoutExecution?>> getLastFinished() => _unsupported();
   @override
+  Future<Result<WorkoutExecution?>> getLastFinishedForCycle({
+    required String programId,
+    required List<String> cycleWorkoutIds,
+  }) => _unsupported();
+  @override
   Future<Result<ExecutionComparison?>> getLastTwoFinishedWithVolume(
     String workoutId,
   ) => _unsupported();
@@ -207,6 +217,7 @@ class _FakeWorkoutExecutionRepository implements WorkoutExecutionRepository {
   Future<Result<String>> start(
     String workoutId, {
     String? programId,
+    SessionKind sessionKind = SessionKind.planned,
   }) => _unsupported();
   @override
   Future<Result<void>> finish(String executionId) => _unsupported();

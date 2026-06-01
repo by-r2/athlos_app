@@ -1692,6 +1692,34 @@
   "@plannedEditReorderBlocked": {
     "description": "Snackbar when reorder is blocked due to completed sets"
   },
+  "executionSubstituteAction": "Usar substituto",
+  "@executionSubstituteAction": {
+    "description": "Menu action to replace a workout line with another catalog exercise"
+  },
+  "executionSubstitutePickerTitle": "Escolher substituto",
+  "@executionSubstitutePickerTitle": {
+    "description": "Title for substitute exercise picker sheet"
+  },
+  "executionSubstituteVariationsSection": "Variações",
+  "@executionSubstituteVariationsSection": {
+    "description": "Section header for variation exercises in substitute picker"
+  },
+  "executionSubstituteConfirmTitle": "Substituir exercício?",
+  "@executionSubstituteConfirmTitle": {
+    "description": "Confirm dialog title when substituting with completed sets"
+  },
+  "executionSubstituteConfirmMessage": "Séries já concluídas serão mantidas. As séries pendentes passam a usar a prescrição do novo exercício.",
+  "@executionSubstituteConfirmMessage": {
+    "description": "Confirm dialog body when substituting with completed sets"
+  },
+  "executionSubstituteSaveTitle": "Salvar substitutos no treino?",
+  "@executionSubstituteSaveTitle": {
+    "description": "Post-finish dialog when exercises were substituted"
+  },
+  "executionSubstituteSaveMessage": "Aplique os exercícios substitutos no treino salvo ou use só nesta sessão. O histórico sempre reflete o que você executou.",
+  "@executionSubstituteSaveMessage": {
+    "description": "Body for substitute save dialog at finish"
+  },
   "trainingStartFabMenuTitle": "Iniciar treino",
   "@trainingStartFabMenuTitle": { "description": "Expanded FAB menu title" },
   "trainingStartFabNextLabel": "Próximo do ciclo",
