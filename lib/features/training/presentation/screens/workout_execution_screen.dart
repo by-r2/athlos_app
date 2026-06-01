@@ -1752,18 +1752,27 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       },
       child: AthlosScaffold(
         floatingActionButton: showAddExerciseFab
-            ? FloatingActionButton(
-                heroTag: 'execution-add-exercise',
-                onPressed: () => _onAddAdHocExercise(exec),
-                tooltip: l10n.adHocAddExercise,
-                child: const Icon(Icons.add),
+            ? Padding(
+                padding: EdgeInsets.only(
+                  bottom: next != null
+                      ? AthlosSpacing.executionOverviewFabBottomInsetStacked
+                      : AthlosSpacing.executionOverviewFabBottomInset,
+                ),
+                child: FloatingActionButton(
+                  heroTag: 'execution-add-exercise',
+                  onPressed: () => _onAddAdHocExercise(exec),
+                  tooltip: l10n.adHocAddExercise,
+                  child: const Icon(Icons.add),
+                ),
               )
             : null,
         appBar: AppBar(
           title: AthlosTruncatedText(l10n.executionTitle(workoutName)),
           automaticallyImplyLeading: false,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(40),
+            preferredSize: Size.fromHeight(
+              exec.isStructuralEditing ? 48 : 40,
+            ),
             child: Padding(
               padding: const EdgeInsets.only(
                 left: AthlosSpacing.xs,
@@ -1772,18 +1781,41 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
               ),
               child: Row(
                 children: [
-                  if (!isSupersetSelecting &&
-                      !exec.isAdHoc &&
-                      !exec.isStructuralEditing)
-                    IconButton(
-                      icon: const Icon(Icons.tune_outlined),
-                      tooltip: l10n.plannedEditEnterAction,
-                      onPressed: exec.isFinishing
-                          ? null
-                          : () => ref
-                              .read(activeExecutionProvider.notifier)
-                              .enterStructuralEditing(),
-                    ),
+                  if (!isSupersetSelecting && !exec.isAdHoc) ...[
+                    if (exec.isStructuralEditing)
+                      FilledButton.tonalIcon(
+                        onPressed: exec.isFinishing
+                            ? null
+                            : _onDiscardStructuralEdits,
+                        icon: const Icon(Icons.undo, size: 18),
+                        label: Text(
+                          l10n.plannedEditRevertAction,
+                          style: textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.primaryContainer,
+                          foregroundColor: colorScheme.onPrimaryContainer,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AthlosSpacing.md,
+                            vertical: AthlosSpacing.sm,
+                          ),
+                        ),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.tune_outlined),
+                        tooltip: l10n.plannedEditEnterAction,
+                        onPressed: exec.isFinishing
+                            ? null
+                            : () => ref
+                                .read(activeExecutionProvider.notifier)
+                                .enterStructuralEditing(),
+                      ),
+                  ],
                   const Spacer(),
                   if (isSupersetSelecting)
                     TextButton(
@@ -1802,38 +1834,6 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         ),
         body: Column(
           children: [
-            if (exec.isStructuralEditing)
-              Material(
-                color: colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AthlosSpacing.md,
-                    vertical: AthlosSpacing.sm,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.tune,
-                        size: 18,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                      const SizedBox(width: AthlosSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          l10n.plannedEditBannerHint,
-                          style: textTheme.labelLarge?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _onDiscardStructuralEdits,
-                        child: Text(l10n.plannedEditRevertAction),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             if (isSupersetSelecting)
               Material(
                 color: colorScheme.primaryContainer,

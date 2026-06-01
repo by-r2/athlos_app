@@ -15,4 +15,10 @@ abstract class AthlosSpacing {
 
   /// Bottom padding to clear floating action buttons.
   static const double fabClearance = 80;
+
+  /// Lifts the execution-overview add-exercise FAB above one bottom action row.
+  static const double executionOverviewFabBottomInset = 120;
+
+  /// Same as [executionOverviewFabBottomInset] when finish + next-set are stacked.
+  static const double executionOverviewFabBottomInsetStacked = 168;
 }
