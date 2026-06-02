@@ -34,7 +34,7 @@ Future<int> pendingSyncDirtyCount(Ref ref) async {
   final uid = userId!;
 
   final training =
-      await ref.watch(trainingSyncStoreProvider).countDirty(uid);
+      await ref.watch(trainingSyncStoreProvider).countSyncableDirty(uid);
   final bodyMetrics =
       (await ref.watch(bodyMetricDaoProvider).getDirty(uid)).length;
   final bodyTombstones =

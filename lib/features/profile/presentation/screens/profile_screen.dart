@@ -13,8 +13,10 @@ import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../../../core/sync/sync_issue.dart';
 import '../../../../core/sync/sync_providers.dart';
 import '../../../../core/sync/sync_trigger.dart';
+import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/theme/athlos_radius.dart';
 import '../../../../core/theme/athlos_spacing.dart';
+import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../core/widgets/cards/athlos_nav_row.dart';
 import '../../../../core/widgets/feedback/athlos_status_callout.dart';
@@ -65,8 +67,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _isSigningOut = false;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -246,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       showBadge: showAccountBadge,
                       onTap: () => _pushPersonalSubpage(
                         title: l10n.profileDataTab,
-                        body: (_, l10n) => _buildDataCategory(l10n),
+                        body: (_, _) => const _ProfileAccountDataTab(),
                       ),
                     ),
                   ],
@@ -504,162 +504,117 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildDataCategory(AppLocalizations l10n) {
-    final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
-    final syncIssuesAsync = ref.watch(syncIssueCenterProvider);
-    final authAsync = ref.watch(authProvider);
-    final authUser = authAsync.value;
-    final isDataLoading =
-        authAsync.isLoading ||
-        conflictCenterAsync.isLoading ||
-        syncIssuesAsync.isLoading;
+  String _formatWeight(double? weight, AppLocalizations l10n) {
+    if (weight == null) return l10n.profileNotSet;
+    final str = weight % 1 == 0
+        ? weight.toInt().toString()
+        : weight.toStringAsFixed(1);
+    return '$str ${l10n.weightUnit}';
+  }
 
-    return Skeletonizer(
-      enabled: isDataLoading,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AthlosSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _SectionHeader(title: l10n.authAccountSectionTitle),
-            const Gap(AthlosSpacing.xs),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AthlosSpacing.sm,
-                  horizontal: AthlosSpacing.md,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _ProfileTile(
-                      icon: authUser != null
-                          ? Icons.verified_user_outlined
-                          : Icons.account_circle_outlined,
-                      label: l10n.profileDataAccountSessionLabel,
-                      value: authUser?.email ?? l10n.authNotSignedIn,
-                    ),
-                    const Gap(AthlosSpacing.md),
-                    if (authUser == null)
-                      FilledButton.icon(
-                        onPressed: authAsync.isLoading
-                            ? null
-                            : () => context.push(RoutePaths.authPrompt),
-                        icon: const Icon(Icons.login),
-                        label: Text(l10n.authOpenAccountAction),
-                      )
-                    else
-                      OutlinedButton.icon(
-                        onPressed: _isSigningOut || authAsync.isLoading
-                            ? null
-                            : () => _signOut(l10n),
-                        icon: _isSigningOut
-                            ? const SizedBox.square(
-                                dimension: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.logout),
-                        label: Text(l10n.authLogoutAction),
-                      ),
-                  ],
-                ),
+  String _goalLabel(TrainingGoal goal, AppLocalizations l10n) =>
+      localizedTrainingGoalName(goal, l10n);
+
+  String _aestheticLabel(BodyAesthetic aesthetic, AppLocalizations l10n) =>
+      localizedBodyAestheticName(aesthetic, l10n);
+
+  String _styleLabel(TrainingStyle style, AppLocalizations l10n) =>
+      localizedTrainingStyleName(style, l10n);
+
+  String _experienceLabel(ExperienceLevel level, AppLocalizations l10n) =>
+      localizedExperienceLevelName(level, l10n);
+
+  String _genderLabel(Gender gender, AppLocalizations l10n) =>
+      localizedGenderName(gender, l10n);
+}
+
+/// Account, cloud sync, conflicts, and sign-out (profile data subpage).
+class _ProfileAccountDataTab extends ConsumerStatefulWidget {
+  const _ProfileAccountDataTab();
+
+  @override
+  ConsumerState<_ProfileAccountDataTab> createState() =>
+      _ProfileAccountDataTabState();
+}
+
+class _ProfileAccountDataTabState extends ConsumerState<_ProfileAccountDataTab> {
+  bool _isSigningOut = false;
+
+  Future<bool> _confirmSignOut(AppLocalizations l10n) async {
+    final result = await showAthlosDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.authSignOutTitle),
+        content: Text(l10n.authSignOutMessage),
+        actions: [
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l10n.cancel),
               ),
-            ),
-            const Gap(AthlosSpacing.md),
-            const _CloudSyncStatusCard(),
-            const Gap(AthlosSpacing.md),
-            _SectionHeader(title: l10n.profileDataConflictsSectionTitle),
-            const Gap(AthlosSpacing.xs),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AthlosSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _ProfileConflictStatusBanner(
-                      conflictCenterAsync: conflictCenterAsync,
-                    ),
-                    const Gap(AthlosSpacing.sm),
-                    Text(
-                      l10n.profileDataConflictSummaryLocalHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const Gap(AthlosSpacing.md),
-                    AthlosNavRow(
-                      icon: Icons.rule_folder_outlined,
-                      title: l10n.conflictCenterTitle,
-                      subtitle: l10n.tapToOpen,
-                      onTap: () => context.push(RoutePaths.profileConflicts),
-                    ),
-                  ],
-                ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l10n.authSignOutProceedAction),
               ),
-            ),
-            const Gap(AthlosSpacing.md),
-            _SectionHeader(title: l10n.profileDataSyncIssuesSectionTitle),
-            const Gap(AthlosSpacing.xs),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AthlosSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SyncIssueStatusBanner(syncIssuesAsync: syncIssuesAsync),
-                    const Gap(AthlosSpacing.md),
-                    AthlosNavRow(
-                      icon: Icons.sync_problem_outlined,
-                      title: l10n.syncIssueCenterTitle,
-                      subtitle: l10n.tapToOpen,
-                      onTap: () => context.push(RoutePaths.profileSyncIssues),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const Gap(AthlosSpacing.lg),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
+    return result ?? false;
   }
 
   Future<bool> _confirmSignOutWithUnsyncedData(
     AppLocalizations l10n,
     int dirtyCount,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final result = await showAthlosDialog<bool>(
       context: context,
+      barrierDismissible: true,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.authSignOutUnsyncedTitle),
         content: Text(l10n.authSignOutUnsyncedMessage(dirtyCount)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.authSignOutConfirm),
+          AthlosStackedDialogActions(
+            children: [
+              TextButton(
+                style: AthlosDialogButtonStyles.stackedGhost(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                style: AthlosDialogButtonStyles.stackedFilled(dialogContext),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l10n.authSignOutConfirm),
+              ),
+            ],
           ),
         ],
       ),
     );
-    return confirmed ?? false;
+    return result ?? false;
   }
 
   Future<void> _signOut(AppLocalizations l10n) async {
-    final dirtyCount = await ref.read(pendingSyncDirtyCountProvider.future);
-    if (dirtyCount > 0) {
-      final confirmed = await _confirmSignOutWithUnsyncedData(l10n, dirtyCount);
-      if (!confirmed || !mounted) return;
-    }
+    if (!await _confirmSignOut(l10n) || !mounted) return;
 
     setState(() => _isSigningOut = true);
     try {
+      final dirtyCount = await ref.read(pendingSyncDirtyCountProvider.future);
+      if (!mounted) return;
+      if (dirtyCount > 0) {
+        setState(() => _isSigningOut = false);
+        if (!await _confirmSignOutWithUnsyncedData(l10n, dirtyCount) ||
+            !mounted) {
+          return;
+        }
+        setState(() => _isSigningOut = true);
+      }
+
       if (ref.read(isNetworkAvailableForSyncProvider)) {
         try {
           await ref
@@ -684,28 +639,170 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  String _formatWeight(double? weight, AppLocalizations l10n) {
-    if (weight == null) return l10n.profileNotSet;
-    final str = weight % 1 == 0
-        ? weight.toInt().toString()
-        : weight.toStringAsFixed(1);
-    return '$str ${l10n.weightUnit}';
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final conflictCenterAsync = ref.watch(backupConflictCenterProvider);
+    final syncIssuesAsync = ref.watch(syncIssueCenterProvider);
+    final authAsync = ref.watch(authProvider);
+    final authUser = authAsync.value;
+    final isDataLoading =
+        authAsync.isLoading ||
+        conflictCenterAsync.isLoading ||
+        syncIssuesAsync.isLoading;
+
+    return Skeletonizer(
+      enabled: isDataLoading,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(AthlosSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _SectionHeader(title: l10n.authAccountSectionTitle),
+                const Gap(AthlosSpacing.xs),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AthlosSpacing.sm,
+                      horizontal: AthlosSpacing.md,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ProfileTile(
+                          icon: authUser != null
+                              ? Icons.verified_user_outlined
+                              : Icons.account_circle_outlined,
+                          label: l10n.profileDataAccountSessionLabel,
+                          value: authUser?.email ?? l10n.authNotSignedIn,
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        if (authUser == null)
+                          FilledButton.icon(
+                            onPressed: authAsync.isLoading
+                                ? null
+                                : () => context.push(RoutePaths.authPrompt),
+                            icon: const Icon(Icons.login),
+                            label: Text(l10n.authOpenAccountAction),
+                          )
+                        else
+                          OutlinedButton.icon(
+                            onPressed: _isSigningOut || authAsync.isLoading
+                                ? null
+                                : () => _signOut(l10n),
+                            icon: _isSigningOut
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.logout),
+                            label: Text(l10n.authLogoutAction),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Gap(AthlosSpacing.md),
+                const _CloudSyncStatusCard(),
+                const Gap(AthlosSpacing.md),
+                _SectionHeader(title: l10n.profileDataConflictsSectionTitle),
+                const Gap(AthlosSpacing.xs),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ProfileConflictStatusBanner(
+                          conflictCenterAsync: conflictCenterAsync,
+                        ),
+                        const Gap(AthlosSpacing.sm),
+                        Text(
+                          l10n.profileDataConflictSummaryLocalHint,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        AthlosNavRow(
+                          icon: Icons.rule_folder_outlined,
+                          title: l10n.conflictCenterTitle,
+                          subtitle: l10n.tapToOpen,
+                          onTap: () =>
+                              context.push(RoutePaths.profileConflicts),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Gap(AthlosSpacing.md),
+                _SectionHeader(title: l10n.profileDataSyncIssuesSectionTitle),
+                const Gap(AthlosSpacing.xs),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AthlosSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SyncIssueStatusBanner(
+                          syncIssuesAsync: syncIssuesAsync,
+                        ),
+                        const Gap(AthlosSpacing.md),
+                        AthlosNavRow(
+                          icon: Icons.sync_problem_outlined,
+                          title: l10n.syncIssueCenterTitle,
+                          subtitle: l10n.tapToOpen,
+                          onTap: () =>
+                              context.push(RoutePaths.profileSyncIssues),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Gap(AthlosSpacing.lg),
+              ],
+            ),
+          ),
+          if (_isSigningOut)
+            Positioned.fill(
+              child: ColoredBox(
+                color: colorScheme.scrim.withValues(alpha: 0.45),
+                child: Center(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AthlosSpacing.lg,
+                        vertical: AthlosSpacing.md,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox.square(
+                            dimension: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const Gap(AthlosSpacing.md),
+                          Text(
+                            l10n.authSigningOutMessage,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
-
-  String _goalLabel(TrainingGoal goal, AppLocalizations l10n) =>
-      localizedTrainingGoalName(goal, l10n);
-
-  String _aestheticLabel(BodyAesthetic aesthetic, AppLocalizations l10n) =>
-      localizedBodyAestheticName(aesthetic, l10n);
-
-  String _styleLabel(TrainingStyle style, AppLocalizations l10n) =>
-      localizedTrainingStyleName(style, l10n);
-
-  String _experienceLabel(ExperienceLevel level, AppLocalizations l10n) =>
-      localizedExperienceLevelName(level, l10n);
-
-  String _genderLabel(Gender gender, AppLocalizations l10n) =>
-      localizedGenderName(gender, l10n);
 }
 
 class _ProfileMetricChipData {

@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 import '../../../../core/database/app_database.dart';
 import '../../../../core/sync/sync_adapter.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/sync/sync_user_id.dart';
 import 'training_remote_client.dart';
 import 'training_sync_json.dart';

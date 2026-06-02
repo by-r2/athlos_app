@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/sync/sync_user_id.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../domain/entities/workout_execution.dart';
 import '../helpers/workout_execution_launch.dart';
 import '../providers/active_execution_notifier.dart';
@@ -47,6 +49,15 @@ class _DanglingExecutionPromptListenerState
     Future.microtask(update);
   }
 
+  void _cancelPendingRetries() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _refreshAttempt = 0;
+  }
+
+  bool _hasAuthenticatedUser() =>
+      isValidSyncUserId(ref.read(authProvider).value?.id);
+
   void _onDanglingExecutionChanged(AsyncValue<WorkoutExecution?> next) {
     if (!mounted) return;
     // Never prompt while an in-memory execution is active (starting a workout
@@ -73,6 +84,21 @@ class _DanglingExecutionPromptListenerState
 
   @override
   Widget build(BuildContext context) {
+    final isAuthenticated =
+        isValidSyncUserId(ref.watch(authProvider).value?.id);
+
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.value != null && next.value == null) {
+        _cancelPendingRetries();
+        _didScheduleInitialCheck = false;
+        _deferDialogSessionUpdate(_dialogSession.clear);
+      }
+    });
+
+    if (!isAuthenticated) {
+      return widget.child;
+    }
+
     final danglingAsync = ref.watch(danglingExecutionProvider);
 
     if (!_didScheduleInitialCheck) {
@@ -113,6 +139,8 @@ class _DanglingExecutionPromptListenerState
   }
 
   void _scheduleRetryRefreshes() {
+    if (!_hasAuthenticatedUser()) return;
+
     const delays = <Duration>[
       Duration(milliseconds: 250),
       Duration(milliseconds: 750),
@@ -124,7 +152,7 @@ class _DanglingExecutionPromptListenerState
     _retryTimer?.cancel();
     final delay = delays[_refreshAttempt];
     _retryTimer = Timer(delay, () async {
-      if (!mounted) return;
+      if (!mounted || !_hasAuthenticatedUser()) return;
       _refreshAttempt++;
       try {
         await refreshDanglingExecution(ref);
@@ -133,7 +161,7 @@ class _DanglingExecutionPromptListenerState
       }
 
       // If still no value, schedule next retry.
-      if (!mounted) return;
+      if (!mounted || !_hasAuthenticatedUser()) return;
       final current = ref.read(danglingExecutionProvider);
       final hasDangling = current is AsyncData && current.value != null;
       if (!hasDangling) _scheduleRetryRefreshes();

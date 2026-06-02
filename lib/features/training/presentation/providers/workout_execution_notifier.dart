@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/errors/result.dart';
+import '../../../../core/sync/sync_user_id.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/execution_set_segment.dart';
@@ -34,6 +36,8 @@ class WorkoutExecutionList extends _$WorkoutExecutionList {
 /// Auto-deletes orphaned executions (workout was deleted) on first load.
 @riverpod
 Future<WorkoutExecution?> danglingExecution(Ref ref) async {
+  if (!isValidSyncUserId(ref.watch(authProvider).value?.id)) return null;
+
   // If there's an active in-memory session, it will always have an unfinished
   // DB row (by design). In that case we should not prompt "resume/discard".
   if (ref.watch(activeExecutionProvider) != null) return null;

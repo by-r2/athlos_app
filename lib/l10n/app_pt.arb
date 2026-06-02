@@ -3409,6 +3409,22 @@
   "@authGoogleStarted": {
     "description": "Message after starting OAuth"
   },
+  "authSignOutTitle": "Sair da conta?",
+  "@authSignOutTitle": {
+    "description": "Title for sign-out confirmation dialog"
+  },
+  "authSignOutMessage": "Deseja realmente sair da conta?",
+  "@authSignOutMessage": {
+    "description": "Message for sign-out confirmation dialog"
+  },
+  "authSignOutProceedAction": "Sair",
+  "@authSignOutProceedAction": {
+    "description": "Confirm sign-out on the confirmation dialog"
+  },
+  "authSigningOutMessage": "Saindo da conta...",
+  "@authSigningOutMessage": {
+    "description": "Message shown while sign-out is in progress"
+  },
   "authSignOutUnsyncedTitle": "Alterações não salvas",
   "@authSignOutUnsyncedTitle": {
     "description": "Title for dialog when signing out with pending cloud sync"

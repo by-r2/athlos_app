@@ -8,23 +8,34 @@ class TrainingSyncStore {
 
   final AppDatabase _db;
 
-  Future<int> countDirty(String userId) async {
-    final result = await _db.customSelect(
-      '''
-      SELECT
-        (SELECT COUNT(*) FROM exercises WHERE created_by = ?1 AND is_verified = 0 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM workouts WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM workout_exercises WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM programs WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM progression_rules WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM cycle_steps WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM workout_executions WHERE user_id = ?1 AND is_dirty = 1) +
-        (SELECT COUNT(*) FROM execution_sets WHERE user_id = ?1 AND is_dirty = 1)
-        AS total
-      ''',
-      variables: [Variable.withString(userId)],
-    ).getSingle();
-    return result.read<int>('total');
+  /// Rows the sync engine will actually push (same filters as [getDirty*] / tombstones).
+  Future<int> countSyncableDirty(String userId) async {
+    final breakdown = await syncableDirtyBreakdown(userId);
+    return breakdown.values.fold<int>(0, (sum, count) => sum + count);
+  }
+
+  /// Per-table syncable dirty counts (for UI pending badge and debug).
+  Future<Map<String, int>> syncableDirtyBreakdown(String userId) async {
+    Future<int> len(Future<List<dynamic>> query) async => (await query).length;
+
+    return {
+      'exercises': await len(getDirtyExercises(userId)) +
+          await len(getDirtyTombstonesExercises(userId)),
+      'workouts': await len(getDirtyWorkouts(userId)) +
+          await len(getDirtyTombstonesWorkouts(userId)),
+      'workout_exercises': await len(getDirtyWorkoutExercises(userId)) +
+          await len(getDirtyTombstonesWorkoutExercises(userId)),
+      'programs': await len(getDirtyPrograms(userId)) +
+          await len(getDirtyTombstonesPrograms(userId)),
+      'progression_rules': await len(getDirtyProgressionRules(userId)) +
+          await len(getDirtyTombstonesProgressionRules(userId)),
+      'cycle_steps': await len(getDirtyCycleSteps(userId)) +
+          await len(getDirtyTombstonesCycleSteps(userId)),
+      'workout_executions': await len(getDirtyWorkoutExecutions(userId)) +
+          await len(getDirtyTombstonesWorkoutExecutions(userId)),
+      'execution_sets': await len(getDirtyExecutionSets(userId)) +
+          await len(getDirtyTombstonesExecutionSets(userId)),
+    };
   }
 
   // --- Exercises (user custom only) ---

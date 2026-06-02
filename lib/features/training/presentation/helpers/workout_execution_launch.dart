@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
+import '../../../../core/sync/sync_user_id.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../../../core/theme/athlos_dialog.dart';
 import '../../../../core/widgets/feedback/athlos_dialog_actions.dart';
 import '../../../../core/widgets/feedback/athlos_messenger.dart';
@@ -23,6 +25,7 @@ export 'workout_execution_blocking.dart';
 
 /// Refreshes the dangling-execution cache after a local discard/finish.
 Future<void> refreshDanglingExecution(WidgetRef ref) async {
+  if (!isValidSyncUserId(ref.read(authProvider).value?.id)) return;
   ref.invalidate(danglingExecutionProvider);
   await ref.read(danglingExecutionProvider.future);
 }
