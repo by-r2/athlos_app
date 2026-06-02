@@ -60,6 +60,7 @@ WorkoutExecutionRepository workoutExecutionRepository(Ref ref) =>
 CycleRepository cycleRepository(Ref ref) => CycleRepositoryImpl(
   ref.watch(cycleStepDaoProvider),
   ref.watch(userOwnedSyncRunnerProvider),
+  ref.watch(trainingRemoteClientProvider),
   _requireUserId(ref),
 );
 

@@ -3454,6 +3454,14 @@
   "@authCheckingSession": {
     "description": "Message shown while the app checks whether the user is signed in"
   },
+  "splashTakingLongMessage": "O carregamento está demorando mais que o esperado.",
+  "@splashTakingLongMessage": {
+    "description": "Shown on splash when startup routing does not resolve in time"
+  },
+  "splashContinueToSignInAction": "Ir para entrar na conta",
+  "@splashContinueToSignInAction": {
+    "description": "Escape hatch on splash to open auth when startup is stuck"
+  },
   "authSignedInAs": "Conectado como {email}",
   "@authSignedInAs": {
     "description": "Signed-in account label",

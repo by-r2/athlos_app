@@ -628,6 +628,8 @@ class _ProfileAccountDataTabState extends ConsumerState<_ProfileAccountDataTab> 
       }
 
       await ref.read(accountDataIsolationServiceProvider).wipeUserData();
+      ref.invalidate(hasProfileProvider);
+      ref.invalidate(profileProvider);
       await ref.read(authProvider.notifier).signOut();
       if (!mounted) return;
       context.go(RoutePaths.authPrompt);

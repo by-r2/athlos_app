@@ -15,6 +15,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../core/widgets/layout/athlos_stacked_actions.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/providers/auth_notifier.dart';
 import '../../../chiron/presentation/widgets/chiron_bottom_sheet.dart';
 import '../../data/repositories/training_providers.dart';
 import '../../domain/entities/cycle_step.dart';
@@ -73,18 +74,56 @@ class _ActiveProgramCycleView extends ConsumerStatefulWidget {
 class _ActiveProgramCycleViewState
     extends ConsumerState<_ActiveProgramCycleView> {
   List<String>? _workoutIds;
+  int _cycleListEpoch = 0;
+  bool _pendingCycleOrderSave = false;
+
+  void _resetCycleListState({List<String>? workoutIds}) {
+    setState(() {
+      _workoutIds = workoutIds;
+      _cycleListEpoch++;
+      _pendingCycleOrderSave = false;
+    });
+  }
+
+  List<String> _dedupeWorkoutIdsPreserveOrder(List<String> ids) {
+    final seen = <String>{};
+    return [
+      for (final id in ids)
+        if (seen.add(id)) id,
+    ];
+  }
 
   Future<void> _saveOrder() async {
     if (_workoutIds == null) return;
-    final repo = ref.read(cycleRepositoryProvider);
-    final steps = [
-      for (var i = 0; i < _workoutIds!.length; i++)
-        TrainingCycleStep(id: '', orderIndex: i, workoutId: _workoutIds![i]),
-    ];
-    final result = await repo.setSteps(steps, widget.programId);
-    result.getOrThrow();
-    ref.invalidate(cycleStepsProvider);
-    ref.invalidate(cycleStepsForProgramProvider(widget.programId));
+    _pendingCycleOrderSave = true;
+    try {
+      final currentSteps =
+          ref.read(cycleStepsForProgramProvider(widget.programId)).value;
+      final idByWorkoutId = {
+        if (currentSteps != null)
+          for (final step in currentSteps) step.workoutId: step.id,
+      };
+
+      final repo = ref.read(cycleRepositoryProvider);
+      final steps = [
+        for (var i = 0; i < _workoutIds!.length; i++)
+          TrainingCycleStep(
+            id: idByWorkoutId[_workoutIds![i]] ?? '',
+            orderIndex: i,
+            workoutId: _workoutIds![i],
+          ),
+      ];
+      final result = await repo.setSteps(steps, widget.programId);
+      result.getOrThrow();
+      ref.invalidate(cycleStepsProvider);
+      ref.invalidate(cycleStepsForProgramProvider(widget.programId));
+    } finally {
+      if (mounted) {
+        setState(() => _pendingCycleOrderSave = false);
+      } else {
+        _pendingCycleOrderSave = false;
+      }
+    }
   }
 
   void _addWorkout(String workoutId) {
@@ -94,11 +133,26 @@ class _ActiveProgramCycleViewState
     _saveOrder();
   }
 
-  void _removeAt(int index) {
+  void _removeWorkoutId(String workoutId) {
     setState(() {
-      _workoutIds = [...?_workoutIds]..removeAt(index);
+      _workoutIds = [..._workoutIds ?? []]
+        ..removeWhere((id) => id == workoutId);
     });
     _saveOrder();
+  }
+
+  void _removeAt(int index) {
+    final ids = _workoutIds;
+    if (ids == null || index < 0 || index >= ids.length) return;
+    _removeWorkoutId(ids[index]);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActiveProgramCycleView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.programId != widget.programId) {
+      _resetCycleListState();
+    }
   }
 
   void _reorder(int oldIndex, int newIndex) {
@@ -296,16 +350,34 @@ class _ActiveProgramCycleViewState
 
     ref.listen(cycleStepsForProgramProvider(widget.programId), (_, next) {
       next.whenData((steps) {
-        final stepIds = steps.map((s) => s.workoutId).toList();
-        if (_workoutIds == null || !listEquals(_workoutIds, stepIds)) {
+        if (_pendingCycleOrderSave) return;
+        final stepIds = _dedupeWorkoutIdsPreserveOrder(
+          steps.map((s) => s.workoutId).toList(),
+        );
+        final local = _workoutIds;
+        if (local == null) {
           setState(() => _workoutIds = stepIds);
+          return;
         }
+        if (listEquals(local, stepIds)) return;
+        setState(() {
+          _workoutIds = stepIds;
+          _cycleListEpoch++;
+        });
       });
+    });
+
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.value != null && next.value == null) {
+        _resetCycleListState(workoutIds: const []);
+      }
     });
 
     final List<String> ids = _workoutIds ??
         stepsAsync.when(
-          data: (steps) => steps.map((s) => s.workoutId).toList(),
+          data: (steps) => _dedupeWorkoutIdsPreserveOrder(
+            steps.map((s) => s.workoutId).toList(),
+          ),
           loading: () => <String>[],
           error: (_, _) => <String>[],
         );
@@ -377,6 +449,7 @@ class _ActiveProgramCycleViewState
         ),
         Expanded(
           child: ReorderableListView.builder(
+            key: ValueKey('cycle-list-${widget.programId}-$_cycleListEpoch'),
             padding: const EdgeInsets.fromLTRB(
               AthlosSpacing.md,
               0,
@@ -419,10 +492,10 @@ class _ActiveProgramCycleViewState
               final descLine = _workoutNotesFirstLine(workout?.description);
               final isNext = workoutId == nextWorkoutId;
               return Dismissible(
-                key: ValueKey('cycle-$index-$workoutId'),
+                key: ValueKey('cycle-$_cycleListEpoch-$workoutId'),
                 direction: DismissDirection.endToStart,
                 confirmDismiss: (_) async => true,
-                onDismissed: (_) => _removeAt(index),
+                onDismissed: (_) => _removeWorkoutId(workoutId),
                 // Flutter requires [background] whenever [secondaryBackground] is set.
                 background: Container(
                   margin: const EdgeInsets.only(bottom: AthlosSpacing.xs),

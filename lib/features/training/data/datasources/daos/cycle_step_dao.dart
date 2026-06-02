@@ -32,14 +32,18 @@ class CycleStepDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(s) => OrderingTerm.asc(s.orderIndex)]))
           .get();
 
-  /// Replaces all active steps for [programId] (hard delete + insert).
+  /// Replaces all active steps for [programId] and [userId] (hard delete + insert).
   Future<void> replaceAll(
     List<CycleStepsCompanion> entries,
     String programId,
+    String userId,
   ) async {
     await transaction(() async {
       await (delete(cycleSteps)
-            ..where((s) => s.programId.equals(programId)))
+            ..where(
+              (s) =>
+                  s.programId.equals(programId) & s.userId.equals(userId),
+            ))
           .go();
       for (final entry in entries) {
         await into(cycleSteps).insert(entry);

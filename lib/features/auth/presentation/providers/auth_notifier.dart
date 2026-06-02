@@ -107,15 +107,14 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<void> signOut() async {
-    final previousUser = state.value;
-    state = const AsyncLoading();
+    // Optimistic: GoRouter must not stay on splash while Supabase sign-out
+    // is in flight (local data may already be wiped).
+    state = const AsyncData(null);
     try {
       final result = await ref.read(authRepositoryProvider).signOut();
       result.getOrThrow();
-      state = const AsyncData(null);
-    } on Object {
-      state = AsyncData(previousUser);
-      rethrow;
+    } on Object catch (e, st) {
+      debugPrint('[Auth] remote signOut failed (local session cleared): $e\n$st');
     }
   }
 

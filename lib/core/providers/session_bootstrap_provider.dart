@@ -22,8 +22,15 @@ part 'session_bootstrap_provider.g.dart';
 /// profile setup before remote data is pulled.
 @Riverpod(keepAlive: true)
 class SessionBootstrap extends _$SessionBootstrap {
+  static const _profileFetchTimeout = Duration(seconds: 15);
+
   @override
   bool build() => true;
+
+  /// Unblocks [GoRouter] entry redirects when startup is stuck on splash.
+  void markBootstrapComplete() {
+    state = true;
+  }
 
   Future<void> onAuthSessionChanged(
     AuthUser? previousUser,
@@ -32,6 +39,8 @@ class SessionBootstrap extends _$SessionBootstrap {
     if (previousUser?.id == nextUser?.id) return;
 
     if (nextUser == null) {
+      ref.invalidate(hasProfileProvider);
+      ref.invalidate(profileProvider);
       state = true;
       return;
     }
@@ -40,6 +49,7 @@ class SessionBootstrap extends _$SessionBootstrap {
     ref.invalidate(hasProfileProvider);
     ref.invalidate(profileProvider);
 
+    var hasNetwork = false;
     try {
       final isolation = ref.read(accountDataIsolationServiceProvider);
       if (await isolation.hasOrphanedUserData()) {
@@ -48,59 +58,82 @@ class SessionBootstrap extends _$SessionBootstrap {
       }
       await isolation.purgeStaleProfiles(nextUser.id);
 
-      final hasNetwork = await waitForNetworkAvailableForSync(ref);
+      hasNetwork = await waitForNetworkAvailableForSync(ref);
       if (!hasNetwork) {
         debugPrint(
-          '[SessionBootstrap] skipping sync: no internet after wait',
+          '[SessionBootstrap] skipping remote profile fetch: no internet after wait',
         );
       } else {
-        await ref.read(userDataSyncCoordinatorProvider).reconcileOnSessionChange();
+        await _pullAndCacheRemoteProfile().timeout(_profileFetchTimeout);
       }
-
-      // Safety net (anti-destructive):
-      // Even if sync cursors are stale or a table sync fails silently, never route a
-      // signed-in user to onboarding while a remote profile exists. Fetch current
-      // profile directly and persist locally.
-      if (hasNetwork) {
-        final remote = ref.read(userProfileRemoteDataSourceProvider);
-        final remoteProfile = await remote.fetchCurrentProfile();
-        if (remoteProfile != null) {
-          final dao = ref.read(userProfileDaoProvider);
-          await dao.upsert(
-            UserProfilesCompanion(
-              id: Value(remoteProfile.id),
-              name: Value(remoteProfile.name),
-              height: Value(remoteProfile.height),
-              age: Value(remoteProfile.age),
-              goal: Value(remoteProfile.goal),
-              bodyAesthetic: Value(remoteProfile.bodyAesthetic),
-              trainingStyle: Value(remoteProfile.trainingStyle),
-              experienceLevel: Value(remoteProfile.experienceLevel),
-              gender: Value(remoteProfile.gender),
-              trainingFrequency: Value(remoteProfile.trainingFrequency),
-              availableWorkoutMinutes: Value(remoteProfile.availableWorkoutMinutes),
-              trainsAtGym: Value(remoteProfile.trainsAtGym),
-              injuries: Value(remoteProfile.injuries),
-              bio: Value(remoteProfile.bio),
-              ownedEquipmentNames: Value(remoteProfile.ownedEquipmentNames),
-              lastActiveModule: Value(remoteProfile.lastActiveModule),
-              currentFrequencyStreak: Value(remoteProfile.currentFrequencyStreak),
-              bestFrequencyStreak: Value(remoteProfile.bestFrequencyStreak),
-              trainingStreaksSchema: Value(remoteProfile.trainingStreaksSchema),
-              isDirty: const Value(false),
-            ),
-          );
-          ref.invalidate(hasProfileProvider);
-          ref.invalidate(profileProvider);
-        }
-      }
-
-      await ref.read(trainingStreaksMaterializedProvider.future);
     } on Exception catch (e) {
-      debugPrint('[SessionBootstrap] failed: $e');
+      debugPrint('[SessionBootstrap] fast path failed: $e');
     } finally {
       if (ref.mounted) state = true;
     }
+
+    if (hasNetwork && ref.mounted) {
+      unawaited(_runBackgroundSessionSync());
+    }
+  }
+
+  /// Safety net (anti-destructive): never route to onboarding while a remote
+  /// profile exists. Only this fetch blocks splash — full table sync runs later.
+  Future<void> _pullAndCacheRemoteProfile() async {
+    final remote = ref.read(userProfileRemoteDataSourceProvider);
+    final remoteProfile = await remote.fetchCurrentProfile();
+    if (remoteProfile == null) return;
+
+    final dao = ref.read(userProfileDaoProvider);
+    await dao.upsert(
+      UserProfilesCompanion(
+        id: Value(remoteProfile.id),
+        name: Value(remoteProfile.name),
+        height: Value(remoteProfile.height),
+        age: Value(remoteProfile.age),
+        goal: Value(remoteProfile.goal),
+        bodyAesthetic: Value(remoteProfile.bodyAesthetic),
+        trainingStyle: Value(remoteProfile.trainingStyle),
+        experienceLevel: Value(remoteProfile.experienceLevel),
+        gender: Value(remoteProfile.gender),
+        trainingFrequency: Value(remoteProfile.trainingFrequency),
+        availableWorkoutMinutes: Value(remoteProfile.availableWorkoutMinutes),
+        trainsAtGym: Value(remoteProfile.trainsAtGym),
+        injuries: Value(remoteProfile.injuries),
+        bio: Value(remoteProfile.bio),
+        ownedEquipmentNames: Value(remoteProfile.ownedEquipmentNames),
+        lastActiveModule: Value(remoteProfile.lastActiveModule),
+        currentFrequencyStreak: Value(remoteProfile.currentFrequencyStreak),
+        bestFrequencyStreak: Value(remoteProfile.bestFrequencyStreak),
+        trainingStreaksSchema: Value(remoteProfile.trainingStreaksSchema),
+        isDirty: const Value(false),
+      ),
+    );
+    ref.invalidate(hasProfileProvider);
+    ref.invalidate(profileProvider);
+  }
+
+  Future<void> _runBackgroundSessionSync() async {
+    try {
+      await ref
+          .read(userDataSyncCoordinatorProvider)
+          .reconcileOnSessionChange()
+          .timeout(const Duration(minutes: 2));
+    } on Exception catch (e) {
+      debugPrint('[SessionBootstrap] background sync failed: $e');
+    }
+
+    try {
+      await ref
+          .read(trainingStreaksMaterializedProvider.future)
+          .timeout(const Duration(seconds: 30));
+    } on Exception catch (e) {
+      debugPrint('[SessionBootstrap] streak materialization failed: $e');
+    }
+
+    if (!ref.mounted) return;
+    ref.invalidate(hasProfileProvider);
+    ref.invalidate(profileProvider);
   }
 }
 

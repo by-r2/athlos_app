@@ -60,11 +60,14 @@ GoRouter appRouter(Ref ref) {
           hasAuthUser && !ref.read(sessionBootstrapProvider);
       final hasProfile =
           !isSessionBootstrapping && (hasProfileAsync.value ?? false);
+      // Signed-out users must not wait on profile/bootstrap async work.
+      final isProfileLoading =
+          hasAuthUser && hasProfileAsync.isLoading;
 
       final redirect = resolveAppEntryRedirect(
         location: location,
         isAuthLoading: authAsync.isLoading,
-        isProfileLoading: hasProfileAsync.isLoading,
+        isProfileLoading: isProfileLoading,
         isSessionBootstrapping: isSessionBootstrapping,
         hasAuthUser: hasAuthUser,
         hasProfile: hasProfile,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -195,7 +197,9 @@ class SupabaseAuthRepositoryImpl implements AuthRepository {
     if (client == null) return const Success(null);
 
     try {
-      await client.auth.signOut();
+      await client.auth
+          .signOut()
+          .timeout(const Duration(seconds: 10));
       return const Success(null);
     } on supabase.AuthException catch (e) {
       return Failure(AuthAppException(_mapAuthException(e)));
