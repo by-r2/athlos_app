@@ -139,12 +139,16 @@ class SessionBootstrap extends _$SessionBootstrap {
 
 @Riverpod(keepAlive: true)
 void sessionBootstrapListener(Ref ref) {
-  ref.listen(authProvider, (previous, next) {
-    unawaited(
-      ref.read(sessionBootstrapProvider.notifier).onAuthSessionChanged(
-        previous?.value,
-        next.value,
-      ),
-    );
-  });
+  ref.listen(
+    authProvider,
+    (previous, next) {
+      unawaited(
+        ref.read(sessionBootstrapProvider.notifier).onAuthSessionChanged(
+          previous?.value,
+          next.value,
+        ),
+      );
+    },
+    fireImmediately: true,
+  );
 }

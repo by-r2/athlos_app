@@ -2,12 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../features/auth/presentation/providers/auth_password_recovery_listener.dart';
 import '../../features/auth/presentation/screens/account_prompt_screen.dart';
 import '../../features/auth/presentation/screens/auth_email_screen.dart';
 import '../../features/hub/presentation/screens/hub_screen.dart';
-import '../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../features/profile/presentation/screens/conflict_center_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/profile_setup_screen.dart';
@@ -43,10 +41,16 @@ GoRouter appRouter(Ref ref) {
   ref.watch(sessionBootstrapListenerProvider);
   ref.watch(authPasswordRecoveryListenerProvider);
   final navigatorKey = ref.read(passwordRecoveryNavigatorKeyProvider);
-  ref.listen(authProvider, (_, _) => refreshNotifier.value++);
-  ref.listen(hasProfileProvider, (_, _) => refreshNotifier.value++);
-  ref.listen(sessionBootstrapProvider, (_, _) => refreshNotifier.value++);
+  // Gate aggregates auth + profile + bootstrap; fireImmediately re-runs redirect
+  // after cold start when async providers resolved before listeners attached.
+  ref.listen(
+    appEntryGateProvider,
+    (_, _) => refreshNotifier.value++,
+    fireImmediately: true,
+  );
   ref.onDispose(refreshNotifier.dispose);
+
+  Future.microtask(() => refreshNotifier.value++);
 
   return GoRouter(
     navigatorKey: navigatorKey,

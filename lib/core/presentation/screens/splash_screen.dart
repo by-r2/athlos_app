@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/app_entry_gate_provider.dart';
 import '../../providers/session_bootstrap_provider.dart';
+import '../../router/app_router.dart';
+import '../../router/app_entry_gate.dart';
+import '../../router/app_entry_decision.dart';
 import '../../router/route_paths.dart';
 import '../../theme/athlos_spacing.dart';
 import '../../theme/athlos_text_theme.dart';
@@ -30,6 +32,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Timer? _slowStartupTimer;
   var _showSlowStartupHint = false;
+  var _scheduledSplashExit = false;
 
   @override
   void initState() {
@@ -46,14 +49,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.dispose();
   }
 
+  void _scheduleSplashExit(AppEntryGate gate) {
+    if (_scheduledSplashExit || gate.blocksSplash) return;
+    _scheduledSplashExit = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _redirectFromSplashIfNeeded(gate);
+    });
+  }
+
   void _escapeSlowStartup() {
     ref.read(sessionBootstrapProvider.notifier).markBootstrapComplete();
     ref.invalidate(hasProfileProvider);
     ref.invalidate(profileProvider);
 
     if (ref.read(authProvider).value == null) {
-      context.go(RoutePaths.authPrompt);
+      ref.read(appRouterProvider).go(RoutePaths.authPrompt);
+    } else {
+      _redirectFromSplashIfNeeded(ref.read(appEntryGateProvider));
     }
+  }
+
+  void _redirectFromSplashIfNeeded(AppEntryGate gate) {
+    if (!mounted) return;
+    final router = ref.read(appRouterProvider);
+    if (router.state.matchedLocation != RoutePaths.splash) return;
+
+    final target = resolveAppEntryRedirect(
+      location: RoutePaths.splash,
+      isAuthLoading: gate.isAuthLoading,
+      isProfileLoading: gate.isProfileLoading,
+      isSessionBootstrapping: gate.isSessionBootstrapping,
+      hasAuthUser: gate.hasAuthUser,
+      hasProfile: gate.hasProfile,
+    );
+    if (target != null) router.go(target);
   }
 
   @override
@@ -62,6 +91,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final gate = ref.watch(appEntryGateProvider);
     final blocksSplash = gate.blocksSplash;
+
+    _scheduleSplashExit(gate);
+
+    ref.listen(appEntryGateProvider, (previous, next) {
+      if (previous?.blocksSplash == true && !next.blocksSplash) {
+        _scheduledSplashExit = false;
+        _scheduleSplashExit(next);
+      }
+    });
 
     if (!blocksSplash && _showSlowStartupHint) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
