@@ -3462,6 +3462,10 @@
   "@splashContinueToSignInAction": {
     "description": "Escape hatch on splash to open auth when startup is stuck"
   },
+  "splashContinueAction": "Continuar",
+  "@splashContinueAction": {
+    "description": "Escape hatch on splash when signed in but startup is stuck"
+  },
   "authSignedInAs": "Conectado como {email}",
   "@authSignedInAs": {
     "description": "Signed-in account label",

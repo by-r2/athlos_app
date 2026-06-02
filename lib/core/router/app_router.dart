@@ -23,6 +23,7 @@ import '../../features/training/presentation/screens/workout_execution_screen.da
 import '../../features/training/presentation/screens/workout_form_screen.dart';
 import '../../features/training/presentation/screens/workout_share_summary_screen.dart';
 import '../presentation/screens/splash_screen.dart';
+import '../providers/app_entry_gate_provider.dart';
 import '../providers/last_module_provider.dart';
 import '../providers/session_bootstrap_provider.dart';
 import '../services/user_data_sync_coordinator.dart';
@@ -52,29 +53,20 @@ GoRouter appRouter(Ref ref) {
     initialLocation: RoutePaths.splash,
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
-      final hasProfileAsync = ref.read(hasProfileProvider);
-      final authAsync = ref.read(authProvider);
       final location = state.matchedLocation;
-      final hasAuthUser = authAsync.value != null;
-      final isSessionBootstrapping =
-          hasAuthUser && !ref.read(sessionBootstrapProvider);
-      final hasProfile =
-          !isSessionBootstrapping && (hasProfileAsync.value ?? false);
-      // Signed-out users must not wait on profile/bootstrap async work.
-      final isProfileLoading =
-          hasAuthUser && hasProfileAsync.isLoading;
+      final gate = ref.read(appEntryGateProvider);
 
       final redirect = resolveAppEntryRedirect(
         location: location,
-        isAuthLoading: authAsync.isLoading,
-        isProfileLoading: isProfileLoading,
-        isSessionBootstrapping: isSessionBootstrapping,
-        hasAuthUser: hasAuthUser,
-        hasProfile: hasProfile,
+        isAuthLoading: gate.isAuthLoading,
+        isProfileLoading: gate.isProfileLoading,
+        isSessionBootstrapping: gate.isSessionBootstrapping,
+        hasAuthUser: gate.hasAuthUser,
+        hasProfile: gate.hasProfile,
       );
       if (redirect != null) return redirect;
 
-      if (!hasRestoredModule && hasProfile && location == RoutePaths.hub) {
+      if (!hasRestoredModule && gate.hasProfile && location == RoutePaths.hub) {
         hasRestoredModule = true;
         if (lastModule != null) return lastModule;
       }

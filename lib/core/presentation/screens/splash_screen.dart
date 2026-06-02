@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../features/auth/presentation/providers/auth_notifier.dart';
 import '../../../features/profile/presentation/providers/profile_notifier.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/app_entry_gate_provider.dart';
 import '../../providers/session_bootstrap_provider.dart';
 import '../../router/route_paths.dart';
 import '../../theme/athlos_spacing.dart';
@@ -15,8 +16,8 @@ import '../../theme/athlos_text_theme.dart';
 
 /// Displayed while the app resolves initial async state (e.g. hasProfile).
 ///
-/// No navigation logic here — GoRouter redirect handles routing
-/// once the profile check resolves.
+/// Navigation is handled by GoRouter redirect; this screen only reflects
+/// [appEntryGateProvider] and offers a slow-startup escape hatch.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -45,27 +46,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.dispose();
   }
 
-  void _openSignIn() {
+  void _escapeSlowStartup() {
     ref.read(sessionBootstrapProvider.notifier).markBootstrapComplete();
     ref.invalidate(hasProfileProvider);
     ref.invalidate(profileProvider);
-    context.go(RoutePaths.authPrompt);
+
+    if (ref.read(authProvider).value == null) {
+      context.go(RoutePaths.authPrompt);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final authAsync = ref.watch(authProvider);
-    final hasProfileAsync = ref.watch(hasProfileProvider);
-    final isBootstrapping = ref.watch(sessionBootstrapProvider);
+    final gate = ref.watch(appEntryGateProvider);
+    final blocksSplash = gate.blocksSplash;
 
-    final isStillResolving =
-        authAsync.isLoading ||
-        (authAsync.value != null &&
-            (hasProfileAsync.isLoading || !isBootstrapping));
-
-    if (!isStillResolving && _showSlowStartupHint) {
+    if (!blocksSplash && _showSlowStartupHint) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _showSlowStartupHint = false);
       });
@@ -80,11 +78,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Athlos',
+                l10n.appTitle,
                 style: AthlosTextTheme.brandDisplay(colorScheme.primary),
               ),
               const SizedBox(height: AthlosSpacing.xl),
-              if (isStillResolving) ...[
+              if (blocksSplash) ...[
                 SizedBox(
                   width: AthlosSpacing.lg,
                   height: AthlosSpacing.lg,
@@ -104,8 +102,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: AthlosSpacing.md),
                   FilledButton(
-                    onPressed: _openSignIn,
-                    child: Text(l10n.splashContinueToSignInAction),
+                    onPressed: _escapeSlowStartup,
+                    child: Text(
+                      gate.hasAuthUser
+                          ? l10n.splashContinueAction
+                          : l10n.splashContinueToSignInAction,
+                    ),
                   ),
                 ],
               ],
