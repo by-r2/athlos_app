@@ -9,14 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const useCase = SubstituteWorkoutExercise();
 
-  final benchPress = Exercise(
-    id: 'bench',
-    name: 'Bench Press',
-    muscleGroup: MuscleGroup.chest,
-    type: ExerciseType.strength,
-    isVerified: true,
-  );
-
   final inclinePress = Exercise(
     id: 'incline',
     name: 'Incline Press',

@@ -3,6 +3,7 @@ import 'package:athlos_app/core/errors/result.dart';
 import 'package:athlos_app/core/sync/user_owned_sync_runner.dart';
 import 'package:athlos_app/features/training/data/datasources/daos/cycle_step_dao.dart';
 import 'package:athlos_app/features/training/data/repositories/cycle_repository_impl.dart';
+import 'package:athlos_app/features/training/data/sync/training_remote_client.dart';
 import 'package:athlos_app/features/training/domain/entities/cycle_step.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,7 @@ void main() {
       repository = CycleRepositoryImpl(
         CycleStepDao(db),
         UserOwnedSyncRunner.disabled(),
+        TrainingRemoteClient(),
         'test-user-id',
       );
       await db.customSelect('SELECT 1').get();
