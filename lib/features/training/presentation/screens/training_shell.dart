@@ -10,6 +10,7 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/widgets/layout/athlos_scroll_top_fade.dart';
+import '../widgets/dangling_execution_prompt_listener.dart';
 import '../widgets/training_shell_fab.dart';
 import 'program_detail_screen.dart';
 import 'program_form_screen.dart';
@@ -134,7 +135,8 @@ class _TrainingShell extends ConsumerWidget {
 
     final subPageBackTarget = _subPageBackTarget(currentPath);
 
-    return PopScope(
+    return DanglingExecutionPromptListener(
+      child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -228,6 +230,7 @@ class _TrainingShell extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 

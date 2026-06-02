@@ -140,6 +140,10 @@ class WorkoutExecutionScreen extends ConsumerStatefulWidget {
 class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     with WidgetsBindingObserver {
   bool _isInitialized = false;
+  bool _isInitializing = false;
+  bool _initCallbackScheduled = false;
+  bool _isCompletingWorkout = false;
+  bool _didRegisterProviderListeners = false;
   _ViewMode _viewMode = _ViewMode.overview;
   bool _isInBackground = false;
   bool _suppressRestFeedbackOnce = false;
@@ -272,6 +276,128 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     _goalAlertScheduledInBackground = false;
   }
 
+  bool get _forceNewSession =>
+      GoRouterState.of(context).uri.queryParameters['fresh'] == '1';
+
+  void _scheduleSessionInitialization(
+    AsyncValue<List<WorkoutExercise>> exercisesAsync,
+    ActiveExecutionState? execState,
+  ) {
+    if (_isInitialized ||
+        _isInitializing ||
+        _initCallbackScheduled ||
+        execState != null) {
+      return;
+    }
+
+    exercisesAsync.when(
+      loading: () {},
+      error: (_, _) => _abortSessionInitWithError(),
+      data: (exercises) {
+        if (_initCallbackScheduled) return;
+        _initCallbackScheduled = true;
+        _isInitializing = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            final ready = await _initializeWorkoutSession(exercises);
+            if (!mounted) return;
+            if (ready && ref.read(activeExecutionProvider) != null) {
+              setState(() => _isInitialized = true);
+            } else {
+              _abortSessionInitWithError();
+            }
+          } on Object catch (_) {
+            if (mounted) _abortSessionInitWithError();
+          } finally {
+            if (mounted) {
+              setState(() => _isInitializing = false);
+            }
+          }
+        });
+      },
+    );
+  }
+
+  void _abortSessionInitWithError() {
+    if (_isInitialized) return;
+    _isInitialized = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      context.showAthlosErrorSnack(
+        AppLocalizations.of(context)!.genericError,
+      );
+      final router = GoRouter.of(context);
+      if (router.canPop()) {
+        router.pop();
+      } else {
+        router.go(RoutePaths.trainingWorkouts);
+      }
+    });
+  }
+
+  Future<bool> _initializeWorkoutSession(
+    List<WorkoutExercise> exercises,
+  ) async {
+    await clearDanglingBlockingWorkout(
+      ref,
+      targetWorkoutId: widget.workoutId,
+      forceNewForTarget: _forceNewSession,
+    );
+
+    if (!_forceNewSession) {
+      final dangling = await ref.read(danglingExecutionProvider.future);
+      if (dangling != null &&
+          dangling.workoutId == widget.workoutId &&
+          !dangling.isFinished) {
+        await resumeWorkoutExecution(ref, execution: dangling);
+        return ref.read(activeExecutionProvider) != null;
+      }
+    }
+
+    final programRepo = ref.read(programRepositoryProvider);
+    final activeProgram = (await programRepo.getActive()).getOrThrow();
+    if (activeProgram == null) throw Exception('No active program');
+    final deloadConfig = activeProgram.isInDeload
+        ? activeProgram.deloadConfig
+        : null;
+    final progressionRules = await ref
+        .read(progressionRuleRepositoryProvider)
+        .getByProgram(activeProgram.id)
+        .then((r) => r.getOrThrow());
+    final allExercises = ref.read(exerciseListProvider).value ?? [];
+    final isometricIds = {
+      for (final e in allExercises)
+        if (e.isIsometric) e.id,
+    };
+    final workout = (await ref
+            .read(workoutRepositoryProvider)
+            .getById(widget.workoutId))
+        .getOrThrow();
+    final isAdHocDraft = workout?.isDraft ?? false;
+    if (isAdHocDraft) {
+      await ref.read(activeExecutionProvider.notifier).startAdHocExecution(
+            widget.workoutId,
+            programId: activeProgram.id,
+            deloadConfig: deloadConfig,
+            progressionRules: progressionRules,
+            defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
+            isometricExerciseIds: isometricIds,
+          );
+    } else {
+      await ref.read(activeExecutionProvider.notifier).startExecution(
+            widget.workoutId,
+            exercises,
+            programId: activeProgram.id,
+            deloadConfig: deloadConfig,
+            progressionRules: progressionRules,
+            defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
+            isometricExerciseIds: isometricIds,
+          );
+    }
+
+    return ref.read(activeExecutionProvider) != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final exercisesAsync = ref.watch(
@@ -279,17 +405,34 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     );
     final execState = ref.watch(activeExecutionProvider);
     final exerciseCatalogAsync = ref.watch(exerciseListProvider);
-    final danglingAsync = ref.watch(danglingExecutionProvider);
     final timerState = ref.watch(restTimerProvider);
     final cardioState = ref.watch(cardioTimerProvider);
-    ref.listen<RestTimerState>(restTimerProvider, (previous, next) {
-      _syncRestTimerNotification(previous: previous, next: next);
-      _maybePlayRestFinishedFeedback(previous, next);
-    });
-    ref.listen<CardioTimerState>(cardioTimerProvider, (previous, next) {
-      _syncGoalTimerNotification(previous: previous, next: next);
-      _maybePlayGoalReachedFeedback(previous, next);
-    });
+    if (!_didRegisterProviderListeners) {
+      _didRegisterProviderListeners = true;
+      ref.listen<ActiveExecutionState?>(activeExecutionProvider, (previous, next) {
+        if (!mounted) return;
+        if (previous == null || next != null) return;
+        if (previous.isFinishing || _isCompletingWorkout) return;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final router = GoRouter.of(context);
+          if (router.canPop()) {
+            router.pop();
+          } else {
+            router.go(RoutePaths.trainingWorkouts);
+          }
+        });
+      });
+      ref.listen<RestTimerState>(restTimerProvider, (previous, next) {
+        _syncRestTimerNotification(previous: previous, next: next);
+        _maybePlayRestFinishedFeedback(previous, next);
+      });
+      ref.listen<CardioTimerState>(cardioTimerProvider, (previous, next) {
+        _syncGoalTimerNotification(previous: previous, next: next);
+        _maybePlayGoalReachedFeedback(previous, next);
+      });
+    }
 
     // If the workout references exercises that no longer exist in the local
     // catalog, we must stop and offer a recovery path instead of crashing.
@@ -336,73 +479,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       }
     }
 
-    if (!_isInitialized &&
-        exercisesAsync is AsyncData<List<WorkoutExercise>> &&
-        execState == null) {
-      _isInitialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final l10n = AppLocalizations.of(context)!;
-        final router = GoRouter.of(context);
-        try {
-          final dangling = danglingAsync.value;
-          if (dangling != null && dangling.workoutId != widget.workoutId) {
-            router.pop();
-            return;
-          }
-          if (dangling != null && dangling.workoutId == widget.workoutId) {
-            await resumeWorkoutExecution(ref, execution: dangling);
-            return;
-          }
-
-          final programRepo = ref.read(programRepositoryProvider);
-          final activeProgram = (await programRepo.getActive()).getOrThrow();
-          if (activeProgram == null) throw Exception('No active program');
-          final deloadConfig = activeProgram.isInDeload
-              ? activeProgram.deloadConfig
-              : null;
-          final progressionRules = await ref
-              .read(progressionRuleRepositoryProvider)
-              .getByProgram(activeProgram.id)
-              .then((r) => r.getOrThrow());
-          final allExercises = ref.read(exerciseListProvider).value ?? [];
-          final isometricIds = {
-            for (final e in allExercises)
-              if (e.isIsometric) e.id,
-          };
-          final workout = (await ref
-                  .read(workoutRepositoryProvider)
-                  .getById(widget.workoutId))
-              .getOrThrow();
-          final isAdHocDraft = workout?.isDraft ?? false;
-          if (isAdHocDraft) {
-            await ref.read(activeExecutionProvider.notifier).startAdHocExecution(
-                  widget.workoutId,
-                  programId: activeProgram.id,
-                  deloadConfig: deloadConfig,
-                  progressionRules: progressionRules,
-                  defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
-                  isometricExerciseIds: isometricIds,
-                );
-          } else {
-            await ref
-                .read(activeExecutionProvider.notifier)
-                .startExecution(
-                  widget.workoutId,
-                  exercisesAsync.value,
-                  programId: activeProgram.id,
-                  deloadConfig: deloadConfig,
-                  progressionRules: progressionRules,
-                  defaultRestSeconds: activeProgram.defaultRestSeconds ?? 0,
-                  isometricExerciseIds: isometricIds,
-                );
-          }
-        } on Exception catch (_) {
-          if (!context.mounted) return;
-          context.showAthlosErrorSnack(l10n.genericError);
-          router.pop();
-        }
-      });
-    }
+    _scheduleSessionInitialization(exercisesAsync, execState);
 
     // No auto-transition — the timer view shows a "rest complete" state
     // with explicit buttons for the user to proceed.
@@ -425,27 +502,110 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
           _showCancelDialog(context);
         }
       },
-      child: execState == null
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : switch (_viewMode) {
-              _ViewMode.overview => _buildOverview(context, execState),
-              _ViewMode.focused => _buildFocused(context, execState),
-              _ViewMode.timer => _buildTimer(context, execState, timerState),
-              _ViewMode.cardioTimer => _buildCardioTimer(
-                context,
-                execState,
-                cardioState,
+      child: _buildExecutionBody(
+        context,
+        execState: execState,
+        timerState: timerState,
+        cardioState: cardioState,
+      ),
+    );
+  }
+
+  Widget _buildExecutionBody(
+    BuildContext context, {
+    required ActiveExecutionState? execState,
+    required RestTimerState timerState,
+    required CardioTimerState cardioState,
+  }) {
+    if (execState == null) {
+      return _buildSessionLoadingPlaceholder(context);
+    }
+
+    final session = switch (_viewMode) {
+      _ViewMode.overview => _buildOverview(context, execState),
+      _ViewMode.focused => _buildFocused(context, execState),
+      _ViewMode.timer => _buildTimer(context, execState, timerState),
+      _ViewMode.cardioTimer => _buildCardioTimer(
+        context,
+        execState,
+        cardioState,
+      ),
+      _ViewMode.timedSet => _buildTimedSet(
+        context,
+        execState,
+        cardioState,
+      ),
+      _ViewMode.exerciseTransition => _buildExerciseCompleteTransition(
+        context,
+        execState,
+      ),
+    };
+
+    if (!execState.isFinishing && !_isCompletingWorkout) return session;
+
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Stack(
+      children: [
+        session,
+        ModalBarrier(
+          dismissible: false,
+          color: colorScheme.scrim.withValues(alpha: 0.45),
+        ),
+        Center(
+          child: Material(
+            elevation: AthlosElevation.md,
+            borderRadius: AthlosRadius.mdAll,
+            color: colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AthlosSpacing.xl,
+                vertical: AthlosSpacing.lg,
               ),
-              _ViewMode.timedSet => _buildTimedSet(
-                context,
-                execState,
-                cardioState,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: AthlosSpacing.md),
+                  Text(
+                    l10n.finishWorkout,
+                    style: textTheme.titleSmall,
+                  ),
+                ],
               ),
-              _ViewMode.exerciseTransition => _buildExerciseCompleteTransition(
-                context,
-                execState,
-              ),
-            },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSessionLoadingPlaceholder(BuildContext context) {
+    if (_isCompletingWorkout) {
+      return _buildFinishingWorkoutPlaceholder(context);
+    }
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildFinishingWorkoutPlaceholder(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final textTheme = Theme.of(context).textTheme;
+
+    return AthlosScaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: AthlosSpacing.md),
+            Text(l10n.finishWorkout, style: textTheme.titleMedium),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1388,17 +1548,28 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       final l10n = AppLocalizations.of(context)!;
       final confirmed = await showAthlosDialog<bool>(
         context: context,
+        barrierDismissible: true,
         builder: (ctx) => AlertDialog(
           title: Text(l10n.executionSubstituteConfirmTitle),
-          content: Text(l10n.executionSubstituteConfirmMessage),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [Text(l10n.executionSubstituteConfirmMessage)],
+          ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.executionSubstituteAction),
+            AthlosStackedDialogActions(
+              children: [
+                TextButton(
+                  style: AthlosDialogButtonStyles.stackedGhost(ctx),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  style: AthlosDialogButtonStyles.stackedFilled(ctx),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.executionSubstituteAction),
+                ),
+              ],
             ),
           ],
         ),
@@ -4439,6 +4610,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     ActiveExecutionState exec,
   ) async {
     final executionIdToShare = exec.executionId;
+    if (!mounted) return;
+    setState(() => _isCompletingWorkout = true);
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
       ref.read(restTimerProvider.notifier).reset();
@@ -4447,6 +4620,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         await _navigateAfterPlannedFinish(context, executionIdToShare);
       }
     } on Exception catch (_) {
+      if (mounted) setState(() => _isCompletingWorkout = false);
       if (context.mounted) {
         context.showAthlosErrorSnack(AppLocalizations.of(context)!.genericError);
       }
@@ -4462,6 +4636,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final l10n = AppLocalizations.of(context)!;
     final exercisesToPersist = List<WorkoutExercise>.from(exec.exercises);
 
+    if (!mounted) return;
+    setState(() => _isCompletingWorkout = true);
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
 
@@ -4484,6 +4660,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
       if (!context.mounted) return;
       await _navigateAfterPlannedFinish(context, executionIdToShare);
     } on Exception catch (_) {
+      if (mounted) setState(() => _isCompletingWorkout = false);
       if (context.mounted) {
         context.showAthlosErrorSnack(l10n.genericError);
       }
@@ -4794,6 +4971,8 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
     final program = ref.read(activeProgramProvider).value;
     if (program == null) return;
 
+    if (!mounted) return;
+    setState(() => _isCompletingWorkout = true);
     try {
       await ref.read(activeExecutionProvider.notifier).finishExecution();
 
@@ -4824,6 +5003,7 @@ class _WorkoutExecutionScreenState extends ConsumerState<WorkoutExecutionScreen>
         );
       }
     } on Exception catch (_) {
+      if (mounted) setState(() => _isCompletingWorkout = false);
       if (context.mounted) {
         context.showAthlosErrorSnack(l10n.genericError);
       }

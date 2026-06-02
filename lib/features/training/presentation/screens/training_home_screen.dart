@@ -10,18 +10,14 @@ import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/feedback/athlos_truncated_text.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/execution_comparison.dart';
-import '../../domain/entities/workout_execution.dart';
 import '../../domain/enums/muscle_group.dart';
 import '../../domain/enums/program_focus.dart';
 import '../helpers/duration_format.dart';
 import '../helpers/exercise_l10n.dart';
-import '../helpers/workout_execution_launch.dart';
-import '../providers/dangling_execution_dialog_session.dart';
 import '../providers/exercise_notifier.dart';
 import '../providers/program_notifier.dart';
 import '../providers/training_analytics_provider.dart';
 import '../providers/training_metrics_provider.dart';
-import '../providers/workout_execution_notifier.dart';
 import '../providers/workout_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart'
     show profileProvider;
@@ -41,68 +37,9 @@ class TrainingHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
-  late final DanglingExecutionDialogSession _dialogSession;
-  bool _didScheduleInitialDanglingCheck = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _dialogSession = ref.read(danglingExecutionDialogSessionProvider.notifier);
-  }
-
-  @override
-  void dispose() {
-    // Riverpod forbids notifier writes during dispose / tree finalization.
-    final session = _dialogSession;
-    Future.microtask(session.cancelHomePrompt);
-    super.dispose();
-  }
-
-  void _deferDialogSessionUpdate(void Function() update) {
-    Future.microtask(update);
-  }
-
-  void _onDanglingExecutionChanged(AsyncValue<WorkoutExecution?> next) {
-    if (!context.mounted) return;
-    next.when(
-      data: (execution) {
-        if (execution == null) {
-          _deferDialogSessionUpdate(_dialogSession.clear);
-          return;
-        }
-        if (!_dialogSession.shouldShowHomePrompt(execution.id)) {
-          return;
-        }
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) return;
-          showDanglingExecutionHomeDialogIfNeeded(context, ref, execution);
-        });
-      },
-      loading: () {},
-      error: (_, _) {},
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    if (!_didScheduleInitialDanglingCheck) {
-      _didScheduleInitialDanglingCheck = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _onDanglingExecutionChanged(ref.read(danglingExecutionProvider));
-      });
-    }
-
-    ref.listen(danglingExecutionProvider, (prev, next) {
-      if (prev?.value?.id == next.value?.id &&
-          prev?.hasValue == true &&
-          next.hasValue) {
-        return;
-      }
-      _onDanglingExecutionChanged(next);
-    });
 
     return Scaffold(
       body: SingleChildScrollView(

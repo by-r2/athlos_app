@@ -30,6 +30,7 @@ export 'active_execution_state.dart';
 import 'program_notifier.dart';
 import 'workout_execution_notifier.dart';
 import 'workout_notifier.dart';
+import 'dangling_execution_dialog_session.dart';
 
 import '../../../profile/presentation/providers/body_metric_notifier.dart';
 import '../../../profile/presentation/providers/profile_notifier.dart';
@@ -71,6 +72,8 @@ class ActiveExecution extends _$ActiveExecution {
     Set<String> isometricExerciseIds = const {},
   }) async {
     final repo = ref.read(workoutExecutionRepositoryProvider);
+    (await repo.deleteUnfinishedByWorkout(workoutId)).getOrThrow();
+
     final result = await repo.start(
       workoutId,
       programId: programId,
@@ -110,6 +113,8 @@ class ActiveExecution extends _$ActiveExecution {
     Set<String> isometricExerciseIds = const {},
   }) async {
     final repo = ref.read(workoutExecutionRepositoryProvider);
+    (await repo.deleteUnfinishedByWorkout(workoutId)).getOrThrow();
+
     final result = await repo.start(
       workoutId,
       programId: programId,
@@ -1026,33 +1031,50 @@ class ActiveExecution extends _$ActiveExecution {
     state = current.copyWith(isFinishing: true);
 
     final programId = ref.read(activeProgramProvider).value?.id;
-    final finishUseCase = ref.read(finishWorkoutExecutionProvider);
-    final result = await finishUseCase(
-      FinishWorkoutExecutionParams(
-        executionId: current.executionId,
-        workoutId: current.workoutId,
-        programId: programId,
-        templateExercises: current.exercises,
-        substitutionsByRowId: current.substitutions,
-      ),
-    );
-    result.getOrThrow();
+    try {
+      final finishUseCase = ref.read(finishWorkoutExecutionProvider);
+      final result = await finishUseCase(
+        FinishWorkoutExecutionParams(
+          executionId: current.executionId,
+          workoutId: current.workoutId,
+          programId: programId,
+          templateExercises: current.exercises,
+          substitutionsByRowId: current.substitutions,
+        ),
+      );
+      result.getOrThrow();
 
-    state = null;
-    _structuralEditDeloadConfig = null;
-    _structuralEditProgressionRules = const [];
-    _structuralEditIsometricExerciseIds = const {};
-    await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
+      state = null;
+      _structuralEditDeloadConfig = null;
+      _structuralEditProgressionRules = const [];
+      _structuralEditIsometricExerciseIds = const {};
 
-    ref.invalidate(lastFinishedWorkoutIdProvider);
-    ref.invalidate(lastFinishedCycleWorkoutIdProvider);
-    ref.invalidate(workoutExecutionListProvider);
-    ref.invalidate(programSessionCountProvider);
+      ref.invalidate(lastFinishedWorkoutIdProvider);
+      ref.invalidate(lastFinishedCycleWorkoutIdProvider);
+      ref.invalidate(workoutExecutionListProvider);
+      ref.invalidate(programSessionCountProvider);
 
-    await ref.read(recalculateTrainingStreaksProvider.notifier).run();
-    ref.invalidate(profileProvider);
-    ref.invalidate(finishedSessionCountProvider);
-    ref.invalidate(trainingHomeAnalyticsProvider);
+      unawaited(_runPostFinishSideEffects(programId));
+    } on Exception catch (e, st) {
+      debugPrint('[ActiveExecution] finishExecution failed: $e\n$st');
+      state = current.copyWith(isFinishing: false);
+      rethrow;
+    }
+  }
+
+  Future<void> _runPostFinishSideEffects(String? programId) async {
+    try {
+      await ref.read(userDataSyncCoordinatorProvider).syncWorkoutSessionToCloud();
+      await ref.read(recalculateTrainingStreaksProvider.notifier).run();
+      ref.invalidate(profileProvider);
+      ref.invalidate(finishedSessionCountProvider);
+      ref.invalidate(trainingHomeAnalyticsProvider);
+      if (programId != null && programId.isNotEmpty) {
+        ref.invalidate(programSessionCountProvider(programId));
+      }
+    } on Exception catch (e, st) {
+      debugPrint('[ActiveExecution] post-finish side effects failed: $e\n$st');
+    }
   }
 
   /// Resume a previously started but unfinished execution.
@@ -1247,6 +1269,10 @@ class ActiveExecution extends _$ActiveExecution {
   /// Soft-deletes an unfinished execution, clears in-memory session when it
   /// matches, syncs tombstones, and refreshes dangling/list providers.
   Future<void> discardExecution(String executionId) async {
+    // Suppress any boot/home dangling prompts for this id while we delete it.
+    ref
+        .read(danglingExecutionDialogSessionProvider.notifier)
+        .completeHomePrompt(executionId);
     _clearActiveSessionIfMatch(executionId);
     await _persistDiscardedExecution(executionId);
   }
@@ -1256,20 +1282,29 @@ class ActiveExecution extends _$ActiveExecution {
     final current = state;
     if (current == null) return;
     final executionId = current.executionId;
+    // Suppress dangling prompts while cancellation is in-flight.
+    ref
+        .read(danglingExecutionDialogSessionProvider.notifier)
+        .completeHomePrompt(executionId);
     _clearActiveSessionIfMatch(executionId);
     try {
       await _persistDiscardedExecution(executionId);
     } on Exception catch (e, st) {
-      debugPrint('[ActiveExecution] cancelExecution failed: $e\n$st');
-      ref.invalidate(danglingExecutionProvider);
+      if (kDebugMode) {
+        debugPrint('[ActiveExecution] cancelExecution failed: $e\n$st');
+      }
+      // Don't invalidate danglingExecutionProvider here (can create cycles).
     }
   }
 
   Future<void> _persistDiscardedExecution(String executionId) async {
     final execRepo = ref.read(workoutExecutionRepositoryProvider);
-    final execution = (await execRepo.getById(executionId)).getOrThrow();
-
-    (await execRepo.delete(executionId)).getOrThrow();
+    final execution = (await execRepo
+            .getById(executionId)
+            .timeout(const Duration(seconds: 8)))
+        .getOrThrow();
+    (await execRepo.delete(executionId).timeout(const Duration(seconds: 8)))
+        .getOrThrow();
 
     if (execution != null) {
       final workout = (await ref
@@ -1281,7 +1316,15 @@ class ActiveExecution extends _$ActiveExecution {
       }
     }
 
-    ref.invalidate(danglingExecutionProvider);
+    // Important: `danglingExecutionProvider` depends on `activeExecutionProvider`.
+    // When discard/cancel is triggered from dangling-execution listeners/dialogs
+    // (which themselves are driven by `danglingExecutionProvider`), invalidating
+    // it from here can create a dependency cycle at runtime.
+    //
+    // We purposely DO NOT invalidate `danglingExecutionProvider` here. It will
+    // naturally rebuild when `activeExecutionProvider` changes, and callers that
+    // need an immediate refresh can do it from the UI layer (outside provider
+    // evaluation stacks).
     ref.invalidate(lastFinishedWorkoutIdProvider);
     ref.invalidate(workoutExecutionListProvider);
 

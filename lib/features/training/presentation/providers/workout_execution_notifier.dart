@@ -6,6 +6,7 @@ import '../../domain/entities/execution_set.dart';
 import '../../domain/entities/execution_set_segment.dart';
 import '../../domain/entities/workout_exercise.dart';
 import '../../domain/entities/workout_execution.dart';
+import 'active_execution_notifier.dart';
 import 'workout_notifier.dart';
 
 part 'workout_execution_notifier.g.dart';
@@ -33,6 +34,10 @@ class WorkoutExecutionList extends _$WorkoutExecutionList {
 /// Auto-deletes orphaned executions (workout was deleted) on first load.
 @riverpod
 Future<WorkoutExecution?> danglingExecution(Ref ref) async {
+  // If there's an active in-memory session, it will always have an unfinished
+  // DB row (by design). In that case we should not prompt "resume/discard".
+  if (ref.watch(activeExecutionProvider) != null) return null;
+
   final repo = ref.watch(workoutExecutionRepositoryProvider);
   await repo.deleteOrphaned();
   final result = await repo.getDangling();

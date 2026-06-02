@@ -11,6 +11,7 @@ import '../../../../core/services/user_data_sync_coordinator.dart';
 import '../../../../core/theme/athlos_spacing.dart';
 import '../../../../core/widgets/app_bar_menu.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../training/presentation/widgets/dangling_execution_prompt_listener.dart';
 import '../widgets/module_card.dart';
 
 /// Hub screen — the app's main entry point ("Olympus").
@@ -62,7 +63,8 @@ class _HubScreenState extends ConsumerState<HubScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return PopScope(
+    return DanglingExecutionPromptListener(
+      child: PopScope(
       canPop: false,
       child: Scaffold(
         // --- App bar with profile action ---
@@ -123,6 +125,7 @@ class _HubScreenState extends ConsumerState<HubScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

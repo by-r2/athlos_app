@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../../core/errors/result.dart';
 import '../../../../core/router/route_paths.dart';
@@ -19,6 +20,49 @@ import '../providers/exercise_notifier.dart';
 import '../providers/workout_execution_notifier.dart';
 
 export 'workout_execution_blocking.dart';
+
+/// Refreshes the dangling-execution cache after a local discard/finish.
+Future<void> refreshDanglingExecution(WidgetRef ref) async {
+  ref.invalidate(danglingExecutionProvider);
+  await ref.read(danglingExecutionProvider.future);
+}
+
+/// Removes unfinished executions that block [targetWorkoutId].
+///
+/// When [forceNewForTarget] is true, also discards an unfinished row for the
+/// same workout so a brand-new session can start.
+Future<void> clearDanglingBlockingWorkout(
+  WidgetRef ref, {
+  required String targetWorkoutId,
+  bool forceNewForTarget = false,
+}) async {
+  for (var attempt = 0; attempt < 5; attempt++) {
+    ref.invalidate(danglingExecutionProvider);
+    final dangling = await ref.read(danglingExecutionProvider.future);
+    if (kDebugMode && (dangling != null || attempt > 0)) {
+      debugPrint(
+        '[DanglingExecution] clearBlocking(attempt=$attempt) target=$targetWorkoutId '
+        'dangling=${dangling?.id} workout=${dangling?.workoutId} finished=${dangling?.isFinished} '
+        'forceNewForTarget=$forceNewForTarget',
+      );
+    }
+    if (dangling == null) return;
+
+    final isTarget = dangling.workoutId == targetWorkoutId;
+    if (isTarget && !forceNewForTarget && !dangling.isFinished) {
+      return;
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[DanglingExecution] clearBlocking: discarding ${dangling.id} (workout=${dangling.workoutId})',
+      );
+    }
+    await ref
+        .read(activeExecutionProvider.notifier)
+        .discardExecution(dangling.id);
+  }
+}
 
 enum _WorkoutLaunchConflictChoice { cancel, resumeInProgress, discardAndStart }
 
@@ -63,6 +107,7 @@ Future<bool> launchWorkoutExecution(
   WidgetRef ref, {
   required String workoutId,
 }) async {
+  ref.invalidate(danglingExecutionProvider);
   final blocking = await resolveBlockingInProgressWorkout(ref, workoutId);
   if (!context.mounted) return false;
 
@@ -143,8 +188,13 @@ Future<bool> launchWorkoutExecution(
         await ref
             .read(activeExecutionProvider.notifier)
             .discardExecution(blocking.executionId);
+        await clearDanglingBlockingWorkout(
+          ref,
+          targetWorkoutId: workoutId,
+          forceNewForTarget: true,
+        );
         if (!context.mounted) return false;
-        context.push(_executeRoute(workoutId));
+        context.push(_executeRoute(workoutId, fresh: true));
         return true;
       } on Exception catch (_) {
         if (context.mounted) {
@@ -220,10 +270,26 @@ Future<void> showDanglingExecutionHomeDialogIfNeeded(
           context.push(_executeRoute(execution.workoutId));
         }
       case _HomeDanglingChoice.discard:
-        session.completeHomePrompt(execution.id);
+        session.cancelHomePrompt();
         await ref
             .read(activeExecutionProvider.notifier)
             .discardExecution(execution.id);
+        await refreshDanglingExecution(ref);
+        session.completeHomePrompt(execution.id);
+        if (!context.mounted) return;
+        final routerState = GoRouterState.of(context);
+        final currentUri = routerState.uri;
+        final currentPath = currentUri.path;
+
+        final looksLikeExecute =
+            currentPath.contains('/execute') && currentPath.contains(execution.workoutId);
+        if (looksLikeExecute) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(RoutePaths.trainingWorkouts);
+          }
+        }
     }
   } on Exception catch (_) {
     session.cancelHomePrompt();
@@ -282,5 +348,6 @@ Future<String?> _workoutDisplayName(WidgetRef ref, String workoutId) async {
   return workout?.name;
 }
 
-String _executeRoute(String workoutId) =>
-    '${RoutePaths.trainingWorkouts}/$workoutId/execute';
+String _executeRoute(String workoutId, {bool fresh = false}) =>
+    '${RoutePaths.trainingWorkouts}/$workoutId/execute'
+    '${fresh ? '?fresh=1' : ''}';
